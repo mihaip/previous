@@ -13,7 +13,7 @@ int inet_aton(const char *cp, struct in_addr *ia);
 extern "C" {
 #endif
 
-int slirp_init(void);
+int slirp_init(struct in_addr *guest_addr);
 
 int slirp_select_fill(int *pnfds, 
 					  fd_set *readfds, fd_set *writefds, fd_set *xfds);
