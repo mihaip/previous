@@ -487,8 +487,8 @@ void i860_cpu_device::init(void) {
         for(int i = 2; i < 32; i += 2) {
             FLOAT32 hi = get_fregval_s(i+1);
             FLOAT32 lo = get_fregval_s(i+0);
-            if((*(UINT32*)&hi) != (0x00234567 | (i<<23))) {err = 10100+i; goto error;}
-            if((*(UINT32*)&lo) !=  0x89ABCDEF)            {err = 10100+i; goto error;}
+            if((*(UINT32*)&hi) != (UINT32)(0x00234567 | (i<<23))) {err = 10100+i; goto error;}
+            if((*(UINT32*)&lo) != (UINT32) 0x89ABCDEF)            {err = 10100+i; goto error;}
         }
         for(int i = 1; i < 16; i++) {
             if(m_fregs[i*8+7] != i)    {err = 10200+i; goto error;}

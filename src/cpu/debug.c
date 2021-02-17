@@ -480,7 +480,7 @@ uae_u8 *get_real_address_debug(uaecptr addr)
 		} CATCH(p) {
 		} ENDTRY
 	}
-    return addr; //get_real_address(addr);
+    return NULL;
 }
 
 int debug_safe_addr (uaecptr addr, int size)

@@ -79,17 +79,6 @@ this code that are retained.
  * version 2 or later. See the COPYING file in the top-level directory.
  */
 
-/*----------------------------------------------------------------------------
-| Returns 1 if the extended double-precision floating-point value `a' is a
-| NaN; otherwise returns 0.
-*----------------------------------------------------------------------------*/
-
-static inline flag floatx80_is_nan( floatx80 a )
-{
-
-    return ( ( a.high & 0x7FFF ) == 0x7FFF ) && (uint64_t) ( a.low<<1 );
-
-}
 
 /*----------------------------------------------------------------------------
 | The pattern for a default generated extended double-precision NaN.
@@ -121,30 +110,6 @@ typedef struct {
     flag sign;
     uint64_t high, low;
 } commonNaNT;
-
-/*----------------------------------------------------------------------------
-| Returns 1 if the single-precision floating-point value `a' is a NaN;
-| otherwise returns 0.
-*----------------------------------------------------------------------------*/
-
-static inline flag float32_is_nan( float32 a )
-{
-
-    return ( 0xFF000000 < (uint32_t) ( a<<1 ) );
-
-}
-
-/*----------------------------------------------------------------------------
-| Returns 1 if the single-precision floating-point value `a' is a signaling
-| NaN; otherwise returns 0.
-*----------------------------------------------------------------------------*/
-
-static inline flag float32_is_signaling_nan( float32 a )
-{
-
-    return ( ( ( a>>22 ) & 0x1FF ) == 0x1FE ) && ( a & 0x003FFFFF );
-
-}
 
 /*----------------------------------------------------------------------------
 | Returns the result of converting the single-precision floating-point NaN
@@ -203,29 +168,33 @@ static inline float32 propagateFloat32NaN( float32 a, float32 b, float_status *s
 }
 
 /*----------------------------------------------------------------------------
-| Returns 1 if the double-precision floating-point value `a' is a NaN;
-| otherwise returns 0.
-*----------------------------------------------------------------------------*/
+ | Takes two double-precision floating-point values `a' and `b', one of which
+ | is a NaN, and returns the appropriate NaN result.  If either `a' or `b' is a
+ | signaling NaN, the invalid exception is raised.
+ *----------------------------------------------------------------------------*/
 
-static inline flag float64_is_nan( float64 a )
+static float64 propagateFloat64NaN( float64 a, float64 b, float_status* c )
 {
-
-    return ( LIT64( 0xFFE0000000000000 ) < (uint64_t) ( a<<1 ) );
-
-}
-
-/*----------------------------------------------------------------------------
-| Returns 1 if the double-precision floating-point value `a' is a signaling
-| NaN; otherwise returns 0.
-*----------------------------------------------------------------------------*/
-
-static inline flag float64_is_signaling_nan( float64 a )
-{
-
-    return
-           ( ( ( a>>51 ) & 0xFFF ) == 0xFFE )
-        && ( a & LIT64( 0x0007FFFFFFFFFFFF ) );
-
+    flag aIsNaN, aIsSignalingNaN, bIsNaN, bIsSignalingNaN;
+    
+    aIsNaN = float64_is_nan( a );
+    aIsSignalingNaN = float64_is_signaling_nan( a );
+    bIsNaN = float64_is_nan( b );
+    bIsSignalingNaN = float64_is_signaling_nan( b );
+    a |= LIT64( 0x0008000000000000 );
+    b |= LIT64( 0x0008000000000000 );
+#ifdef SOFTFLOAT_I860
+    if ( aIsSignalingNaN | bIsSignalingNaN ) float_raise( float_flag_signaling, c );
+#else
+    if ( aIsSignalingNaN | bIsSignalingNaN ) float_raise( float_flag_signaling );
+#endif
+    if ( aIsNaN ) {
+        return ( aIsSignalingNaN & bIsNaN ) ? b : a;
+    }
+    else {
+        return b;
+    }
+    
 }
 
 /*----------------------------------------------------------------------------
@@ -258,23 +227,6 @@ static inline float64 commonNaNToFloat64(commonNaNT a, float_status *status)
           ( ( (uint64_t) a.sign )<<63 )
         | LIT64( 0x7FF8000000000000 )
         | ( a.high>>12 );
-}
-
-/*----------------------------------------------------------------------------
-| Returns 1 if the extended double-precision floating-point value `a' is a
-| signaling NaN; otherwise returns 0.
-*----------------------------------------------------------------------------*/
-
-static inline flag floatx80_is_signaling_nan( floatx80 a )
-{
-    uint64_t aLow;
-
-    aLow = a.low & ~ LIT64( 0x4000000000000000 );
-    return
-           ( ( a.high & 0x7FFF ) == 0x7FFF )
-        && (uint64_t) ( aLow<<1 )
-        && ( a.low == aLow );
-
 }
 
 /*----------------------------------------------------------------------------
@@ -364,80 +316,3 @@ static inline floatx80 propagateFloatx80NaNOneArg(floatx80 a, float_status *stat
     return a;
 }
 #endif
-
-// 28-12-2016: Added for Previous:
-
-/*----------------------------------------------------------------------------
- | Returns 1 if the extended double-precision floating-point value `a' is
- | zero; otherwise returns 0.
- *----------------------------------------------------------------------------*/
-
-static inline flag floatx80_is_zero( floatx80 a )
-{
-    
-    return ( ( a.high & 0x7FFF ) < 0x7FFF ) && ( a.low == 0 );
-    
-}
-
-/*----------------------------------------------------------------------------
- | Returns 1 if the extended double-precision floating-point value `a' is
- | infinity; otherwise returns 0.
- *----------------------------------------------------------------------------*/
-
-static inline flag floatx80_is_infinity( floatx80 a )
-{
-    
-    return ( ( a.high & 0x7FFF ) == 0x7FFF ) && ( (uint64_t) ( a.low<<1 ) == 0 );
-    
-}
-
-/*----------------------------------------------------------------------------
- | Returns 1 if the extended double-precision floating-point value `a' is
- | negative; otherwise returns 0.
- *----------------------------------------------------------------------------*/
-
-static inline flag floatx80_is_negative( floatx80 a )
-{
-    
-    return ( ( a.high & 0x8000 ) == 0x8000 );
-    
-}
-
-/*----------------------------------------------------------------------------
- | Returns 1 if the extended double-precision floating-point value `a' is
- | unnormal; otherwise returns 0.
- *----------------------------------------------------------------------------*/
-static inline flag floatx80_is_unnormal( floatx80 a )
-{
-	return
-		( ( a.high & 0x7FFF ) > 0 )
-		&& ( ( a.high & 0x7FFF ) < 0x7FFF)
-		&& ( (uint64_t) ( a.low & LIT64( 0x8000000000000000 ) ) == LIT64( 0x0000000000000000 ) );
-}
-
-/*----------------------------------------------------------------------------
- | Returns 1 if the extended double-precision floating-point value `a' is
- | denormal; otherwise returns 0.
- *----------------------------------------------------------------------------*/
-
-static inline flag floatx80_is_denormal( floatx80 a )
-{
-	return
-		( ( a.high & 0x7FFF ) == 0 )
-		&& ( (uint64_t) ( a.low & LIT64( 0x8000000000000000 ) ) == LIT64( 0x0000000000000000 ) )
-		&& (uint64_t) ( a.low<<1 );
-}
-
-/*----------------------------------------------------------------------------
- | Returns 1 if the extended double-precision floating-point value `a' is
- | normal; otherwise returns 0.
- *----------------------------------------------------------------------------*/
-
-static inline flag floatx80_is_normal( floatx80 a )
-{
-	return
-		( ( a.high & 0x7FFF ) < 0x7FFF )
-		&& ( (uint64_t) ( a.low & LIT64( 0x8000000000000000 ) ) == LIT64( 0x8000000000000000 ) );
-}
-// End of addition for Previous
-

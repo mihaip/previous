@@ -89,7 +89,7 @@ void host_blank(int slot, int src, bool state) {
     }
     
     // check first 4 bytes of version string in darkmatter/daydream kernel
-    osDarkmatter = get_long(0x04000246) == do_get_mem_long(DARKMATTER);
+    osDarkmatter = get_long(0x04000246) == do_get_mem_long((Uint8*)DARKMATTER);
 }
 
 bool host_blank_state(int slot, int src) {

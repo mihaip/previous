@@ -90,6 +90,7 @@ this code that are retained.
 #include <sunmath.h>
 #endif
 
+#define SOFTFLOAT_I860
 
 /* This 'flag' type must be able to hold at least 0 and 1. It should
  * probably be replaced with 'bool' but the uses would need to be audited
@@ -378,22 +379,74 @@ enum {
 /*----------------------------------------------------------------------------
 | Software IEC/IEEE integer-to-floating-point conversion routines.
 *----------------------------------------------------------------------------*/
-
+float32 int32_to_float32(int32_t);
+float64 int32_to_float64(int32_t);
+float32 int64_to_float32(int64_t);
+float64 int64_to_float64(int64_t);
 floatx80 int32_to_floatx80(int32_t);
 floatx80 int64_to_floatx80(int64_t);
 
 /*----------------------------------------------------------------------------
 | Software IEC/IEEE single-precision conversion routines.
 *----------------------------------------------------------------------------*/
+int32_t float32_to_int32(float32, float_status *status);
+int32_t float32_to_int32_round_to_zero(float32, float_status *status);
+int64_t float32_to_int64(float32, float_status *status);
+int64_t float32_to_int64_round_to_zero(float32, float_status *status);
+float64 float32_to_float64(float32, float_status *status);
 floatx80 float32_to_floatx80(float32, float_status *status);
 floatx80 float32_to_floatx80_allowunnormal(float32, float_status *status);
 
 /*----------------------------------------------------------------------------
+ | Software IEC/IEEE single-precision operations.
+ *----------------------------------------------------------------------------*/
+float32 float32_round_to_int(float32, float_status *status);
+float32 float32_add(float32, float32, float_status *status);
+float32 float32_sub(float32, float32, float_status *status);
+float32 float32_mul(float32, float32, float_status *status);
+float32 float32_div(float32, float32, float_status *status);
+float32 float32_rem(float32, float32, float_status *status);
+float32 float32_sqrt(float32, float_status *status);
+flag float32_eq(float32, float32, float_status *status);
+flag float32_le(float32, float32, float_status *status);
+flag float32_lt(float32, float32, float_status *status);
+#ifdef SOFTFLOAT_I860
+flag float32_gt(float32, float32, float_status *status);
+#endif
+flag float32_eq_signaling(float32, float32, float_status *status);
+flag float32_le_quiet(float32, float32, float_status *status);
+flag float32_lt_quiet(float32, float32, float_status *status);
+
+/*----------------------------------------------------------------------------
 | Software IEC/IEEE double-precision conversion routines.
 *----------------------------------------------------------------------------*/
+int32_t float64_to_int32(float64, float_status *status);
+int32_t float64_to_int32_round_to_zero(float64, float_status *status);
+int64_t float64_to_int64(float64, float_status *status);
+int64_t float64_to_int64_round_to_zero(float64, float_status *status);
+float32 float64_to_float32(float64, float_status *status);
 floatx80 float64_to_floatx80(float64, float_status *status);
+floatx80 float64_to_floatx80_allowunnormal(float64 a, float_status *status);
 
-floatx80 float64_to_floatx80_allowunnormal( float64 a, float_status *status );
+/*----------------------------------------------------------------------------
+ | Software IEC/IEEE double-precision operations.
+ *----------------------------------------------------------------------------*/
+float64 float64_round_to_int(float64, float_status *status);
+float64 float64_add(float64, float64, float_status *status);
+float64 float64_sub(float64, float64, float_status *status);
+float64 float64_mul(float64, float64, float_status *status);
+float64 float64_div(float64, float64, float_status *status);
+float64 float64_rem(float64, float64, float_status *status);
+float64 float64_sqrt(float64, float_status *status);
+flag float64_eq(float64, float64, float_status *status);
+flag float64_le(float64, float64, float_status *status);
+flag float64_lt(float64, float64, float_status *status);
+#ifdef SOFTFLOAT_I860
+flag float64_gt(float64, float64, float_status *status);
+#endif
+flag float64_eq_signaling(float64, float64, float_status *status);
+flag float64_le_quiet(float64, float64, float_status *status);
+flag float64_lt_quiet(float64, float64, float_status *status);
 
 /*----------------------------------------------------------------------------
 | Software IEC/IEEE extended double-precision conversion routines.
@@ -483,15 +536,178 @@ floatx80 floatx80_sqrt(floatx80, float_status *status);
 floatx80 floatx80_normalize(floatx80);
 floatx80 floatx80_denormalize(floatx80, flag);
 
+/*----------------------------------------------------------------------------
+ | Returns 1 if the single-precision floating-point value `a' is a NaN;
+ | otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag float32_is_nan( float32 a )
+{
+    
+    return ( 0xFF000000 < (uint32_t) ( a<<1 ) );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the single-precision floating-point value `a' is a signaling
+ | NaN; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag float32_is_signaling_nan( float32 a )
+{
+    
+    return ( ( ( a>>22 ) & 0x1FF ) == 0x1FE ) && ( a & 0x003FFFFF );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the double-precision floating-point value `a' is a NaN;
+ | otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag float64_is_nan( float64 a )
+{
+    
+    return ( LIT64( 0xFFE0000000000000 ) < (uint64_t) ( a<<1 ) );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the double-precision floating-point value `a' is a signaling
+ | NaN; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag float64_is_signaling_nan( float64 a )
+{
+    
+    return
+    ( ( ( a>>51 ) & 0xFFF ) == 0xFFE )
+    && ( a & LIT64( 0x0007FFFFFFFFFFFF ) );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is
+ | zero or denormal; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
 static inline int floatx80_is_zero_or_denormal(floatx80 a)
 {
     return (a.high & 0x7fff) == 0;
 }
 
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is
+ | any NaN; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
 static inline int floatx80_is_any_nan(floatx80 a)
 {
     return ((a.high & 0x7fff) == 0x7fff) && (a.low<<1);
 }
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is a
+ | NaN; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag floatx80_is_nan( floatx80 a )
+{
+    
+    return ( ( a.high & 0x7FFF ) == 0x7FFF ) && (uint64_t) ( a.low<<1 );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is a
+ | signaling NaN; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag floatx80_is_signaling_nan( floatx80 a )
+{
+    uint64_t aLow;
+    
+    aLow = a.low & ~ LIT64( 0x4000000000000000 );
+    return
+    ( ( a.high & 0x7FFF ) == 0x7FFF )
+    && (uint64_t) ( aLow<<1 )
+    && ( a.low == aLow );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is
+ | zero; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag floatx80_is_zero( floatx80 a )
+{
+    
+    return ( ( a.high & 0x7FFF ) < 0x7FFF ) && ( a.low == 0 );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is
+ | infinity; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag floatx80_is_infinity( floatx80 a )
+{
+    
+    return ( ( a.high & 0x7FFF ) == 0x7FFF ) && ( (uint64_t) ( a.low<<1 ) == 0 );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is
+ | negative; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag floatx80_is_negative( floatx80 a )
+{
+    
+    return ( ( a.high & 0x8000 ) == 0x8000 );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is
+ | unnormal; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+static inline flag floatx80_is_unnormal( floatx80 a )
+{
+    return
+    ( ( a.high & 0x7FFF ) > 0 )
+    && ( ( a.high & 0x7FFF ) < 0x7FFF)
+    && ( (uint64_t) ( a.low & LIT64( 0x8000000000000000 ) ) == LIT64( 0x0000000000000000 ) );
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is
+ | denormal; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag floatx80_is_denormal( floatx80 a )
+{
+    return
+    ( ( a.high & 0x7FFF ) == 0 )
+    && ( (uint64_t) ( a.low & LIT64( 0x8000000000000000 ) ) == LIT64( 0x0000000000000000 ) )
+    && (uint64_t) ( a.low<<1 );
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the extended double-precision floating-point value `a' is
+ | normal; otherwise returns 0.
+ *----------------------------------------------------------------------------*/
+
+static inline flag floatx80_is_normal( floatx80 a )
+{
+    return
+    ( ( a.high & 0x7FFF ) < 0x7FFF )
+    && ( (uint64_t) ( a.low & LIT64( 0x8000000000000000 ) ) == LIT64( 0x8000000000000000 ) );
+}
+
 
 /*----------------------------------------------------------------------------
 | Return whether the given value is an invalid floatx80 encoding.

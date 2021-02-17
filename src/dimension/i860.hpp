@@ -93,16 +93,18 @@ typedef float64 FLOAT64;
 #define float64_le(x,y)         float64_le(x,y,&m_fpcs)
 #define float64_eq(x,y)         float64_eq(x,y,&m_fpcs)
 
-static inline void reset_fpcs(float_ctrl* fp_control) {
-    float_init(fp_control);
+static inline void reset_fpcs(float_status* c) {
+    set_float_rounding_mode(float_round_nearest_even, c);
+    set_float_detect_tininess(float_tininess_before_rounding, c);
+    set_float_exception_flags(0, c);
 }
 
-static inline void float_set_rounding_mode (int mode, float_ctrl* fp_control) {
+static inline void float_set_rounding_mode (int mode, float_status* c) {
     switch (mode) {
-        case 0: set_float_rounding_mode(float_round_nearest_even, fp_control); break;
-        case 1: set_float_rounding_mode(float_round_down, fp_control);         break;
-        case 2: set_float_rounding_mode(float_round_up, fp_control);           break;
-        case 3: set_float_rounding_mode(float_round_to_zero, fp_control);      break;
+        case 0: set_float_rounding_mode(float_round_nearest_even, c); break;
+        case 1: set_float_rounding_mode(float_round_down, c);         break;
+        case 2: set_float_rounding_mode(float_round_up, c);           break;
+        case 3: set_float_rounding_mode(float_round_to_zero, c);      break;
     }
 }
 
@@ -121,7 +123,7 @@ static inline void float_set_rounding_mode (int mode, float_ctrl* fp_control) {
 typedef float FLOAT32;
 typedef double FLOAT64;
 
-#define float_ctrl int
+#define float_status int
 
 #define FLOAT32_ZERO            0.0
 #define FLOAT32_ONE             1.0
@@ -458,7 +460,7 @@ private:
     void debugger(void);
     
     // softfloat control and status
-    float_ctrl m_fpcs;
+    float_status m_fpcs;
     
     thread_t*    m_thread;
 

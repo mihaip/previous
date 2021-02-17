@@ -114,6 +114,7 @@ void nd_video_vbl_handler(void) {
     FOR_EACH_SLOT(slot) {
         IF_NEXT_DIMENSION(slot, nd) {
             host_blank(slot, ND_VIDEO, NDSDL::ndVideoVBLtoggle);
+            nd->i860.i860cycles = nd->i860.i860cycles; // make compiler happy
         }
     }
     NDSDL::ndVideoVBLtoggle = !NDSDL::ndVideoVBLtoggle;

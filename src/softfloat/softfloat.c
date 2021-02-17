@@ -96,6 +96,13 @@ this code that are retained.
 *----------------------------------------------------------------------------*/
 #include "softfloat-macros.h"
 
+typedef uint16_t bits16;
+typedef int16_t sbits16;
+typedef uint32_t bits32;
+typedef int32_t sbits32;
+typedef uint64_t bits64;
+typedef int64_t sbits64;
+
 /*----------------------------------------------------------------------------
  | Variables for storing sign, exponent and significand of internal extended
  | double-precision floating-point value for external use.
@@ -513,6 +520,47 @@ static int32_t roundAndPackInt32(flag zSign, uint64_t absZ, float_status *status
 
 }
 
+#ifdef SOFTFLOAT_I860 // 29-04-2017: Added for Previous
+static int32_t roundAndPackInt32_2( flag zSign, bits64 absZ, float_status* c )
+{
+    int8_t roundingMode;
+    flag roundNearestEven;
+    int8_t roundIncrement, roundBits;
+    int32_t z;
+    
+    roundingMode = get_float_rounding_mode( c );
+    roundNearestEven = ( roundingMode == float_round_nearest_even );
+    roundIncrement = 0x40;
+    if ( ! roundNearestEven ) {
+        if ( roundingMode == float_round_to_zero ) {
+            roundIncrement = 0;
+        }
+        else {
+            roundIncrement = 0x7F;
+            if ( zSign ) {
+                if ( roundingMode == float_round_up ) roundIncrement = 0;
+            }
+            else {
+                if ( roundingMode == float_round_down ) roundIncrement = 0;
+            }
+        }
+    }
+    roundBits = absZ & 0x7F;
+    absZ = ( absZ + roundIncrement )>>7;
+    absZ &= ~ ( ( ( roundBits ^ 0x40 ) == 0 ) & roundNearestEven );
+    z = absZ;
+    if ( zSign ) z = - z;
+    z = (sbits32) z;
+    if ( ( absZ>>32 ) || ( z && ( ( z < 0 ) ^ zSign ) ) ) {
+        float_raise( float_flag_invalid, c );
+        return zSign ? (sbits32) 0x80000000 : 0x7FFFFFFF;
+    }
+    if ( roundBits ) float_raise( float_flag_inexact, c );
+    return z;
+    
+}
+#endif // End of addition for Previous
+
 
 #ifdef SOFTFLOAT_68K // 30-01-2017: Added for Previous
 static int16_t roundAndPackInt16( flag zSign, uint64_t absZ, float_status *status )
@@ -823,6 +871,81 @@ static float32 roundAndPackFloat32(flag zSign, int zExp, uint32_t zSig,
 
 }
 
+#ifdef SOFTFLOAT_I860 // 29-04-2017: Added for Previous
+static float32 roundAndPackFloat32_2( flag zSign, int16_t zExp, bits32 zSig, float_status* c )
+{
+    int8_t roundingMode;
+    flag roundNearestEven;
+    int8_t roundIncrement, roundBits;
+    flag isTiny;
+    
+    roundingMode = get_float_rounding_mode( c );
+    roundNearestEven = ( roundingMode == float_round_nearest_even );
+    roundIncrement = 0x40;
+    if ( ! roundNearestEven ) {
+        if ( roundingMode == float_round_to_zero ) {
+            roundIncrement = 0;
+        }
+        else {
+            roundIncrement = 0x7F;
+            if ( zSign ) {
+                if ( roundingMode == float_round_up ) roundIncrement = 0;
+            }
+            else {
+                if ( roundingMode == float_round_down ) roundIncrement = 0;
+            }
+        }
+    }
+    roundBits = zSig & 0x7F;
+    if ( 0xFD <= (bits16) zExp ) {
+        if (    ( 0xFD < zExp )
+            || (    ( zExp == 0xFD )
+                && ( (sbits32) ( zSig + roundIncrement ) < 0 ) )
+            ) {
+            float_raise( float_flag_overflow | float_flag_inexact, c );
+            return packFloat32( zSign, 0xFF, 0 ) - ( roundIncrement == 0 );
+        }
+        if ( zExp < 0 ) {
+            isTiny =
+#ifndef SOFTFLOAT_I860
+            ( get_float_detect_tininess(c) == float_tininess_before_rounding ) ||
+#endif
+            ( zExp < -1 ) ||
+            ( zSig + roundIncrement < 0x80000000 );
+            shift32RightJamming( zSig, - zExp, &zSig );
+            zExp = 0;
+            roundBits = zSig & 0x7F;
+            if ( isTiny && roundBits ) float_raise( float_flag_underflow, c );
+        }
+    }
+    if ( roundBits ) float_raise( float_flag_inexact, c );
+    zSig = ( zSig + roundIncrement )>>7;
+    zSig &= ~ ( ( ( roundBits ^ 0x40 ) == 0 ) & roundNearestEven );
+    if ( zSig == 0 ) zExp = 0;
+    return packFloat32( zSign, zExp, zSig );
+    
+}
+#endif // end of addition for Previous
+
+/*----------------------------------------------------------------------------
+ | Takes an abstract floating-point value having sign `zSign', exponent `zExp',
+ | and significand `zSig', and returns the proper single-precision floating-
+ | point value corresponding to the abstract input.  This routine is just like
+ | `roundAndPackFloat32' except that `zSig' does not have to be normalized.
+ | Bit 31 of `zSig' must be zero, and `zExp' must be 1 less than the ``true''
+ | floating-point exponent.
+ *----------------------------------------------------------------------------*/
+
+static float32
+normalizeRoundAndPackFloat32( flag zSign, int16_t zExp, bits32 zSig, float_status* c )
+{
+    int8_t shiftCount;
+    
+    shiftCount = countLeadingZeros32( zSig ) - 1;
+    return roundAndPackFloat32( zSign, zExp - shiftCount, zSig<<shiftCount, c );
+    
+}
+
 /*----------------------------------------------------------------------------
 | Returns the fraction bits of the double-precision floating-point value `a'.
 *----------------------------------------------------------------------------*/
@@ -1007,6 +1130,62 @@ static float64 roundAndPackFloat64(flag zSign, int zExp, uint64_t zSig,
 
 }
 
+#ifdef SOFTFLOAT_I860 // 29-04-2017: Added for Previous
+static float64 roundAndPackFloat64_2( flag zSign, int16_t zExp, bits64 zSig, float_status* c )
+{
+    int8_t roundingMode;
+    flag roundNearestEven;
+    int16_t roundIncrement, roundBits;
+    flag isTiny;
+    
+    roundingMode = get_float_rounding_mode( c );
+    roundNearestEven = ( roundingMode == float_round_nearest_even );
+    roundIncrement = 0x200;
+    if ( ! roundNearestEven ) {
+        if ( roundingMode == float_round_to_zero ) {
+            roundIncrement = 0;
+        }
+        else {
+            roundIncrement = 0x3FF;
+            if ( zSign ) {
+                if ( roundingMode == float_round_up ) roundIncrement = 0;
+            }
+            else {
+                if ( roundingMode == float_round_down ) roundIncrement = 0;
+            }
+        }
+    }
+    roundBits = zSig & 0x3FF;
+    if ( 0x7FD <= (bits16) zExp ) {
+        if (    ( 0x7FD < zExp )
+            || (    ( zExp == 0x7FD )
+                && ( (sbits64) ( zSig + roundIncrement ) < 0 ) )
+            ) {
+            float_raise( float_flag_overflow | float_flag_inexact, c );
+            return packFloat64( zSign, 0x7FF, 0 ) - ( roundIncrement == 0 );
+        }
+        if ( zExp < 0 ) {
+            isTiny =
+#ifndef SOFTFLOAT_I860
+            ( get_float_detect_tininess(c) == float_tininess_before_rounding ) ||
+#endif
+            ( zExp < -1 ) ||
+            ( zSig + roundIncrement < LIT64( 0x8000000000000000 ) );
+            shift64RightJamming( zSig, - zExp, &zSig );
+            zExp = 0;
+            roundBits = zSig & 0x3FF;
+            if ( isTiny && roundBits ) float_raise( float_flag_underflow, c );
+        }
+    }
+    if ( roundBits ) float_raise( float_flag_inexact, c );
+    zSig = ( zSig + roundIncrement )>>10;
+    zSig &= ~ ( ( ( roundBits ^ 0x200 ) == 0 ) & roundNearestEven );
+    if ( zSig == 0 ) zExp = 0;
+    return packFloat64( zSign, zExp, zSig );
+    
+}
+#endif // End of addition for Previous
+
 /*----------------------------------------------------------------------------
 | Returns the fraction bits of the extended double-precision floating-point
 | value `a'.
@@ -1041,6 +1220,25 @@ flag extractFloatx80Sign( floatx80 a )
 
     return a.high>>15;
 
+}
+
+/*----------------------------------------------------------------------------
+ | Takes an abstract floating-point value having sign `zSign', exponent `zExp',
+ | and significand `zSig', and returns the proper double-precision floating-
+ | point value corresponding to the abstract input.  This routine is just like
+ | `roundAndPackFloat64' except that `zSig' does not have to be normalized.
+ | Bit 63 of `zSig' must be zero, and `zExp' must be 1 less than the ``true''
+ | floating-point exponent.
+ *----------------------------------------------------------------------------*/
+
+static float64
+normalizeRoundAndPackFloat64( flag zSign, int16_t zExp, bits64 zSig, float_status* c )
+{
+    int8_t shiftCount;
+    
+    shiftCount = countLeadingZeros64( zSig ) - 1;
+    return roundAndPackFloat64( zSign, zExp - shiftCount, zSig<<shiftCount, c );
+    
 }
 
 /*----------------------------------------------------------------------------
@@ -1640,6 +1838,35 @@ floatx80 int32_to_floatx80(int32_t a)
 }
 
 /*----------------------------------------------------------------------------
+ | Returns the result of converting the single-precision floating-point value
+ | `a' to the double-precision floating-point format.  The conversion is
+ | performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float64 float32_to_float64( float32 a, float_status* c )
+{
+    flag aSign;
+    int aExp;
+    bits32 aSig;
+    
+    aSig = extractFloat32Frac( a );
+    aExp = extractFloat32Exp( a );
+    aSign = extractFloat32Sign( a );
+    if ( aExp == 0xFF ) {
+        if ( aSig ) return commonNaNToFloat64( float32ToCommonNaN( a, c ), c );
+        return packFloat64( aSign, 0x7FF, 0 );
+    }
+    if ( aExp == 0 ) {
+        if ( aSig == 0 ) return packFloat64( aSign, 0, 0 );
+        normalizeFloat32Subnormal( aSig, &aExp, &aSig );
+        --aExp;
+    }
+    return packFloat64( aSign, aExp + 0x380, ( (bits64) aSig )<<29 );
+    
+}
+
+/*----------------------------------------------------------------------------
 | Returns the result of converting the single-precision floating-point value
 | `a' to the extended double-precision floating-point format.  The conversion
 | is performed according to the IEC/IEEE Standard for Binary Floating-Point
@@ -1690,6 +1917,225 @@ floatx80 float32_to_floatx80_allowunnormal(float32 a , float_status *status)
     
 }
 #endif // end of addition for Previous
+
+/*----------------------------------------------------------------------------
+ | Returns the result of converting the double-precision floating-point value
+ | `a' to the 32-bit two's complement integer format.  The conversion is
+ | performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic---which means in particular that the conversion is rounded
+ | according to the current rounding mode.  If `a' is a NaN, the largest
+ | positive integer is returned.  Otherwise, if the conversion overflows, the
+ | largest integer with the same sign as `a' is returned.
+ *----------------------------------------------------------------------------*/
+
+int32_t float64_to_int32( float64 a, float_status* c )
+{
+    flag aSign;
+    int16_t aExp, shiftCount;
+    bits64 aSig;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    aSign = extractFloat64Sign( a );
+    if ( ( aExp == 0x7FF ) && aSig ) aSign = 0;
+    if ( aExp ) aSig |= LIT64( 0x0010000000000000 );
+    shiftCount = 0x42C - aExp;
+    if ( 0 < shiftCount ) shift64RightJamming( aSig, shiftCount, &aSig );
+#ifdef SOFTFLOAT_I860
+    return roundAndPackInt32_2( aSign, aSig, c );
+#else
+    return roundAndPackInt32( aSign, aSig );
+#endif
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of converting the double-precision floating-point value
+ | `a' to the 32-bit two's complement integer format.  The conversion is
+ | performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic, except that the conversion is always rounded toward zero.
+ | If `a' is a NaN, the largest positive integer is returned.  Otherwise, if
+ | the conversion overflows, the largest integer with the same sign as `a' is
+ | returned.
+ *----------------------------------------------------------------------------*/
+
+int32_t float64_to_int32_round_to_zero( float64 a, float_status* c )
+{
+    flag aSign;
+    int16_t aExp, shiftCount;
+    bits64 aSig, savedASig;
+    int32_t z;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    aSign = extractFloat64Sign( a );
+    if ( 0x41E < aExp ) {
+        if ( ( aExp == 0x7FF ) && aSig ) aSign = 0;
+        goto invalid;
+    }
+    else if ( aExp < 0x3FF ) {
+#ifdef SOFTFLOAT_I860
+        if ( aExp || aSig ) float_raise( float_flag_inexact, c );
+#else
+        if ( aExp || aSig ) float_exception_flags |= float_flag_inexact;
+#endif
+        return 0;
+    }
+    aSig |= LIT64( 0x0010000000000000 );
+    shiftCount = 0x433 - aExp;
+    savedASig = aSig;
+    aSig >>= shiftCount;
+    z = aSig;
+    if ( aSign ) z = - z;
+    z = (sbits32) z;
+    if ( ( z < 0 ) ^ aSign ) {
+    invalid:
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return aSign ? (sbits32) 0x80000000 : 0x7FFFFFFF;
+    }
+    if ( ( aSig<<shiftCount ) != savedASig ) {
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_inexact, c );
+#else
+        float_exception_flags |= float_flag_inexact;
+#endif
+    }
+    return z;
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of converting the double-precision floating-point value
+ | `a' to the 64-bit two's complement integer format.  The conversion is
+ | performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic---which means in particular that the conversion is rounded
+ | according to the current rounding mode.  If `a' is a NaN, the largest
+ | positive integer is returned.  Otherwise, if the conversion overflows, the
+ | largest integer with the same sign as `a' is returned.
+ *----------------------------------------------------------------------------*/
+
+int64_t float64_to_int64( float64 a, float_status* c )
+{
+    flag aSign;
+    int16_t aExp, shiftCount;
+    bits64 aSig, aSigExtra;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    aSign = extractFloat64Sign( a );
+    if ( aExp ) aSig |= LIT64( 0x0010000000000000 );
+    shiftCount = 0x433 - aExp;
+    if ( shiftCount <= 0 ) {
+        if ( 0x43E < aExp ) {
+            float_raise( float_flag_invalid, c );
+            if (    ! aSign
+                || (    ( aExp == 0x7FF )
+                    && ( aSig != LIT64( 0x0010000000000000 ) ) )
+                ) {
+                return LIT64( 0x7FFFFFFFFFFFFFFF );
+            }
+            return (sbits64) LIT64( 0x8000000000000000 );
+        }
+        aSigExtra = 0;
+        aSig <<= - shiftCount;
+    }
+    else {
+        shift64ExtraRightJamming( aSig, 0, shiftCount, &aSig, &aSigExtra );
+    }
+    return roundAndPackInt64( aSign, aSig, aSigExtra, c );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of converting the double-precision floating-point value
+ | `a' to the 64-bit two's complement integer format.  The conversion is
+ | performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic, except that the conversion is always rounded toward zero.
+ | If `a' is a NaN, the largest positive integer is returned.  Otherwise, if
+ | the conversion overflows, the largest integer with the same sign as `a' is
+ | returned.
+ *----------------------------------------------------------------------------*/
+
+int64_t float64_to_int64_round_to_zero( float64 a, float_status* c )
+{
+    flag aSign;
+    int16_t aExp, shiftCount;
+    bits64 aSig;
+    int64_t z;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    aSign = extractFloat64Sign( a );
+    if ( aExp ) aSig |= LIT64( 0x0010000000000000 );
+    shiftCount = aExp - 0x433;
+    if ( 0 <= shiftCount ) {
+        if ( 0x43E <= aExp ) {
+            if ( a != LIT64( 0xC3E0000000000000 ) ) {
+                float_raise( float_flag_invalid, c );
+                if (    ! aSign
+                    || (    ( aExp == 0x7FF )
+                        && ( aSig != LIT64( 0x0010000000000000 ) ) )
+                    ) {
+                    return LIT64( 0x7FFFFFFFFFFFFFFF );
+                }
+            }
+            return (sbits64) LIT64( 0x8000000000000000 );
+        }
+        z = aSig<<shiftCount;
+    }
+    else {
+        if ( aExp < 0x3FE ) {
+            if ( aExp | aSig ) float_raise( float_flag_inexact, c );
+            return 0;
+        }
+        z = aSig>>( - shiftCount );
+        if ( (bits64) ( aSig<<( shiftCount & 63 ) ) ) {
+            float_raise( float_flag_inexact, c );
+        }
+    }
+    if ( aSign ) z = - z;
+    return z;
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of converting the double-precision floating-point value
+ | `a' to the single-precision floating-point format.  The conversion is
+ | performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float32 float64_to_float32( float64 a, float_status* c )
+{
+    flag aSign;
+    int16_t aExp;
+    bits64 aSig;
+    bits32 zSig;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    aSign = extractFloat64Sign( a );
+    if ( aExp == 0x7FF ) {
+        if ( aSig ) return commonNaNToFloat32( float64ToCommonNaN( a, c ) );
+        return packFloat32( aSign, 0xFF, 0 );
+    }
+    shift64RightJamming( aSig, 22, &aSig );
+    zSig = aSig;
+    if ( aExp || zSig ) {
+        zSig |= 0x40000000;
+        aExp -= 0x381;
+    }
+#ifdef SOFTFLOAT_I860
+    return roundAndPackFloat32_2( aSign, aExp, zSig, c );
+#else
+    return roundAndPackFloat32( aSign, aExp, zSig );
+#endif
+    
+}
 
 /*----------------------------------------------------------------------------
 | Returns the result of converting the double-precision floating-point value
@@ -3553,3 +3999,1423 @@ floatx80 int64_to_floatx80( int64_t a )
 	shiftCount = countLeadingZeros64( absA );
 	return packFloatx80( zSign, 0x403E - shiftCount, absA<<shiftCount );
 }
+
+
+
+/*----------------------------------------------------------------------------
+ | Previous: This is used for i860 emulation
+ *----------------------------------------------------------------------------*/
+    
+/*----------------------------------------------------------------------------
+ | Returns the result of converting the single-precision floating-point value
+ | `a' to the 32-bit two's complement integer format.  The conversion is
+ | performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic---which means in particular that the conversion is rounded
+ | according to the current rounding mode.  If `a' is a NaN, the largest
+ | positive integer is returned.  Otherwise, if the conversion overflows, the
+ | largest integer with the same sign as `a' is returned.
+ *----------------------------------------------------------------------------*/
+    
+int32_t float32_to_int32( float32 a, float_status* c )
+{
+    flag aSign;
+    int16_t aExp, shiftCount;
+    bits32 aSig;
+    bits64 aSig64;
+    
+    aSig = extractFloat32Frac( a );
+    aExp = extractFloat32Exp( a );
+    aSign = extractFloat32Sign( a );
+    if ( ( aExp == 0xFF ) && aSig ) aSign = 0;
+    if ( aExp ) aSig |= 0x00800000;
+    shiftCount = 0xAF - aExp;
+    aSig64 = aSig;
+    aSig64 <<= 32;
+    if ( 0 < shiftCount ) shift64RightJamming( aSig64, shiftCount, &aSig64 );
+#ifdef SOFTFLOAT_I860
+    return roundAndPackInt32_2( aSign, aSig64, c );
+#else
+    return roundAndPackInt32( aSign, aSig64 );
+#endif
+    
+}
+    
+/*----------------------------------------------------------------------------
+ | Returns the result of converting the single-precision floating-point value
+ | `a' to the 32-bit two's complement integer format.  The conversion is
+ | performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic, except that the conversion is always rounded toward zero.
+ | If `a' is a NaN, the largest positive integer is returned.  Otherwise, if
+ | the conversion overflows, the largest integer with the same sign as `a' is
+ | returned.
+ *----------------------------------------------------------------------------*/
+    
+int32_t float32_to_int32_round_to_zero( float32 a, float_status* c )
+{
+    flag aSign;
+    int16_t aExp, shiftCount;
+    bits32 aSig;
+    int32_t z;
+    
+    aSig = extractFloat32Frac( a );
+    aExp = extractFloat32Exp( a );
+    aSign = extractFloat32Sign( a );
+    shiftCount = aExp - 0x9E;
+    if ( 0 <= shiftCount ) {
+        if ( a != 0xCF000000 ) {
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_invalid, c );
+#else
+            float_raise( float_flag_invalid );
+#endif
+            if ( ! aSign || ( ( aExp == 0xFF ) && aSig ) ) return 0x7FFFFFFF;
+        }
+        return (sbits32) 0x80000000;
+    }
+    else if ( aExp <= 0x7E ) {
+#ifdef SOFTFLOAT_I860
+        if ( aExp | aSig ) float_raise( float_flag_inexact, c );
+#else
+        if ( aExp | aSig ) float_raise( float_flag_inexact, c );
+#endif
+        return 0;
+    }
+    aSig = ( aSig | 0x00800000 )<<8;
+    z = aSig>>( - shiftCount );
+    if ( (bits32) ( aSig<<( shiftCount & 31 ) ) ) {
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_inexact, c );
+#else
+        float_exception_flags |= float_flag_inexact;
+#endif
+    }
+    if ( aSign ) z = - z;
+    return z;
+    
+}
+    
+
+/*----------------------------------------------------------------------------
+ | Returns the result of adding the absolute values of the single-precision
+ | floating-point values `a' and `b'.  If `zSign' is 1, the sum is negated
+ | before being returned.  `zSign' is ignored if the result is a NaN.
+ | The addition is performed according to the IEC/IEEE Standard for Binary
+ | Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+    
+static float32 addFloat32Sigs( float32 a, float32 b, flag zSign, float_status* c )
+{
+    int16_t aExp, bExp, zExp;
+    bits32 aSig, bSig, zSig;
+    int16_t expDiff;
+    
+    aSig = extractFloat32Frac( a );
+    aExp = extractFloat32Exp( a );
+    bSig = extractFloat32Frac( b );
+    bExp = extractFloat32Exp( b );
+    expDiff = aExp - bExp;
+    aSig <<= 6;
+    bSig <<= 6;
+    if ( 0 < expDiff ) {
+        if ( aExp == 0xFF ) {
+            if ( aSig ) return propagateFloat32NaN( a, b, c );
+            return a;
+        }
+        if ( bExp == 0 ) {
+            --expDiff;
+        }
+        else {
+            bSig |= 0x20000000;
+        }
+        shift32RightJamming( bSig, expDiff, &bSig );
+        zExp = aExp;
+    }
+    else if ( expDiff < 0 ) {
+        if ( bExp == 0xFF ) {
+            if ( bSig ) return propagateFloat32NaN( a, b, c );
+            return packFloat32( zSign, 0xFF, 0 );
+        }
+        if ( aExp == 0 ) {
+            ++expDiff;
+        }
+        else {
+            aSig |= 0x20000000;
+        }
+        shift32RightJamming( aSig, - expDiff, &aSig );
+        zExp = bExp;
+    }
+    else {
+        if ( aExp == 0xFF ) {
+            if ( aSig | bSig ) return propagateFloat32NaN( a, b, c );
+            return a;
+        }
+        if ( aExp == 0 ) return packFloat32( zSign, 0, ( aSig + bSig )>>6 );
+        zSig = 0x40000000 + aSig + bSig;
+        zExp = aExp;
+        goto roundAndPack;
+    }
+    aSig |= 0x20000000;
+    zSig = ( aSig + bSig )<<1;
+    --zExp;
+    if ( (sbits32) zSig < 0 ) {
+        zSig = aSig + bSig;
+        ++zExp;
+    }
+roundAndPack:
+#ifdef SOFTFLOAT_I860
+    return roundAndPackFloat32_2( zSign, zExp, zSig, c );
+#else
+    return roundAndPackFloat32( zSign, zExp, zSig );
+#endif
+    
+}
+    
+/*----------------------------------------------------------------------------
+ | Returns the result of subtracting the absolute values of the single-
+ | precision floating-point values `a' and `b'.  If `zSign' is 1, the
+ | difference is negated before being returned.  `zSign' is ignored if the
+ | result is a NaN.  The subtraction is performed according to the IEC/IEEE
+ | Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+    
+static float32 subFloat32Sigs( float32 a, float32 b, flag zSign, float_status* c )
+{
+    int16_t aExp, bExp, zExp;
+    bits32 aSig, bSig, zSig;
+    int16_t expDiff;
+#ifdef SOFTFLOAT_I860
+    int8_t shiftCount;
+#endif
+    
+    aSig = extractFloat32Frac( a );
+    aExp = extractFloat32Exp( a );
+    bSig = extractFloat32Frac( b );
+    bExp = extractFloat32Exp( b );
+    expDiff = aExp - bExp;
+    aSig <<= 7;
+    bSig <<= 7;
+    if ( 0 < expDiff ) goto aExpBigger;
+    if ( expDiff < 0 ) goto bExpBigger;
+    if ( aExp == 0xFF ) {
+        if ( aSig | bSig ) return propagateFloat32NaN( a, b, c );
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return float32_default_nan;
+    }
+    if ( aExp == 0 ) {
+        aExp = 1;
+        bExp = 1;
+    }
+    if ( bSig < aSig ) goto aBigger;
+    if ( aSig < bSig ) goto bBigger;
+#ifdef SOFTFLOAT_I860
+    return packFloat32( get_float_rounding_mode( c ) == float_round_down, 0, 0 );
+#else
+    return packFloat32( float_rounding_mode == float_round_down, 0, 0 );
+#endif
+bExpBigger:
+    if ( bExp == 0xFF ) {
+        if ( bSig ) return propagateFloat32NaN( a, b, c );
+        return packFloat32( zSign ^ 1, 0xFF, 0 );
+    }
+    if ( aExp == 0 ) {
+        ++expDiff;
+    }
+    else {
+        aSig |= 0x40000000;
+    }
+    shift32RightJamming( aSig, - expDiff, &aSig );
+    bSig |= 0x40000000;
+bBigger:
+    zSig = bSig - aSig;
+    zExp = bExp;
+    zSign ^= 1;
+    goto normalizeRoundAndPack;
+aExpBigger:
+    if ( aExp == 0xFF ) {
+        if ( aSig ) return propagateFloat32NaN( a, b, c );
+        return a;
+    }
+    if ( bExp == 0 ) {
+        --expDiff;
+    }
+    else {
+        bSig |= 0x40000000;
+    }
+    shift32RightJamming( bSig, expDiff, &bSig );
+    aSig |= 0x40000000;
+aBigger:
+    zSig = aSig - bSig;
+    zExp = aExp;
+normalizeRoundAndPack:
+    --zExp;
+#ifdef SOFTFLOAT_I860
+    shiftCount = countLeadingZeros32( zSig ) - 1;
+    return roundAndPackFloat32_2( zSign, zExp - shiftCount, zSig<<shiftCount, c );
+#else
+    return normalizeRoundAndPackFloat32( zSign, zExp, zSig );
+#endif
+    
+}
+    
+/*----------------------------------------------------------------------------
+ | Returns the result of adding the single-precision floating-point values `a'
+ | and `b'.  The operation is performed according to the IEC/IEEE Standard for
+ | Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+    
+float32 float32_add( float32 a, float32 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    aSign = extractFloat32Sign( a );
+    bSign = extractFloat32Sign( b );
+    if ( aSign == bSign ) {
+        return addFloat32Sigs( a, b, aSign, c );
+    }
+    else {
+        return subFloat32Sigs( a, b, aSign, c );
+    }
+    
+}
+    
+/*----------------------------------------------------------------------------
+ | Returns the result of subtracting the single-precision floating-point values
+ | `a' and `b'.  The operation is performed according to the IEC/IEEE Standard
+ | for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+    
+float32 float32_sub( float32 a, float32 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    aSign = extractFloat32Sign( a );
+    bSign = extractFloat32Sign( b );
+    if ( aSign == bSign ) {
+        return subFloat32Sigs( a, b, aSign, c );
+    }
+    else {
+        return addFloat32Sigs( a, b, aSign, c );
+    }
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of multiplying the single-precision floating-point values
+ | `a' and `b'.  The operation is performed according to the IEC/IEEE Standard
+ | for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float32 float32_mul( float32 a, float32 b, float_status* c )
+{
+    flag aSign, bSign, zSign;
+    int aExp, bExp, zExp;
+    bits32 aSig, bSig;
+    bits64 zSig64;
+    bits32 zSig;
+    
+    aSig = extractFloat32Frac( a );
+    aExp = extractFloat32Exp( a );
+    aSign = extractFloat32Sign( a );
+    bSig = extractFloat32Frac( b );
+    bExp = extractFloat32Exp( b );
+    bSign = extractFloat32Sign( b );
+    zSign = aSign ^ bSign;
+    if ( aExp == 0xFF ) {
+        if ( aSig || ( ( bExp == 0xFF ) && bSig ) ) {
+            return propagateFloat32NaN( a, b, c );
+        }
+        if ( ( bExp | bSig ) == 0 ) {
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_invalid, c );
+#else
+            float_raise( float_flag_invalid );
+#endif
+            return float32_default_nan;
+        }
+        return packFloat32( zSign, 0xFF, 0 );
+    }
+    if ( bExp == 0xFF ) {
+        if ( bSig ) return propagateFloat32NaN( a, b, c );
+        if ( ( aExp | aSig ) == 0 ) {
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_invalid, c );
+#else
+            float_raise( float_flag_invalid );
+#endif
+            return float32_default_nan;
+        }
+        return packFloat32( zSign, 0xFF, 0 );
+    }
+    if ( aExp == 0 ) {
+        if ( aSig == 0 ) return packFloat32( zSign, 0, 0 );
+        normalizeFloat32Subnormal( aSig, &aExp, &aSig );
+    }
+    if ( bExp == 0 ) {
+        if ( bSig == 0 ) return packFloat32( zSign, 0, 0 );
+        normalizeFloat32Subnormal( bSig, &bExp, &bSig );
+    }
+    zExp = aExp + bExp - 0x7F;
+    aSig = ( aSig | 0x00800000 )<<7;
+    bSig = ( bSig | 0x00800000 )<<8;
+    shift64RightJamming( ( (bits64) aSig ) * bSig, 32, &zSig64 );
+    zSig = zSig64;
+    if ( 0 <= (sbits32) ( zSig<<1 ) ) {
+        zSig <<= 1;
+        --zExp;
+    }
+#ifdef SOFTFLOAT_I860
+    return roundAndPackFloat32_2( zSign, zExp, zSig, c );
+#else
+    return roundAndPackFloat32( zSign, zExp, zSig );
+#endif
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of dividing the single-precision floating-point value `a'
+ | by the corresponding value `b'.  The operation is performed according to the
+ | IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float32 float32_div( float32 a, float32 b, float_status* c )
+{
+    flag aSign, bSign, zSign;
+    int aExp, bExp, zExp;
+    bits32 aSig, bSig, zSig;
+    
+    aSig = extractFloat32Frac( a );
+    aExp = extractFloat32Exp( a );
+    aSign = extractFloat32Sign( a );
+    bSig = extractFloat32Frac( b );
+    bExp = extractFloat32Exp( b );
+    bSign = extractFloat32Sign( b );
+    zSign = aSign ^ bSign;
+    if ( aExp == 0xFF ) {
+        if ( aSig ) return propagateFloat32NaN( a, b, c );
+        if ( bExp == 0xFF ) {
+            if ( bSig ) return propagateFloat32NaN( a, b, c );
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_invalid, c );
+#else
+            float_raise( float_flag_invalid );
+#endif
+            return float32_default_nan;
+        }
+        return packFloat32( zSign, 0xFF, 0 );
+    }
+    if ( bExp == 0xFF ) {
+        if ( bSig ) return propagateFloat32NaN( a, b, c );
+        return packFloat32( zSign, 0, 0 );
+    }
+    if ( bExp == 0 ) {
+        if ( bSig == 0 ) {
+            if ( ( aExp | aSig ) == 0 ) {
+#ifdef SOFTFLOAT_I860
+                float_raise( float_flag_invalid, c );
+#else
+                float_raise( float_flag_invalid );
+#endif
+                return float32_default_nan;
+            }
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_divbyzero, c );
+#else
+            float_raise( float_flag_divbyzero );
+#endif
+            return packFloat32( zSign, 0xFF, 0 );
+        }
+        normalizeFloat32Subnormal( bSig, &bExp, &bSig );
+    }
+    if ( aExp == 0 ) {
+        if ( aSig == 0 ) return packFloat32( zSign, 0, 0 );
+        normalizeFloat32Subnormal( aSig, &aExp, &aSig );
+    }
+    zExp = aExp - bExp + 0x7D;
+    aSig = ( aSig | 0x00800000 )<<7;
+    bSig = ( bSig | 0x00800000 )<<8;
+    if ( bSig <= ( aSig + aSig ) ) {
+        aSig >>= 1;
+        ++zExp;
+    }
+    zSig = ( ( (bits64) aSig )<<32 ) / bSig;
+    if ( ( zSig & 0x3F ) == 0 ) {
+        zSig |= ( (bits64) bSig * zSig != ( (bits64) aSig )<<32 );
+    }
+#ifdef SOFTFLOAT_I860
+    return roundAndPackFloat32_2( zSign, zExp, zSig, c );
+#else
+    return roundAndPackFloat32( zSign, zExp, zSig );
+#endif
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the remainder of the single-precision floating-point value `a'
+ | with respect to the corresponding value `b'.  The operation is performed
+ | according to the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float32 float32_rem( float32 a, float32 b, float_status* c )
+{
+    flag aSign, zSign;
+    int aExp, bExp, expDiff;
+    bits32 aSig, bSig;
+    bits32 q;
+    bits64 aSig64, bSig64, q64;
+    bits32 alternateASig;
+    sbits32 sigMean;
+    
+    aSig = extractFloat32Frac( a );
+    aExp = extractFloat32Exp( a );
+    aSign = extractFloat32Sign( a );
+    bSig = extractFloat32Frac( b );
+    bExp = extractFloat32Exp( b );
+    //    bSign = extractFloat32Sign( b );
+    if ( aExp == 0xFF ) {
+        if ( aSig || ( ( bExp == 0xFF ) && bSig ) ) {
+            return propagateFloat32NaN( a, b, c );
+        }
+        float_raise( float_flag_invalid, c );
+        return float32_default_nan;
+    }
+    if ( bExp == 0xFF ) {
+        if ( bSig ) return propagateFloat32NaN( a, b, c );
+        return a;
+    }
+    if ( bExp == 0 ) {
+        if ( bSig == 0 ) {
+            float_raise( float_flag_invalid, c );
+            return float32_default_nan;
+        }
+        normalizeFloat32Subnormal( bSig, &bExp, &bSig );
+    }
+    if ( aExp == 0 ) {
+        if ( aSig == 0 ) return a;
+        normalizeFloat32Subnormal( aSig, &aExp, &aSig );
+    }
+    expDiff = aExp - bExp;
+    aSig |= 0x00800000;
+    bSig |= 0x00800000;
+    if ( expDiff < 32 ) {
+        aSig <<= 8;
+        bSig <<= 8;
+        if ( expDiff < 0 ) {
+            if ( expDiff < -1 ) return a;
+            aSig >>= 1;
+        }
+        q = ( bSig <= aSig );
+        if ( q ) aSig -= bSig;
+        if ( 0 < expDiff ) {
+            q = ( ( (bits64) aSig )<<32 ) / bSig;
+            q >>= 32 - expDiff;
+            bSig >>= 2;
+            aSig = ( ( aSig>>1 )<<( expDiff - 1 ) ) - bSig * q;
+        }
+        else {
+            aSig >>= 2;
+            bSig >>= 2;
+        }
+    }
+    else {
+        if ( bSig <= aSig ) aSig -= bSig;
+        aSig64 = ( (bits64) aSig )<<40;
+        bSig64 = ( (bits64) bSig )<<40;
+        expDiff -= 64;
+        while ( 0 < expDiff ) {
+            q64 = estimateDiv128To64( aSig64, 0, bSig64 );
+            q64 = ( 2 < q64 ) ? q64 - 2 : 0;
+            aSig64 = - ( ( bSig * q64 )<<38 );
+            expDiff -= 62;
+        }
+        expDiff += 64;
+        q64 = estimateDiv128To64( aSig64, 0, bSig64 );
+        q64 = ( 2 < q64 ) ? q64 - 2 : 0;
+        q = q64>>( 64 - expDiff );
+        bSig <<= 6;
+        aSig = ( ( aSig64>>33 )<<( expDiff - 1 ) ) - bSig * q;
+    }
+    do {
+        alternateASig = aSig;
+        ++q;
+        aSig -= bSig;
+    } while ( 0 <= (sbits32) aSig );
+    sigMean = aSig + alternateASig;
+    if ( ( sigMean < 0 ) || ( ( sigMean == 0 ) && ( q & 1 ) ) ) {
+        aSig = alternateASig;
+    }
+    zSign = ( (sbits32) aSig < 0 );
+    if ( zSign ) aSig = - aSig;
+    return normalizeRoundAndPackFloat32( aSign ^ zSign, bExp, aSig, c );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the square root of the single-precision floating-point value `a'.
+ | The operation is performed according to the IEC/IEEE Standard for Binary
+ | Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float32 float32_sqrt( float32 a, float_status* c )
+{
+    flag aSign;
+    int aExp, zExp;
+    bits32 aSig, zSig;
+    bits64 rem, term;
+    
+    aSig = extractFloat32Frac( a );
+    aExp = extractFloat32Exp( a );
+    aSign = extractFloat32Sign( a );
+    if ( aExp == 0xFF ) {
+        if ( aSig ) return propagateFloat32NaN( a, 0, c );
+        if ( ! aSign ) return a;
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return float32_default_nan;
+    }
+    if ( aSign ) {
+        if ( ( aExp | aSig ) == 0 ) return a;
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return float32_default_nan;
+    }
+    if ( aExp == 0 ) {
+        if ( aSig == 0 ) return 0;
+        normalizeFloat32Subnormal( aSig, &aExp, &aSig );
+    }
+    zExp = ( ( aExp - 0x7F )>>1 ) + 0x7E;
+    aSig = ( aSig | 0x00800000 )<<8;
+    zSig = estimateSqrt32( aExp, aSig ) + 2;
+    if ( ( zSig & 0x7F ) <= 5 ) {
+        if ( zSig < 2 ) {
+            zSig = 0x7FFFFFFF;
+            goto roundAndPack;
+        }
+        aSig >>= aExp & 1;
+        term = ( (bits64) zSig ) * zSig;
+        rem = ( ( (bits64) aSig )<<32 ) - term;
+        while ( (sbits64) rem < 0 ) {
+            --zSig;
+            rem += ( ( (bits64) zSig )<<1 ) | 1;
+        }
+        zSig |= ( rem != 0 );
+    }
+    shift32RightJamming( zSig, 1, &zSig );
+roundAndPack:
+#ifdef SOFTFLOAT_I860
+    return roundAndPackFloat32_2( 0, zExp, zSig, c );
+#else
+    return roundAndPackFloat32( 0, zExp, zSig );
+#endif
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the single-precision floating-point value `a' is equal to
+ | the corresponding value `b', and 0 otherwise.  The comparison is performed
+ | according to the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float32_eq( float32 a, float32 b, float_status* c )
+{
+    if (    ( ( extractFloat32Exp( a ) == 0xFF ) && extractFloat32Frac( a ) )
+        || ( ( extractFloat32Exp( b ) == 0xFF ) && extractFloat32Frac( b ) )
+        ) {
+        if ( float32_is_signaling_nan( a ) || float32_is_signaling_nan( b ) ) {
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_invalid, c );
+#else
+            float_raise( float_flag_invalid );
+#endif
+        }
+        return 0;
+    }
+    return ( a == b ) || ( (bits32) ( ( a | b )<<1 ) == 0 );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the single-precision floating-point value `a' is less than
+ | or equal to the corresponding value `b', and 0 otherwise.  The comparison
+ | is performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float32_le( float32 a, float32 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    if (    ( ( extractFloat32Exp( a ) == 0xFF ) && extractFloat32Frac( a ) )
+        || ( ( extractFloat32Exp( b ) == 0xFF ) && extractFloat32Frac( b ) )
+        ) {
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return 0;
+    }
+    aSign = extractFloat32Sign( a );
+    bSign = extractFloat32Sign( b );
+    if ( aSign != bSign ) return aSign || ( (bits32) ( ( a | b )<<1 ) == 0 );
+    return ( a == b ) || ( aSign ^ ( a < b ) );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the single-precision floating-point value `a' is less than
+ | the corresponding value `b', and 0 otherwise.  The comparison is performed
+ | according to the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float32_lt( float32 a, float32 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    if (    ( ( extractFloat32Exp( a ) == 0xFF ) && extractFloat32Frac( a ) )
+        || ( ( extractFloat32Exp( b ) == 0xFF ) && extractFloat32Frac( b ) )
+        ) {
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return 0;
+    }
+    aSign = extractFloat32Sign( a );
+    bSign = extractFloat32Sign( b );
+    if ( aSign != bSign ) return aSign && ( (bits32) ( ( a | b )<<1 ) != 0 );
+    return ( a != b ) && ( aSign ^ ( a < b ) );
+    
+}
+
+#ifdef SOFTFLOAT_I860 // 29-04-2017: Added for Previous
+/*----------------------------------------------------------------------------
+ | Returns 1 if the single-precision floating-point value `a' is greater than
+ | the corresponding value `b', and 0 otherwise.  The comparison is performed
+ | according to the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float32_gt( float32 a, float32 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    if (   ( ( extractFloat32Exp( a ) == 0xFF ) && extractFloat32Frac( a ) )
+        || ( ( extractFloat32Exp( b ) == 0xFF ) && extractFloat32Frac( b ) )
+        ) {
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return 0;
+    }
+    aSign = extractFloat32Sign( a );
+    bSign = extractFloat32Sign( b );
+    if ( aSign != bSign ) return bSign && ( (bits32) ( ( a | b )<<1 ) != 0 );
+    return ( a != b ) && ( bSign ^ ( a > b ) );
+    
+}
+#endif // End of addition for Previous
+
+/*----------------------------------------------------------------------------
+| Returns 1 if the single-precision floating-point value `a' is equal to
+| the corresponding value `b', and 0 otherwise.  The invalid exception is
+| raised if either operand is a NaN.  Otherwise, the comparison is performed
+| according to the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+*----------------------------------------------------------------------------*/
+
+flag float32_eq_signaling( float32 a, float32 b, float_status* c )
+{
+    if (    ( ( extractFloat32Exp( a ) == 0xFF ) && extractFloat32Frac( a ) )
+        || ( ( extractFloat32Exp( b ) == 0xFF ) && extractFloat32Frac( b ) )
+        ) {
+        float_raise( float_flag_invalid, c );
+        return 0;
+    }
+    return ( a == b ) || ( (bits32) ( ( a | b )<<1 ) == 0 );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the single-precision floating-point value `a' is less than or
+ | equal to the corresponding value `b', and 0 otherwise.  Quiet NaNs do not
+ | cause an exception.  Otherwise, the comparison is performed according to the
+ | IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float32_le_quiet( float32 a, float32 b, float_status* c )
+{
+    flag aSign, bSign;
+    //    int16_t aExp, bExp;
+    
+    if (    ( ( extractFloat32Exp( a ) == 0xFF ) && extractFloat32Frac( a ) )
+        || ( ( extractFloat32Exp( b ) == 0xFF ) && extractFloat32Frac( b ) )
+        ) {
+        if ( float32_is_signaling_nan( a ) || float32_is_signaling_nan( b ) ) {
+            float_raise( float_flag_invalid, c );
+        }
+        return 0;
+    }
+    aSign = extractFloat32Sign( a );
+    bSign = extractFloat32Sign( b );
+    if ( aSign != bSign ) return aSign || ( (bits32) ( ( a | b )<<1 ) == 0 );
+    return ( a == b ) || ( aSign ^ ( a < b ) );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the single-precision floating-point value `a' is less than
+ | the corresponding value `b', and 0 otherwise.  Quiet NaNs do not cause an
+ | exception.  Otherwise, the comparison is performed according to the IEC/IEEE
+ | Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float32_lt_quiet( float32 a, float32 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    if (    ( ( extractFloat32Exp( a ) == 0xFF ) && extractFloat32Frac( a ) )
+        || ( ( extractFloat32Exp( b ) == 0xFF ) && extractFloat32Frac( b ) )
+        ) {
+        if ( float32_is_signaling_nan( a ) || float32_is_signaling_nan( b ) ) {
+            float_raise( float_flag_invalid, c );
+        }
+        return 0;
+    }
+    aSign = extractFloat32Sign( a );
+    bSign = extractFloat32Sign( b );
+    if ( aSign != bSign ) return aSign && ( (bits32) ( ( a | b )<<1 ) != 0 );
+    return ( a != b ) && ( aSign ^ ( a < b ) );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of adding the absolute values of the double-precision
+ | floating-point values `a' and `b'.  If `zSign' is 1, the sum is negated
+ | before being returned.  `zSign' is ignored if the result is a NaN.
+ | The addition is performed according to the IEC/IEEE Standard for Binary
+ | Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+static float64 addFloat64Sigs( float64 a, float64 b, flag zSign, float_status* c )
+{
+    int16_t aExp, bExp, zExp;
+    bits64 aSig, bSig, zSig;
+    int16_t expDiff;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    bSig = extractFloat64Frac( b );
+    bExp = extractFloat64Exp( b );
+    expDiff = aExp - bExp;
+    aSig <<= 9;
+    bSig <<= 9;
+    if ( 0 < expDiff ) {
+        if ( aExp == 0x7FF ) {
+            if ( aSig ) return propagateFloat64NaN( a, b, c );
+            return a;
+        }
+        if ( bExp == 0 ) {
+            --expDiff;
+        }
+        else {
+            bSig |= LIT64( 0x2000000000000000 );
+        }
+        shift64RightJamming( bSig, expDiff, &bSig );
+        zExp = aExp;
+    }
+    else if ( expDiff < 0 ) {
+        if ( bExp == 0x7FF ) {
+            if ( bSig ) return propagateFloat64NaN( a, b, c );
+            return packFloat64( zSign, 0x7FF, 0 );
+        }
+        if ( aExp == 0 ) {
+            ++expDiff;
+        }
+        else {
+            aSig |= LIT64( 0x2000000000000000 );
+        }
+        shift64RightJamming( aSig, - expDiff, &aSig );
+        zExp = bExp;
+    }
+    else {
+        if ( aExp == 0x7FF ) {
+            if ( aSig | bSig ) return propagateFloat64NaN( a, b, c );
+            return a;
+        }
+        if ( aExp == 0 ) return packFloat64( zSign, 0, ( aSig + bSig )>>9 );
+        zSig = LIT64( 0x4000000000000000 ) + aSig + bSig;
+        zExp = aExp;
+        goto roundAndPack;
+    }
+    aSig |= LIT64( 0x2000000000000000 );
+    zSig = ( aSig + bSig )<<1;
+    --zExp;
+    if ( (sbits64) zSig < 0 ) {
+        zSig = aSig + bSig;
+        ++zExp;
+    }
+roundAndPack:
+#ifdef SOFTFLOAT_I860
+    return roundAndPackFloat64_2( zSign, zExp, zSig, c );
+#else
+    return roundAndPackFloat64( zSign, zExp, zSig );
+#endif
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of subtracting the absolute values of the double-
+ | precision floating-point values `a' and `b'.  If `zSign' is 1, the
+ | difference is negated before being returned.  `zSign' is ignored if the
+ | result is a NaN.  The subtraction is performed according to the IEC/IEEE
+ | Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+static float64 subFloat64Sigs( float64 a, float64 b, flag zSign, float_status* c )
+{
+    int16_t aExp, bExp, zExp;
+    bits64 aSig, bSig, zSig;
+    int16_t expDiff;
+#ifdef SOFTFLOAT_I860
+    int8_t shiftCount;
+#endif
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    bSig = extractFloat64Frac( b );
+    bExp = extractFloat64Exp( b );
+    expDiff = aExp - bExp;
+    aSig <<= 10;
+    bSig <<= 10;
+    if ( 0 < expDiff ) goto aExpBigger;
+    if ( expDiff < 0 ) goto bExpBigger;
+    if ( aExp == 0x7FF ) {
+        if ( aSig | bSig ) return propagateFloat64NaN( a, b, c );
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return float64_default_nan;
+    }
+    if ( aExp == 0 ) {
+        aExp = 1;
+        bExp = 1;
+    }
+    if ( bSig < aSig ) goto aBigger;
+    if ( aSig < bSig ) goto bBigger;
+#ifdef SOFTFLOAT_I860
+    return packFloat64( get_float_rounding_mode( c ) == float_round_down, 0, 0 );
+#else
+    return packFloat64( float_rounding_mode == float_round_down, 0, 0 );
+#endif
+bExpBigger:
+    if ( bExp == 0x7FF ) {
+        if ( bSig ) return propagateFloat64NaN( a, b, c );
+        return packFloat64( zSign ^ 1, 0x7FF, 0 );
+    }
+    if ( aExp == 0 ) {
+        ++expDiff;
+    }
+    else {
+        aSig |= LIT64( 0x4000000000000000 );
+    }
+    shift64RightJamming( aSig, - expDiff, &aSig );
+    bSig |= LIT64( 0x4000000000000000 );
+bBigger:
+    zSig = bSig - aSig;
+    zExp = bExp;
+    zSign ^= 1;
+    goto normalizeRoundAndPack;
+aExpBigger:
+    if ( aExp == 0x7FF ) {
+        if ( aSig ) return propagateFloat64NaN( a, b, c );
+        return a;
+    }
+    if ( bExp == 0 ) {
+        --expDiff;
+    }
+    else {
+        bSig |= LIT64( 0x4000000000000000 );
+    }
+    shift64RightJamming( bSig, expDiff, &bSig );
+    aSig |= LIT64( 0x4000000000000000 );
+aBigger:
+    zSig = aSig - bSig;
+    zExp = aExp;
+normalizeRoundAndPack:
+    --zExp;
+#ifdef SOFTFLOAT_I860
+    shiftCount = countLeadingZeros64( zSig ) - 1;
+    return roundAndPackFloat64_2( zSign, zExp - shiftCount, zSig<<shiftCount, c );
+#else
+    return normalizeRoundAndPackFloat64( zSign, zExp, zSig );
+#endif
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of adding the double-precision floating-point values `a'
+ | and `b'.  The operation is performed according to the IEC/IEEE Standard for
+ | Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float64 float64_add( float64 a, float64 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    aSign = extractFloat64Sign( a );
+    bSign = extractFloat64Sign( b );
+    if ( aSign == bSign ) {
+        return addFloat64Sigs( a, b, aSign, c );
+    }
+    else {
+        return subFloat64Sigs( a, b, aSign, c );
+    }
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of subtracting the double-precision floating-point values
+ | `a' and `b'.  The operation is performed according to the IEC/IEEE Standard
+ | for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float64 float64_sub( float64 a, float64 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    aSign = extractFloat64Sign( a );
+    bSign = extractFloat64Sign( b );
+    if ( aSign == bSign ) {
+        return subFloat64Sigs( a, b, aSign, c );
+    }
+    else {
+        return addFloat64Sigs( a, b, aSign, c );
+    }
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of multiplying the double-precision floating-point values
+ | `a' and `b'.  The operation is performed according to the IEC/IEEE Standard
+ | for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float64 float64_mul( float64 a, float64 b, float_status* c )
+{
+    flag aSign, bSign, zSign;
+    int aExp, bExp, zExp;
+    bits64 aSig, bSig, zSig0, zSig1;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    aSign = extractFloat64Sign( a );
+    bSig = extractFloat64Frac( b );
+    bExp = extractFloat64Exp( b );
+    bSign = extractFloat64Sign( b );
+    zSign = aSign ^ bSign;
+    if ( aExp == 0x7FF ) {
+        if ( aSig || ( ( bExp == 0x7FF ) && bSig ) ) {
+            return propagateFloat64NaN( a, b, c );
+        }
+        if ( ( bExp | bSig ) == 0 ) {
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_invalid, c );
+#else
+            float_raise( float_flag_invalid );
+#endif
+            return float64_default_nan;
+        }
+        return packFloat64( zSign, 0x7FF, 0 );
+    }
+    if ( bExp == 0x7FF ) {
+        if ( bSig ) return propagateFloat64NaN( a, b, c );
+        if ( ( aExp | aSig ) == 0 ) {
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_invalid, c );
+#else
+            float_raise( float_flag_invalid );
+#endif
+            return float64_default_nan;
+        }
+        return packFloat64( zSign, 0x7FF, 0 );
+    }
+    if ( aExp == 0 ) {
+        if ( aSig == 0 ) return packFloat64( zSign, 0, 0 );
+        normalizeFloat64Subnormal( aSig, &aExp, &aSig );
+    }
+    if ( bExp == 0 ) {
+        if ( bSig == 0 ) return packFloat64( zSign, 0, 0 );
+        normalizeFloat64Subnormal( bSig, &bExp, &bSig );
+    }
+    zExp = aExp + bExp - 0x3FF;
+    aSig = ( aSig | LIT64( 0x0010000000000000 ) )<<10;
+    bSig = ( bSig | LIT64( 0x0010000000000000 ) )<<11;
+    mul64To128( aSig, bSig, &zSig0, &zSig1 );
+    zSig0 |= ( zSig1 != 0 );
+    if ( 0 <= (sbits64) ( zSig0<<1 ) ) {
+        zSig0 <<= 1;
+        --zExp;
+    }
+#ifdef SOFTFLOAT_I860
+    return roundAndPackFloat64_2( zSign, zExp, zSig0, c );
+#else
+    return roundAndPackFloat64( zSign, zExp, zSig0 );
+#endif
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the result of dividing the double-precision floating-point value `a'
+ | by the corresponding value `b'.  The operation is performed according to
+ | the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float64 float64_div( float64 a, float64 b, float_status* c )
+{
+    flag aSign, bSign, zSign;
+    int aExp, bExp, zExp;
+    bits64 aSig, bSig, zSig;
+    bits64 rem0, rem1;
+    bits64 term0, term1;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    aSign = extractFloat64Sign( a );
+    bSig = extractFloat64Frac( b );
+    bExp = extractFloat64Exp( b );
+    bSign = extractFloat64Sign( b );
+    zSign = aSign ^ bSign;
+    if ( aExp == 0x7FF ) {
+        if ( aSig ) return propagateFloat64NaN( a, b, c );
+        if ( bExp == 0x7FF ) {
+            if ( bSig ) return propagateFloat64NaN( a, b, c );
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_invalid, c );
+#else
+            float_raise( float_flag_invalid );
+#endif
+            return float64_default_nan;
+        }
+        return packFloat64( zSign, 0x7FF, 0 );
+    }
+    if ( bExp == 0x7FF ) {
+        if ( bSig ) return propagateFloat64NaN( a, b, c );
+        return packFloat64( zSign, 0, 0 );
+    }
+    if ( bExp == 0 ) {
+        if ( bSig == 0 ) {
+            if ( ( aExp | aSig ) == 0 ) {
+#ifdef SOFTFLOAT_I860
+                float_raise( float_flag_invalid, c );
+#else
+                float_raise( float_flag_invalid );
+#endif
+                return float64_default_nan;
+            }
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_divbyzero, c );
+#else
+            float_raise( float_flag_divbyzero );
+#endif
+            return packFloat64( zSign, 0x7FF, 0 );
+        }
+        normalizeFloat64Subnormal( bSig, &bExp, &bSig );
+    }
+    if ( aExp == 0 ) {
+        if ( aSig == 0 ) return packFloat64( zSign, 0, 0 );
+        normalizeFloat64Subnormal( aSig, &aExp, &aSig );
+    }
+    zExp = aExp - bExp + 0x3FD;
+    aSig = ( aSig | LIT64( 0x0010000000000000 ) )<<10;
+    bSig = ( bSig | LIT64( 0x0010000000000000 ) )<<11;
+    if ( bSig <= ( aSig + aSig ) ) {
+        aSig >>= 1;
+        ++zExp;
+    }
+    zSig = estimateDiv128To64( aSig, 0, bSig );
+    if ( ( zSig & 0x1FF ) <= 2 ) {
+        mul64To128( bSig, zSig, &term0, &term1 );
+        sub128( aSig, 0, term0, term1, &rem0, &rem1 );
+        while ( (sbits64) rem0 < 0 ) {
+            --zSig;
+            add128( rem0, rem1, 0, bSig, &rem0, &rem1 );
+        }
+        zSig |= ( rem1 != 0 );
+    }
+#ifdef SOFTFLOAT_I860
+    return roundAndPackFloat64_2( zSign, zExp, zSig, c );
+#else
+    return roundAndPackFloat64( zSign, zExp, zSig );
+#endif
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the remainder of the double-precision floating-point value `a'
+ | with respect to the corresponding value `b'.  The operation is performed
+ | according to the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float64 float64_rem( float64 a, float64 b, float_status* c )
+{
+    flag aSign, zSign;
+    int aExp, bExp, expDiff;
+    bits64 aSig, bSig;
+    bits64 q, alternateASig;
+    sbits64 sigMean;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    aSign = extractFloat64Sign( a );
+    bSig = extractFloat64Frac( b );
+    bExp = extractFloat64Exp( b );
+    //    bSign = extractFloat64Sign( b );
+    if ( aExp == 0x7FF ) {
+        if ( aSig || ( ( bExp == 0x7FF ) && bSig ) ) {
+            return propagateFloat64NaN( a, b, c );
+        }
+        float_raise( float_flag_invalid, c );
+        return float64_default_nan;
+    }
+    if ( bExp == 0x7FF ) {
+        if ( bSig ) return propagateFloat64NaN( a, b, c );
+        return a;
+    }
+    if ( bExp == 0 ) {
+        if ( bSig == 0 ) {
+            float_raise( float_flag_invalid, c );
+            return float64_default_nan;
+        }
+        normalizeFloat64Subnormal( bSig, &bExp, &bSig );
+    }
+    if ( aExp == 0 ) {
+        if ( aSig == 0 ) return a;
+        normalizeFloat64Subnormal( aSig, &aExp, &aSig );
+    }
+    expDiff = aExp - bExp;
+    aSig = ( aSig | LIT64( 0x0010000000000000 ) )<<11;
+    bSig = ( bSig | LIT64( 0x0010000000000000 ) )<<11;
+    if ( expDiff < 0 ) {
+        if ( expDiff < -1 ) return a;
+        aSig >>= 1;
+    }
+    q = ( bSig <= aSig );
+    if ( q ) aSig -= bSig;
+    expDiff -= 64;
+    while ( 0 < expDiff ) {
+        q = estimateDiv128To64( aSig, 0, bSig );
+        q = ( 2 < q ) ? q - 2 : 0;
+        aSig = - ( ( bSig>>2 ) * q );
+        expDiff -= 62;
+    }
+    expDiff += 64;
+    if ( 0 < expDiff ) {
+        q = estimateDiv128To64( aSig, 0, bSig );
+        q = ( 2 < q ) ? q - 2 : 0;
+        q >>= 64 - expDiff;
+        bSig >>= 2;
+        aSig = ( ( aSig>>1 )<<( expDiff - 1 ) ) - bSig * q;
+    }
+    else {
+        aSig >>= 2;
+        bSig >>= 2;
+    }
+    do {
+        alternateASig = aSig;
+        ++q;
+        aSig -= bSig;
+    } while ( 0 <= (sbits64) aSig );
+    sigMean = aSig + alternateASig;
+    if ( ( sigMean < 0 ) || ( ( sigMean == 0 ) && ( q & 1 ) ) ) {
+        aSig = alternateASig;
+    }
+    zSign = ( (sbits64) aSig < 0 );
+    if ( zSign ) aSig = - aSig;
+    return normalizeRoundAndPackFloat64( aSign ^ zSign, bExp, aSig, c );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns the square root of the double-precision floating-point value `a'.
+ | The operation is performed according to the IEC/IEEE Standard for Binary
+ | Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+float64 float64_sqrt( float64 a, float_status* c )
+{
+    flag aSign;
+    int aExp, zExp;
+    bits64 aSig, zSig, doubleZSig;
+    bits64 rem0, rem1, term0, term1;
+    
+    aSig = extractFloat64Frac( a );
+    aExp = extractFloat64Exp( a );
+    aSign = extractFloat64Sign( a );
+    if ( aExp == 0x7FF ) {
+        if ( aSig ) return propagateFloat64NaN( a, a, c );
+        if ( ! aSign ) return a;
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return float64_default_nan;
+    }
+    if ( aSign ) {
+        if ( ( aExp | aSig ) == 0 ) return a;
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return float64_default_nan;
+    }
+    if ( aExp == 0 ) {
+        if ( aSig == 0 ) return 0;
+        normalizeFloat64Subnormal( aSig, &aExp, &aSig );
+    }
+    zExp = ( ( aExp - 0x3FF )>>1 ) + 0x3FE;
+    aSig |= LIT64( 0x0010000000000000 );
+    zSig = estimateSqrt32( aExp, aSig>>21 );
+    aSig <<= 9 - ( aExp & 1 );
+    zSig = estimateDiv128To64( aSig, 0, zSig<<32 ) + ( zSig<<30 );
+    if ( ( zSig & 0x1FF ) <= 5 ) {
+        doubleZSig = zSig<<1;
+        mul64To128( zSig, zSig, &term0, &term1 );
+        sub128( aSig, 0, term0, term1, &rem0, &rem1 );
+        while ( (sbits64) rem0 < 0 ) {
+            --zSig;
+            doubleZSig -= 2;
+            add128( rem0, rem1, zSig>>63, doubleZSig | 1, &rem0, &rem1 );
+        }
+        zSig |= ( ( rem0 | rem1 ) != 0 );
+    }
+#ifdef SOFTFLOAT_I860
+    return roundAndPackFloat64_2( 0, zExp, zSig, c );
+#else
+    return roundAndPackFloat64( 0, zExp, zSig );
+#endif
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the double-precision floating-point value `a' is equal to the
+ | corresponding value `b', and 0 otherwise.  The comparison is performed
+ | according to the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float64_eq( float64 a, float64 b, float_status* c )
+{
+    if (    ( ( extractFloat64Exp( a ) == 0x7FF ) && extractFloat64Frac( a ) )
+        || ( ( extractFloat64Exp( b ) == 0x7FF ) && extractFloat64Frac( b ) )
+        ) {
+        if ( float64_is_signaling_nan( a ) || float64_is_signaling_nan( b ) ) {
+#ifdef SOFTFLOAT_I860
+            float_raise( float_flag_invalid, c );
+#else
+            float_raise( float_flag_invalid );
+#endif
+        }
+        return 0;
+    }
+    return ( a == b ) || ( (bits64) ( ( a | b )<<1 ) == 0 );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the double-precision floating-point value `a' is less than or
+ | equal to the corresponding value `b', and 0 otherwise.  The comparison is
+ | performed according to the IEC/IEEE Standard for Binary Floating-Point
+ | Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float64_le( float64 a, float64 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    if (    ( ( extractFloat64Exp( a ) == 0x7FF ) && extractFloat64Frac( a ) )
+        || ( ( extractFloat64Exp( b ) == 0x7FF ) && extractFloat64Frac( b ) )
+        ) {
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return 0;
+    }
+    aSign = extractFloat64Sign( a );
+    bSign = extractFloat64Sign( b );
+    if ( aSign != bSign ) return aSign || ( (bits64) ( ( a | b )<<1 ) == 0 );
+    return ( a == b ) || ( aSign ^ ( a < b ) );
+    
+}
+
+/*----------------------------------------------------------------------------
+ | Returns 1 if the double-precision floating-point value `a' is less than
+ | the corresponding value `b', and 0 otherwise.  The comparison is performed
+ | according to the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float64_lt( float64 a, float64 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    if (    ( ( extractFloat64Exp( a ) == 0x7FF ) && extractFloat64Frac( a ) )
+        || ( ( extractFloat64Exp( b ) == 0x7FF ) && extractFloat64Frac( b ) )
+        ) {
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return 0;
+    }
+    aSign = extractFloat64Sign( a );
+    bSign = extractFloat64Sign( b );
+    if ( aSign != bSign ) return aSign && ( (bits64) ( ( a | b )<<1 ) != 0 );
+    return ( a != b ) && ( aSign ^ ( a < b ) );
+    
+}
+
+#ifdef SOFTFLOAT_I860 // 29-04-2017: Added for Previous
+/*----------------------------------------------------------------------------
+ | Returns 1 if the double-precision floating-point value `a' is greater than
+ | the corresponding value `b', and 0 otherwise.  The comparison is performed
+ | according to the IEC/IEEE Standard for Binary Floating-Point Arithmetic.
+ *----------------------------------------------------------------------------*/
+
+flag float64_gt( float64 a, float64 b, float_status* c )
+{
+    flag aSign, bSign;
+    
+    if (    ( ( extractFloat64Exp( a ) == 0x7FF ) && extractFloat64Frac( a ) )
+        || ( ( extractFloat64Exp( b ) == 0x7FF ) && extractFloat64Frac( b ) )
+        ) {
+#ifdef SOFTFLOAT_I860
+        float_raise( float_flag_invalid, c );
+#else
+        float_raise( float_flag_invalid );
+#endif
+        return 0;
+    }
+    aSign = extractFloat64Sign( a );
+    bSign = extractFloat64Sign( b );
+    if ( aSign != bSign ) return bSign && ( (bits64) ( ( a | b )<<1 ) != 0 );
+    return ( a != b ) && ( bSign ^ ( a > b ) );
+    
+}
+#endif // End of addition for Previous
+

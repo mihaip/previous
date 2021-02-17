@@ -34,8 +34,8 @@
 #include "fpp.h"
 #include "newcpu.h"
 
-#include "softfloat-macros.h"
-#include "softfloat-specialize.h"
+#include "softfloat.h"
+
 
 #define	FPCR_ROUNDING_MODE	0x00000030
 #define	FPCR_ROUND_NEAR		0x00000000

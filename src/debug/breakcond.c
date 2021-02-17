@@ -1603,6 +1603,6 @@ bool BreakAddr_Command(char *args, bool bForDsp)
 
 	/* on success, show on what instruction it was added */
 		uaecptr dummy;
-		m68k_disasm((uaecptr)addr, &dummy, &dummy, 1);
+		m68k_disasm((uaecptr)addr, &dummy, dummy, 1);
 	return true;
 }
