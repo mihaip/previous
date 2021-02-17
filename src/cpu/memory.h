@@ -69,4 +69,16 @@ void map_banks(addrbank *bank, int first, int count);
 #define put_word(addr,w) (call_mem_put_func(get_mem_bank(bank_wput, addr), addr, w))
 #define put_byte(addr,b) (call_mem_put_func(get_mem_bank(bank_bput, addr), addr, b))
 
+#define CACHE_ENABLE_DATA 0x01
+#define CACHE_ENABLE_DATA_BURST 0x02
+#define CACHE_ENABLE_COPYBACK 0x020
+#define CACHE_ENABLE_INS 0x80
+#define CACHE_ENABLE_INS_BURST 0x40
+#define CACHE_ENABLE_BOTH (CACHE_ENABLE_DATA | CACHE_ENABLE_INS)
+#define CACHE_ENABLE_ALL (CACHE_ENABLE_BOTH | CACHE_ENABLE_INS_BURST | CACHE_ENABLE_DATA_BURST)
+#define CACHE_DISABLE_ALLOCATE 0x08
+#define CACHE_DISABLE_MMU 0x10
+
+extern uae_u8 ce_banktype[65536], ce_cachable[65536];
+
 #endif /* UAE_MEMORY_H */

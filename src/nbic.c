@@ -138,12 +138,12 @@ static void nbic_zero_write(Uint32 addr, Uint8 val) {
 
 static Uint8 nbic_bus_error_read(Uint32 addr) {
 	Log_Printf(LOG_WARN, "[NBIC] bus error read at %08X",addr);
-	M68000_BusError(addr, 1);
+	M68000_BusError(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_LONG, BUS_ERROR_ACCESS_DATA, 0);
 	return 0;
 }
 static void nbic_bus_error_write(Uint32 addr, Uint8 val) {
 	Log_Printf(LOG_WARN, "[NBIC] bus error write at %08X",addr);
-	M68000_BusError(addr, 0);
+	M68000_BusError(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_LONG, BUS_ERROR_ACCESS_DATA, val);
 }
 
 

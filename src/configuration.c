@@ -473,7 +473,7 @@ void Configuration_SetDefault(void)
     
 	ConfigureParams.System.nCpuLevel = 3;
 	ConfigureParams.System.nCpuFreq = 25;
-	ConfigureParams.System.bCompatibleCpu = true;
+	ConfigureParams.System.bCompatibleCpu = false;
 	ConfigureParams.System.bRealtime = false;
 	ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
 	ConfigureParams.System.bDSPMemoryExpansion = false;

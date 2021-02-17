@@ -2,6 +2,8 @@
 #define UAE_MMU_COMMON_H
 
 #include "main.h"
+#include "uae/types.h"
+#include "uae/likely.h"
 
 #define MMUDEBUG 0
 #define MMUINSDEBUG 0
@@ -20,21 +22,23 @@ struct m68k_exception {
 #define THROW(n) throw m68k_exception(n)
 #define THROW_AGAIN(var) throw
 #define ENDTRY
+#define STOPTRY
 #else
 /* we are in plain C, just use a stack of long jumps */
 #include <setjmp.h>
-extern sigjmp_buf __exbuf;
+extern jmp_buf __exbuf;
 extern int     __exvalue;
-#define TRY(DUMMY)       __exvalue=sigsetjmp(__exbuf, 0);       \
+#define TRY(DUMMY)       __exvalue=setjmp(__exbuf);       \
                   if (__exvalue==0) { __pushtry(&__exbuf);
 #define CATCH(x)  __poptry(); } else {m68k_exception x=__exvalue; x=x;
 #define ENDTRY    __poptry();}
-#define THROW(x) if (__is_catched()) {siglongjmp(__exbuf,x);}
-#define THROW_AGAIN(var) if (__is_catched()) siglongjmp(*__poptry(),__exvalue)
+#define STOPTRY   __poptry()
+#define THROW(x) if (__is_catched()) {longjmp(__exbuf,x);}
+#define THROW_AGAIN(var) if (__is_catched()) longjmp(*__poptry(),__exvalue)
 #define SAVE_EXCEPTION
 #define RESTORE_EXCEPTION
-sigjmp_buf* __poptry(void);
-void __pushtry(sigjmp_buf *j);
+jmp_buf* __poptry(void);
+void __pushtry(jmp_buf *j);
 int __is_catched(void);
 
 typedef  int m68k_exception;
@@ -103,9 +107,9 @@ typedef  int m68k_exception;
 #define MMU030_SSW_FC_MASK      0x0007
 
 
-#define ALWAYS_INLINE inline
+#define ALWAYS_INLINE __inline
 
-// take care of 2 kinds of alignement, bus size and page
+// take care of 2 kinds of alignment, bus size and page
 static ALWAYS_INLINE bool is_unaligned_page(uaecptr addr, int size)
 {
     return unlikely((addr & (size - 1)) && (addr ^ (addr + size - 1)) & regs.mmu_page_size);
@@ -139,5 +143,14 @@ static ALWAYS_INLINE uae_u32 phys_get_byte(uaecptr addr)
 {
     return get_byte(addr);
 }
+
+extern uae_u32(*x_phys_get_iword)(uaecptr);
+extern uae_u32(*x_phys_get_ilong)(uaecptr);
+extern uae_u32(*x_phys_get_byte)(uaecptr);
+extern uae_u32(*x_phys_get_word)(uaecptr);
+extern uae_u32(*x_phys_get_long)(uaecptr);
+extern void(*x_phys_put_byte)(uaecptr, uae_u32);
+extern void(*x_phys_put_word)(uaecptr, uae_u32);
+extern void(*x_phys_put_long)(uaecptr, uae_u32);
 
 #endif /* UAE_MMU_COMMON_H */

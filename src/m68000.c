@@ -139,7 +139,7 @@ void M68000_Init(void)
 	M68000_InitPairing();
 }
 
-static int pendingInterrupts = 0;
+int pendingInterrupts = 0;
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -154,7 +154,7 @@ void M68000_Reset(bool bCold) {
         regs.spcflags = spcFlags;
     }
     /* Now reset the WINUAE CPU core */
-    m68k_reset(bCold);
+    m68k_reset();
     BusMode = BUS_MODE_CPU;
 }
 
@@ -207,10 +207,9 @@ void M68000_CheckCpuSettings(void)
             ConfigureParams.System.nCpuFreq = 33;
         }
     }
-	changed_prefs.cpu_level = ConfigureParams.System.nCpuLevel;
 	changed_prefs.cpu_compatible = ConfigureParams.System.bCompatibleCpu;
 
-	switch (changed_prefs.cpu_level) {
+	switch (ConfigureParams.System.nCpuLevel) {
 		case 0 : changed_prefs.cpu_model = 68000; break;
 		case 1 : changed_prefs.cpu_model = 68010; break;
 		case 2 : changed_prefs.cpu_model = 68020; break;
@@ -221,7 +220,7 @@ void M68000_CheckCpuSettings(void)
 	}
 
     changed_prefs.fpu_model = ConfigureParams.System.n_FPUType;
-    switch (changed_prefs.fpu_model) {
+    switch (ConfigureParams.System.n_FPUType) {
         case 68881: changed_prefs.fpu_revision = 0x1f; break;
         case 68882: changed_prefs.fpu_revision = 0x20; break;
         case 68040:
@@ -233,22 +232,43 @@ void M68000_CheckCpuSettings(void)
 		default: fprintf (stderr, "Init680x0() : Error, fpu_model unknown\n");
     }
 
-	changed_prefs.fpu_strict = ConfigureParams.System.bCompatibleFPU;
+	changed_prefs.fpu_strict = 1;
+    changed_prefs.cpu_compatible = 0;
 	changed_prefs.mmu_model = ConfigureParams.System.bMMU?changed_prefs.cpu_model:0;
 
-	if (table68k)
+//	if (table68k)
 		check_prefs_changed_cpu();
 }
 
-/*-----------------------------------------------------------------------*/
 /**
  * BUSERROR - Access outside valid memory range.
- * Use bRead = 0 for write errors and bRead = 1 for read errors!
+ *   ReadWrite : BUS_ERROR_READ in case of a read or BUS_ERROR_WRITE in case of write
+ *   Size : BUS_ERROR_SIZE_BYTE or BUS_ERROR_SIZE_WORD or BUS_ERROR_SIZE_LONG
+ *   AccessType : BUS_ERROR_ACCESS_INSTR or BUS_ERROR_ACCESS_DATA
+ *   val : value we wanted to write in case of a BUS_ERROR_WRITE
  */
-void M68000_BusError(Uint32 addr, bool bRead)
+void M68000_BusError ( Uint32 addr , int ReadWrite , int Size , int AccessType , uae_u32 val )
 {
-	exception2 (addr, bRead, 0, regs.s ? 5 : 1); /* assumes data access,
-                                                  size not set */
+    LOG_TRACE(TRACE_CPU_EXCEPTION, "Bus error %s at address $%x PC=$%x.\n",
+              ReadWrite ? "reading" : "writing", addr, M68000_InstrPC);
+    
+#define WINUAE_HANDLE_BUS_ERROR
+#ifdef WINUAE_HANDLE_BUS_ERROR
+    
+    bool	read , ins;
+    int	size;
+    
+    if ( ReadWrite == BUS_ERROR_READ )		read = true; else read = false;
+    if ( AccessType == BUS_ERROR_ACCESS_INSTR )	ins = true; else ins = false;
+    if ( Size == BUS_ERROR_SIZE_BYTE )		size = sz_byte;
+    else if ( Size == BUS_ERROR_SIZE_WORD )		size = sz_word;
+    else						size = sz_long;
+    hardware_exception2 ( addr , val , read , ins , size );
+#else
+    /* With WinUAE's cpu, on a bus error instruction will be correctly aborted before completing, */
+    /* so we don't need to check if the opcode already generated a bus error or not */
+    exception2 ( addr , ReadWrite , Size , AccessType );
+#endif
 }
 #if 0
 void M68000_BusError(Uint32 addr, bool bRead)

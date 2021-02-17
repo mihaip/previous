@@ -23,7 +23,7 @@ Uint8 NBIC::read(int addr) {
         case 0x06:
         case 0x07:
             Log_Printf(ND_LOG_IO_RD, "[ND] Slot %i: NBIC bus error read at %08X", slot,addr);
-            M68000_BusError(addr, 1);
+            M68000_BusError(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, BUS_ERROR_ACCESS_DATA, 0);
             return 0;
 
         case 0x08:
@@ -68,7 +68,7 @@ void  NBIC::write(int addr, Uint8 val) {
             break;
         default:
             Log_Printf(ND_LOG_IO_WR, "[ND] Slot %i: NBIC bus error write at %08X", slot,addr);
-            M68000_BusError(addr, 0);
+            M68000_BusError(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_BYTE, BUS_ERROR_ACCESS_DATA, val);
             break;
     }
 }
