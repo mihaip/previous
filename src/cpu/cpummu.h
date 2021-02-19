@@ -30,8 +30,8 @@
 #include "uae/types.h"
 
 #define MMU_ICACHE 0
-#define MMU_IPAGECACHE 1
-#define MMU_DPAGECACHE 1
+#define MMU_IPAGECACHE 0
+#define MMU_DPAGECACHE 0
 
 #define CACHE_HIT_COUNT 0
 

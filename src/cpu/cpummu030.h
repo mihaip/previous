@@ -7,8 +7,8 @@
 
 #include "mmu_common.h"
 
-#define MMU_DPAGECACHE030 1
-#define MMU_IPAGECACHE030 1
+#define MMU_DPAGECACHE030 0
+#define MMU_IPAGECACHE030 0
 
 extern uae_u64 srp_030, crp_030;
 extern uae_u32 tt0_030, tt1_030, tc_030;

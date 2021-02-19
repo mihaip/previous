@@ -17,15 +17,11 @@
 
 #define MORE_ACCURATE_68020_PIPELINE 1
 
-#include <inttypes.h>		/* Needed for PRIX64 */
-
 #include "main.h"
 #include "compat.h"
 
 #include "sysconfig.h"
 #include "sysdeps.h"
-
-#include "hatari-glue.h"
 
 #include "options_cpu.h"
 #include "events.h"
@@ -44,16 +40,11 @@
 #ifdef WINUAE_FOR_HATARI
 #include "debug.h"
 #include "m68000.h"
-#include "reset.h"
 #include "cycInt.h"
 #include "dialog.h"
-#include "screen.h"
-#include "video.h"
 #include "dsp.h"
 #include "dimension.hpp"
-#include "log.h"
 #include "sysReg.h"
-#include "debugui.h"
 #include "debugcpu.h"
 #endif
 
@@ -878,21 +869,12 @@ void(*write_data_030_fc_lput)(uaecptr, uae_u32, uae_u32);
 static void set_x_ifetches(void)
 {
 	if (m68k_pc_indirect) {
-		if (currprefs.cachesize) {
-			// indirect via addrbank
-			x_get_ilong = get_iilong_jit;
-			x_get_iword = get_iiword_jit;
-			x_get_ibyte = get_iibyte_jit;
-			x_next_iword = next_iiword_jit;
-			x_next_ilong = next_iilong_jit;
-		} else {
-			// indirect via addrbank
-			x_get_ilong = get_iilong;
-			x_get_iword = get_iiword;
-			x_get_ibyte = get_iibyte;
-			x_next_iword = next_iiword;
-			x_next_ilong = next_iilong;
-		}
+		// indirect via addrbank
+		x_get_ilong = get_iilong;
+		x_get_iword = get_iiword;
+		x_get_ibyte = get_iibyte;
+		x_next_iword = next_iiword;
+		x_next_ilong = next_iilong;
 	} else {
 		// direct to memory
 		x_get_ilong = get_dilong;
@@ -1934,31 +1916,22 @@ static void build_cpufunctbl (void)
 	int lvl, mode, jit;
 
 	jit = 0;
-	if (!currprefs.cachesize) {
-		if (currprefs.mmu_model) {
-			if (currprefs.cpu_cycle_exact)
-				mode = 7;
-			else if (currprefs.cpu_compatible)
-				mode = 6;
-			else
-				mode = 5;
-		} else if (currprefs.cpu_cycle_exact) {
-			mode = 4;
-		} else if (currprefs.cpu_compatible) {
-			mode = 3;
-		} else {
-			mode = 0;
-		}
-		m68k_pc_indirect = mode != 0 ? 1 : 0;
+	if (currprefs.mmu_model) {
+		if (currprefs.cpu_cycle_exact)
+			mode = 7;
+		else if (currprefs.cpu_compatible)
+			mode = 6;
+		else
+			mode = 5;
+	} else if (currprefs.cpu_cycle_exact) {
+		mode = 4;
+	} else if (currprefs.cpu_compatible) {
+		mode = 3;
 	} else {
-		mode = 1;
-		m68k_pc_indirect = 0;
-		jit = 1;
-		if (currprefs.comptrustbyte) {
-			mode = 2;
-			m68k_pc_indirect = -1;
-		}
+		mode = 0;
 	}
+	m68k_pc_indirect = mode != 0 ? 1 : 0;
+	
 	lvl = (currprefs.cpu_model - 68000) / 10;
 	if (lvl == 6)
 		lvl = 5;
@@ -2073,12 +2046,10 @@ static void build_cpufunctbl (void)
 	build_comp ();
 #endif
 
-	write_log(_T("CPU=%d, FPU=%d%s, MMU=%d, JIT%s=%d."),
+	write_log(_T("CPU=%d, FPU=%d, MMU=%d."),
 		currprefs.cpu_model,
-		currprefs.fpu_model, currprefs.fpu_model ? (currprefs.fpu_mode > 0 ? _T(" (softfloat)") : (currprefs.fpu_mode < 0 ? _T(" (host 80b)") : _T(" (host 64b)"))) : _T(""),
-		currprefs.mmu_model,
-		currprefs.cachesize ? (currprefs.compfpu ? _T("=CPU/FPU") : _T("=CPU")) : _T(""),
-		currprefs.cachesize);
+		currprefs.fpu_model,
+		currprefs.mmu_model);
 
 	regs.address_space_mask = 0xffffffff;
 #ifndef WINUAE_FOR_HATARI
@@ -2215,6 +2186,7 @@ static void prefs_changed_cpu (void)
 	check_prefs_changed_comp(false);
 	currprefs.cpu_model = changed_prefs.cpu_model;
 	currprefs.fpu_model = changed_prefs.fpu_model;
+	currprefs.fpu_revision = changed_prefs.fpu_revision;
 	if (currprefs.mmu_model != changed_prefs.mmu_model) {
 		int oldmmu = currprefs.mmu_model;
 		currprefs.mmu_model = changed_prefs.mmu_model;
@@ -2256,7 +2228,6 @@ static void prefs_changed_cpu (void)
 	currprefs.cpu_memory_cycle_exact = changed_prefs.cpu_memory_cycle_exact;
 	currprefs.int_no_unimplemented = changed_prefs.int_no_unimplemented;
 	currprefs.fpu_no_unimplemented = changed_prefs.fpu_no_unimplemented;
-	currprefs.blitter_cycle_exact = changed_prefs.blitter_cycle_exact;
 }
 
 static int check_prefs_changed_cpu2(void)
@@ -2269,6 +2240,7 @@ static int check_prefs_changed_cpu2(void)
 	if (changed
 		|| currprefs.cpu_model != changed_prefs.cpu_model
 		|| currprefs.fpu_model != changed_prefs.fpu_model
+		|| currprefs.fpu_revision != changed_prefs.fpu_revision
 		|| currprefs.mmu_model != changed_prefs.mmu_model
 		|| currprefs.mmu_ec != changed_prefs.mmu_ec
 		|| currprefs.cpu_data_cache != changed_prefs.cpu_data_cache
@@ -2277,15 +2249,14 @@ static int check_prefs_changed_cpu2(void)
 		|| currprefs.fpu_no_unimplemented != changed_prefs.fpu_no_unimplemented
 		|| currprefs.cpu_compatible != changed_prefs.cpu_compatible
 		|| currprefs.cpu_cycle_exact != changed_prefs.cpu_cycle_exact
-		|| currprefs.cpu_memory_cycle_exact != changed_prefs.cpu_memory_cycle_exact
-		|| currprefs.fpu_mode != changed_prefs.fpu_mode) {
+		|| currprefs.cpu_memory_cycle_exact != changed_prefs.cpu_memory_cycle_exact) {
 			cpu_prefs_changed_flag |= 1;
 	}
 	if (changed
-		|| currprefs.m68k_speed != changed_prefs.m68k_speed
-		|| currprefs.m68k_speed_throttle != changed_prefs.m68k_speed_throttle
+//		|| currprefs.m68k_speed != changed_prefs.m68k_speed
+//		|| currprefs.m68k_speed_throttle != changed_prefs.m68k_speed_throttle
 		|| currprefs.cpu_clock_multiplier != changed_prefs.cpu_clock_multiplier
-		|| currprefs.reset_delay != changed_prefs.reset_delay
+//		|| currprefs.reset_delay != changed_prefs.reset_delay
 		|| currprefs.cpu_frequency != changed_prefs.cpu_frequency) {
 			cpu_prefs_changed_flag |= 2;
 	}
@@ -2299,9 +2270,9 @@ void check_prefs_changed_cpu(void)
 		return;
 #endif
 
-	currprefs.cpu_idle = changed_prefs.cpu_idle;
-	currprefs.ppc_cpu_idle = changed_prefs.ppc_cpu_idle;
-	currprefs.reset_delay = changed_prefs.reset_delay;
+//	currprefs.cpu_idle = changed_prefs.cpu_idle;
+//	currprefs.ppc_cpu_idle = changed_prefs.ppc_cpu_idle;
+//	currprefs.reset_delay = changed_prefs.reset_delay;
 #ifndef WINUAE_FOR_HATARI
 	currprefs.cpuboard_settings = changed_prefs.cpuboard_settings;
 #endif
@@ -2430,7 +2401,7 @@ static void activate_trace(void)
 static void doint_imm(void)
 {
 	doint();
-	if (!currprefs.cachesize && !(regs.spcflags & SPCFLAG_INT) && (regs.spcflags & SPCFLAG_DOINT))
+	if (!(regs.spcflags & SPCFLAG_INT) && (regs.spcflags & SPCFLAG_DOINT))
 		set_special(SPCFLAG_INT);
 }
 
@@ -6101,7 +6072,9 @@ void cpu_halt (int id)
 	}
 	set_special(SPCFLAG_CHECK);
 #else
-//	Dialog_HaltDlg();
+	write_log (_T("CPU halted: reason = %d PC=%08x\n"), id, M68K_GETPC);
+	if (!DlgAlert_Query("Fatal error: CPU halted!\n\nPress OK to restart CPU or cancel to quit."))
+		set_special(SPCFLAG_BRK);
 #endif
 }
 
@@ -7416,9 +7389,9 @@ void m68k_go (int may_quit)
 
 	set_cpu_tracer (false);
 
-//	cpu_prefs_changed_flag = 0;
 	in_m68k_go++;
 	for (;;) {
+		cpu_prefs_changed_flag = 0;
 		int restored = 0;
 		void (*run_func)(void);
 
@@ -7563,8 +7536,8 @@ void m68k_go (int may_quit)
 			}
 			if (cpu_prefs_changed_flag & 2) {
 				fixup_cpu(&changed_prefs);
-				currprefs.m68k_speed = changed_prefs.m68k_speed;
-				currprefs.m68k_speed_throttle = changed_prefs.m68k_speed_throttle;
+//				currprefs.m68k_speed = changed_prefs.m68k_speed;
+//				currprefs.m68k_speed_throttle = changed_prefs.m68k_speed_throttle;
 				update_68k_cycles();
 #ifndef WINUAE_FOR_HATARI
 				target_cpu_speed();
@@ -8765,7 +8738,7 @@ void cpureset (void)
 //	addrbank *ab;
 
 	maybe_disable_fpu();
-	m68k_reset_delay = currprefs.reset_delay;
+//	m68k_reset_delay = currprefs.reset_delay;
 	set_special(SPCFLAG_CHECK);
 #ifndef WINUAE_FOR_HATARI
 	send_internalevent(INTERNALEVENT_CPURESET);
@@ -11117,8 +11090,6 @@ void fill_prefetch_030(void)
 
 void fill_prefetch (void)
 {
-	if (currprefs.cachesize)
-		return;
 	if (!currprefs.cpu_compatible)
 		return;
 	reset_pipeline_state();

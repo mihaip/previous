@@ -28,31 +28,9 @@ struct uae_prefs currprefs, changed_prefs;
 /**
  * Initialize 680x0 emulation
  */
-int Init680x0(void) {
-	switch (ConfigureParams.System.nCpuLevel) {
-		case 3: currprefs.cpu_model = changed_prefs.cpu_model = 68030; break;
-		case 4: currprefs.cpu_model = changed_prefs.cpu_model = 68040; break;
-		default: fprintf (stderr, "Init680x0() : Error, CPU level not supported (%i)\n",ConfigureParams.System.nCpuLevel);
-	}
-    
-    switch (ConfigureParams.System.n_FPUType) {
-        case 68881: currprefs.fpu_revision = changed_prefs.fpu_revision = 0x1f; break;
-        case 68882: currprefs.fpu_revision = changed_prefs.fpu_revision = 0x20; break;
-        case 68040:
-            if (ConfigureParams.System.bTurbo)
-                currprefs.fpu_revision = changed_prefs.fpu_revision = 0x41;
-            else
-                currprefs.fpu_revision = changed_prefs.fpu_revision = 0x40;
-            break;
-		default: fprintf (stderr, "Init680x0() : Error, fpu_model unknown\n");
-    }
-    
-    currprefs.fpu_model = changed_prefs.fpu_model = ConfigureParams.System.n_FPUType;
-	currprefs.cpu_compatible = changed_prefs.cpu_compatible = ConfigureParams.System.bCompatibleCpu;
-	currprefs.fpu_strict = changed_prefs.fpu_strict = ConfigureParams.System.bCompatibleFPU;
-    currprefs.mmu_model = changed_prefs.mmu_model = ConfigureParams.System.bMMU?changed_prefs.cpu_model:0;
-
-   	write_log("Init680x0() called\n");
+int Init680x0(void)
+{
+	write_log("Init680x0() called\n");
 
 	init_m68k();
 

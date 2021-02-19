@@ -13,10 +13,6 @@
 #define FPU_TEST 0
 #define FPU_LOG 0
 
-#include <math.h>
-#include <float.h>
-#include <fenv.h>
-
 #include "sysconfig.h"
 #include "sysdeps.h"
 
@@ -28,10 +24,7 @@
 
 #include "options_cpu.h"
 #include "memory.h"
-#include "uae/attributes.h"
-#include "uae/vm.h"
 #include "custom.h"
-#include "events.h"
 #include "newcpu.h"
 #include "fpp.h"
 #include "savestate.h"
@@ -158,7 +151,7 @@ STATIC_INLINE int isinrom (void)
 
 static bool jit_fpu(void)
 {
-	return currprefs.cachesize && currprefs.compfpu;
+	return 0;
 }
 
 static int warned = 100;
@@ -1507,7 +1500,7 @@ static bool fault_if_no_packed_support(uae_u16 opcode, uae_u16 extra, uaecptr ea
 // 68040 does not support move to integer format
 static bool fault_if_68040_integer_nonmaskable(uae_u16 opcode, uae_u16 extra, uaecptr ea, bool easet, uaecptr oldpc, fpdata *src)
 {
-	if (currprefs.cpu_model == 68040 && currprefs.fpu_model && currprefs.fpu_mode > 0) {
+	if (currprefs.cpu_model == 68040 && currprefs.fpu_model) {
 		fpsr_make_status();
 		if (regs.fpsr & (FPSR_SNAN | FPSR_OPERR)) {
 			fpsr_check_arithmetic_exception(FPSR_SNAN | FPSR_OPERR, src, opcode, extra, ea, easet, oldpc);
@@ -3639,30 +3632,14 @@ void fpu_clearstatus(void)
 void fpu_modechange(void)
 {
 	uae_u32 temp_ext[8][3];
-//fprintf ( stderr , "fpu_modechange old %d new %d\n" , currprefs.fpu_mode , changed_prefs.fpu_mode );
-
-	if (currprefs.fpu_mode == changed_prefs.fpu_mode)
-		return;
-	currprefs.fpu_mode = changed_prefs.fpu_mode;
 
 	set_cpu_caches(true);
 	for (int i = 0; i < 8; i++) {
 		fpp_from_exten_fmovem(&regs.fp[i], &temp_ext[i][0], &temp_ext[i][1], &temp_ext[i][2]);
 	}
-	if (currprefs.fpu_mode > 0) {
-		fp_init_softfloat(currprefs.fpu_model);
-//#ifdef MSVC_LONG_DOUBLE
-//		use_long_double = false;
-//	} else if (currprefs.fpu_mode < 0) {
-//		use_long_double = true;
-//		fp_init_native_80();
-//#endif
-	} else {
-//#ifdef MSVC_LONG_DOUBLE
-//		use_long_double = false;
-//#endif
-//		fp_init_native();
-	}
+	
+	fp_init_softfloat(currprefs.fpu_model);
+
 	get_features();
 	for (int i = 0; i < 8; i++) {
 		fpp_to_exten_fmovem(&regs.fp[i], temp_ext[i][0], temp_ext[i][1], temp_ext[i][2]);
@@ -3689,9 +3666,6 @@ static void fpu_test(void)
 
 void fpu_reset (void)
 {
-#ifndef CPU_TESTER
-	currprefs.fpu_mode = changed_prefs.fpu_mode;
-#endif
     fp_init_softfloat(currprefs.fpu_model);
     use_long_double = false;
 

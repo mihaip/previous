@@ -145,17 +145,17 @@ int pendingInterrupts = 0;
 /**
  * Reset CPU 68000 variables
  */
-void M68000_Reset(bool bCold) {
-    pendingInterrupts = 0;
-    if (bCold) {
-        /* Clear registers, but we need to keep SPCFLAG_MODE_CHANGE and SPCFLAG_BRK unchanged */
-        int spcFlags = regs.spcflags & (SPCFLAG_MODE_CHANGE | SPCFLAG_BRK);
-        memset(&regs, 0, sizeof(regs));
-        regs.spcflags = spcFlags;
-    }
-    /* Now reset the WINUAE CPU core */
-    m68k_reset();
-    BusMode = BUS_MODE_CPU;
+void M68000_Reset(bool bCold)
+{
+	if (bCold) {
+		pendingInterrupts = 0;
+		
+		/* Now reset the WINUAE CPU core */
+		m68k_reset();
+		M68000_SetSpecial(SPCFLAG_MODE_CHANGE);		/* exit m68k_run_xxx() loop and check for cpu changes / reset / quit */
+		
+		BusMode = BUS_MODE_CPU;
+	}
 }
 
 
@@ -216,11 +216,12 @@ void M68000_CheckCpuSettings(void)
 		case 3 : changed_prefs.cpu_model = 68030; break;
 		case 4 : changed_prefs.cpu_model = 68040; break;
 		case 5 : changed_prefs.cpu_model = 68060; break;
-		default: fprintf (stderr, "Init680x0() : Error, cpu_level unknown\n");
-	}
-
+		default: fprintf (stderr, "M68000_CheckCpuSettings(): Error, cpu_model unknown\n");
+    }
+    changed_prefs.mmu_model = changed_prefs.cpu_model;
     changed_prefs.fpu_model = ConfigureParams.System.n_FPUType;
-    switch (ConfigureParams.System.n_FPUType) {
+	
+	switch (ConfigureParams.System.n_FPUType) {
         case 68881: changed_prefs.fpu_revision = 0x1f; break;
         case 68882: changed_prefs.fpu_revision = 0x20; break;
         case 68040:
@@ -229,15 +230,20 @@ void M68000_CheckCpuSettings(void)
             else
                 changed_prefs.fpu_revision = 0x40;
             break;
-		default: fprintf (stderr, "Init680x0() : Error, fpu_model unknown\n");
+		default: fprintf (stderr, "M68000_CheckCpuSettings(): Error, fpu_model unknown\n");
     }
 
-	changed_prefs.fpu_strict = 1;
-    changed_prefs.cpu_compatible = 0;
-	changed_prefs.mmu_model = ConfigureParams.System.bMMU?changed_prefs.cpu_model:0;
+	/* Hard coded for Previous */
+    changed_prefs.cpu_compatible = false;
+    changed_prefs.cpu_cycle_exact = false;
+    changed_prefs.cpu_memory_cycle_exact = false;
+    changed_prefs.mmu_ec = false;
+    changed_prefs.int_no_unimplemented = false;
+    changed_prefs.fpu_no_unimplemented = false;
+    changed_prefs.address_space_24 = false;
+    changed_prefs.cpu_data_cache = false;
 
-//	if (table68k)
-		check_prefs_changed_cpu();
+    check_prefs_changed_cpu();
 }
 
 /**
