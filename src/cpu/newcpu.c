@@ -6228,7 +6228,7 @@ static void m68k_run_mmu040 (void)
 				regs.instruction_cnt++;
 
 #ifdef WINUAE_FOR_HATARI
-				M68000_AddCycles(cpu_cycles * 2 / CYCLE_UNIT);
+//				M68000_AddCycles(cpu_cycles * 2 / CYCLE_UNIT);
 
                 M68000_AddCycles(cpu_cycles);
                 cpu_cycles = nCyclesMainCounter - beforeCycles;

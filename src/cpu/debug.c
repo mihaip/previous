@@ -60,7 +60,7 @@ static uae_u32 trace_param[3];
 
 #ifdef WINUAE_FOR_HATARI
 int debugger_active;
-static int debug_mmu_mode;
+static int debug_mmu_mode = 1;
 int debugging;
 int exception_debugging;
 
