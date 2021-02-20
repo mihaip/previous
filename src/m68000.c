@@ -238,8 +238,8 @@ void M68000_CheckCpuSettings(void)
     changed_prefs.cpu_cycle_exact = false;
     changed_prefs.cpu_memory_cycle_exact = false;
     changed_prefs.mmu_ec = false;
-    changed_prefs.int_no_unimplemented = false;
-    changed_prefs.fpu_no_unimplemented = false;
+    changed_prefs.int_no_unimplemented = true;
+    changed_prefs.fpu_no_unimplemented = true;
     changed_prefs.address_space_24 = false;
     changed_prefs.cpu_data_cache = false;
 

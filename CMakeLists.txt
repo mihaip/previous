@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 2.6 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 
 project(Previous)
 
@@ -44,7 +44,7 @@ endif(APPLE)
 # Check for libraries:
 # ####################
 
-find_package(SDL2 REQUIRED)
+find_package(SDL2)
 if(NOT SDL2_FOUND)
 	message(FATAL_ERROR "SDL2 library not found!")
 endif(NOT SDL2_FOUND)
@@ -52,16 +52,9 @@ endif(NOT SDL2_FOUND)
 find_package(Math)
 
 find_package(Readline)
-if(READLINE_FOUND)
-	set(CMAKE_REQUIRED_LIBRARIES "readline")
-	check_function_exists(rl_filename_completion_function HAVE_RL_COMPLETION_FUNCTION)
-	if(HAVE_RL_COMPLETION_FUNCTION)
-		set(HAVE_LIBREADLINE 1)
-	else()
-		unset(READLINE_FOUND)
-	endif(HAVE_RL_COMPLETION_FUNCTION)
-	set(CMAKE_REQUIRED_LIBRARIES "")
-endif(READLINE_FOUND)
+if(Readline_FOUND)
+	set(HAVE_LIBREADLINE 1)
+endif(Readline_FOUND)
 
 find_package(ZLIB)
 if(ZLIB_FOUND)
@@ -97,6 +90,10 @@ endif(DETECTED_LFS_CFLAGS)
 execute_process(COMMAND pkg-config --cflags-only-other sdl2
 		OUTPUT_VARIABLE DETECTED_SDL_CFLAGS
 		ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+if(DETECTED_SDL_CFLAGS)
+	add_definitions(${DETECTED_SDL_CFLAGS})
+	# message(STATUS "Additional CFLAGS of SDL: ${DETECTED_SDL_CFLAGS}")
+endif(DETECTED_SDL_CFLAGS)
 
 # ###########################
 # Check for optional headers:
