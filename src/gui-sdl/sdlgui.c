@@ -19,6 +19,8 @@ const char SDLGui_fileid[] = "Previous sdlgui.c : " __DATE__ " " __TIME__;
 #include "font5x8.h"
 #include "font10x16.h"
 
+int sdlgui_fontheight = 0;
+int sdlgui_fontwidth = 0;
 
 static SDL_Surface *pSdlGuiScrn;            /* Pointer to the actual main SDL screen surface */
 static SDL_Surface *pSmallFontGfx = NULL;   /* The small font graphics */

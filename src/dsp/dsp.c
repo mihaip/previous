@@ -50,6 +50,8 @@
 
 #define DSP_HW_OFFSET  0xFFA200
 
+Uint8 dsp_dma_unpacked = 0;
+Uint8 dsp_intr_at_block_end = 0;
 
 #if ENABLE_DSP_EMU
 static const char* x_ext_memory_addr_name[] = {

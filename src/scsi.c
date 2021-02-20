@@ -95,6 +95,9 @@
 #define CMD_SHIP            0x1B    /* Ship drive */
 #define CMD_READ_CAPACITY1  0x25    /* Read capacity (class 1) */
 
+SCSIBusStatus SCSIbus;
+SCSIBuffer scsi_buffer;
+
 void SCSI_Emulate_Command(Uint8 *cdb);
 
 void SCSI_Inquiry(Uint8 *cdb);

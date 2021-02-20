@@ -27,6 +27,8 @@
 
 #define IO_SEG_MASK	0x1FFFF
 
+EthernetBuffer enet_tx_buffer;
+EthernetBuffer enet_rx_buffer;
 
 struct {
     Uint8 tx_status;
@@ -293,10 +295,10 @@ enum {
     RECV_STATE_RECEIVING
 } receiver_state;
 
-bool tx_done;
-bool rx_chain;
-int old_size;
-int en_state;
+static bool tx_done;
+static bool rx_chain;
+static int old_size;
+static int en_state;
 
 #define EN_DISCONNECTED    0
 #define EN_LOOPBACK        1

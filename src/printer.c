@@ -26,6 +26,7 @@
 #define LOG_LP_REG_LEVEL    LOG_DEBUG
 #define LOG_LP_LEVEL        LOG_DEBUG
 
+PrinterBuffer lp_buffer;
 
 struct {
     /* Registers */

@@ -376,7 +376,8 @@ static char *ZIP_FirstFile(const char *filename, const char * const ppsExts[])
 			{
 				if (File_DoesFileExtensionMatch(files->names[i], ppsExts[j]))
 				{
-					strncpy(name, files->names[i], ZIP_PATH_MAX);
+					strncpy(name, files->names[i], ZIP_PATH_MAX - 1);
+					name[ZIP_PATH_MAX - 1] = '\0';
 					break;
 				}
 			}
@@ -385,7 +386,8 @@ static char *ZIP_FirstFile(const char *filename, const char * const ppsExts[])
 	else
 	{
 		/* There was no extension given -> use the very first name */
-		strncpy(name, files->names[0], ZIP_PATH_MAX);
+		strncpy(name, files->names[0], ZIP_PATH_MAX - 1);
+		name[ZIP_PATH_MAX - 1] = '\0';
 	}
 
 	/* free the files */
