@@ -15,8 +15,8 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program; if not, write to the Free Software Foundation,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1335 USA
 */
 
 /*
@@ -94,6 +94,12 @@
 
 #define DSP_COUNT_IPS 0		/* Count instruction per seconds */
 
+#if DSP_COUNT_IPS
+/* For counting instructions per second */
+#include <SDL_timer.h>
+static Uint32 start_time;
+static Uint32 num_inst;
+#endif
 
 /**********************************
  *	Defines
@@ -113,10 +119,6 @@
 /**********************************
  *	Variables
  **********************************/
-
-/* Instructions per second */
-static Uint32 start_time;
-static Uint32 num_inst;
 
 /* Length of current instruction */
 static Uint32 cur_inst_len;	/* =0:jump, >0:increment */
@@ -288,7 +290,6 @@ static void dsp_add_x1_a(void);
 static void dsp_add_x1_b(void);
 static void dsp_add_y1_a(void);
 static void dsp_add_y1_b(void);
-static void dsp_addl_b_a(void);
 static void dsp_addl_b_a(void);
 static void dsp_addl_a_b(void);
 static void dsp_addr_b_a(void);
@@ -725,8 +726,10 @@ void dsp56k_init_cpu(void)
 {
 	dsp56k_disasm_init();
 	isDsp_in_disasm_mode = false;
+#if DSP_COUNT_IPS
 	start_time = SDL_GetTicks();
 	num_inst = 0;
+#endif
 }
 
 /**
@@ -751,7 +754,7 @@ Uint16 dsp56k_execute_one_disasm_instruction(FILE *out, Uint16 pc)
 	dsp_core.pc = pc;
 
 	/* Disasm instruction */
-	instruction_length = dsp56k_disasm(DSP_DISASM_MODE) - 1;
+	instruction_length = dsp56k_disasm(DSP_DISASM_MODE, out) - 1;
 
 	/* Execute instruction at address given in parameter to get the number of cycles it takes */
 	dsp56k_execute_instruction();
@@ -776,6 +779,9 @@ void dsp56k_execute_instruction(void)
 	/* Initialise the number of access to the external memory for this instruction */
 	access_to_ext_memory = 0;
 	
+	/* Init the indirect AGU move instruction flag */
+	dsp_core.agu_move_indirect_instr = 0;
+
 	/* Trace Interrupt at end of instruction? */
 	if (dsp_core.registers[DSP_REG_SR] & (1<<DSP_SR_T)) {
 		dsp_set_interrupt(DSP_INTER_TRACE, 1);
@@ -792,7 +798,7 @@ void dsp56k_execute_instruction(void)
 	if (LOG_TRACE_LEVEL(TRACE_DSP_DISASM)) {	
 		/* Call dsp56k_disasm only when DSP is called in trace mode */
 		if (isDsp_in_disasm_mode == false) {
-			disasm_return = dsp56k_disasm(DSP_TRACE_MODE);
+			disasm_return = dsp56k_disasm(DSP_TRACE_MODE, TraceFile);
 			
 			if (disasm_return != 0 && LOG_TRACE_LEVEL(TRACE_DSP_DISASM_REG)) {
 				/* DSP regs trace enabled only if DSP DISASM is enabled */
@@ -826,20 +832,20 @@ void dsp56k_execute_instruction(void)
 		/* Display only when DSP is called in trace mode */
 		if (isDsp_in_disasm_mode == false) {
 			if (disasm_return != 0) {
-				fprintf(stderr, "%s", dsp56k_getInstructionText());
+				fprintf(TraceFile, "%s", dsp56k_getInstructionText());
 				
 				/* DSP regs trace enabled only if DSP DISASM is enabled */
 				if (LOG_TRACE_LEVEL(TRACE_DSP_DISASM_REG))
-					dsp56k_disasm_reg_compare();
+					dsp56k_disasm_reg_compare(TraceFile);
 
 				if (LOG_TRACE_LEVEL(TRACE_DSP_DISASM_MEM)) {
 					/* 1 memory change to display ? */
 					if (disasm_memory_ptr == 1)
-						fprintf(stderr, "\t%s\n", str_disasm_memory[0]);
+						fprintf(TraceFile, "\t%s\n", str_disasm_memory[0]);
 					/* 2 memory changes to display ? */
 					else if (disasm_memory_ptr == 2) {
-						fprintf(stderr, "\t%s\n", str_disasm_memory[0]);
-						fprintf(stderr, "\t%s\n", str_disasm_memory[1]);
+						fprintf(TraceFile, "\t%s\n", str_disasm_memory[0]);
+						fprintf(TraceFile, "\t%s\n", str_disasm_memory[1]);
 					}
 				}
 			}
@@ -903,11 +909,8 @@ static void dsp_postexecute_update_pc(void)
 
 		/* Did we execute the last instruction in loop ? */
 		if (dsp_core.pc == dsp_core.registers[DSP_REG_LA] + 1) {		
-			--dsp_core.registers[DSP_REG_LC];
-			dsp_core.registers[DSP_REG_LC] &= BITMASK(16);
-
-			if (dsp_core.registers[DSP_REG_LC] == 0) {
-				/* end of loop */
+			if (dsp_core.registers[DSP_REG_LC] == 1) {
+				/* end of the loop */
 				Uint32 saved_pc, saved_sr;
 
 				dsp_stack_pop(&saved_pc, &saved_sr);
@@ -916,6 +919,8 @@ static void dsp_postexecute_update_pc(void)
 				dsp_stack_pop(&dsp_core.registers[DSP_REG_LA], &dsp_core.registers[DSP_REG_LC]);
 			} else {
 				/* Loop one more time */
+				--dsp_core.registers[DSP_REG_LC];
+				dsp_core.registers[DSP_REG_LC] &= BITMASK(16);
 				dsp_core.pc = dsp_core.registers[DSP_REG_SSH];
 			}
 		}
@@ -929,21 +934,19 @@ static void dsp_postexecute_update_pc(void)
 /* Set the status of an interrupt */
 void dsp_set_interrupt(Uint32 intr, Uint32 set)
 {
-	if (set) {
+	if (set)
 		dsp_core.interrupt_status |= (1<<intr);
-	} else {
+	else
 		dsp_core.interrupt_status &= ~(1<<intr);
-	}
 }
 
 /* Mask or unmask an interrupt */
 void dsp_set_interrupt_mask(Uint32 intr, Uint32 set)
 {
-	if (set) {
+	if (set)
 		dsp_core.interrupt_mask |= (1<<intr);
-	} else {
+	else
 		dsp_core.interrupt_mask &= ~(1<<intr);
-	}
 }
 
 static void dsp_setInterruptIPL(Uint32 value)
@@ -1533,13 +1536,39 @@ static void dsp_write_reg(Uint32 numreg, Uint32 value)
 	switch (numreg) {
 		case DSP_REG_A:
 			dsp_core.registers[DSP_REG_A0] = 0;
-			dsp_core.registers[DSP_REG_A1] = value;
+			dsp_core.registers[DSP_REG_A1] = value & BITMASK(24);
 			dsp_core.registers[DSP_REG_A2] = value & (1<<23) ? 0xff : 0x0;
 			break;
 		case DSP_REG_B:
 			dsp_core.registers[DSP_REG_B0] = 0;
-			dsp_core.registers[DSP_REG_B1] = value;
+			dsp_core.registers[DSP_REG_B1] = value & BITMASK(24);
 			dsp_core.registers[DSP_REG_B2] = value & (1<<23) ? 0xff : 0x0;
+			break;
+		case DSP_REG_R0:
+		case DSP_REG_R1:
+		case DSP_REG_R2:
+		case DSP_REG_R3:
+		case DSP_REG_R4:
+		case DSP_REG_R5:
+		case DSP_REG_R6:
+		case DSP_REG_R7:
+		case DSP_REG_N0:
+		case DSP_REG_N1:
+		case DSP_REG_N2:
+		case DSP_REG_N3:
+		case DSP_REG_N4:
+		case DSP_REG_N5:
+		case DSP_REG_N6:
+		case DSP_REG_N7:
+		case DSP_REG_M0:
+		case DSP_REG_M1:
+		case DSP_REG_M2:
+		case DSP_REG_M3:
+		case DSP_REG_M4:
+		case DSP_REG_M5:
+		case DSP_REG_M6:
+		case DSP_REG_M7:
+			dsp_core.registers[numreg] = value & BITMASK(16);
 			break;
 		case DSP_REG_OMR:
 			dsp_core.registers[DSP_REG_OMR] = value & 0xc7;
@@ -1792,7 +1821,7 @@ static int dsp_calc_ea(Uint32 ea_mode, Uint32 *dst_addr)
 		case 3:
 			/* (Rx)+ */
 			*dst_addr = dsp_core.registers[DSP_REG_R0+numreg];
-			dsp_update_rn(numreg, +1);
+			dsp_update_rn(numreg, 1);
 			break;
 		case 4:
 			/* (Rx) */
@@ -2999,14 +3028,13 @@ static void dsp_lua(void)
 	srcnew = dsp_core.registers[DSP_REG_R0+srcreg];
 	dsp_core.registers[DSP_REG_R0+srcreg] = srcsave;
 
-	dstreg = cur_inst & BITMASK(3);
-	
-	if (cur_inst & (1<<3)) {
-		dsp_core.registers[DSP_REG_N0+dstreg] = srcnew;
-	} else {
-		dsp_core.registers[DSP_REG_R0+dstreg] = srcnew;
-	}
+	if (cur_inst & (1<<3))
+		dstreg = DSP_REG_N0 + (cur_inst & BITMASK(3));
+	else
+		dstreg = DSP_REG_R0 + (cur_inst & BITMASK(3));
 
+	dsp_core.agu_move_indirect_instr = 1;
+	dsp_write_reg(dstreg, srcnew);
 	dsp_core.instr_cycle += 2;
 }
 
@@ -3020,6 +3048,8 @@ static void dsp_movec_reg(void)
 	numreg2 = (cur_inst>>8) & BITMASK(6);
 	numreg1 = cur_inst & BITMASK(6);
 
+	dsp_core.agu_move_indirect_instr = 1;
+
 	if (cur_inst & (1<<15)) {
 		/* Write D1 */
 
@@ -3028,7 +3058,6 @@ static void dsp_movec_reg(void)
 		} else {
 			value = dsp_core.registers[numreg2];
 		}
-		value &= BITMASK(registers_mask[numreg1]);
 		dsp_write_reg(numreg1, value);
 	} else {
 		/* Read S1 */
@@ -3039,19 +3068,7 @@ static void dsp_movec_reg(void)
 			value = dsp_core.registers[numreg1];
 		}
 
-		if (numreg2 == DSP_REG_A) {
-			dsp_core.registers[DSP_REG_A0] = 0;
-			dsp_core.registers[DSP_REG_A1] = value & BITMASK(24);
-			dsp_core.registers[DSP_REG_A2] = value & (1<<23) ? 0xff : 0x0;
-		}
-		else if (numreg2 == DSP_REG_B) {
-			dsp_core.registers[DSP_REG_B0] = 0;
-			dsp_core.registers[DSP_REG_B1] = value & BITMASK(24);
-			dsp_core.registers[DSP_REG_B2] = value & (1<<23) ? 0xff : 0x0;
-		}
-		else {
-			dsp_core.registers[numreg2] = value & BITMASK(registers_mask[numreg2]);
-		}
+		dsp_write_reg(numreg2, value);
 	}
 }
 
@@ -3071,7 +3088,7 @@ static void dsp_movec_aa(void)
 	if (cur_inst & (1<<15)) {
 		/* Write D1 */
 		value = read_memory(memspace, addr);
-		value &= BITMASK(registers_mask[numreg]);
+		dsp_core.agu_move_indirect_instr = 1;
 		dsp_write_reg(numreg, value);
 	} else {
 		/* Read S1 */
@@ -3092,7 +3109,7 @@ static void dsp_movec_imm(void)
 	/* #xx,D1 */
 	numreg = cur_inst & BITMASK(6);
 	value = (cur_inst>>8) & BITMASK(8);
-	value &= BITMASK(registers_mask[numreg]);
+	dsp_core.agu_move_indirect_instr = 1;
 	dsp_write_reg(numreg, value);
 }
 
@@ -3119,7 +3136,7 @@ static void dsp_movec_ea(void)
 		} else {
 			value = read_memory(memspace, addr);
 		}
-		value &= BITMASK(registers_mask[numreg]);
+		dsp_core.agu_move_indirect_instr = 1;
 		dsp_write_reg(numreg, value);
 	} else {
 		/* Read S1 */
@@ -3144,7 +3161,7 @@ static void dsp_movem_aa(void)
 	if  (cur_inst & (1<<15)) {
 		/* Write D */
 		value = read_memory_p(addr);
-		value &= BITMASK(registers_mask[numreg]);
+		dsp_core.agu_move_indirect_instr = 1;
 		dsp_write_reg(numreg, value);
 	} else {
 		/* Read S */
@@ -3174,7 +3191,7 @@ static void dsp_movem_ea(void)
 	if  (cur_inst & (1<<15)) {
 		/* Write D */
 		value = read_memory_p(addr);
-		value &= BITMASK(registers_mask[numreg]);
+		dsp_core.agu_move_indirect_instr = 1;
 		dsp_write_reg(numreg, value);
 	} else {
 		/* Read S */
@@ -3221,7 +3238,7 @@ static void dsp_movep_0(void)
 	} else {
 		/* Read pp */
 		value = read_memory(memspace, addr);
-		value &= BITMASK(registers_mask[numreg]);
+		dsp_core.agu_move_indirect_instr = 1;
 		dsp_write_reg(numreg, value);
 	}
 
@@ -3432,7 +3449,44 @@ static void dsp_rep_reg(void)
 
 static void dsp_reset(void)
 {
-	/* Reset external peripherals */
+	/* Clear the IPR register */
+	write_memory(DSP_SPACE_X, 0xffc0 + DSP_IPR, 0);
+
+	/* Software reset all on-chip peripherals */
+
+	/* HOST_HCR x:$FFE8 : clear the full register */
+	write_memory(DSP_SPACE_X, 0xffc0 + DSP_HOST_HCR, 0);
+
+	/* HOST_ICR $0 : clear the full register */
+	dsp_core_write_host(CPU_HOST_ICR, 0);
+
+	/* HOST_CVR $1 : set the register to $12 */
+	dsp_core_write_host(CPU_HOST_CVR, 0x12);
+
+	/* HOST_ISR $2 : set the bits TRDY and TXDE 1, other bits to 0 */
+	dsp_core.hostport[CPU_HOST_ISR] = (1<<CPU_HOST_ISR_TRDY)|(1<<CPU_HOST_ISR_TXDE);
+
+	/* HOST_IVR $3 : set the register to $0f */
+	dsp_core_write_host(CPU_HOST_IVR, 0x0f);
+
+	/* SSI_CRA x:$FFEC : clear the full register */
+	write_memory(DSP_SPACE_X, 0xffc0 + DSP_SSI_CRA, 0);
+
+	/* SSI_CRB x:$FFED : clear the full register */
+	write_memory(DSP_SPACE_X, 0xffc0 + DSP_SSI_CRB, 0);
+
+	/* SSI_SR x:$FFEE : set the register to $40 */
+	write_memory(DSP_SPACE_X, 0xffc0 + DSP_SSI_SR, 1<<DSP_SSI_SR_TDE);
+
+	/* SCI_SCR x:$FFF0 : clear the full register (not used in the Falcon) */
+	write_memory(DSP_SPACE_X, 0xffc0 + DSP_SCI_SCR, 0);
+
+	/* SCI_SSR x:$FFF1 : clear the register to $3 (not used in the Falcon) */
+	write_memory(DSP_SPACE_X, 0xffc0 + DSP_SCI_SSR, 3);
+
+	/* SCI_SCCR x:$FFF2 : clear the full register (not used in the Falcon) */
+	write_memory(DSP_SPACE_X, 0xffc0 + DSP_SCI_SCCR, 0);
+
 	dsp_core.instr_cycle += 2;
 }
 
@@ -3516,7 +3570,8 @@ static void dsp_tcc(void)
 			regsrc2 = DSP_REG_R0+((cur_inst>>8) & BITMASK(3));
 			regdest2 = DSP_REG_R0+(cur_inst & BITMASK(3));
 
-			dsp_core.registers[regdest2] = dsp_core.registers[regsrc2];
+			dsp_core.agu_move_indirect_instr = 1;
+			dsp_write_reg(regdest2, dsp_core.registers[regsrc2]);
 		}
 	}
 }
@@ -3686,18 +3741,7 @@ static void dsp_pm_1(void)
 	/* Write parallel move values */
 	if (cur_inst & (1<<15)) {
 		/* Write D1 */
-		if (numreg1 == DSP_REG_A) {
-			dsp_core.registers[DSP_REG_A0] = 0x0;
-			dsp_core.registers[DSP_REG_A1] = save_1;
-			dsp_core.registers[DSP_REG_A2] = save_1 & (1<<23) ? 0xff : 0x0;
-		}
-		else if (numreg1 == DSP_REG_B) {
-			dsp_core.registers[DSP_REG_B0] = 0x0;
-			dsp_core.registers[DSP_REG_B1] = save_1;
-			dsp_core.registers[DSP_REG_B2] = save_1 & (1<<23) ? 0xff : 0x0;
-		}
-		else {
-	}		dsp_core.registers[numreg1] = save_1;
+		dsp_write_reg(numreg1, save_1);
 	} else {
 		/* Read S1 */
 		write_memory(memspace, xy_addr, save_1);
@@ -3764,19 +3808,8 @@ static void dsp_pm_2_2(void)
 	opcodes_alu[cur_inst & BITMASK(8)]();
 
 	/* Write reg */
-	if (dstreg == DSP_REG_A) {
-		dsp_core.registers[DSP_REG_A0] = 0x0;
-		dsp_core.registers[DSP_REG_A1] = save_reg;
-		dsp_core.registers[DSP_REG_A2] = save_reg & (1<<23) ? 0xff : 0x0;
-	}
-	else if (dstreg == DSP_REG_B) {
-		dsp_core.registers[DSP_REG_B0] = 0x0;
-		dsp_core.registers[DSP_REG_B1] = save_reg;
-		dsp_core.registers[DSP_REG_B2] = save_reg & (1<<23) ? 0xff : 0x0;
-	}
-	else {
-		dsp_core.registers[dstreg] = save_reg & BITMASK(registers_mask[dstreg]);
-	}
+	dsp_core.agu_move_indirect_instr = 1;
+	dsp_write_reg(dstreg, save_reg);
 }
 
 static void dsp_pm_3(void)
@@ -3804,19 +3837,8 @@ static void dsp_pm_3(void)
 			break;
 	}
 
-	if (dstreg == DSP_REG_A) {
-		dsp_core.registers[DSP_REG_A0] = 0x0;
-		dsp_core.registers[DSP_REG_A1] = srcvalue;
-		dsp_core.registers[DSP_REG_A2] = srcvalue & (1<<23) ? 0xff : 0x0;
-	}
-	else if (dstreg == DSP_REG_B) {
-		dsp_core.registers[DSP_REG_B0] = 0x0;
-		dsp_core.registers[DSP_REG_B1] = srcvalue;
-		dsp_core.registers[DSP_REG_B2] = srcvalue & (1<<23) ? 0xff : 0x0;
-	}
-	else {
-		dsp_core.registers[dstreg] = srcvalue & BITMASK(registers_mask[dstreg]);
-	}
+	dsp_core.agu_move_indirect_instr = 1;
+	dsp_write_reg(dstreg, srcvalue);
 }
 
 static void dsp_pm_4(void)
@@ -4033,19 +4055,8 @@ static void dsp_pm_5(void)
 
 	if (cur_inst & (1<<15)) {
 		/* Write D */
-		if (numreg == DSP_REG_A) {
-			dsp_core.registers[DSP_REG_A0] = 0x0;
-			dsp_core.registers[DSP_REG_A1] = value;
-			dsp_core.registers[DSP_REG_A2] = value & (1<<23) ? 0xff : 0x0;
-		}
-		else if (numreg == DSP_REG_B) {
-			dsp_core.registers[DSP_REG_B0] = 0x0;
-			dsp_core.registers[DSP_REG_B1] = value;
-			dsp_core.registers[DSP_REG_B2] = value & (1<<23) ? 0xff : 0x0;
-		}
-		else {
-			dsp_core.registers[numreg] = value & BITMASK(registers_mask[numreg]);
-		}
+		dsp_core.agu_move_indirect_instr = 1;
+		dsp_write_reg(numreg, value);
 	}
 	else {
 		/* Read S */
@@ -9013,82 +9024,42 @@ static void dsp_tfr_a_b(void)
 
 static void dsp_tfr_x0_a(void)
 {
-	dsp_core.registers[DSP_REG_A0] = 0;
-	dsp_core.registers[DSP_REG_A1] = dsp_core.registers[DSP_REG_X0];
-	if (dsp_core.registers[DSP_REG_A1] & (1<<23))
-		dsp_core.registers[DSP_REG_A2] = 0xff;
-	else
-		dsp_core.registers[DSP_REG_A2] = 0x0;
+	dsp_write_reg(DSP_REG_A, dsp_core.registers[DSP_REG_X0]);
 }
 
 static void dsp_tfr_x0_b(void)
 {
-	dsp_core.registers[DSP_REG_B0] = 0;
-	dsp_core.registers[DSP_REG_B1] = dsp_core.registers[DSP_REG_X0];
-	if (dsp_core.registers[DSP_REG_B1] & (1<<23))
-		dsp_core.registers[DSP_REG_B2] = 0xff;
-	else
-		dsp_core.registers[DSP_REG_B2] = 0x0;
+	dsp_write_reg(DSP_REG_B, dsp_core.registers[DSP_REG_X0]);
 }
 
 static void dsp_tfr_y0_a(void)
 {
-	dsp_core.registers[DSP_REG_A0] = 0;
-	dsp_core.registers[DSP_REG_A1] = dsp_core.registers[DSP_REG_Y0];
-	if (dsp_core.registers[DSP_REG_A1] & (1<<23))
-		dsp_core.registers[DSP_REG_A2] = 0xff;
-	else
-		dsp_core.registers[DSP_REG_A2] = 0x0;
+	dsp_write_reg(DSP_REG_A, dsp_core.registers[DSP_REG_Y0]);
 }
 
 static void dsp_tfr_y0_b(void)
 {
-	dsp_core.registers[DSP_REG_B0] = 0;
-	dsp_core.registers[DSP_REG_B1] = dsp_core.registers[DSP_REG_Y0];
-	if (dsp_core.registers[DSP_REG_B1] & (1<<23))
-		dsp_core.registers[DSP_REG_B2] = 0xff;
-	else
-		dsp_core.registers[DSP_REG_B2] = 0x0;
+	dsp_write_reg(DSP_REG_B, dsp_core.registers[DSP_REG_Y0]);
 }
 
 static void dsp_tfr_x1_a(void)
 {
-	dsp_core.registers[DSP_REG_A0] = 0;
-	dsp_core.registers[DSP_REG_A1] = dsp_core.registers[DSP_REG_X1];
-	if (dsp_core.registers[DSP_REG_A1] & (1<<23))
-		dsp_core.registers[DSP_REG_A2] = 0xff;
-	else
-		dsp_core.registers[DSP_REG_A2] = 0x0;
+	dsp_write_reg(DSP_REG_A, dsp_core.registers[DSP_REG_X1]);
 }
 
 static void dsp_tfr_x1_b(void)
 {
-	dsp_core.registers[DSP_REG_B0] = 0;
-	dsp_core.registers[DSP_REG_B1] = dsp_core.registers[DSP_REG_X1];
-	if (dsp_core.registers[DSP_REG_B1] & (1<<23))
-		dsp_core.registers[DSP_REG_B2] = 0xff;
-	else
-		dsp_core.registers[DSP_REG_B2] = 0x0;
+	dsp_write_reg(DSP_REG_B, dsp_core.registers[DSP_REG_X1]);
 }
 
 static void dsp_tfr_y1_a(void)
 {
-	dsp_core.registers[DSP_REG_A0] = 0;
-	dsp_core.registers[DSP_REG_A1] = dsp_core.registers[DSP_REG_Y1];
-	if (dsp_core.registers[DSP_REG_A1] & (1<<23))
-		dsp_core.registers[DSP_REG_A2] = 0xff;
-	else
-		dsp_core.registers[DSP_REG_A2] = 0x0;
+	dsp_write_reg(DSP_REG_A, dsp_core.registers[DSP_REG_Y1]);
 }
 
 static void dsp_tfr_y1_b(void)
 {
-	dsp_core.registers[DSP_REG_B0] = 0;
-	dsp_core.registers[DSP_REG_B1] = dsp_core.registers[DSP_REG_Y1];
-	if (dsp_core.registers[DSP_REG_B1] & (1<<23))
-		dsp_core.registers[DSP_REG_B2] = 0xff;
-	else
-		dsp_core.registers[DSP_REG_B2] = 0x0;
+	dsp_write_reg(DSP_REG_B, dsp_core.registers[DSP_REG_Y1]);
 }
 
 static void dsp_tst_a(void)

@@ -15,8 +15,8 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program; if not, write to the Free Software Foundation,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1335 USA
 */
 
 #ifndef DSP_CORE_H
@@ -80,12 +80,15 @@ extern Uint32 DSP_RAMSIZE;
 #define DSP_HOST_HSR		0x29	/* Host status register */
 #define DSP_HOST_HRX		0x2b	/* Host receive register */
 #define DSP_HOST_HTX		0x2b	/* Host transmit register */
-#define DSP_SSI_CRA		0x2c	/* Ssi control register A */
-#define DSP_SSI_CRB		0x2d	/* Ssi control register B */
-#define DSP_SSI_SR		0x2e	/* Ssi status register */
-#define DSP_SSI_TSR		0x2e	/* Ssi time slot register */
-#define DSP_SSI_RX		0x2f	/* Ssi receive register */
-#define DSP_SSI_TX		0x2f	/* Ssi transmit register */
+#define DSP_SSI_CRA		0x2c	/* SSI control register A */
+#define DSP_SSI_CRB		0x2d	/* SSI control register B */
+#define DSP_SSI_SR		0x2e	/* SSI status register */
+#define DSP_SSI_TSR		0x2e	/* SSI time slot register */
+#define DSP_SSI_RX		0x2f	/* SSI receive register */
+#define DSP_SSI_TX		0x2f	/* SSI transmit register */
+#define DSP_SCI_SCR		0x30	/* SCI control register */
+#define DSP_SCI_SSR		0x31	/* SCI status register */
+#define DSP_SCI_SCCR		0x32	/* SCI clock control register */
 #define DSP_BCR			0x3e	/* Port A bus control register */
 #define DSP_IPR			0x3f	/* Interrupt priority register */
 
@@ -178,6 +181,7 @@ extern const char *dsp_interrupt_name[32];
 
 typedef struct dsp_core_ssi_s dsp_core_ssi_t;
 typedef struct dsp_core_s dsp_core_t;
+typedef struct dsp_interrupt_s dsp_interrupt_t;
 
 struct dsp_core_ssi_s {
 	Uint16  cra_word_length;
@@ -200,6 +204,13 @@ struct dsp_core_ssi_s {
 	Uint16  waitFrameTX;
 	Uint16  waitFrameRX;
 	Uint32  dspPlay_handshakeMode_frame;
+};
+
+struct dsp_interrupt_s {
+	const Uint16 inter;
+	const Uint16 vectorAddr;
+	const Uint16 periph;
+	const char *name;
 };
 
 
@@ -266,6 +277,9 @@ struct dsp_core_s {
 	Uint32 interrupt_mask;
 	Uint32 interrupt_mask_level[3];
 	Uint32 interrupt_edgetriggered_mask;
+
+	/* AGU pipeline simulation for indirect move ea instructions */
+	Uint16	agu_move_indirect_instr;	/* is the current instruction an indirect move ? (LUA, MOVE, MOVEC, MOVEM, TCC) (0=no ; 1 = yes)*/
 };
 
 
@@ -273,7 +287,7 @@ struct dsp_core_s {
 extern dsp_core_t dsp_core;
 
 /* Emulator call these to init/stop/reset DSP emulation */
-extern void dsp_core_init(void (*host_interrupt)(int set));
+extern void dsp_core_init(void (*host_interrupt)(int));
 extern void dsp_core_shutdown(void);
 extern void dsp_core_reset(void);
 extern void dsp_core_start(Uint8 mode);

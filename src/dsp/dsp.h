@@ -16,8 +16,8 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program; if not, write to the Free Software Foundation,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1335 USA
 */
 
 #ifndef DSP_H
@@ -51,10 +51,10 @@ extern Uint16 DSP_GetPC(void);
 extern Uint16 DSP_GetNextPC(Uint16 pc);
 extern Uint16 DSP_GetInstrCycles(void);
 extern Uint32 DSP_ReadMemory(Uint16 addr, char space, const char **mem_str);
-extern Uint16 DSP_DisasmMemory(Uint16 dsp_memdump_addr, Uint16 dsp_memdump_upper, char space);
+extern Uint16 DSP_DisasmMemory(FILE *fp, Uint16 dsp_memdump_addr, Uint16 dsp_memdump_upper, char space);
 extern Uint16 DSP_DisasmAddress(FILE *out, Uint16 lowerAdr, Uint16 UpperAdr);
-extern void DSP_Info(Uint32 dummy);
-extern void DSP_DisasmRegisters(void);
+extern void DSP_Info(FILE *fp, Uint32 dummy);
+extern void DSP_DisasmRegisters(FILE *fp);
 extern int DSP_GetRegisterAddress(const char *arg, Uint32 **addr, Uint32 *mask);
 extern bool DSP_Disasm_SetRegister(const char *arg, Uint32 value);
 

@@ -16,8 +16,8 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program; if not, write to the Free Software Foundation,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1335 USA
 */
 
 #include <ctype.h>
@@ -179,14 +179,6 @@ static void DSP_HandleDMA(void)
 #if ENABLE_DSP_EMU
 bool	DSP_ProcessIRQ(void)
 {
-	if (bDspHostInterruptPending && regs.intmask < 6)
-	{
-		M68000_Exception(IoMem_ReadByte(0xffa203)*4, M68000_EXC_SRC_INT_DSP);
-		bDspHostInterruptPending = false;
-//		M68000_UnsetSpecial(SPCFLAG_DSP);
-		return true;
-	}
-
 	return false;
 }
 #endif
@@ -321,7 +313,7 @@ Uint16 DSP_GetNextPC(Uint16 pc)
 	/* why dsp56k_execute_one_disasm_instruction() does "-1"
 	 * for this value, that doesn't seem right???
 	 */
-	instruction_length = dsp56k_disasm(DSP_DISASM_MODE);
+	instruction_length = dsp56k_disasm(DSP_DISASM_MODE, stderr);
 
 	/* Restore DSP context */
 	memcpy(&dsp_core, &dsp_core_save, sizeof(dsp_core));
@@ -454,7 +446,7 @@ Uint32 DSP_ReadMemory(Uint16 address, char space_id, const char **mem_str)
  * Output memory values between given addresses in given DSP address space.
  * Return next DSP address value.
  */
-Uint16 DSP_DisasmMemory(Uint16 dsp_memdump_addr, Uint16 dsp_memdump_upper, char space)
+Uint16 DSP_DisasmMemory(FILE *fp, Uint16 dsp_memdump_addr, Uint16 dsp_memdump_upper, char space)
 {
 #if ENABLE_DSP_EMU
 	Uint32 mem, mem2, value;
@@ -464,16 +456,16 @@ Uint16 DSP_DisasmMemory(Uint16 dsp_memdump_addr, Uint16 dsp_memdump_upper, char 
 		/* special printing of host communication/transmit registers */
 		if (space == 'X' && mem >= 0xffc0) {
 			if (mem == 0xffeb) {
-				fprintf(stderr,"X periph:%04x  HTX : %06x   RTX:%06x\n", 
+				fprintf(fp, "X periph:%04x  HTX : %06x   RTX:%06x\n",
 					mem, dsp_core.dsp_host_htx, dsp_core.dsp_host_rtx);
 			}
 			else if (mem == 0xffef) {
-				fprintf(stderr,"X periph:%04x  SSI TX : %06x   SSI RX:%06x\n", 
+				fprintf(fp, "X periph:%04x  SSI TX : %06x   SSI RX:%06x\n",
 					mem, dsp_core.ssi.transmit_value, dsp_core.ssi.received_value);
 			}
 			else {
 				value = DSP_ReadMemory(mem, space, &mem_str);
-				fprintf(stderr,"%s:%04x  %06x\t%s\n", mem_str, mem, value, x_ext_memory_addr_name[mem-0xffc0]);
+				fprintf(fp, "%s:%04x  %06x\t%s\n", mem_str, mem, value, x_ext_memory_addr_name[mem-0xffc0]);
 			}
 			continue;
 		}
@@ -484,12 +476,12 @@ Uint16 DSP_DisasmMemory(Uint16 dsp_memdump_addr, Uint16 dsp_memdump_upper, char 
 			if (space == 'X') {
 				mem2 += (DSP_RAMSIZE>>1);
 			}
-			fprintf(stderr,"%c:%04x (P:%04x): %06x\n", space,
+			fprintf(fp, "%c:%04x (P:%04x): %06x\n", space,
 				mem, mem2, dsp_core.ramext[mem2 & (DSP_RAMSIZE-1)]);
 			continue;
 		}
 		value = DSP_ReadMemory(mem, space, &mem_str);
-		fprintf(stderr,"%s:%04x  %06x\n", mem_str, mem, value);
+		fprintf(fp, "%s:%04x  %06x\n", mem_str, mem, value);
 	}
 #endif
 	return dsp_memdump_upper+1;
@@ -499,25 +491,25 @@ Uint16 DSP_DisasmMemory(Uint16 dsp_memdump_addr, Uint16 dsp_memdump_upper, char 
  * Show information on DSP core state which isn't
  * shown by any of the other commands (dd, dm, dr).
  */
-void DSP_Info(Uint32 dummy)
+void DSP_Info(FILE *fp, Uint32 dummy)
 {
 #if ENABLE_DSP_EMU
 	int i, j;
 	const char *stackname[] = { "SSH", "SSL" };
 
-	fputs("DSP core information:\n", stderr);
+	fputs("\nDSP core information:\n", fp);
 
 	for (i = 0; i < ARRAYSIZE(stackname); i++) {
-		fprintf(stderr, "- %s stack:", stackname[i]);
+		fprintf(fp, "  %s stack:", stackname[i]);
 		for (j = 0; j < ARRAYSIZE(dsp_core.stack[0]); j++) {
-			fprintf(stderr, " %04hx", dsp_core.stack[i][j]);
+			fprintf(fp, " %04hx", dsp_core.stack[i][j]);
 		}
-		fputs("\n", stderr);
+		fputs("\n", fp);
 	}
 
-	fprintf(stderr, "- Interrupts:\n");
+	fprintf(stderr, "\nInterrupts:\n");
 	for (i = 0; i < 32; i++) {
-		fprintf(stderr, "%s: ", dsp_interrupt_name[i]);
+		fprintf(stderr, "  %s: ", dsp_interrupt_name[i]);
 		if ((1<<i) & dsp_core.interrupt_status & (dsp_core.interrupt_mask|DSP_INTER_NMI_MASK)) {
 			fprintf(stderr, "Pending ");
 		}
@@ -532,40 +524,41 @@ void DSP_Info(Uint32 dummy)
 		}
 		fputs("\n", stderr);
 	}
-	fprintf(stderr, "- Hostport:");
+
+	fprintf(fp, "\nHostport:");
 	for (i = 0; i < ARRAYSIZE(dsp_core.hostport); i++) {
-		fprintf(stderr, " %02x", dsp_core.hostport[i]);
+		fprintf(fp, " %02x", dsp_core.hostport[i]);
 	}
-	fputs("\n", stderr);
+	fputs("\n", fp);
 #endif
 }
 
 /**
  * Show DSP register contents
  */
-void DSP_DisasmRegisters(void)
+void DSP_DisasmRegisters(FILE *fp)
 {
 #if ENABLE_DSP_EMU
 	Uint32 i;
 
-	fprintf(stderr,"A: A2: %02x  A1: %06x  A0: %06x\n",
+	fprintf(fp, "A: A2: %02x  A1: %06x  A0: %06x\n",
 		dsp_core.registers[DSP_REG_A2], dsp_core.registers[DSP_REG_A1], dsp_core.registers[DSP_REG_A0]);
-	fprintf(stderr,"B: B2: %02x  B1: %06x  B0: %06x\n",
+	fprintf(fp, "B: B2: %02x  B1: %06x  B0: %06x\n",
 		dsp_core.registers[DSP_REG_B2], dsp_core.registers[DSP_REG_B1], dsp_core.registers[DSP_REG_B0]);
 	
-	fprintf(stderr,"X: X1: %06x  X0: %06x\n", dsp_core.registers[DSP_REG_X1], dsp_core.registers[DSP_REG_X0]);
-	fprintf(stderr,"Y: Y1: %06x  Y0: %06x\n", dsp_core.registers[DSP_REG_Y1], dsp_core.registers[DSP_REG_Y0]);
+	fprintf(fp, "X: X1: %06x  X0: %06x\n", dsp_core.registers[DSP_REG_X1], dsp_core.registers[DSP_REG_X0]);
+	fprintf(fp, "Y: Y1: %06x  Y0: %06x\n", dsp_core.registers[DSP_REG_Y1], dsp_core.registers[DSP_REG_Y0]);
 
 	for (i=0; i<8; i++) {
-		fprintf(stderr,"R%01x: %04x   N%01x: %04x   M%01x: %04x\n", 
+		fprintf(fp, "R%01x: %04x   N%01x: %04x   M%01x: %04x\n",
 			i, dsp_core.registers[DSP_REG_R0+i],
 			i, dsp_core.registers[DSP_REG_N0+i],
 			i, dsp_core.registers[DSP_REG_M0+i]);
 	}
 
-	fprintf(stderr,"LA: %04x   LC: %04x   PC: %04x\n", dsp_core.registers[DSP_REG_LA], dsp_core.registers[DSP_REG_LC], dsp_core.pc);
-	fprintf(stderr,"SR: %04x  OMR: %02x\n", dsp_core.registers[DSP_REG_SR], dsp_core.registers[DSP_REG_OMR]);
-	fprintf(stderr,"SP: %02x    SSH: %04x  SSL: %04x\n", 
+	fprintf(fp, "LA: %04x   LC: %04x   PC: %04x\n", dsp_core.registers[DSP_REG_LA], dsp_core.registers[DSP_REG_LC], dsp_core.pc);
+	fprintf(fp, "SR: %04x  OMR: %02x\n", dsp_core.registers[DSP_REG_SR], dsp_core.registers[DSP_REG_OMR]);
+	fprintf(fp, "SP: %02x    SSH: %04x  SSL: %04x\n",
 		dsp_core.registers[DSP_REG_SP], dsp_core.registers[DSP_REG_SSH], dsp_core.registers[DSP_REG_SSL]);
 #endif
 }

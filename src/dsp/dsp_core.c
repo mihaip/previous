@@ -15,8 +15,8 @@
 	GNU General Public License for more details.
 
 	You should have received a copy of the GNU General Public License
-	along with this program; if not, write to the Free Software
-	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+	along with this program; if not, write to the Free Software Foundation,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1335 USA
 */
 
 #ifdef HAVE_CONFIG_H
@@ -575,7 +575,7 @@ static Uint32 const y_rom[0x100] = {
 
 
 /* Init DSP emulation */
-void dsp_core_init(void (*host_interrupt)(int set))
+void dsp_core_init(void (*host_interrupt)(int))
 {
 	LOG_TRACE(TRACE_DSP_STATE, "Dsp: core init\n");
 
@@ -647,7 +647,7 @@ void dsp_core_reset(void)
 	dsp_core.hostport[CPU_HOST_CVR] = 0x12;
 	dsp_core.hostport[CPU_HOST_ISR] = (1<<CPU_HOST_ISR_TRDY)|(1<<CPU_HOST_ISR_TXDE);
 	dsp_core.hostport[CPU_HOST_IVR] = 0x0f;
-	dsp_core.hostport[CPU_HOST_TRX0] = 0x0;
+	dsp_core.hostport[CPU_HOST_RX0] = 0x0;
 	
 	/* host port init, dma */
 	dsp_core.dma_mode = 0;
@@ -728,6 +728,9 @@ void dsp_core_ssi_writeTX(Uint32 value)
 {
 	/* Clear SSI TDE bit */
 	dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] &= 0xff-(1<<DSP_SSI_SR_TDE);
+	dsp_set_interrupt(DSP_INTER_SSI_TRX_DATA_E, 0);
+	dsp_set_interrupt(DSP_INTER_SSI_TRX_DATA, 0);
+
 	dsp_core.ssi.TX = value;
 	LOG_TRACE(TRACE_DSP_HOST_SSI, "Dsp set TX register: 0x%06x\n", value);
 
@@ -744,6 +747,8 @@ void dsp_core_ssi_writeTSR(void)
 {
 	/* Dummy write : Just clear SSI TDE bit */
 	dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] &= 0xff-(1<<DSP_SSI_SR_TDE);
+	dsp_set_interrupt(DSP_INTER_SSI_TRX_DATA_E, 0);
+	dsp_set_interrupt(DSP_INTER_SSI_TRX_DATA, 0);
 }
 
 /* SSI get RX register */
@@ -751,6 +756,9 @@ Uint32 dsp_core_ssi_readRX(void)
 {
 	/* Clear SSI RDF bit */
 	dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] &= 0xff-(1<<DSP_SSI_SR_RDF);
+	dsp_set_interrupt(DSP_INTER_SSI_RCV_DATA_E, 0);
+	dsp_set_interrupt(DSP_INTER_SSI_RCV_DATA, 0);
+
 	LOG_TRACE(TRACE_DSP_HOST_SSI, "Dsp read RX register: 0x%06x\n", dsp_core.ssi.RX);
 	return dsp_core.ssi.RX;
 }
@@ -788,19 +796,14 @@ void dsp_core_ssi_Receive_SC0(void)
 		/* Send value to DSP receive */
 		dsp_core.ssi.RX = value;
 
-		/* generate interrupt ? */
-		if (dsp_core.periph[DSP_SPACE_X][DSP_SSI_CRB] & (1<<DSP_SSI_CRB_RIE)) {
-#if 0 /* FIXME: Adapt to new interrupt routine */
-			if (dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] & (1<<DSP_SSI_SR_RDF)) {
-				dsp_add_interrupt(DSP_INTER_SSI_RCV_DATA);
-			} else {
-				dsp_add_interrupt(DSP_INTER_SSI_RCV_DATA);
+		/* generate interrupt (hack: DATA_E is replaced by DATA for now, else there's no sound */
+		if (dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] & (1<<DSP_SSI_SR_RDF))
+			dsp_set_interrupt(DSP_INTER_SSI_RCV_DATA, 1);
+		else
+			dsp_set_interrupt(DSP_INTER_SSI_RCV_DATA, 1);
 			}
-#endif
-		}
-	}else{
+	else
 		dsp_core.ssi.RX = 0;
-	}
 
 	/* set RDF */
 	dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] |= 1<<DSP_SSI_SR_RDF;
@@ -887,19 +890,14 @@ void dsp_core_ssi_Receive_SCK(void)
 		/* Send value to crossbar */
 		dsp_core.ssi.transmit_value = value;
 
-		/* generate interrupt ? */
-		if (dsp_core.periph[DSP_SPACE_X][DSP_SSI_CRB] & (1<<DSP_SSI_CRB_TIE)) {
-#if 0 /* FIXME: Adapt to new interrupt routine */
-			if (dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] & (1<<DSP_SSI_SR_TDE)) {
-				dsp_add_interrupt(DSP_INTER_SSI_TRX_DATA);
-			} else {
-				dsp_add_interrupt(DSP_INTER_SSI_TRX_DATA);
-			}
-#endif
+		/* generate interrupt */
+		if (dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] & (1<<DSP_SSI_SR_TDE))
+			dsp_set_interrupt(DSP_INTER_SSI_TRX_DATA, 1);
+		else
+			dsp_set_interrupt(DSP_INTER_SSI_TRX_DATA, 1);
 		}
-	}else{
+	else
 		dsp_core.ssi.transmit_value = 0;
-	}
 
 	/* set TDE */
 	dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] |= (1<<DSP_SSI_SR_TDE);
@@ -1142,8 +1140,10 @@ void dsp_core_write_host(int addr, Uint8 value)
 			/* if bit 7=1, host command . HSR(bit HCP) is set*/
 			if (value & (1<<7)) {
 				dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] |= (1<<DSP_HOST_HSR_HCP);
+				/* Is there an interrupt to send ? */
 				dsp_set_interrupt(DSP_INTER_HOST_COMMAND, 1);
-			} else {
+			}
+			else{
 				dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] &= 0xff - (1<<DSP_HOST_HSR_HCP);
 				dsp_set_interrupt(DSP_INTER_HOST_COMMAND, 0);
 			}
