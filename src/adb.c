@@ -201,7 +201,7 @@ static void adb_data1_write(Uint32 addr, Uint32 val) {
 }
 
 
-static Uint32 adb_read_register(Uint32 addr) {
+static Uint32 adb_read_register(Uint32 addr, int size) {
 	switch (addr&0xFF) {
 		case ADB_INTSTATUS:
 			return adb_intstatus_read(addr);
@@ -222,12 +222,12 @@ static Uint32 adb_read_register(Uint32 addr) {
 			
 		default:
 			Log_Printf(LOG_WARN, "[ADB] Illegal read at $%08X",addr);
-			M68000_BusError(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_LONG, BUS_ERROR_ACCESS_DATA, 0);
+			M68000_BusError(addr, BUS_ERROR_READ, size, BUS_ERROR_ACCESS_DATA, 0);
 			return 0;
 	}
 }
 
-static void adb_write_register(Uint32 addr, Uint32 val) {
+static void adb_write_register(Uint32 addr, Uint32 val, int size) {
 	switch (addr&0xFF) {
 		case ADB_INTSTATUS:
 			adb_intstatus_write(addr, val);
@@ -259,7 +259,7 @@ static void adb_write_register(Uint32 addr, Uint32 val) {
 			
 		default:
 			Log_Printf(LOG_WARN, "[ADB] Illegal write at $%08X",addr);
-			M68000_BusError(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_LONG, BUS_ERROR_ACCESS_DATA, val);
+			M68000_BusError(addr, BUS_ERROR_WRITE, size, BUS_ERROR_ACCESS_DATA, val);
 			break;
 	}
 }
@@ -268,7 +268,7 @@ static void adb_write_register(Uint32 addr, Uint32 val) {
 
 Uint32 adb_lget(Uint32 addr) {
 	Log_Printf(LOG_WARN, "[ADB] lget at $%08X",addr);
-	return adb_read_register(addr);
+	return adb_read_register(addr, BUS_ERROR_SIZE_LONG);
 }
 
 Uint16 adb_wget(Uint32 addr) {
@@ -277,7 +277,7 @@ Uint16 adb_wget(Uint32 addr) {
 	
 	shift = (2-(addr&2))*8;
 	addr &= ~3;
-	return (adb_read_register(addr)>>shift)&0xFFFF;
+	return (adb_read_register(addr, BUS_ERROR_SIZE_WORD)>>shift)&0xFFFF;
 }
 
 Uint8 adb_bget(Uint32 addr) {
@@ -286,12 +286,12 @@ Uint8 adb_bget(Uint32 addr) {
 	
 	shift = (3-(addr&3))*8;
 	addr &= ~3;
-	return (adb_read_register(addr)>>shift)&0xFF;
+	return (adb_read_register(addr, BUS_ERROR_SIZE_BYTE)>>shift)&0xFF;
 }
 
 void adb_lput(Uint32 addr, Uint32 l) {
 	Log_Printf(LOG_WARN, "[ADB] lput at $%08X",addr);
-	adb_write_register(addr, l);
+	adb_write_register(addr, l, BUS_ERROR_SIZE_LONG);
 }
 
 void adb_wput(Uint32 addr, Uint16 w) {

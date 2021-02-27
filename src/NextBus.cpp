@@ -1,34 +1,33 @@
 #include "configuration.h"
+#include "m68000.h"
 #include "NextBus.hpp"
 #include "nbic.h"
 #include "dimension.hpp"
 
-extern "C" void M68000_BusError(Uint32 addr, bool bReadWrite);
-
-static Uint8 bus_error(Uint32 addr, const char* acc) {
+static Uint8 bus_error(Uint32 addr, int read, int size, uae_u32 val, const char* acc) {
     Log_Printf(LOG_WARN, "[NextBus] Bus error %s at %08X", acc, addr);
-    M68000_BusError(addr, 1);
+    M68000_BusError(addr, read, size, BUS_ERROR_ACCESS_DATA, val);
     return 0;
 }
 
 NextBusSlot::NextBusSlot(int slot) : slot(slot) {}
 NextBusSlot::~NextBusSlot() {}
 
-Uint32 NextBusSlot::slot_lget(Uint32 addr) {return bus_error(addr, "lget");}
-Uint16 NextBusSlot::slot_wget(Uint32 addr) {return bus_error(addr, "wget");}
-Uint8  NextBusSlot::slot_bget(Uint32 addr) {return bus_error(addr, "bget");}
+Uint32 NextBusSlot::slot_lget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_LONG, 0, "lget");}
+Uint16 NextBusSlot::slot_wget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_WORD, 0, "wget");}
+Uint8  NextBusSlot::slot_bget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, 0, "bget");}
 
-Uint32 NextBusSlot::board_lget(Uint32 addr) {return bus_error(addr, "lget");}
-Uint16 NextBusSlot::board_wget(Uint32 addr) {return bus_error(addr, "wget");}
-Uint8  NextBusSlot::board_bget(Uint32 addr) {return bus_error(addr, "bget");}
+Uint32 NextBusSlot::board_lget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_LONG, 0, "lget");}
+Uint16 NextBusSlot::board_wget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_WORD, 0, "wget");}
+Uint8  NextBusSlot::board_bget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, 0, "bget");}
 
-void NextBusSlot::slot_lput(Uint32 addr, Uint32 val) {bus_error(addr, "lput");}
-void NextBusSlot::slot_wput(Uint32 addr, Uint16 val) {bus_error(addr, "wput");}
-void NextBusSlot::slot_bput(Uint32 addr, Uint8 val)  {bus_error(addr, "bput");}
+void NextBusSlot::slot_lput(Uint32 addr, Uint32 val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_LONG, val, "lput");}
+void NextBusSlot::slot_wput(Uint32 addr, Uint16 val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_WORD, val, "wput");}
+void NextBusSlot::slot_bput(Uint32 addr, Uint8 val)  {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_BYTE, val, "bput");}
 
-void NextBusSlot::board_lput(Uint32 addr, Uint32 val) {bus_error(addr, "lput");}
-void NextBusSlot::board_wput(Uint32 addr, Uint16 val) {bus_error(addr, "wput");}
-void NextBusSlot::board_bput(Uint32 addr, Uint8 val)  {bus_error(addr, "bput");}
+void NextBusSlot::board_lput(Uint32 addr, Uint32 val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_LONG, val, "lput");}
+void NextBusSlot::board_wput(Uint32 addr, Uint16 val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_WORD, val, "wput");}
+void NextBusSlot::board_bput(Uint32 addr, Uint8 val)  {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_BYTE, val, "bput");}
 
 void NextBusSlot::reset(void) {}
 void NextBusSlot::pause(bool pause) {}
