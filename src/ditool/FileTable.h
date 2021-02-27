@@ -69,6 +69,7 @@ protected:
     std::map<uint64_t, FileAttrDB*> handle2db;
     
     static std::string basename    (const std::string& path);
+    static std::string basename_helper    (std::string const & path);		// Elide linker errors on G++
     static std::string dirname     (const std::string& path);
 
     std::string Canonicalize(const std::string& path);

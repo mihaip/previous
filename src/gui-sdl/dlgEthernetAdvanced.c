@@ -44,7 +44,7 @@ static SGOBJ enetpcapdlg[] =
 /**
  * Show and process the PCAP Ethernet options dialog.
  */
-bool DlgEthernetAdvancedPCAP(void)
+bool DlgEthernetAdvanced_ConfigurePCAP(void)
 {
 	int but;
     pcap_if_t *alldevs;
@@ -141,7 +141,7 @@ static SGOBJ enetmacdlg[] =
     { -1, 0, 0, 0,0, 0,0, NULL }
 };
 
-bool DlgEthernetAdvanced_GetRomMac(Uint8 *mac)
+bool DlgEthernetAdvanced_GetRomMAC(Uint8 *mac)
 {
     FILE* rom;
     
@@ -167,7 +167,7 @@ bool DlgEthernetAdvanced_GetRomMac(Uint8 *mac)
     return true;
 }
 
-void DlgEthernetAdvancedGetMAC(Uint8 *mac)
+void DlgEthernetAdvanced_GetMAC(Uint8 *mac)
 {
     int i;
     
@@ -175,7 +175,7 @@ void DlgEthernetAdvancedGetMAC(Uint8 *mac)
         for (i = 0; i < 6; i++) {
             mac[i] = ConfigureParams.Rom.nRomCustomMac[i];
         }
-    } else if (!DlgEthernetAdvanced_GetRomMac(mac)) {
+    } else if (!DlgEthernetAdvanced_GetRomMAC(mac)) {
         for (i = 0; i < 6; i++) {
             mac[i] = 0;
         }
@@ -186,7 +186,7 @@ void DlgEthernetAdvancedGetMAC(Uint8 *mac)
 /**
  * Show and process the MAC Ethernet options dialog.
  */
-void DlgEthernetAdvancedMAC(Uint8 *mac)
+void DlgEthernetAdvanced_ConfigureMAC(Uint8 *mac)
 {
     int i, but;
     

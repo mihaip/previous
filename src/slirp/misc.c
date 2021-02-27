@@ -441,8 +441,8 @@ int fork_exec(struct socket *so, char *ex, int do_pty)
 		bptr = strdup(ex); /* No need to free() this */
 		if (do_pty == 1) {
 			/* Setup "slirp.telnetd -x" */
-			argv[i++] = "slirp.telnetd";
-			argv[i++] = "-x";
+			argv[i++] = strdup("slirp.telnetd");
+			argv[i++] = strdup("-x");
 			argv[i++] = bptr;
 		} else
 		   do {
@@ -808,14 +808,16 @@ int sprintf_len(char *string, const char *format, ...)
 void u_sleep(int usec)
 {
 	struct timeval t;
-	fd_set fdset;
+	fd_set rd_fdset, wr_fdset, ex_fdset;
 	
-	FD_ZERO(&fdset);
+	FD_ZERO(&rd_fdset);
+	FD_ZERO(&wr_fdset);
+	FD_ZERO(&ex_fdset);
 	
 	t.tv_sec = 0;
 	t.tv_usec = usec * 1000;
 	
-	select(0, &fdset, &fdset, &fdset, &t);
+	select(0, &rd_fdset, &wr_fdset, &ex_fdset, &t);
 }
 
 /*

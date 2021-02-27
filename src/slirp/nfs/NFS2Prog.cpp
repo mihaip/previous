@@ -8,6 +8,7 @@
 #include <sys/statvfs.h>
 #include <sys/time.h>
 
+#include "main.h"
 #include "NFS2Prog.h"
 #include "FileTableNFSD.h"
 #include "nfsd.h"
@@ -125,10 +126,20 @@ static struct stat read_stat(XDRInput* xin) {
     result.st_uid               = uid;
     result.st_gid               = gid;
     result.st_size              = size;
+#if HAVE_STRUCT_STAT_ST_ATIMESPEC
     result.st_atimespec.tv_sec  = atime_sec;
     result.st_atimespec.tv_nsec = atime_usec * 1000;
+#else
+    result.st_atim.tv_sec       = atime_sec;
+    result.st_atim.tv_nsec      = atime_usec * 1000;
+#endif
+#if HAVE_STRUCT_STAT_ST_MTIMESPEC
     result.st_mtimespec.tv_sec  = mtime_sec;
     result.st_mtimespec.tv_nsec = mtime_usec * 1000;
+#else
+    result.st_mtim.tv_sec       = mtime_sec;
+    result.st_mtim.tv_nsec      = mtime_usec * 1000;
+#endif
     result.st_rdev              = FATTR_INVALID;
     return result;
 }
@@ -390,7 +401,7 @@ int CNFS2Prog::ProcedureRMDIR(void) {
 
 int CNFS2Prog::ProcedureREADDIR(void) {
     string   path;
-	DIR*     handle;
+    DIR*     handle;
     uint32_t cookie;
     uint32_t count;
     uint64_t fhandle;
@@ -404,18 +415,23 @@ int CNFS2Prog::ProcedureREADDIR(void) {
     Log("READDIR %s", path.c_str());
     
     uint32_t eof = 1;
-    size_t   ftnlen = strlen(FILE_TABLE_NAME);
+    size_t   ftnlen = strlen(FILE_TABLE_NAME), namelen;
     handle          = nfsd_fts[0]->opendir(path);
 	if (handle) {
         m_out->Write(NFS_OK);
         int skip = cookie;
         for(struct dirent* fileinfo = readdir(handle); fileinfo; fileinfo = readdir(handle)) {
-            if(ftnlen != fileinfo->d_namlen || strncmp(FILE_TABLE_NAME, fileinfo->d_name, fileinfo->d_namlen)) {
+#if HAVE_STRUCT_DIRENT_D_NAMELEN
+            namelen = fileinfo->d_namlen;
+#else
+            namelen = strlen(fileinfo->d_name);
+#endif
+            if(ftnlen != namelen || strncmp(FILE_TABLE_NAME, fileinfo->d_name, namelen)) {
                 if(--skip >= 0) continue;
                 
                 m_out->Write(1);  //value follows
                 m_out->Write(nfsd_fts[0]->FileId(fileinfo->d_ino));
-                string dname(fileinfo->d_name, fileinfo->d_namlen);
+                string dname(fileinfo->d_name, namelen);
                 XDRString name(dname);
                 Log("%d %s %s", cookie, path.c_str(), name.Get());
                 m_out->Write(name);
@@ -530,12 +546,24 @@ bool CNFS2Prog::WriteFileAttributes(const string& path) {
 	m_out->Write(fstat.st_rdev);  //rdev
 	m_out->Write(fstat.st_blocks);  //blocks
 	m_out->Write(fstat.st_dev);  //fsid
-    m_out->Write(nfsd_fts[0]->FileId(fstat.st_ino));
+        m_out->Write(nfsd_fts[0]->FileId(fstat.st_ino));
+#if HAVE_STRUCT_STAT_ST_ATIMESPEC
 	m_out->Write(fstat.st_atimespec.tv_sec);  //atime
 	m_out->Write(fstat.st_atimespec.tv_nsec / 1000);  //atime
+#else
+	m_out->Write(fstat.st_atim.tv_sec);  //atime
+	m_out->Write(fstat.st_atim.tv_nsec / 1000);  //atime
+#endif
+#if HAVE_STRUCT_STAT_ST_MTIMESPEC
 	m_out->Write(fstat.st_mtimespec.tv_sec);  //mtime
 	m_out->Write(fstat.st_mtimespec.tv_nsec / 1000);  //mtime
 	m_out->Write(fstat.st_mtimespec.tv_sec);  //ctime -- ignored, we use mtime instead
 	m_out->Write(fstat.st_mtimespec.tv_nsec / 1000);  //ctime
+#else
+	m_out->Write(fstat.st_mtim.tv_sec);  //mtime
+	m_out->Write(fstat.st_mtim.tv_nsec / 1000);  //mtime
+	m_out->Write(fstat.st_mtim.tv_sec);  //ctime -- ignored, we use mtime instead
+	m_out->Write(fstat.st_mtim.tv_nsec / 1000);  //ctime
+#endif
 	return true;
 }

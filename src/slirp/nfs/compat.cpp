@@ -19,7 +19,7 @@ char* strcat_s(char* s1, const char* s2) {
     return strcat(s1, s2);
 }
 
-errno_t strcat_s(char* s1, size_t maxLen, const char* s2) {
+int strcat_s(char* s1, size_t maxLen, const char* s2) {
     strncat(s1, s2, maxLen);
     return 0;
 }

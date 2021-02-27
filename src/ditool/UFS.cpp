@@ -6,6 +6,7 @@
 //
 
 #include <iostream>
+#include <cstring>
 #include "UFS.h"
 #include "fsdir.h"
 

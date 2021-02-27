@@ -7,7 +7,7 @@
 #include "nd_mem.hpp"
 #include "nd_sdl.hpp"
 
-#define nd_get_mem_bank(addr)    (nd->mem_banks[nd_bankindex(addr|ND_BOARD_BITS)])
+#define nd_get_mem_bank(addr)    (nd->mem_banks[nd_bankindex((addr)|ND_BOARD_BITS)])
 #define nd68k_get_mem_bank(addr) (mem_banks[nd_bankindex(addr)])
 
 #define nd_longget(addr)   (nd_get_mem_bank(addr)->lget(addr))

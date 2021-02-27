@@ -66,9 +66,9 @@ bool FileTableNFSD::IsCharDevice(const string& fname) {
     return characterDevices.find(fname) != characterDevices.end();
 }
 
-bool FileTableNFSD::IsDevice(const string& path, string& fname) {
-    string   directory = dirname(path);
-    fname              = basename(path);
+bool FileTableNFSD::IsDevice(const string & path, string& fname) {
+    string   directory = FileTable::dirname(path);
+    fname              = FileTable::basename_helper((std::string const &) path);
     
     const size_t len = directory.size();
     return
@@ -86,7 +86,7 @@ int FileTableNFSD::Stat(const std::string& path, struct stat& fstat) {
     int result = FileTable::Stat(path, fstat);
     
     string fname;
-    if(fstat.st_rdev == FATTR_INVALID) {
+    if(fstat.st_rdev == (unsigned long) FATTR_INVALID) {
         if(IsDevice(path, fname)) {
             map<string,uint32_t>::iterator iter = blockDevices.find(fname);
             if(iter != blockDevices.end()) {

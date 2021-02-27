@@ -574,12 +574,12 @@ const char* i860_cpu_device::reports(double realTime, double hostTime) {
     } else {
         if(dVT == 0) dVT = 0.0001;
         sprintf(m_report, "i860:{MIPS=%.1f icache_hit=%lld%% tlb_hit=%lld%% icach_inval/s=%.0f tlb_inval/s=%.0f intr/s=%0.f}",
-                               (m_insn_decoded / (dVT*1000*1000)),
-                               m_icache_hit+m_icache_miss == 0 ? 0 : (100 * m_icache_hit) / (m_icache_hit+m_icache_miss) ,
-                               m_tlb_hit+m_tlb_miss       == 0 ? 0 : (100 * m_tlb_hit)    / (m_tlb_hit+m_tlb_miss),
-                               (m_icache_inval)/dVT,
-                               (m_tlb_inval)/dVT,
-                               (m_intrs)/dVT
+                               (float) (m_insn_decoded / (dVT*1000*1000)),
+                               m_icache_hit+m_icache_miss == 0 ? 0LL : (100LL * m_icache_hit) / (m_icache_hit+m_icache_miss) ,
+                               m_tlb_hit+m_tlb_miss       == 0 ? 0LL : (100LL * m_tlb_hit)    / (m_tlb_hit+m_tlb_miss),
+                               (float) (m_icache_inval)/dVT,
+                               (float) (m_tlb_inval)/dVT,
+                               (float) (m_intrs)/dVT
                                );
         
         m_insn_decoded  = 0;

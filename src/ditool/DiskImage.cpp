@@ -8,14 +8,34 @@
 #include "DiskImage.h"
 
 #include <iostream>
+#include <cstring>
+
+/* Pull in ntohs()/ntohl()/htons()/htonl() declarations... shotgun approach */
+#if defined(linux)
+    /* netinet/in.h doesn't have proper extern "C" declarations for these... may also apply to other Unices */
+    extern "C" uint32_t ntohl(uint32_t);
+    extern "C" uint16_t ntohs(uint16_t);
+    extern "C" uint32_t htonl(uint32_t);
+    extern "C" uint16_t htons(uint16_t);
+#else
+    #if HAVE_ARPA_INET_H
+        #include <arpa/inet.h>
+    #endif
+    #if HAVE_NETINET_IN_H
+        #include <netinet/in.h>
+    #endif
+    #if HAVE_WINSOCK_H
+        #include <winsock.h>
+    #endif
+#endif
 
 using namespace std;
 
-uint32_t fsv(uint32_t v) {return ntohl(v);}
-uint16_t fsv(uint16_t v) {return ntohs(v);}
+uint32_t fsv(uint32_t v) { return ntohl(v); }
+uint16_t fsv(uint16_t v) { return ntohs(v); }
 
-int16_t fsv(int16_t v) {return ntohs(v);}
-int32_t fsv(int32_t v) {return ntohl(v);}
+int16_t  fsv(int16_t v)  { return ntohs(v); }
+int32_t  fsv(int32_t v)  { return ntohl(v); }
 
 DiskImage::DiskImage(const string& path, ifstream& imf) : imf(imf), path(path) {
     read(0, sizeof(dl), &dl);

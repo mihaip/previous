@@ -348,7 +348,7 @@ int DebugCpu_Register(int nArgc, char *psArgs[])
 	/* If no parameter has been given, simply dump all registers */
 	if (nArgc == 1)
 	{
-		uaecptr nextpc;
+		uaecptr nextpc = 0;
 		/* use the UAE function instead */
 		m68k_dumpstate(&nextpc, nextpc);
 		fflush(debugOutput);

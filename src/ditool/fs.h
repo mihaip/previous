@@ -27,6 +27,11 @@
 #pragma pack(push, 1)
 #define NeXT 1
 
+/* This will pull in the __u8, __s8, __u16, ..., __s64 definitions on Linux and many Unices, although not part of POSIX */
+#if HAVE_SYS_TYPES_H
+  #include <sys/types.h>
+#endif
+
 /*
  * Copyright (c) 1982, 1986 Regents of the University of California.
  * All rights reserved.  The Berkeley software License Agreement
@@ -156,12 +161,16 @@ typedef uint32_t  __fs32;
 typedef uint16_t  __fs16;
 typedef uint8_t   __fs8;
 
+/* Without the guard, GCC 10 will generate an error for conflicting definitions on 64-bit architectures  */
+#if !defined(linux) && !defined(__GNUC__)
 typedef uint64_t  __u64;
+typedef int64_t  __s64;
+#endif
+
 typedef uint32_t  __u32;
 typedef uint16_t  __u16;
 typedef uint8_t   __u8;
 
-typedef int64_t  __s64;
 typedef int32_t  __s32;
 typedef int16_t  __s16;
 typedef int8_t   __s8;
@@ -403,6 +412,11 @@ struct csum {
 #define FS_STATE_DIRTY		2	/* dirty */
 #define FS_STATE_CORRUPTED	3	/* mounted while dirty */
 #endif	// NeXT
+
+/* As noted in cpu/sysdeps.h, "if a char has more than 8 bits, good night" */
+#ifndef NBBY
+    #define NBBY 8
+#endif
 
 /*
  * Cylinder group block for a file system.

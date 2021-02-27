@@ -10,6 +10,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
 include(CheckCCompilerFlag)
+include(CheckStructHasMember)
 include(DistClean)
 
 # Set build type to "Release" if user did not specify any build type yet
@@ -100,6 +101,12 @@ endif(DETECTED_SDL_CFLAGS)
 # ###########################
 
 check_include_files(strings.h HAVE_STRINGS_H)
+check_include_files(limits.h HAVE_LIMITS_H)
+check_include_files(sys/syslimits.h HAVE_SYS_SYSLIMITS_H)
+check_include_files(sys/types.h HAVE_SYS_TYPES_H)
+check_include_files(tchar.h HAVE_TCHAR_H)
+check_include_files(arpa/inet.h HAVE_ARPA_INET_H)
+check_include_files(netinet/in.h HAVE_NETINET_IN_H)
 
 # #############################
 # Check for optional functions:
@@ -116,6 +123,18 @@ check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
 check_function_exists(aligned_alloc HAVE_ALIGNED_ALLOC)
 check_function_exists(_aligned_alloc HAVE__ALIGNED_ALLOC)
 
+# ########################################
+# Check for non-POSIXness on MacOS et al.:
+# ########################################
+message("-- The following HAVE_STRUCT_* tests are checking for non-POSIX systems such as MacOS; 'Failed' does not indicate a problem")
+CHECK_STRUCT_HAS_MEMBER("struct stat" st_atimespec.tv_nsec
+    "sys/types.h;sys/stat.h" HAVE_STRUCT_STAT_ST_ATIMESPEC)
+CHECK_STRUCT_HAS_MEMBER("struct stat" st_mtimespec.tv_nsec
+    "sys/types.h;sys/stat.h" HAVE_STRUCT_STAT_ST_MTIMESPEC)
+# Linux glibc provides a _D_EXACT_NAMELEN macro to work around this exact issue, but other supported platforms may not
+CHECK_STRUCT_HAS_MEMBER("struct dirent" d_namelen
+	"dirent.h" HAVE_STRUCT_DIRENT_D_NAMELEN)
+
 
 # #############
 # Other CFLAGS:
@@ -129,9 +148,13 @@ if(CMAKE_COMPILER_IS_GNUCC)
 	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wno-unused-parameter -Wno-empty-body")
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wformat-security -std=gnu99")
 	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wshadow -D_FORTIFY_SOURCE=2 -Werror")
+        set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wtautological-compare -Wno-unused-parameter ${CMAKE_CXX_FLAGS}")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpointer-bool-conversion -Wtautological-compare -Wno-unused-parameter ${CMAKE_CXX_FLAGS}")
+# -Wpointer-bool-conversion is not in GCC yet (as of 10.2)
+if (CMAKE_CXX_COMPILER_ID MATCHES ".*clang")
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpointer-bool-conversion -Wtautological-compare -Wno-unused-parameter ${CMAKE_CXX_FLAGS}")
+endif()
 
 # Building Previous w/o optimization is no fun...
 IF (CMAKE_BUILD_TYPE STREQUAL "Debug")

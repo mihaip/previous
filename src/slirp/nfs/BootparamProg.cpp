@@ -7,7 +7,12 @@
 
 #include <string>
 #include <string.h>
-#include <sys/syslimits.h>
+#if HAVE_SYS_SYSLIMITS_H
+    #include <sys/syslimits.h>
+#endif
+#if HAVE_LIMITS_H
+    #include <limits.h>
+#endif
 #include <netinet/in.h>
 
 #include "nfsd.h"

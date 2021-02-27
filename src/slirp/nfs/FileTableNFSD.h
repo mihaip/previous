@@ -24,7 +24,7 @@ class FileTableNFSD : public FileTable {
     
     bool        IsBlockDevice(const std::string& fname);
     bool        IsCharDevice(const std::string& fname);
-    bool        IsDevice    (const std::string& path, std::string& fname);
+    bool        IsDevice    (const std::string & path, std::string& fname);
     void        Write       (void);
     FileAttrDB* GetDB       (uint64_t handle);
     FileAttrs*  GetFileAttrs(const std::string& path);

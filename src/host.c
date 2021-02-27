@@ -43,13 +43,13 @@ static double       perfFrequency;
 static Uint64       pauseTimeStamp;
 static bool         osDarkmatter;
 
-static inline double real_time() {
+static inline double real_time(void) {
     double rt  = (SDL_GetPerformanceCounter() - perfCounterStart);
     rt        /= perfFrequency;
     return rt;
 }
 
-void host_reset() {
+void host_reset(void) {
     perfCounterStart  = SDL_GetPerformanceCounter();
     pauseTimeStamp    = perfCounterStart;
     perfFrequency     = SDL_GetPerformanceFrequency();

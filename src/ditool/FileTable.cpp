@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
+#include "main.h"
 #include "FileTable.h"
 #include "compat.h"
 
@@ -32,10 +33,20 @@ mode      (stat.st_mode),
 uid       (stat.st_uid),
 gid       (stat.st_gid),
 size      (stat.st_size),
-atime_sec (stat.st_atimespec.tv_sec),
-atime_usec(stat.st_atimespec.tv_nsec / 1000),
-mtime_sec (stat.st_mtimespec.tv_sec),
-mtime_usec(stat.st_mtimespec.tv_nsec / 1000),
+#if HAVE_STRUCT_STAT_ST_ATIMESPEC
+    atime_sec (stat.st_atimespec.tv_sec),
+    atime_usec(stat.st_atimespec.tv_nsec / 1000),
+#else
+    atime_sec (stat.st_atim.tv_sec),
+    atime_usec(stat.st_atim.tv_nsec / 1000),
+#endif
+#if HAVE_STRUCT_STAT_ST_MTIMESPEC
+    mtime_sec (stat.st_mtimespec.tv_sec),
+    mtime_usec(stat.st_mtimespec.tv_nsec / 1000),
+#else
+    mtime_sec (stat.st_mtim.tv_sec),
+    mtime_usec(stat.st_mtim.tv_nsec / 1000),
+#endif
 rdev      (stat.st_rdev)
 {}
 
@@ -98,6 +109,10 @@ string FileTable::basename(const string& path) {
     strncpy(tmp, path.c_str(), MAXPATHLEN-1);
     result = ::basename(tmp);
     return result;
+}
+
+string FileTable::basename_helper(string const & path) {
+	return basename((const string &) path);
 }
 
 string FileTable::dirname(const string& path) {
@@ -370,10 +385,20 @@ File::~File(void) {
     if(restoreStat) {
         ft->chmod(path, fstat.st_mode);
         struct timeval times[2];
+#if HAVE_STRUCT_STAT_ST_ATIMESPEC
         times[0].tv_sec  = fstat.st_atimespec.tv_sec;
         times[0].tv_usec = fstat.st_atimespec.tv_nsec / 1000;
+#else
+        times[0].tv_sec  = fstat.st_atim.tv_sec;
+        times[0].tv_usec = fstat.st_atim.tv_nsec / 1000;
+#endif
+#if HAVE_STRUCT_STAT_ST_MTIMESPEC
         times[1].tv_sec  = fstat.st_mtimespec.tv_sec;
         times[1].tv_usec = fstat.st_mtimespec.tv_nsec / 1000;
+#else
+        times[1].tv_sec  = fstat.st_mtim.tv_sec;
+        times[1].tv_usec = fstat.st_mtim.tv_nsec / 1000;
+#endif
         ft->utimes(path, times);
     }
     if(file) fclose(file);

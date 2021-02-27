@@ -2,6 +2,8 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <algorithm>
+#include <cstring>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -37,7 +39,8 @@ static void print_help(void) {
     cout << "  -clean      Clean output directory before copying." << endl;
 }
 
-static bool ignore(const char* name) {
+/* Ignore "standard" directory entries.  Original name ignore conflicted with using namespace std in this file */
+static bool ignore_dir_entry(const char* name) {
     return strcmp(".", name) == 0 || strcmp("..", name) == 0;
 }
 
@@ -75,7 +78,7 @@ static void set_attr(UFS& ufs, set<string>& skip, uint32_t ino, const string& pa
             uint32_t rdev = 0;
             switch(fsv(inode.ic_mode) & IFMT) {
                 case IFDIR:       /* directory */
-                    if(!(ignore(dirEnt.d_name)))
+                    if(!(ignore_dir_entry(dirEnt.d_name)))
                         set_attr(ufs, skip, fsv(dirEnt.d_ino), dirEntPath, ft);
                     break;
                 case IFCHR:       /* character special */
@@ -90,10 +93,20 @@ static void set_attr(UFS& ufs, set<string>& skip, uint32_t ino, const string& pa
             fstat.st_uid               = fsv(inode.ic_uid);
             fstat.st_gid               = fsv(inode.ic_gid);
             fstat.st_size              = fsv(inode.ic_size);
+#if HAVE_STRUCT_STAT_ST_ATIMESPEC
             fstat.st_atimespec.tv_sec  = fsv(inode.ic_atime.tv_sec);
             fstat.st_atimespec.tv_nsec = fsv(inode.ic_atime.tv_usec) * 1000;
+#else
+            fstat.st_atim.tv_sec  = fsv(inode.ic_atime.tv_sec);
+            fstat.st_atim.tv_nsec = fsv(inode.ic_atime.tv_usec) * 1000;
+#endif
+#if HAVE_STRUCT_STAT_ST_MTIMESPEC
             fstat.st_mtimespec.tv_sec  = fsv(inode.ic_mtime.tv_sec);
             fstat.st_mtimespec.tv_nsec = fsv(inode.ic_mtime.tv_usec) * 1000;
+#else
+            fstat.st_mtim.tv_sec  = fsv(inode.ic_mtime.tv_sec);
+            fstat.st_mtim.tv_nsec = fsv(inode.ic_mtime.tv_usec) * 1000;
+#endif
             fstat.st_rdev              = rdev;
             
             FileAttrs fattr(fstat);
@@ -130,7 +143,7 @@ static void verify_attr(UFS& ufs, set<string>& skip, uint32_t ino, const string&
             uint32_t rdev = 0;
             switch(fsv(inode.ic_mode) & IFMT) {
                 case IFDIR:       /* directory */
-                    if(!(ignore(dirEnt.d_name)))
+                    if(!(ignore_dir_entry(dirEnt.d_name)))
                         verify_attr(ufs, skip, fsv(dirEnt.d_ino), dirEntPath, ft);
                     break;
                 case IFCHR:       /* character special */
@@ -156,10 +169,17 @@ static void verify_attr(UFS& ufs, set<string>& skip, uint32_t ino, const string&
                 if(fstat.st_atimespec.tv_nsec != fsv(inode.ic_atime.tv_usec) * 1000)
                     cout << "atime_nsec mismatch " << dirEntPath << " diff:" << (fstat.st_atimespec.tv_nsec - (fsv(inode.ic_atime.tv_usec) * 1000)) << endl;
                  */
+#if HAVE_STRUCT_STAT_ST_MTIMESPEC
                 if(fstat.st_mtimespec.tv_sec != fsv(inode.ic_mtime.tv_sec))
                     cout << "mtime_sec mismatch diff:" << (fstat.st_mtimespec.tv_sec << - fsv(inode.ic_mtime.tv_sec)) << " " << dirEntPath << endl;
                 if(fstat.st_mtimespec.tv_nsec != fsv(inode.ic_mtime.tv_usec) * 1000)
                     cout << "mtime_nsec mismatch diff:" << (fstat.st_mtimespec.tv_nsec << - (fsv(inode.ic_mtime.tv_usec)) * 1000) << " " << dirEntPath << endl;
+#else
+                if(fstat.st_mtim.tv_sec != fsv(inode.ic_mtime.tv_sec))
+                    cout << "mtime_sec mismatch diff:" << (fstat.st_mtim.tv_sec << - fsv(inode.ic_mtime.tv_sec)) << " " << dirEntPath << endl;
+                if(fstat.st_mtim.tv_nsec != fsv(inode.ic_mtime.tv_usec) * 1000)
+                    cout << "mtime_nsec mismatch diff:" << (fstat.st_mtim.tv_nsec << - (fsv(inode.ic_mtime.tv_usec)) * 1000) << " " << dirEntPath << endl;
+#endif
             }
             if((uint32_t)fstat.st_rdev != rdev)
                 cout << "rdev mismatch " << dirEntPath << endl;
@@ -179,7 +199,7 @@ static void copy_inode(UFS& ufs, map<uint32_t, string>& inode2path, set<string>&
         dirEntPath += dirEnt.d_name;
         bool doPrint = true;
         
-        if(!(ignore(dirEnt.d_name))) {
+        if(!(ignore_dir_entry(dirEnt.d_name))) {
             if(ft->access(dirEntPath, F_OK) == 0) {
                 struct stat fstat;
                 ft->stat(dirEntPath, fstat);
@@ -226,7 +246,7 @@ static void copy_inode(UFS& ufs, map<uint32_t, string>& inode2path, set<string>&
                 break;
             case IFDIR:       /* directory */
                 os << "[DIR]   ";
-                if(!(ignore(dirEnt.d_name))) {
+                if(!(ignore_dir_entry(dirEnt.d_name))) {
                     os << dirEntPath << endl;
                     doPrint = false;
                     if(ft) ft->mkdir(dirEntPath, DEFAULT_PERM);

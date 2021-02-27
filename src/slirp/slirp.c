@@ -649,7 +649,7 @@ void if_encap(const uint8_t *ip_data, int ip_data_len)
     memcpy(eh->h_dest, client_ethaddr, ETH_ALEN);
     memcpy(eh->h_source, special_ethaddr, ETH_ALEN - 1);
     
-    uint32_t ip_src  = ntohl(*(uint32_t*)&ip_data[12]);
+    uint32_t ip_src  = ntohl(*(const uint32_t*)&ip_data[12]);
     if((ip_src & CTL_NET_MASK) == ntohl(special_addr.s_addr))
         eh->h_source[5] = ip_src; // map local address to enet addresses
     else

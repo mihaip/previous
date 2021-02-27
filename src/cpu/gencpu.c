@@ -78,8 +78,8 @@ static int do_always_dynamic_cycles;
 
 
 #ifdef WINUAE_FOR_HATARI
-static int CurrentInstrCycles;		/* Hatari only : Number of cycles for the current instruction in cpuemu_xx */
-static int CurrentInstrCycles_pos;	/* Hatari only : Stores where we have to patch in the current cycles value */
+//static int CurrentInstrCycles;		/* Hatari only : Number of cycles for the current instruction in cpuemu_xx */
+//static int CurrentInstrCycles_pos;	/* Hatari only : Stores where we have to patch in the current cycles value */
 #endif
 
 #define GF_APDI		0x00001
@@ -644,7 +644,7 @@ static void returntail (bool iswrite)
 static void returncycles(int cycles)
 {
 #ifdef WINUAE_FOR_HATARI
-	CurrentInstrCycles = cycles;
+//	CurrentInstrCycles = cycles;
 #endif
 #if 1 // Hack for Previous
     out ("return %d;\n", adjust_cycles(cycles));

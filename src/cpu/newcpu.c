@@ -6172,7 +6172,8 @@ static void m68k_run_mmu060 (void)
 
 static int ndCycles = 0;
 // give other MPUs (DSP, i860) some time to run on m68k thread
-static inline void run_other_MPUs() {
+static inline void run_other_MPUs(void)
+{
     ndCycles += cpu_cycles;
     // bundle some 68k cycles for MPUs
     

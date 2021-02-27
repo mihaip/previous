@@ -24,7 +24,7 @@ public:
 
 char*   strcpy_s (char* dst,  size_t  maxLen, const char* src);
 char*   strncpy_s(char* dst,  size_t  maxLen, const char* src, size_t len);
-errno_t strcat_s (char* dest, rsize_t maxLen, const char* src);
+int     strcat_s (char* dest, size_t maxLen, const char* src);
 char*   strcat_s (char* s1, const char* s2);
 
 #endif /* compat_h */

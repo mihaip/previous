@@ -250,6 +250,11 @@ Previous v2.2:
   > Improves accuracy of tables programmed to DSP data ROM.
   > Fixes bug that prevented reset warning after changing preferences.
 
+Previous v2.3 (unreleased):
+  > Adds internal NFS server for easier file sharing with host system.
+  > Improves DSP, CPU and FPU emulation accuracy.
+  > Fixes bug that caused sporadic power-on test failures and crashes.
+
 
  7) Running Previous
  -------------------

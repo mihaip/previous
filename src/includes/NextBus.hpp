@@ -36,7 +36,7 @@ extern "C" {
 
 #ifdef __cplusplus
 
-#define FOR_EACH_SLOT(slot) for(int (slot) = 2; (slot) < 8; (slot) += 2)
+#define FOR_EACH_SLOT(slot) for(int slot = 2; slot < 8; slot += 2)
 #define IF_NEXT_DIMENSION(slot, nd) if(NextDimension* nd = dynamic_cast<NextDimension*>(nextbus[(slot)]))
 
 class NextBusSlot {

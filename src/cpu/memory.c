@@ -1237,7 +1237,3 @@ void map_banks (addrbank *bank, int start, int size) {
     }
 	return;
 }
-
-void memory_hardreset (void)
-{
-}
