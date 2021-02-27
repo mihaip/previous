@@ -6202,16 +6202,6 @@ static void m68k_run_mmu040 (void)
 		check_debugger();
 		TRY (prb) {
 			for (;;) {
-#ifdef WINUAE_FOR_HATARI
-				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
-//				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
-//				{
-//					int FrameCycles, HblCounterVideo, LineCycles;
-//					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-//					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d : " , FrameCycles, LineCycles, HblCounterVideo );
-//					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
-//				}
-#endif
 				f.cznv = regflags.cznv;
 				f.x = regflags.x;
 				mmu_restart = true;
@@ -6219,27 +6209,15 @@ static void m68k_run_mmu040 (void)
 
 				do_cycles (cpu_cycles);
                 
-                Uint64 beforeCycles = nCyclesMainCounter;
 				mmu_opcode = -1;
 				mmu_opcode = regs.opcode = x_prefetch (0);
 				count_instr (regs.opcode);
 				cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
-				cpu_cycles = adjust_cycles (cpu_cycles);
-				regs.instruction_cnt++;
 
 #ifdef WINUAE_FOR_HATARI
-//				M68000_AddCycles(cpu_cycles * 2 / CYCLE_UNIT);
-
                 M68000_AddCycles(cpu_cycles);
-                cpu_cycles = nCyclesMainCounter - beforeCycles;
-                
+				
                 run_other_MPUs();
-
-//				if ( WaitStateCycles ) {
-					/* Add some extra cycles to simulate a wait state */
-//					M68000_AddCycles(WaitStateCycles);
-//					WaitStateCycles = 0;
-//				}
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
 				/* We must check for pending interrupt and call do_specialties_interrupt() only */
@@ -6264,17 +6242,6 @@ static void m68k_run_mmu040 (void)
 					if (do_specialties (cpu_cycles))
 						return;
 				}
-
-#ifdef WINUAE_FOR_HATARI
-				/* Run DSP 56k code if necessary */
-				if (bDspEnabled) {
-//					DSP_Run(2 * cpu_cycles * 2 / CYCLE_UNIT);
-//					DSP_Run ( DSP_CPU_FREQ_RATIO * ( CyclesGlobalClockCounter - DSP_CyclesGlobalClockCounter ) );
-				}
-
-//				if ( savestate_state == STATE_SAVE )
-//					save_state ( NULL , NULL );
-#endif
 			}
 		} CATCH (prb) {
 
@@ -6354,42 +6321,16 @@ insretry:
 
 				mmu030_opcode = regs.opcode;
 				mmu030_idx_done = 0;
-                
-                Uint64 beforeCycles = nCyclesMainCounter;
-
+				
 				cnt = 50;
 				for (;;) {
-#ifdef WINUAE_FOR_HATARI
-					//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
-//					if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
-//					{
-//						int FrameCycles, HblCounterVideo, LineCycles;
-//						Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-//						LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d : " , FrameCycles, LineCycles, HblCounterVideo );
-//						m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
-//					}
-#endif
 					regs.opcode = regs.irc = mmu030_opcode;
 					mmu030_idx = 0;
 
 					mmu030_retry = false;
-
-					if (!currprefs.cpu_cycle_exact) {
-
-						count_instr (regs.opcode);
-						do_cycles (cpu_cycles);
-
-						cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
-
-					} else {
-#ifdef WINUAE_FOR_HATARI
-						currcycle = 0;
-#endif
-						(*cpufunctbl[regs.opcode])(regs.opcode);
-
-						wait_memory_cycles();
-					}
-
+					
+					cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
+					
 					cnt--; // so that we don't get in infinite loop if things go horribly wrong
 					if (!mmu030_retry)
 						break;
@@ -6403,95 +6344,33 @@ insretry:
 
 				mmu030_opcode = -1;
 
-				if (!currprefs.cpu_cycle_exact) {
-
-//					cpu_cycles = adjust_cycles (cpu_cycles);
-					regs.instruction_cnt++;
 #ifdef WINUAE_FOR_HATARI
-					//M68000_AddCycles(cpu_cycles/* * 2 / CYCLE_UNIT*/);
-                    M68000_AddCycles(cpu_cycles);
-                    cpu_cycles = nCyclesMainCounter - beforeCycles;
-
-                    run_other_MPUs();
-                    
-//					if ( WaitStateCycles ) {
-						/* Add some extra cycles to simulate a wait state */
-//						M68000_AddCycles(WaitStateCycles);
-//						WaitStateCycles = 0;
-//					}
-
-					/* We can have several interrupts at the same time before the next CPU instruction */
-					/* We must check for pending interrupt and call do_specialties_interrupt() only */
-					/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
-					/* and prevent exiting the STOP state when calling do_specialties() after. */
-					/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-                    while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) ) {
-                        CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
-                    }
-                    /* Previous: for now we poll the interrupt pins with every instruction.
-                     * TODO: only do this when an actual interrupt is active to not
-                     * unneccessarily slow down emulation.
-                     */
-                    intr = intlev ();
-                    if (intr>regs.intmask || (intr==7 && intr>lastintr))
-                        do_interrupt (intr);
-                    lastintr = intr;
-#endif
-					if (regs.spcflags) {
-						if (do_specialties (cpu_cycles))
-							return;
-					}
-#ifdef WINUAE_FOR_HATARI
-					/* Run DSP 56k code if necessary */
-					if (bDspEnabled) {
-//						DSP_Run(2 * cpu_cycles * 2 / CYCLE_UNIT);
-//						DSP_Run ( DSP_CPU_FREQ_RATIO * ( CyclesGlobalClockCounter - DSP_CyclesGlobalClockCounter ) );
-					}
-#endif
-
-				} else {
-
-#ifdef WINUAE_FOR_HATARI
-//fprintf ( stderr, "cyc_2ce %d\n" , currcycle );
-					/* Flush all CE cycles so far to update PendingInterruptCount */
-//					M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
-//					currcycle = 0;	// FIXME : uncomment this when using DSP_CyclesGlobalClockCounter in DSP_Run
-
-					/* We can have several interrupts at the same time before the next CPU instruction */
-					/* We must check for pending interrupt and call do_specialties_interrupt() only */
-					/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
-					/* and prevent exiting the STOP state when calling do_specialties() after. */
-					/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-//					while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) )
-//						CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
-//					if ( MFP_UpdateNeeded == true )
-//						MFP_UpdateIRQ_All ( 0 );
-#endif
-
-					regs.instruction_cnt++;
-					if (regs.spcflags || time_for_interrupt ()) {
-						if (do_specialties (0))
-							return;
-					}
-
-#ifdef WINUAE_FOR_HATARI
-					/* Run DSP 56k code if necessary */
-					if (bDspEnabled) {
-//fprintf ( stderr, "dsp cyc_2ce %d\n" , currcycle );
-						DSP_Run(2 * currcycle * 2 / CYCLE_UNIT);
-//fprintf ( stderr, "dsp cyc_2ce %d - %d\n" , currcycle * 2 / CYCLE_UNIT , (CyclesGlobalClockCounter - DSP_CyclesGlobalClockCounter) );
-//						DSP_Run ( DSP_CPU_FREQ_RATIO * ( CyclesGlobalClockCounter - DSP_CyclesGlobalClockCounter ) );
-					}
-#endif
-
-					regs.ipl = regs.ipl_pin;
-
+				M68000_AddCycles(cpu_cycles);
+				
+				run_other_MPUs();
+				
+				/* We can have several interrupts at the same time before the next CPU instruction */
+				/* We must check for pending interrupt and call do_specialties_interrupt() only */
+				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
+				/* and prevent exiting the STOP state when calling do_specialties() after. */
+				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
+				while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) ) {
+					CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
 				}
-
-#ifdef WINUAE_FOR_HATARI
-//				if ( savestate_state == STATE_SAVE )
-//					save_state ( NULL , NULL );
+				/* Previous: for now we poll the interrupt pins with every instruction.
+				 * TODO: only do this when an actual interrupt is active to not
+				 * unneccessarily slow down emulation.
+				 */
+				intr = intlev ();
+				if (intr>regs.intmask || (intr==7 && intr>lastintr))
+					do_interrupt (intr);
+				lastintr = intr;
 #endif
+				if (regs.spcflags) {
+					if (do_specialties (cpu_cycles))
+						return;
+				}
+				
 			}
 
 		} CATCH (prb) {
