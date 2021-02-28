@@ -95,6 +95,8 @@ const char Memory_fileid[] = "Previous memory.c : " __DATE__ " " __TIME__;
 #define NEXT_RAM_BANK_SEL_C		0x01800000
 #define NEXT_RAM_BANK_SEL_T		0x06000000
 
+#define NEXT_RAM_MAX_SIZE		NEXT_RAM_BANK_MAX_T*N_BANKS
+
 uae_u32 NEXT_ram_bank_size;
 uae_u32 NEXT_ram_bank_mask;
 uae_u32 NEXT_ram_bank0_mask;
@@ -996,9 +998,9 @@ mem_put_func bank_bput[65536];
 const char* memory_init(int *nNewNEXTMemSize)
 {
     if(!(NEXTRam)) {
-        NEXTRam   = host_malloc_aligned(128*1024*1024);
-        NEXTVideo = host_malloc_aligned(2*1024*1024);
-        NEXTIo    = host_malloc_aligned(0x20000);
+        NEXTRam   = host_malloc_aligned(NEXT_RAM_MAX_SIZE);
+        NEXTVideo = host_malloc_aligned(NEXT_VRAM_COLOR_SIZE);
+        NEXTIo    = host_malloc_aligned(NEXT_IO_SIZE);
         NEXTRom   = host_malloc_aligned(NEXT_EPROM_SIZE);
     }
 
@@ -1203,12 +1205,13 @@ const char* memory_init(int *nNewNEXTMemSize)
         ROMmemory[25] = crc & 0xFF;
     }
 	
-	{
-		int i;
-		for (i=0;i<sizeof(NEXTVideo);i++) NEXTVideo[i]=0;
-		for (i=0;i<sizeof(NEXTRam);i++) NEXTRam[i]=0;
-		for (i=0;i<sizeof(NEXTIo);i++) NEXTIo[i]=0;
+	if (ConfigureParams.System.bColor) {
+		for (i=0;i<NEXT_VRAM_COLOR_SIZE;i++) NEXTVideo[i]=0;
+	} else {
+		for (i=0;i<NEXT_VRAM_COLOR_SIZE;i++) NEXTVideo[i]=0xFF;
 	}
+	for (i=0;i<NEXT_RAM_MAX_SIZE;i++) NEXTRam[i]=0;
+	for (i=0;i<NEXT_IO_SIZE;i++) NEXTIo[i]=0;
 	
 	IoMem_Init();
 	
