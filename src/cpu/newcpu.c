@@ -4734,6 +4734,7 @@ void doint(void)
 			return;
 	}
 #endif
+#if 0 // Previous: for now this is done inside the run-loops
 //fprintf ( stderr , "doint1 %d ipl=%x ipl_pin=%x intmask=%x spcflags=%x\n" , m68k_interrupt_delay,regs.ipl, regs.ipl_pin , regs.intmask, regs.spcflags );
 	if (m68k_interrupt_delay) {
 		regs.ipl_pin = intlev ();
@@ -4746,6 +4747,7 @@ void doint(void)
 		set_special (SPCFLAG_INT);
 	else
 		set_special (SPCFLAG_DOINT);
+#endif // Previous
 }
 
 
@@ -4795,6 +4797,22 @@ static void check_debugger(void)
 			debug();
 		}
 #endif
+	}
+}
+
+static int ndCycles = 0;
+// give other MPUs (DSP, i860) some time to run on m68k thread
+static inline void run_other_MPUs(void)
+{
+	ndCycles += cpu_cycles;
+	// bundle some 68k cycles for MPUs
+	
+	if(dsp_core.running)
+		DSP_Run(cpu_cycles);
+	
+	if(ndCycles > 100) {
+		i860_Run(ndCycles);
+		ndCycles = 0;
 	}
 }
 
@@ -4954,42 +4972,34 @@ static int do_specialties (int cycles)
 			x_do_cycles (currprefs.cpu_cycle_exact ? 2 * CYCLE_UNIT : 4 * CYCLE_UNIT);
 
 #ifdef WINUAE_FOR_HATARI
-//		if (!first)
-//		{
-//			if (currprefs.cpu_cycle_exact && !currprefs.mmu_model)
-//			{
-				/* Flush all CE cycles so far to update PendingInterruptCount */
-//				M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
-//				currcycle = 0;
-//			}
-//			else
-//				M68000_AddCycles(4);
-//		}
-
-		/* It is possible one or more ints happen at the same time */
-		/* We must process them during the same cpu cycle then choose the highest priority one */
-//		while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
-//			CALL_VAR(PendingInterruptFunction);
-//		if ( MFP_UpdateNeeded == true )
-//			MFP_UpdateIRQ_All ( 0 );
-
-		/* Keep on running DSP if necessary, even if CPU is stopped */
-		/* During STOP state, the CPU runs for 2 or 4 cycles on each loop depending on settings */
-//		if (bDspEnabled)
-//			DSP_Run ( 2 * ( currprefs.cpu_cycle_exact ? 2 : 4 ) );
-
-		/* Check if there's an interrupt to process (could be a delayed MFP interrupt) */
-//		if (regs.spcflags & SPCFLAG_MFP) {
-//			MFP_DelayIRQ ();			/* Handle IRQ propagation */
-//			M68000_Update_intlev ();		/* Refresh the list of pending interrupts */
-//		}
+		if (!first)
+			M68000_AddCycles(4);
+		
+		run_other_MPUs();
+		
+		/* We can have several interrupts at the same time before the next CPU instruction */
+		/* We must check for pending interrupt and call do_specialties_interrupt() only */
+		/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
+		/* and prevent exiting the STOP state when calling do_specialties() after. */
+		/* For performance, we first test PendingInterruptCount, then regs.spcflags */
+		while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) ) {
+			CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
+		}
+		
+		/* Previous: for now we poll the interrupt pins with every instruction.
+		 * TODO: only do this when an actual interrupt is active to not
+		 * unneccessarily slow down emulation.
+		 */
+		int intr = intlev ();
+		if (intr > regs.intmask || intr == 7)
+			do_interrupt (intr);
 #endif
 		first = false;
 #ifndef WINUAE_FOR_HATARI
 		if (regs.spcflags & SPCFLAG_COPPER)
 			do_copper ();
 #endif
-
+#ifndef WINUAE_FOR_HATARI
 		if (m68k_interrupt_delay) {
 			unset_special(SPCFLAG_INT);
 			ipl_fetch ();
@@ -5014,7 +5024,7 @@ static int do_specialties (int cycles)
 #endif
 			}
 		}
-
+#endif
 		if (regs.spcflags & SPCFLAG_MODE_CHANGE) {
 			m68k_resumestopped();
 			return 1;
@@ -6170,22 +6180,6 @@ static void m68k_run_mmu060 (void)
 
 #ifdef CPUEMU_31
 
-static int ndCycles = 0;
-// give other MPUs (DSP, i860) some time to run on m68k thread
-static inline void run_other_MPUs(void)
-{
-    ndCycles += cpu_cycles;
-    // bundle some 68k cycles for MPUs
-    
-    if(dsp_core.running)
-        DSP_Run(cpu_cycles);
-    
-    if(ndCycles > 100) {
-        i860_Run(ndCycles);
-        ndCycles = 0;
-    }
-}
-
 /* Aranym MMU 68040  */
 static void m68k_run_mmu040 (void)
 {
@@ -6235,7 +6229,7 @@ static void m68k_run_mmu040 (void)
                  */
                 intr = intlev ();
                 if (intr>regs.intmask || (intr==7 && intr>lastintr))
-                    do_interrupt (intr);
+                    Exception (intr + 24);
                 lastintr = intr;
 #endif
 
@@ -6364,7 +6358,7 @@ insretry:
 				 */
 				intr = intlev ();
 				if (intr>regs.intmask || (intr==7 && intr>lastintr))
-					do_interrupt (intr);
+					Exception (intr + 24);
 				lastintr = intr;
 #endif
 				if (regs.spcflags) {
