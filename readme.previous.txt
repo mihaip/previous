@@ -254,6 +254,7 @@ Previous v2.3 (unreleased):
   > Adds internal NFS server for easier file sharing with host system.
   > Improves DSP, CPU and FPU emulation accuracy.
   > Fixes bug that caused sporadic power-on test failures and crashes.
+  > Fixes bug that prevented Previous from starting with SDL > 2.0.12.
 
 
  7) Running Previous

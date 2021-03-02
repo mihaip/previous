@@ -181,7 +181,7 @@ if(NOT BIN2DATADIR)
 		set(BIN2DATADIR "../Resources"
 		    CACHE STRING "Relative path from bindir to datadir")
 	else()
-		set(BIN2DATADIR "../share/hatari"
+		set(BIN2DATADIR "../share/previous"
 		    CACHE STRING "Relative path from bindir to datadir")
 	endif(WIN32)
 	mark_as_advanced(BIN2DATADIR)

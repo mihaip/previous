@@ -28,13 +28,6 @@ int NDSDL::repainter(void) {
     
     SDL_Rect r = {0,0,1120,832};
     
-    ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    
-    if (!ndRenderer) {
-        fprintf(stderr,"[ND] Slot %i: Failed to create renderer!\n", slot);
-        exit(-1);
-    }
-    
     SDL_RenderSetLogicalSize(ndRenderer, r.w, r.h);
     ndTexture = SDL_CreateTexture(ndRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, r.w, r.h);
     
@@ -83,6 +76,12 @@ void NDSDL::start_interrupts() {
     char name[32];
     
     if (!(repaintThread) && ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
+        ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        if (!ndRenderer) {
+            fprintf(stderr,"[ND] Slot %i: Failed to create renderer!\n", slot);
+            exit(-1);
+        }
+		
         sprintf(name, "[ND] Slot %i: Repainter", slot);
         repaintThread = SDL_CreateThread(NDSDL::repainter, name, this);
     }
