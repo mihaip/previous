@@ -1,6 +1,6 @@
 
 
-                                 Previous 2.2
+                                  Previous 2.2
 
 
 
@@ -18,20 +18,18 @@ Contents:
  1) License
  ----------
 
-This program is free software; you can redistribute it and/or modify it under
-the terms of the GNU General Public License as published by the Free Soft-
-ware Foundation; either version 2 of the License, or (at your option) any
-later version.
+This program is free software; you can redistribute it and/or modify it under 
+the terms of the GNU General Public License as published by the Free Software 
+Foundation; either version 2 of the License, or (at your option) any later 
+version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY
-WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with
-this program; if not, write to the
- Free Software Foundation, Inc.,
- 51 Franklin Street, Fifth Floor, Boston,
- MA  02110-1301, USA
+You should have received a copy of the GNU General Public License along with 
+this program; if not, write to the Free Software Foundation, 51 Franklin Street, 
+Fifth Floor, Boston, MA 02110-1335 USA
 
 
  2) About Previous
@@ -263,9 +261,9 @@ Previous v2.3 (unreleased):
 For running the emulator, you need an image of the boot ROM of the emulated 
 machine.
 
-While the emulator is running, you can open the configuration menu by
-pressing F12, toggle between fullscreen and windowed mode by pressing F11 
-and initiate a clean shut down by pressing F10 (emulates the power button).
+While the emulator is running, you can open the configuration menu by pressing 
+F12, toggle between fullscreen and windowed mode by pressing F11 and initiate 
+a clean shut down by pressing F10 (emulates the power button).
 
 
  8) Contributors
@@ -273,11 +271,11 @@ and initiate a clean shut down by pressing F10 (emulates the power button).
 
 Previous was written by Andreas Grabher, Simon Schubiger and Gilles Fetis.
 
-Many thanks go to the members of the NeXT International Forums for their
-help. Special thanks go to Gavin Thomas Nicol, Piotr Twarecki, Toni Wilen,
-Michael Bosshard, Thomas Huth, Olivier Galibert, Jason Eckhardt, Jason 
-Stevens, Daniel L'Hommedieu, Tomaz Slivnik, Vaughan Kaufman and Peter 
-Leonard!
+Many thanks go to the members of the NeXT International Forums for their help. 
+Special thanks go to Gavin Thomas Nicol, Piotr Twarecki, Toni Wilen, Michael 
+Bosshard, Thomas Huth, Olivier Galibert, Jason Eckhardt, Jason Stevens, Daniel 
+L'Hommedieu, Tomaz Slivnik, Vaughan Kaufman and Peter Leonard!
+
 This emulator would not exist without their help.
 
 

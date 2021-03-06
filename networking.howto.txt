@@ -1,38 +1,36 @@
-WARNING: Do not start NeXTstep 0.8 or 0.9 with Ethernet connected.
-         The system hangs in the boot process. If it hangs also
-         with disconnected Ethernet you can proceed by simultaneously
-         pressing 'ctrl'+'c'.
+WARNING: Do not start NeXTstep 0.8 or 0.9 with Ethernet 
+         connected. The system hangs in the boot process. If it 
+         hangs also with disconnected Ethernet you can proceed by          
+         simultaneously pressing 'ctrl'+'c'.
 
-NOTE:    This procedure is only valid when using SLiRP as networking
-         interface.
-
-
-Howto: Setup networking on NeXTstep 0.8 and 0.9:
+NOTE:    This procedure is only valid when using SLiRP as 
+         networking interface.
    
-   FIXME: No procedure yet. Make sure Ethernet is disconnected
-          when booting NeXTstep 0.8 or 0.9.
+FIXME:   There is no procedure for setting up networking on 
+         NeXTstep 0.8 and 0.9 yet. Make sure Ethernet is 
+         disconnected when booting NeXTstep 0.8 or 0.9.
 
 
-Howto: Setup networking on NeXTstep 1.0 and later:
+NOWTO: Setup networking on NeXTstep 1.0 and later:
 
-1. On first boot you might be prompted to press 'c' or
-   you might be dropped to the single user mode console. 
-   If prompted to press 'c' just do so or if on the single 
-   user mode console just type "exit" to continue booting.
+1. On first boot you might be prompted to press 'c' or you might 
+   be dropped to the single user mode console. If prompted to 
+   press 'c' just do so or if on the single user mode console 
+   just type "exit" to continue booting.
 
-2. Open "/etc/resolv.conf" and add "nameserver 10.0.2.3".
-   If this file does not exist, you have to first create it. 
-   Be sure you create a plain text file. If you use Edit.app
-   you can do this by selecting Format > Text > Make ASCII.
-   You can save the file from the save dialog by typing 
-   "/etc/resolv.conf" to the name field.
+2. Open "/etc/resolv.conf" and add "nameserver 10.0.2.3". If this 
+   file does not exist, you have to first create it. Be sure you 
+   create a plain text file. If you use Edit.app you can do this 
+   by selecting Format > Text > Make ASCII. You can save the file 
+   from the save dialog by typing "/etc/resolv.conf" to the name 
+   field.
 
 3. This step is only required on NeXTstep 2.0 and later:
    Open "/etc/hosts" and append the following line:
    10.0.2.15	XXX (replace XXX with your hostname, see 4c)
 
-   Open Terminal (you find it in NextApps directory) and
-   load the edited file using these commands:
+   Open Terminal (you find it in NextApps directory) and load the 
+   edited file using these commands:
    su
    niload hosts / < /etc/hosts 
 
@@ -48,33 +46,32 @@ Howto: Setup networking on NeXTstep 1.0 and later:
    g  Set "Netmask" to "255.255.255.0"
    h  Hit "OK" and confirm all messages. It will reboot. Done.
 
-   Note: On NeXTstep 3.0 and later NetManager is called 
-         HostManager, "Network type" is called "NetInfo 
-         Binding" and "Non-NetInfo Network" is called "Use 
-         local domain only".
-         On NeXTstep 2.0 and later "Yellow Pages Domain Name"
-         is called "NIS Domain Name".
+NOTE: On NeXTstep 3.0 and later NetManager is called HostManager, 
+      "Network type" is called "NetInfo Binding" and "Non-NetInfo 
+      Network" is called "Use local domain only".
+      On NeXTstep 2.0 and later "Yellow Pages Domain Name" is 
+      called "NIS Domain Name".
 
 
-Howto: Open the above files using root privileges:
+HOWTO: Open the above files using root privileges:
 
    NeXTstep 1.0 through 2.2:
-   a  Open Terminal (you find it in the NextApps directory)
-      and open the files using these commands:
+   a  Open Terminal (you find it in the NextApps directory) and 
+      open the files using these commands:
       su
       open /path/to/file (e.g. open /etc/hosts)
 
    NeXTstep 3.0 through 3.2:
-   a  Log in as root and use the procedure for NeXTstep 1.0
+   a  Log in as root and use the procedure for NeXTstep 1.0 
       through 2.2.
 
    NeXTstep 3.3 and later:
-   a  Open Terminal (you find it in the NextApps directory)
-      and open the /etc directory using this command:
+   a  Open Terminal (you find it in the NextApps directory) and 
+      open the /etc directory using this command:
       open /etc
    b  Select the file to open and from Workspace select: 
       Services > Open Sesame > Open As Root.
-   c  For making a new resolv.conf open Edit.app by selecting
-      the application (you find it in the NextApps directory)
-      and from Workspace select: 
+   c  For making a new resolv.conf open Edit.app by selecting the
+      application (you find it in the NextApps directory) and 
+      from Workspace select: 
       Services > Open Sesame > Open As Root.

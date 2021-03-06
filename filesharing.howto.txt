@@ -6,7 +6,7 @@ NOTE: This procedure is only valid when using SLiRP as networking
       To edit files inside /etc you need super user privileges.
 
 
-Howto: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
+NOWTO: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
 
 1. Open the file "/etc/fstab" using this command from the
    command line:
@@ -25,7 +25,7 @@ Howto: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
    after reboot.
 
 
-Howto: Setup NFS file sharing under NeXTstep 3.0 and later:
+HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
 
 1. Open NFSManager (you find it in the NextAdmin directory).
 
@@ -38,7 +38,7 @@ Howto: Setup NFS file sharing under NeXTstep 3.0 and later:
    directory.
 
 
-Howto: Manually mount NFS shared directory:
+HOWTO: Manually mount NFS shared directory:
 1. Open Terminal and type these commands to the command line:
    su
    mount -o rw,net shared.local:/ /Net
