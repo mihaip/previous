@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <ftw.h>
 
-#include "main.h"
+#include "config.h"
 #include "ditool.h"
 #include "fsdir.h"
 #include "UFS.h"

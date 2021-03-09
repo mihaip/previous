@@ -6064,8 +6064,10 @@ static void m68k_run_mmu040 (void)
 #endif
 
 				if (regs.spcflags) {
-					if (do_specialties (cpu_cycles))
+					if (do_specialties (cpu_cycles)) {
+						STOPTRY;
 						return;
+					}
 				}
 			}
 		} CATCH (prb) {
@@ -6192,8 +6194,10 @@ insretry:
 				lastintr = intr;
 #endif
 				if (regs.spcflags) {
-					if (do_specialties (cpu_cycles))
+					if (do_specialties (cpu_cycles)) {
+						STOPTRY;
 						return;
+					}
 				}
 				
 			}

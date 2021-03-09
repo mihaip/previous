@@ -8,7 +8,7 @@
 #include <sys/statvfs.h>
 #include <sys/time.h>
 
-#include "main.h"
+#include "config.h"
 #include "NFS2Prog.h"
 #include "FileTableNFSD.h"
 #include "nfsd.h"

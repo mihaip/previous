@@ -8,7 +8,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 
-#include "main.h"
+#include "config.h"
 #include "FileTable.h"
 #include "compat.h"
 
