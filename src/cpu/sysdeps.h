@@ -90,14 +90,14 @@
 #define REGPARAM3 JITCALL
 
 #ifdef WINUAE_FOR_HATARI
-#include "uae/types.h"
-#else
-#include <tchar.h>
+    #include "uae/types.h"
+#elif HAVE_TCHAR_H
+    #include <tchar.h>
 #endif
 
 #ifndef __STDC__
 #ifndef _MSC_VER
-#error "Your compiler is not ANSI. Get a real one."
+    #error "Your compiler does not appear to support ANSI C.  Porting effort is required in src/cpu/sysdeps.h."
 #endif
 #endif
 
@@ -184,8 +184,8 @@ struct utimbuf
 #define VAL64(a) (a)
 #define UVAL64(a) (a)
 #elif SIZEOF_LONG == 8
-#define VAL64(a) (a ## l)
-#define UVAL64(a) (a ## ul)
+#define VAL64(a) (a ## L)
+#define UVAL64(a) (a ## UL)
 #endif
 
 #define uae_s64 uae_s64
@@ -201,23 +201,23 @@ typedef char uae_char;
 typedef struct { uae_u8 RGB[3]; } RGB;
 
 #if SIZEOF_SHORT == 2
-typedef unsigned short uae_u16;
-typedef short uae_s16;
+    typedef unsigned short uae_u16;
+    typedef short uae_s16;
 #elif SIZEOF_INT == 2
-typedef unsigned int uae_u16;
-typedef int uae_s16;
+    typedef unsigned int uae_u16;
+    typedef int uae_s16;
 #else
-#error No 2 byte type, you lose.
+    #error "Cannot find a 2-byte type, port src/cpu/sysconfig.h to your architecture"
 #endif
 
 #if SIZEOF_INT == 4
-typedef unsigned int uae_u32;
-typedef int uae_s32;
+    typedef unsigned int uae_u32;
+    typedef int uae_s32;
 #elif SIZEOF_LONG == 4
-typedef unsigned long uae_u32;
-typedef long uae_s32;
+    typedef unsigned long uae_u32;
+    typedef long uae_s32;
 #else
-#error No 4 byte type, you lose.
+    #error "Cannot find a 4-byte type, port src/cpu/sysconfig.h to your architecture"
 #endif
 
 typedef uae_u32 uaecptr;
@@ -225,21 +225,21 @@ typedef uae_u32 uaecptr;
 #undef uae_s64
 #undef uae_u64
 
-#if SIZEOF_LONG_LONG == 8
-#define uae_s64 long long
-#define uae_u64 unsigned long long
-#define VAL64(a) (a ## LL)
-#define UVAL64(a) (a ## uLL)
+#if SIZEOF_LONG == 8
+    #define uae_s64 long;
+    #define uae_u64 unsigned long;
+    #define VAL64(a) (a ## L)
+    #define UVAL64(a) (a ## UL)
+#elif SIZEOF_LONG_LONG == 8
+    #define uae_s64 long long
+    #define uae_u64 unsigned long long
+    #define VAL64(a) (a ## LL)
+    #define UVAL64(a) (a ## ULL)
 #elif SIZEOF___INT64 == 8
-#define uae_s64 __int64
-#define uae_u64 unsigned __int64
-#define VAL64(a) (a)
-#define UVAL64(a) (a)
-#elif SIZEOF_LONG == 8
-#define uae_s64 long;
-#define uae_u64 unsigned long;
-#define VAL64(a) (a ## l)
-#define UVAL64(a) (a ## ul)
+    #define uae_s64 __int64
+    #define uae_u64 unsigned __int64
+    #define VAL64(a) (a)
+    #define UVAL64(a) (a)
 #endif
 
 #endif /* WINUAE_FOR_HATARI */
@@ -251,9 +251,9 @@ uae_atomic atomic_dec(volatile uae_atomic *p);
 uae_u32 atomic_bit_test_and_reset(volatile uae_atomic *p, uae_u32 v);
 
 #ifdef HAVE_STRDUP
-#define my_strdup _tcsdup
+    #define my_strdup _tcsdup
 #else
-extern TCHAR *my_strdup (const TCHAR*s);
+    extern TCHAR *my_strdup (const TCHAR*s);
 #endif
 extern TCHAR *my_strdup_ansi (const char*);
 extern void my_trim (TCHAR*);

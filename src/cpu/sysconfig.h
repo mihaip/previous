@@ -328,20 +328,67 @@ typedef long uae_atomic;
 /* The number of bytes in a __int64.  */
 #define SIZEOF___INT64 8
 
-/* The number of bytes in a char.  */
-#define SIZEOF_CHAR 1
+/* The number of bytes in a char (1 on almost every platform, but ANSI C allows larger) */
+#include <limits.h>
+#if SCHAR_MAX == 127
+    #define SIZEOF_CHAR         1
+#elif SCHAR_MAX == 32767
+    #define SIZEOF_CHAR         2
+#else
+    #error "On a strange architecture with char > 2 bytes, further porting required"
+#endif
 
-/* The number of bytes in a int.  */
-#define SIZEOF_INT 4
+/* Sort out integer and pointer sizes */
+#if defined(_MSC_VER) || (defined(__INTEL_COMPILER) && defined(_WIN32))
+    #define SIZEOF_SHORT        2
+    #define SIZEOF_INT          4
+    #define SIZEOF_LONG         4
+    #define SIZEOF_LONG_LONG    8
+    #if defined(_M_X64)
+      #define SIZEOF_PTR        8
+   #else
+      #define SIZEOF_PTR        4
+   #endif
+#elif defined(__clang__) || defined(__INTEL_COMPILER) || defined(__GNUC__)
+    #define SIZEOF_SHORT        2
+    #define SIZEOF_INT          4
+    #if __LONG_MAX__ == 2147483647
+        #define SIZEOF_LONG     4
+    #else
+        #define SIZEOF_LONG     8
+    #endif
+    #define SIZEOF_LONG_LONG    8
+    #if defined(__x86_64)
+        #define SIZEOF_PTR      8
+    #else
+        #define SIZEOF_PTR      4
+    #endif
+#else
+    /* Didn't recognize the compiler, fall back on <limits.h> */
+  #if defined(INT_MAX) && defined(LONG_MAX)
+      #if INT_MAX == 32767
+          #define SIZEOF_INT    2
+      #elif INT_MAX == 2147483647
+          #define SIZEOF_INT    4
+      #else
+          #define SIZEOF_INT    8
+      #endif
+      #if LONG_MAX == 2147483647
+          #define SIZEOF_LONG   4
+      #else
+          #define SIZEOF_LONG   8
+      #endif
 
-/* The number of bytes in a long.  */
-#define SIZEOF_LONG 4
-
-/* The number of bytes in a long long.  */
-#define SIZEOF_LONG_LONG 8
-
-/* The number of bytes in a short.  */
-#define SIZEOF_SHORT 2
+      /* SHORT_MAX isn't necessarily defined in a way accessible to the preprocessor, and there's no
+       * portable way to check LONG_LONG_MAX, so make some educated guesses
+       */
+      #warning "Assuming shorts are 2 bytes and long long are 8; the latter especially may be invalid on some systems"
+      #define SIZEOF_SHORT      2
+      #define SIZEOF_LONG_LONG  8
+  #else
+      #error "Unrecognized compiler / build environment; specify type sizes in src/cpu/sysconfig.h"
+  #endif
+#endif
 
 #define SIZEOF_FLOAT 4
 #define SIZEOF_DOUBLE 8
