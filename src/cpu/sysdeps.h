@@ -177,6 +177,10 @@ struct utimbuf
 
 #ifdef WINUAE_FOR_HATARI  /* Types are provided by uae/types.h already */
 
+#if (~0 != -1)
+#error "Signed integers are not represented as two's complement on your architecture"
+#endif
+
 #if SIZEOF_LONG_LONG == 8
 #define VAL64(a) (a ## LL)
 #define UVAL64(a) (a ## uLL)
