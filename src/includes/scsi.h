@@ -27,6 +27,8 @@ typedef struct {
     int limit;
     int size;
     bool disk;
+    bool seektime;
+    bool sectortime;
 } SCSIBuffer;
 
 extern SCSIBuffer scsi_buffer;

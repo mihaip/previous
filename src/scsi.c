@@ -494,10 +494,14 @@ static void SCSI_GuessGeometry(Uint32 size, Uint32 *cylinders, Uint32 *heads, Ui
 #define SCSI_SECTOR_TIME_CD     3250   /* 150 kB/sec */
 
 Sint64 SCSI_Seek_Time(void) {
-    Uint8 target = SCSIbus.target;
+    int target;
     Sint64 seektime, seekoffset, disksize;
     
-    if (scsi_buffer.disk) {
+    if (scsi_buffer.disk && scsi_buffer.seektime) {
+        scsi_buffer.seektime = false;
+        
+        target = SCSIbus.target;
+        
         switch (SCSIdisk[target].devtype) {
             case DEVTYPE_HARDDISK:
                 seektime = SCSI_SEEK_TIME_HD;
@@ -535,14 +539,18 @@ Sint64 SCSI_Seek_Time(void) {
 }
 
 Sint64 SCSI_Sector_Time(void) {
-    int target = SCSIbus.target;
-    Sint64 sectors = SCSIdisk[target].blockcounter;
+    int target;
+    Sint64 sectors;
     
-    if (sectors <= 0) {
-        sectors = 1;
-    }
-    
-    if (scsi_buffer.disk) {
+    if (scsi_buffer.disk && scsi_buffer.sectortime) {
+        scsi_buffer.sectortime = false;
+        
+        target = SCSIbus.target;
+        sectors = SCSIdisk[target].blockcounter;
+        if (sectors < 1) {
+            sectors = 1;
+        }
+        
         switch (SCSIdisk[target].devtype) {
             case DEVTYPE_HARDDISK:
                 return sectors * SCSI_SECTOR_TIME_HD;
@@ -707,6 +715,8 @@ void SCSI_WriteSector(Uint8 *cdb) {
         return;
     }
     scsi_buffer.disk=true;
+    scsi_buffer.seektime=true;
+    scsi_buffer.sectortime=true;
     scsi_buffer.size=0;
     scsi_buffer.limit=BLOCKSIZE;
     SCSIbus.phase = PHASE_DO;
@@ -781,6 +791,8 @@ void SCSI_ReadSector(Uint8 *cdb) {
     SCSIdisk[target].lba = SCSI_GetOffset(cdb[0], cdb);
     SCSIdisk[target].blockcounter = SCSI_GetCount(cdb[0], cdb);
     scsi_buffer.disk=true;
+    scsi_buffer.seektime=true;
+    scsi_buffer.sectortime=true;
     scsi_buffer.size=0;
     SCSIbus.phase = PHASE_DI;
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Read sector: %i block(s) at offset %i (blocksize: %i byte)",
