@@ -53,25 +53,24 @@ NOTE: On NeXTstep 3.0 and later NetManager is called HostManager,
       called "NIS Domain Name".
 
 
-HOWTO: Open the above files using root privileges:
+HOWTO: Open and save the above files using root privileges:
 
-   NeXTstep 1.0 through 2.2:
    a  Open Terminal (you find it in the NextApps directory) and 
-      open the files using these commands:
+      open "/etc/hosts" using these commands:
       su
-      open /path/to/file (e.g. open /etc/hosts)
+      open /etc/hosts
+   b  Edit the file as described above.
+   c  On NeXTstep 1.0 through 2.2 close the file. When asked if 
+      you want to save changes, confirm it. On NeXTstep 1.0 
+      through 2.2 the procedure is done and you can skip step d.
+      On NeXTstep 3.0 and later save a copy of the file to your 
+      home folder by selecting File > Save As... and writing
+      "~/hosts" to the name field.
+   d  Open Terminal and copy the file to its destination using 
+      these commands:
+      su
+      cp ~/hosts /etc
 
-   NeXTstep 3.0 through 3.2:
-   a  Log in as root and use the procedure for NeXTstep 1.0 
-      through 2.2.
-
-   NeXTstep 3.3 and later:
-   a  Open Terminal (you find it in the NextApps directory) and 
-      open the /etc directory using this command:
-      open /etc
-   b  Select the file to open and from Workspace select: 
-      Services > Open Sesame > Open As Root.
-   c  For making a new resolv.conf open Edit.app by selecting the
-      application (you find it in the NextApps directory) and 
-      from Workspace select: 
-      Services > Open Sesame > Open As Root.
+NOTE: This procedure is valid for editing "/etc/hosts". For 
+      creating "/etc/resolv.conf" skip step a and start by 
+      creating a new file in Edit.app. Then proceed with step b.

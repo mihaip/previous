@@ -268,7 +268,7 @@ void SCSI_Insert(Uint8 i) {
 #define DEVTYPE_NOTPRESENT  0x7f    /* logical unit not present */
 
 
-static unsigned char inquiry_bytes[] =
+static Uint8 inquiry_bytes[] =
 {
     0x00,             /* 0: device type: see above */
     0x00,             /* 1: &0x7F - device type qualifier 0x00 unsupported, &0x80 - rmb: 0x00 = nonremovable, 0x80 = removable */
@@ -678,7 +678,7 @@ void SCSI_ReadCapacity(Uint8 *cdb) {
     scsi_disksize[7] = BLOCKSIZE & 0xFF;
     
     memcpy(scsi_buffer.data, scsi_disksize, 8);
-    scsi_buffer.limit = scsi_buffer.size=8;
+    scsi_buffer.limit = scsi_buffer.size = 8;
     scsi_buffer.disk = false;
     scsi_buffer.time = 100;
     
@@ -737,8 +737,8 @@ void scsi_write_sector(void) {
                     SCSIdisk[target].shadow[i] = NULL;
             }
         }
-        scsi_buffer.limit=BLOCKSIZE;
-        scsi_buffer.size=0;
+        scsi_buffer.limit = BLOCKSIZE;
+        scsi_buffer.size = 0;
 
         SCSIdisk[target].status = STAT_GOOD;
         SCSIdisk[target].sense.code = SC_NO_ERROR;
@@ -807,7 +807,7 @@ void scsi_read_sector(void) {
         } else {
             File_Read(scsi_buffer.data, BLOCKSIZE, offset, SCSIdisk[target].dsk);
         }
-        scsi_buffer.limit=scsi_buffer.size=BLOCKSIZE;
+        scsi_buffer.limit = scsi_buffer.size = BLOCKSIZE;
 
         SCSIdisk[target].status = STAT_GOOD;
         SCSIdisk[target].sense.code = SC_NO_ERROR;

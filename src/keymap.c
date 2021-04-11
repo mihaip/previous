@@ -43,6 +43,7 @@ static Uint8 Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode) {
 
     switch (sdlscancode) {
         case SDL_SCANCODE_ESCAPE: return 0x49;
+        case SDL_SCANCODE_GRAVE: return 0x49;
         case SDL_SCANCODE_1: return 0x4a;
         case SDL_SCANCODE_2: return 0x4b;
         case SDL_SCANCODE_3: return 0x4c;
@@ -85,6 +86,7 @@ static Uint8 Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode) {
         case SDL_SCANCODE_APOSTROPHE: return 0x2b;
         case SDL_SCANCODE_RETURN: return 0x2a;
             
+        case SDL_SCANCODE_NONUSBACKSLASH: return 0x26;
         case SDL_SCANCODE_Z: return 0x31;
         case SDL_SCANCODE_X: return 0x32;
         case SDL_SCANCODE_C: return 0x33;
@@ -97,7 +99,6 @@ static Uint8 Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode) {
         case SDL_SCANCODE_SLASH: return 0x30;
         case SDL_SCANCODE_SPACE: return 0x38;
             
-        case SDL_SCANCODE_GRAVE:
         case SDL_SCANCODE_NUMLOCKCLEAR: return 0x26;
         case SDL_SCANCODE_KP_EQUALS: return 0x27;
         case SDL_SCANCODE_KP_DIVIDE: return 0x28;
