@@ -27,8 +27,7 @@ typedef struct {
     int limit;
     int size;
     bool disk;
-    bool seektime;
-    bool sectortime;
+    Sint64 time;
 } SCSIBuffer;
 
 extern SCSIBuffer scsi_buffer;
@@ -47,5 +46,4 @@ void SCSIdisk_Receive_Data(Uint8 val);
 bool SCSIdisk_Select(Uint8 target);
 void SCSIdisk_Receive_Command(Uint8 *commandbuf, Uint8 identify);
 
-Sint64 SCSI_Seek_Time(void);
-Sint64 SCSI_Sector_Time(void);
+Sint64 SCSIdisk_Time(void);

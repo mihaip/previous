@@ -493,77 +493,65 @@ static void SCSI_GuessGeometry(Uint32 size, Uint32 *cylinders, Uint32 *heads, Ui
 #define SCSI_SEEK_TIME_CD       500000 /* 500 ms max seek time */
 #define SCSI_SECTOR_TIME_CD     3250   /* 150 kB/sec */
 
-Sint64 SCSI_Seek_Time(void) {
-    int target;
-    Sint64 seektime, seekoffset, disksize;
+
+Sint64 SCSI_GetTime(Uint8 target) {
+    Sint64 seektime, sectortime;
+    Sint64 seekoffset, disksize, sectors;
     
-    if (scsi_buffer.disk && scsi_buffer.seektime) {
-        scsi_buffer.seektime = false;
-        
-        target = SCSIbus.target;
-        
-        switch (SCSIdisk[target].devtype) {
-            case DEVTYPE_HARDDISK:
-                seektime = SCSI_SEEK_TIME_HD;
-                break;
-            case DEVTYPE_CD:
-                seektime = SCSI_SEEK_TIME_CD;
-                break;
-            case DEVTYPE_FLOPPY:
-                seektime = SCSI_SEEK_TIME_FD;
-                break;
-            default:
-                return 0;
-        }
-        if (SCSIdisk[target].lba < SCSIdisk[target].lastlba) {
-            seekoffset = SCSIdisk[target].lastlba - SCSIdisk[target].lba;
-        } else {
-            seekoffset = SCSIdisk[target].lba - SCSIdisk[target].lastlba;
-        }
-        disksize = SCSIdisk[target].size/BLOCKSIZE;
-        
-        if (disksize <= 0) { /* make sure no zero divide occurs */
-            return 0;
-        }
-        seektime *= seekoffset;
-        seektime /= disksize;
-        
-        if (seektime > 500000) {
-            seektime = 500000;
-        }
-        
-        return seektime;
-    } else {
-        return 0;
+    switch (SCSIdisk[target].devtype) {
+        case DEVTYPE_HARDDISK:
+            seektime = SCSI_SEEK_TIME_HD;
+            sectortime = SCSI_SECTOR_TIME_HD;
+            break;
+        case DEVTYPE_CD:
+            seektime = SCSI_SEEK_TIME_CD;
+            sectortime = SCSI_SECTOR_TIME_CD;
+            break;
+        case DEVTYPE_FLOPPY:
+            seektime = SCSI_SEEK_TIME_FD;
+            sectortime = SCSI_SECTOR_TIME_FD;
+            break;
+        default:
+            return 1000;
     }
+    
+    if (SCSIdisk[target].lba < SCSIdisk[target].lastlba) {
+        seekoffset = SCSIdisk[target].lastlba - SCSIdisk[target].lba;
+    } else {
+        seekoffset = SCSIdisk[target].lba - SCSIdisk[target].lastlba;
+    }
+    disksize = SCSIdisk[target].size/BLOCKSIZE;
+    
+    if (disksize < 1) { /* make sure no zero divide occurs */
+        disksize = 1;
+    }
+    seektime *= seekoffset;
+    seektime /= disksize;
+    
+    if (seektime > 500000) {
+        seektime = 500000;
+    }
+    
+    sectors = SCSIdisk[target].blockcounter;
+    if (sectors < 1) {
+        sectors = 1;
+    }
+    
+    sectortime *= sectors;
+
+    return seektime + sectortime;
 }
 
-Sint64 SCSI_Sector_Time(void) {
-    int target;
-    Sint64 sectors;
+Sint64 SCSIdisk_Time(void) {
+    Sint64 scsitime = scsi_buffer.time;
     
-    if (scsi_buffer.disk && scsi_buffer.sectortime) {
-        scsi_buffer.sectortime = false;
-        
-        target = SCSIbus.target;
-        sectors = SCSIdisk[target].blockcounter;
-        if (sectors < 1) {
-            sectors = 1;
-        }
-        
-        switch (SCSIdisk[target].devtype) {
-            case DEVTYPE_HARDDISK:
-                return sectors * SCSI_SECTOR_TIME_HD;
-            case DEVTYPE_CD:
-                return sectors * SCSI_SECTOR_TIME_CD;
-            case DEVTYPE_FLOPPY:
-                return sectors * SCSI_SECTOR_TIME_FD;
-            default:
-                return 1000;
-        }
-    } else {
-        return 100;
+    if (scsitime < 100) {
+        scsitime = 100;
     }
+    
+    scsi_buffer.time = 0;
+    
+    return scsitime;
 }
 
 MODEPAGE SCSI_GetModePage(Uint8 pagecode) {
@@ -690,8 +678,9 @@ void SCSI_ReadCapacity(Uint8 *cdb) {
     scsi_disksize[7] = BLOCKSIZE & 0xFF;
     
     memcpy(scsi_buffer.data, scsi_disksize, 8);
-    scsi_buffer.limit=scsi_buffer.size=8;
-    scsi_buffer.disk=false;
+    scsi_buffer.limit = scsi_buffer.size=8;
+    scsi_buffer.disk = false;
+    scsi_buffer.time = 100;
     
     SCSIdisk[target].status = STAT_GOOD;
     SCSIbus.phase = PHASE_DI;
@@ -714,11 +703,10 @@ void SCSI_WriteSector(Uint8 *cdb) {
         SCSIbus.phase = PHASE_ST;
         return;
     }
-    scsi_buffer.disk=true;
-    scsi_buffer.seektime=true;
-    scsi_buffer.sectortime=true;
-    scsi_buffer.size=0;
-    scsi_buffer.limit=BLOCKSIZE;
+    scsi_buffer.disk = true;
+    scsi_buffer.time = SCSI_GetTime(target);
+    scsi_buffer.size = 0;
+    scsi_buffer.limit = BLOCKSIZE;
     SCSIbus.phase = PHASE_DO;
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Write sector: %i block(s) at offset %i (blocksize: %i byte)",
                SCSIdisk[target].blockcounter, SCSIdisk[target].lba, BLOCKSIZE);
@@ -790,10 +778,9 @@ void SCSI_ReadSector(Uint8 *cdb) {
     SCSIdisk[target].lastlba = SCSIdisk[target].lba;
     SCSIdisk[target].lba = SCSI_GetOffset(cdb[0], cdb);
     SCSIdisk[target].blockcounter = SCSI_GetCount(cdb[0], cdb);
-    scsi_buffer.disk=true;
-    scsi_buffer.seektime=true;
-    scsi_buffer.sectortime=true;
-    scsi_buffer.size=0;
+    scsi_buffer.disk = true;
+    scsi_buffer.time = SCSI_GetTime(target);
+    scsi_buffer.size = 0;
     SCSIbus.phase = PHASE_DI;
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Read sector: %i block(s) at offset %i (blocksize: %i byte)",
                SCSIdisk[target].blockcounter, SCSIdisk[target].lba, BLOCKSIZE);
@@ -897,7 +884,8 @@ void SCSI_Inquiry (Uint8 *cdb) {
         inquiry_bytes[0] = DEVTYPE_NOTPRESENT;
     }
     
-    scsi_buffer.disk=false;
+    scsi_buffer.disk = false;
+    scsi_buffer.time = 100;
     scsi_buffer.limit = scsi_buffer.size = SCSI_GetTransferLength(cdb[0], cdb);
     if (scsi_buffer.limit > (int)sizeof(inquiry_bytes)) {
         scsi_buffer.limit = scsi_buffer.size = sizeof(inquiry_bytes);
@@ -1000,9 +988,10 @@ void SCSI_RequestSense(Uint8 *cdb) {
     retbuf[7] = 14;
     retbuf[12] = SCSIdisk[target].sense.code;
     
-    scsi_buffer.size=scsi_buffer.limit=nRetLen;
+    scsi_buffer.size = scsi_buffer.limit = nRetLen;
     memcpy(scsi_buffer.data, retbuf, scsi_buffer.limit);
-    scsi_buffer.disk=false;
+    scsi_buffer.disk = false;
+    scsi_buffer.time = 100;
     
     SCSIdisk[target].status = STAT_GOOD;
     SCSIbus.phase = PHASE_DI;
@@ -1119,7 +1108,8 @@ void SCSI_ModeSense(Uint8 *cdb) {
         retbuf[0] += page.pagesize;
     }
     
-    scsi_buffer.disk=false;
+    scsi_buffer.disk = false;
+    scsi_buffer.time = 100;
     scsi_buffer.limit = scsi_buffer.size = retbuf[0]+1;
     if (scsi_buffer.limit > SCSI_GetTransferLength(cdb[0], cdb)) {
         scsi_buffer.limit = scsi_buffer.size = SCSI_GetTransferLength(cdb[0], cdb);

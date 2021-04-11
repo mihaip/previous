@@ -776,7 +776,7 @@ bool esp_transfer_done(bool write) {
 void esp_transfer_info(void) {
     if(mode_dma) {
         esp_io_state=ESP_IO_STATE_TRANSFERING;
-        CycInt_AddRelativeInterruptUs(SCSI_Seek_Time() + SCSI_Sector_Time(), 100, INTERRUPT_ESP_IO);
+        CycInt_AddRelativeInterruptUs(SCSIdisk_Time(), 100, INTERRUPT_ESP_IO);
     } else {
         Log_Printf(LOG_ESPCMD_LEVEL, "[ESP] start PIO transfer");
         switch (SCSIbus.phase) {
