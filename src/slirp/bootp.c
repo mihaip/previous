@@ -195,10 +195,12 @@ static void bootp_reply(struct bootp_t *bp)
     memcpy(rbp->bp_file, path, strlen(path)+1);
     memcpy(q, magic_next, 4);
     q += 4;
-    *q++ = 1;
-    *q++ = 0;
-    memset(q, 0, 57);
-    q += 57;
+    *q++ = 1; /* Version */
+    *q++ = 0; /* Opcode */
+    *q++ = 0; /* Transaction ID */
+    memset(q, 0, 56); /* Text */
+    q += 56;
+    *q++ = 0; /* Null terminator */
 #else
     uint32_t val;
     memcpy(q, rfc1533_cookie, 4);

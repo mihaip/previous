@@ -93,7 +93,8 @@ extern "C" void nfsd_start(void) {
 }
 
 extern "C" int nfsd_match_addr(uint32_t addr) {
-    return (addr == (ntohl(special_addr.s_addr) | CTL_NFSD)) || (addr == (ntohl(special_addr.s_addr) | 0x00FFFFFF)); // NS kernel seems to braodcast on 10.255.255.255
+    return (addr == (ntohl(special_addr.s_addr) | CTL_NFSD)) ||
+           (addr == (ntohl(special_addr.s_addr) | ~CTL_NET_MASK)); // NS kernel seems to broadcast on 10.0.2.255
 }
 
 extern "C" int nfsd_read(const char* path, size_t fileOffset, void* dst, size_t count) {
