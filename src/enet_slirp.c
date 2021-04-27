@@ -137,6 +137,7 @@ void enet_slirp_start(Uint8 *mac) {
     }
     if (slirp_inited && !slirp_started) {
         Log_Printf(LOG_WARN, "Starting SLIRP");
+        memcpy(client_ethaddr, mac, 6);
         slirp_started=1;
         slirpq = QueueCreate();
         slirp_mutex=SDL_CreateMutex();
