@@ -23,7 +23,6 @@
 
 #define LOG_EN_LEVEL        LOG_DEBUG
 #define LOG_EN_REG_LEVEL    LOG_DEBUG
-#define LOG_EN_DATA 0
 
 #define IO_SEG_MASK	0x1FFFF
 
@@ -92,9 +91,11 @@ bool enet_stopped;
 void enet_reset(void);
 
 void (*enet_output)(void);
-void (*enet_input)(Uint8 *pkt, int pkt_len);
+void (*enet_input)(Uint8 *pkt, int len);
 void (*enet_start)(Uint8 *mac);
 void (*enet_stop)(void);
+
+void print_packet(Uint8 *pkt, int len, int out);
 
 void EN_TX_Status_Read(void) { // 0x02006000
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.tx_status;
@@ -393,13 +394,12 @@ static bool enet_packet_for_me(Uint8 *packet) {
 
 void enet_receive(Uint8 *pkt, int len) {
     if (enet_packet_for_me(pkt)) {
-#if 1   /* Hack for short packets from SLIRP */
-        if (len<60) {
-            Log_Printf(LOG_WARN, "[EN] HACK: short packet received (%i byte). Fixed.", len);
-            len = 60;
-        }
-#endif
+        print_packet(pkt, len, 0);
         memcpy(enet_rx_buffer.data,pkt,len);
+        while (len < 60) { /* Hack for short packets from SLIRP */
+            enet_rx_buffer.data[len] = 0;
+            len++;
+        }
         enet_rx_buffer.size=enet_rx_buffer.limit=len;
 		enet.tx_status |= TXSTAT_NET_BUSY;
     } else {
@@ -408,18 +408,23 @@ void enet_receive(Uint8 *pkt, int len) {
     }
 }
 
-static void print_buf(Uint8 *buf, Uint32 size) {
-#if LOG_EN_DATA
-    int i;
-    for (i=0; i<size; i++) {
-        if (i==14 || (i-14)%16==0) {
-            printf("\n");
+void enet_send(Uint8 *pkt, int len) {
+    print_packet(enet_tx_buffer.data, enet_tx_buffer.size, 1);
+    if (en_state == EN_LOOPBACK) {
+        /* Loop back */
+        Log_Printf(LOG_WARN, "[EN] Loopback packet.");
+        enet_receive(enet_tx_buffer.data, enet_tx_buffer.size);
+    } else {
+        /* Send to real world network */
+        enet_input(enet_tx_buffer.data,enet_tx_buffer.size);
+        /* Simultaneously receive packet on thin ethernet */
+        if (en_state == EN_THINWIRE) {
+            enet_receive(enet_tx_buffer.data, enet_tx_buffer.size);
         }
-        printf("%02X ",buf[i]);
     }
-    printf("\n");
-#endif
+    enet_tx_buffer.size=0;
 }
+
 
 /* Fujitsu ethernet controller */
 static int enet_state(void) {
@@ -463,7 +468,6 @@ static void enet_io(void) {
 				Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
 						   enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
 						   enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
-				print_buf(enet_rx_buffer.data, enet_rx_buffer.size);
 				enet_rx_buffer.size+=4;
 				enet_rx_buffer.limit+=4;
 				rx_chain = false;
@@ -544,20 +548,7 @@ static void enet_io(void) {
 					Log_Printf(LOG_EN_LEVEL, "[EN] Sending packet to %02X:%02X:%02X:%02X:%02X:%02X",
 							   enet_tx_buffer.data[0], enet_tx_buffer.data[1], enet_tx_buffer.data[2],
 							   enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
-					print_buf(enet_tx_buffer.data, enet_tx_buffer.size);
-					if (en_state == EN_LOOPBACK) {
-						/* Loop back */
-						Log_Printf(LOG_WARN, "[EN] Loopback packet.");
-						enet_receive(enet_tx_buffer.data, enet_tx_buffer.size);
-					} else {
-						/* Send to real world network */
-						enet_input(enet_tx_buffer.data,enet_tx_buffer.size);
-						/* Simultaneously receive packet on thin ethernet */
-						if (en_state == EN_THINWIRE) {
-							enet_receive(enet_tx_buffer.data, enet_tx_buffer.size);
-						}
-					}
-					enet_tx_buffer.size=0;
+					enet_send(enet_tx_buffer.data, enet_tx_buffer.size);
 				}
 			}
 		}
@@ -617,7 +608,6 @@ static void new_enet_io(void) {
 				Log_Printf(LOG_EN_LEVEL, "[newEN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
 						   enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
 						   enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
-				print_buf(enet_rx_buffer.data, enet_rx_buffer.size);
 				enet_rx_buffer.size+=4;
 				enet_rx_buffer.limit+=4;
 				rx_chain = false;
@@ -683,21 +673,8 @@ static void new_enet_io(void) {
 					Log_Printf(LOG_EN_LEVEL, "[newEN] Sending packet to %02X:%02X:%02X:%02X:%02X:%02X",
 							   enet_tx_buffer.data[0], enet_tx_buffer.data[1], enet_tx_buffer.data[2],
 							   enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
-					print_buf(enet_tx_buffer.data, enet_tx_buffer.size);
 					enet.tx_status &= ~TXSTAT_TX_RECVD;
-					if (en_state == EN_LOOPBACK) {
-						/* Loop back */
-						Log_Printf(LOG_WARN, "[newEN] Loopback packet.");
-						enet_receive(enet_tx_buffer.data, enet_tx_buffer.size);
-					} else {
-						/* Send to real world network */
-						enet_input(enet_tx_buffer.data,enet_tx_buffer.size);
-						/* Simultaneously receive packet on thin ethernet */
-						if (en_state == EN_THINWIRE) {
-							enet_receive(enet_tx_buffer.data, enet_tx_buffer.size);
-						}
-					}
-					enet_tx_buffer.size=0;
+					enet_send(enet_tx_buffer.data, enet_tx_buffer.size);
 					enet_tx_interrupt(TXSTAT_READY);
 				}
 			}
@@ -786,4 +763,178 @@ void Ethernet_Reset(bool hard) {
         /* Stop SLIRP/PCAP */
         enet_stop();
     }
+}
+
+
+/* Packet printer and analyzer */
+
+#define LOG_EN_DATA    0
+#define LOG_EN_ANALYZE 0
+
+void print_packet(Uint8 *buf, int size, int out) {
+#if LOG_EN_DATA
+    int i, offset = 0;
+    
+    if (out) {
+        printf("<<        Outgoing packet (%d byte)        >>\n", size);
+    } else {
+        printf(">>        Incoming packet (%d byte)        <<\n", size);
+    }
+#if LOG_EN_ANALYZE
+    Uint8 protocol, ihl, options = 0;
+    Uint16 type, length, fragment, padding = 0;
+    
+    printf("Layer 2 Ethernet frame:\n");
+    printf("MAC dst:   %02x:%02x:%02x:%02x:%02x:%02x\n", buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
+    printf("MAC src:   %02x:%02x:%02x:%02x:%02x:%02x\n", buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
+    type = (buf[12]<<8) | buf[13];
+    if (type == 0x8100 || type == 0x88a8) {
+        printf("TPID:      %04x\n",type);
+        printf("TCI:       %04x\n",(buf[14]<<8) | buf[15]);
+        printf("EtherType: %04x\n",(buf[16]<<8) | buf[17]);
+        printf("802.1Q tag and 802.1ad tag not supported!\n");
+        offset = 18;
+        goto print_data;
+    }
+    printf("EtherType: %04x\n",type);
+    offset = 14;
+    
+    switch (type) {
+        case 0x0800:
+            printf("Internet Protocol version 4 (IPv4):\n");
+            printf("Version:   %d\n",buf[14]>>4);
+            ihl = buf[14]&0xF;
+            printf("IHL:       %d (%d byte)\n",ihl,ihl<<2);
+            printf("DSCP:      %d\n",buf[15]>>2);
+            printf("ECN:       %d\n", buf[15]&0x3);
+            length = (buf[16]<<8) | buf[17];
+            printf("Length:    %d\n", length);
+            printf("ID:        %04x\n", (buf[18]<<8) | buf[19]);
+            printf("Flags:     %d\n", buf[20]>>5);
+            fragment = ((buf[20]&0x1F)<<8) | buf[21];
+            printf("Offset:    %d\n", fragment);
+            printf("TTL:       %d\n", buf[22]);
+            protocol = buf[23];
+            printf("Protocol:  %02x\n", protocol);
+            printf("Checksum:  %04x\n", (buf[24]<<8) | buf[25]);
+            printf("IP src:    %d.%d.%d.%d\n",buf[26],buf[27],buf[28],buf[29]);
+            printf("IP dst:    %d.%d.%d.%d\n",buf[30],buf[31],buf[32],buf[33]);
+            offset = 34;
+            if (ihl > 5) {
+                printf("Options not supported!\n");
+                goto print_data;
+            }
+            if (fragment != 0) {
+                printf("Fragment data at offset %d (%d byte):\n", fragment, fragment << 3);
+                goto print_data;
+            }
+            
+            switch (protocol) {
+                case 0x01:
+                    printf("Internet Control Message Protocol (ICMP):\n");
+                    printf("Type:      %d\n", buf[34]);
+                    printf("Code:      %d\n", buf[35]);
+                    printf("Checksum:  %04x\n",(buf[36]<<8) | buf[37]);
+                    printf("Rest:      %02x %02x %02x %02x\n",buf[38],buf[39],buf[40],buf[41]);
+                    break;
+                case 0x06:
+                    printf("Transmission Control Protocol (TCP):\n");
+                    printf("Port src:  %d\n",(buf[34]<<8) | buf[35]);
+                    printf("Port dst:  %d\n",(buf[36]<<8) | buf[37]);
+                    printf("Seq num:   %d\n",(buf[38]<<24) | (buf[39]<<16) | (buf[40]<<8) | buf[41]);
+                    printf("Ack num:   %d\n",(buf[42]<<24) | (buf[43]<<16) | (buf[44]<<8) | buf[45]);
+                    options = buf[46]>>4;
+                    printf("Offset:    %d (%d byte)\n", options, options << 3);
+                    printf("Reserved:  %02x\n",(buf[46]>>1)&0x07);
+                    printf("Flags:     ");
+                    if (buf[46]&0x01) printf("NS ");
+                    if (buf[47]&0x80) printf("CWR ");
+                    if (buf[47]&0x40) printf("ECE ");
+                    if (buf[47]&0x20) printf("URG ");
+                    if (buf[47]&0x10) printf("ACK ");
+                    if (buf[47]&0x08) printf("PSH ");
+                    if (buf[47]&0x04) printf("RST ");
+                    if (buf[47]&0x02) printf("SYN ");
+                    if (buf[47]&0x01) printf("FIN ");
+                    printf("\n");
+                    printf("Window:    %d\n",(buf[48]<<8) | buf[49]);
+                    printf("Checksum:  %04x\n",(buf[50]<<8) | buf[51]);
+                    printf("Urg ptr:   %04x\n",(buf[52]<<8) | buf[53]);
+                    offset = 54;
+                    if (options > 5) {
+                        options -= 5;
+                        options <<= 2;
+                        printf("Options:   %d byte", options);
+                        for (i=0; i<options; i++) {
+                            if (i % 4 == 0) {
+                                printf("\n");
+                            }
+                            printf("%02X ",buf[offset + i]);
+                        }
+                        printf("\n");
+                        offset += options;
+                    }
+                    goto print_data;
+                case 0x11:
+                    printf("User Datagram Protocol (UDP):\n");
+                    printf("Port src:  %d\n",(buf[34]<<8) | buf[35]);
+                    printf("Port dst:  %d\n",(buf[36]<<8) | buf[37]);
+                    printf("Length:    %d\n",(buf[38]<<8) | buf[39]);
+                    printf("Checksum:  %04x\n",(buf[40]<<8) | buf[41]);
+                    break;
+                    
+                default:
+                    printf("IP Protocol %02x not supported!\n",protocol);
+                    goto print_data;
+            }
+            break;
+        case 0x0806:
+            printf("Address Resolution Protocol (ARP):\n");
+            printf("HTYPE:     %04x\n",(buf[14]<<8) | buf[15]);
+            printf("PTYPE:     %04x\n",(buf[16]<<8) | buf[17]);
+            printf("HLEN:      %d\n", buf[18]);
+            printf("PLEN:      %d\n", buf[19]);
+            printf("OPER:      %04x\n",(buf[20]<<8) | buf[21]);
+            if (buf[18] != 6 || buf[19] != 4) {
+                printf("HLEN or PLEN not supported!\n");
+                offset = 22;
+                goto print_data;
+            }
+            length = 8 + 2 * (6 + 4);
+            printf("SHA:       %02x:%02x:%02x:%02x:%02x:%02x\n",buf[22],buf[23],buf[24],buf[25],buf[26],buf[27]);
+            printf("SPA:       %d.%d.%d.%d\n",buf[28],buf[29],buf[30],buf[31]);
+            printf("THA:       %02x:%02x:%02x:%02x:%02x:%02x\n",buf[32],buf[33],buf[34],buf[35],buf[36],buf[37]);
+            printf("TPA:       %d.%d.%d.%d\n",buf[38],buf[39],buf[40],buf[41]);
+            break;
+        default:
+            printf("EtherType %04x not supported!\n",type);
+            goto print_data;
+    }
+    offset = 42;
+    
+    if (size > (length + 14)) {
+        padding = size - (length + 14);
+        size = length + 14;
+    }
+    
+print_data:
+    if (offset < size) {
+        printf("Data:      offset = %d, length = %d:\n", offset, size - offset);
+    } else {
+        printf("Data:      no additional data");
+    }
+#endif // LOG_EN_ANALYZE
+    for (i=offset; i<size; i++) {
+        if (i > offset && (i - offset) % 16 == 0) {
+            printf("\n");
+        }
+        printf("%02X ",buf[i]);
+    }
+    printf("\n");
+#if LOG_EN_ANALYZE
+    if (padding) {
+        printf("Padding:   %d byte at end of packet\n", padding);
+    }
+#endif // LOG_EN_ANALYZE
+#endif // LOG_EN_DATA
 }
