@@ -396,9 +396,9 @@ void enet_receive(Uint8 *pkt, int len) {
     if (enet_packet_for_me(pkt)) {
         print_packet(pkt, len, 0);
         memcpy(enet_rx_buffer.data,pkt,len);
-        while (len < 60) { /* Hack for short packets from SLIRP */
-            enet_rx_buffer.data[len] = 0;
-            len++;
+        len += 4; /* Checksum */
+        if (len < ENET_FRAMESIZE_MIN) { /* Hack for short packets from SLIRP */
+            len = ENET_FRAMESIZE_MIN;
         }
         enet_rx_buffer.size=enet_rx_buffer.limit=len;
 		enet.tx_status |= TXSTAT_NET_BUSY;
@@ -468,8 +468,6 @@ static void enet_io(void) {
 				Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
 						   enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
 						   enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
-				enet_rx_buffer.size+=4;
-				enet_rx_buffer.limit+=4;
 				rx_chain = false;
 				enet.rx_status&=~RXSTAT_PKT_OK;
 				if (enet_rx_buffer.size<ENET_FRAMESIZE_MIN && !(enet.rx_mode&RXMODE_ENA_SHORT)) {
@@ -608,8 +606,6 @@ static void new_enet_io(void) {
 				Log_Printf(LOG_EN_LEVEL, "[newEN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
 						   enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
 						   enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
-				enet_rx_buffer.size+=4;
-				enet_rx_buffer.limit+=4;
 				rx_chain = false;
 				enet.rx_status&=~RXSTAT_PKT_OK;
 				if (enet_rx_buffer.size<ENET_FRAMESIZE_MIN && !(enet.rx_mode&RXMODE_ENA_SHORT)) {
@@ -788,12 +784,18 @@ void print_packet(Uint8 *buf, int size, int out) {
     printf("MAC dst:   %02x:%02x:%02x:%02x:%02x:%02x\n", buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);
     printf("MAC src:   %02x:%02x:%02x:%02x:%02x:%02x\n", buf[6],buf[7],buf[8],buf[9],buf[10],buf[11]);
     type = (buf[12]<<8) | buf[13];
+    offset = 14;
     if (type == 0x8100 || type == 0x88a8) {
         printf("TPID:      %04x\n",type);
         printf("TCI:       %04x\n",(buf[14]<<8) | buf[15]);
         printf("EtherType: %04x\n",(buf[16]<<8) | buf[17]);
-        printf("802.1Q tag and 802.1ad tag not supported!\n");
-        offset = 18;
+        printf("IEEE 802.1Q and 802.1ad tag not supported!\n");
+        offset += 4;
+        goto print_data;
+    }
+    if (type < 0x0600) {
+        printf("Length:    %04x\n",type);
+        printf("IEEE 802.3 length not supported!\n");
         goto print_data;
     }
     printf("EtherType: %04x\n",type);
@@ -836,13 +838,14 @@ void print_packet(Uint8 *buf, int size, int out) {
                     printf("Code:      %d\n", buf[35]);
                     printf("Checksum:  %04x\n",(buf[36]<<8) | buf[37]);
                     printf("Rest:      %02x %02x %02x %02x\n",buf[38],buf[39],buf[40],buf[41]);
+                    offset = 42;
                     break;
                 case 0x06:
                     printf("Transmission Control Protocol (TCP):\n");
                     printf("Port src:  %d\n",(buf[34]<<8) | buf[35]);
                     printf("Port dst:  %d\n",(buf[36]<<8) | buf[37]);
-                    printf("Seq num:   %d\n",(buf[38]<<24) | (buf[39]<<16) | (buf[40]<<8) | buf[41]);
-                    printf("Ack num:   %d\n",(buf[42]<<24) | (buf[43]<<16) | (buf[44]<<8) | buf[45]);
+                    printf("Seq num:   %u\n",(buf[38]<<24) | (buf[39]<<16) | (buf[40]<<8) | buf[41]);
+                    printf("Ack num:   %u\n",(buf[42]<<24) | (buf[43]<<16) | (buf[44]<<8) | buf[45]);
                     options = buf[46]>>4;
                     printf("Offset:    %d (%d byte)\n", options, options << 3);
                     printf("Reserved:  %02x\n",(buf[46]>>1)&0x07);
@@ -874,13 +877,14 @@ void print_packet(Uint8 *buf, int size, int out) {
                         printf("\n");
                         offset += options;
                     }
-                    goto print_data;
+                    break;
                 case 0x11:
                     printf("User Datagram Protocol (UDP):\n");
                     printf("Port src:  %d\n",(buf[34]<<8) | buf[35]);
                     printf("Port dst:  %d\n",(buf[36]<<8) | buf[37]);
                     printf("Length:    %d\n",(buf[38]<<8) | buf[39]);
                     printf("Checksum:  %04x\n",(buf[40]<<8) | buf[41]);
+                    offset = 42;
                     break;
                     
                 default:
@@ -905,12 +909,12 @@ void print_packet(Uint8 *buf, int size, int out) {
             printf("SPA:       %d.%d.%d.%d\n",buf[28],buf[29],buf[30],buf[31]);
             printf("THA:       %02x:%02x:%02x:%02x:%02x:%02x\n",buf[32],buf[33],buf[34],buf[35],buf[36],buf[37]);
             printf("TPA:       %d.%d.%d.%d\n",buf[38],buf[39],buf[40],buf[41]);
+            offset = 42;
             break;
         default:
             printf("EtherType %04x not supported!\n",type);
             goto print_data;
     }
-    offset = 42;
     
     if (size > (length + 14)) {
         padding = size - (length + 14);
