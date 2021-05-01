@@ -17,13 +17,13 @@ static disk_partition DUMMY = {};
 
 Partition::Partition(void) : partNo(-1), partIdx(-1), im(NULL), dl(NULL), part(DUMMY), fsOff(0) {}
 
-Partition::Partition(int partNo, int partIdx, DiskImage* im, const disk_label* dl, disk_partition& part) :
-partNo(partNo),
-partIdx(partIdx),
-im(im),
-dl(dl),
-part(part),
-fsOff(fsv(part.p_base)) {
+Partition::Partition(int partNo, size_t partIdx, DiskImage* im, const disk_label* dl, disk_partition& part)
+: partNo(partNo)
+, partIdx(partIdx)
+, im(im)
+, dl(dl)
+, part(part)
+, fsOff(fsv(part.p_base)) {
     if(partNo == 0) fsOff += fsv(im->dl.dl_dt.d_front);
 }
 
@@ -47,7 +47,7 @@ int Partition::readSectors(uint32_t sector, uint32_t count, uint8_t* dst) const 
     offset *= im->sectorSize;
     streamsize size = count;
     size *= im->sectorSize;
-    ios_base::io_state result = im->read(offset, size, dst);
+    ios_base::iostate result = im->read(offset, size, dst);
     if     (result == ios_base::goodbit) return ERR_NO;
     else if(result &  ios_base::eofbit)  return ERR_EOF;
     else                                 return ERR_FAIL;

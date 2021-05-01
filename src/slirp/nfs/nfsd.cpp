@@ -99,9 +99,9 @@ extern "C" int nfsd_match_addr(uint32_t addr) {
 
 extern "C" int nfsd_read(const char* path, size_t fileOffset, void* dst, size_t count) {
     if(nfsd_fts[0]) {
-        File file(nfsd_fts[0], path, "rb");
-        if(file.IsOpen())
-            return file.Read(fileOffset, dst, count);
+        VFSFile file(*nfsd_fts[0], path, "rb");
+        if(file.isOpen())
+            return file.read(fileOffset, dst, count);
     }
     return -1;
 }

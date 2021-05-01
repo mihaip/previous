@@ -87,10 +87,10 @@ void CSocket::Run(void) {
     ssize_t nBytes = 0;
 	for (;;) {
 		if (m_nType == SOCK_STREAM)
-			nBytes = recv(m_Socket, m_Input.GetBuffer(), m_Input.GetCapacity(), 0);
+			nBytes = recv(m_Socket, (void*)m_Input.GetBuffer(), m_Input.GetCapacity(), 0);
         else if (m_nType == SOCK_DGRAM) {
             nSize = sizeof(m_RemoteAddr);
-			nBytes = recvfrom(m_Socket, m_Input.GetBuffer(), m_Input.GetCapacity(), 0, (struct sockaddr *)&m_RemoteAddr, &nSize);
+			nBytes = recvfrom(m_Socket, (void*)m_Input.GetBuffer(), m_Input.GetCapacity(), 0, (struct sockaddr *)&m_RemoteAddr, &nSize);
         }
 		if (nBytes > 0) {
 			m_Input.SetSize(nBytes);  //bytes received

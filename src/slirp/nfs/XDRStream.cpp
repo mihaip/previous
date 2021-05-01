@@ -42,7 +42,7 @@ void XDROpaque::Set(const void* data, size_t size) {
     }
 }
 
-XDRString::XDRString(string& str) : XDROpaque(str.c_str(), str.size()), m_str(NULL) {}
+XDRString::XDRString(const string& str) : XDROpaque(str.c_str(), str.size()), m_str(NULL) {}
 
 XDRString::XDRString(void) : XDROpaque(), m_str(NULL) {}
 

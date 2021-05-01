@@ -8,10 +8,11 @@
 #include "FileTableNFSD.h"
 #include "devices.h"
 #include "compat.h"
+#include <unistd.h>
 
 using namespace std;
 
-FileTableNFSD::FileTableNFSD(const string& basePath, const string& basePathAlias) : FileTable(basePath, basePathAlias), mutex(host_mutex_create()) {
+FileTableNFSD::FileTableNFSD(const HostPath& basePath, const VFSPath& basePathAlias) : VirtualFS(basePath, basePathAlias), mutex(host_mutex_create()) {
     for(int d = 0; DEVICES[d][0]; d++) {
         const char* perm  = DEVICES[d][0];
         uint32_t    major = atoi(DEVICES[d][1]);
@@ -21,54 +22,23 @@ FileTableNFSD::FileTableNFSD(const string& basePath, const string& basePathAlias
         if(     perm[0] == 'b') blockDevices[name]     = rdev;
         else if(perm[0] == 'c') characterDevices[name] = rdev;
     }
-    
-    host_atomic_set(&doRun, 1);
-    thread = host_thread_create(&ThreadProc, "FileTable", this);
 }
 
 FileTableNFSD::~FileTableNFSD(void) {
-    host_atomic_set(&doRun, 0);
-    host_thread_wait(thread);
-    {
-        NFSDLock lock(mutex);
-        
-        for(map<uint64_t,FileAttrDB*>::iterator it = handle2db.begin(); it != handle2db.end(); it++)
-            delete it->second;
-        handle2db.clear();
-    }
     host_mutex_destroy(mutex);
 }
 
-int FileTableNFSD::ThreadProc(void *lpParameter) {
-    ((FileTableNFSD*)lpParameter)->Run();
-    return 0;
-}
-
-void FileTableNFSD::Run(void) {
-    const int POLL = 10;
-    for(int count = POLL; host_atomic_get(&doRun); count--) {
-        host_sleep_sec(1);
-        {
-            NFSDLock lock(mutex);
-            if(count <= 0 && dirty.size()) {
-                Write();
-                count = POLL;
-            }
-        }
-    }
-}
-
-bool FileTableNFSD::IsBlockDevice(const string& fname) {
+bool FileTableNFSD::isBlockDevice(const string& fname) {
     return blockDevices.find(fname) != blockDevices.end();
 }
 
-bool FileTableNFSD::IsCharDevice(const string& fname) {
+bool FileTableNFSD::isCharDevice(const string& fname) {
     return characterDevices.find(fname) != characterDevices.end();
 }
 
-bool FileTableNFSD::IsDevice(const string & path, string& fname) {
-    string   directory = FileTable::dirname(path);
-    fname              = FileTable::basename_helper((std::string const &) path);
+bool FileTableNFSD::isDevice(const VFSPath& absoluteVFSpath, string& fname) {
+    auto  directory(absoluteVFSpath.parent_path().string());
+    fname          = absoluteVFSpath.filename();
     
     const size_t len = directory.size();
     return
@@ -77,17 +47,17 @@ bool FileTableNFSD::IsDevice(const string & path, string& fname) {
     directory[len-3] == 'd' &&
     directory[len-2] == 'e' &&
     directory[len-1] == 'v' &&
-    (IsBlockDevice(fname) || IsCharDevice(fname));
+    (isBlockDevice(fname) || isCharDevice(fname));
 }
 
-int FileTableNFSD::Stat(const std::string& path, struct stat& fstat) {
+int FileTableNFSD::stat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
     NFSDLock lock(mutex);
     
-    int result = FileTable::Stat(path, fstat);
+    int result = VirtualFS::stat(absoluteVFSpath, fstat);
     
     string fname;
     if(fstat.st_rdev == (unsigned long) FATTR_INVALID) {
-        if(IsDevice(path, fname)) {
+        if(isDevice(absoluteVFSpath, fname)) {
             map<string,uint32_t>::iterator iter = blockDevices.find(fname);
             if(iter != blockDevices.end()) {
                 fstat.st_mode &= ~S_IFMT;
@@ -105,37 +75,35 @@ int FileTableNFSD::Stat(const std::string& path, struct stat& fstat) {
     
     return result;
 }
-bool FileTableNFSD::GetCanonicalPath(uint64_t fhandle, std::string& result) {
+bool FileTableNFSD::getCanonicalPath(uint64_t fhandle, std::string& result) {
     NFSDLock lock(mutex);
-    return FileTable::GetCanonicalPath(fhandle, result);
+    auto iter(handle2path.find(fhandle));
+    if(iter != handle2path.end()) {
+        result = iter->second;
+        return true;
+    }
+    return false;
 }
-void FileTableNFSD::Move(const std::string& pathFrom, const std::string& pathTo) {
+void FileTableNFSD::move(const VFSPath& absoluteVFSpathFrom, const VFSPath& absoluteVFSpathTo) {
     NFSDLock lock(mutex);
-    return FileTable::Move(pathFrom, pathTo);
+    return VirtualFS::move(absoluteVFSpathFrom, absoluteVFSpathTo);
 }
-void  FileTableNFSD::Remove(const std::string& path) {
+void  FileTableNFSD::remove(const VFSPath& absoluteVFSpath) {
     NFSDLock lock(mutex);
-    return FileTable::Remove(path);
+    return VirtualFS::remove(absoluteVFSpath);
 }
-uint64_t FileTableNFSD::GetFileHandle(const std::string& path) {
+uint64_t FileTableNFSD::getFileHandle(const VFSPath& absoluteVFSpath) {
     NFSDLock lock(mutex);
-    return FileTable::GetFileHandle(path);
+    auto result(VirtualFS::getFileHandle(absoluteVFSpath));
+    handle2path[result] = absoluteVFSpath.canonicalize().string();
+    return result;
 }
-void FileTableNFSD::SetFileAttrs(const std::string& path, const FileAttrs& fstat) {
+void FileTableNFSD::setFileAttrs(const VFSPath& absoluteVFSpath, const FileAttrs& fstat) {
     NFSDLock lock(mutex);
-    return FileTable::SetFileAttrs(path, fstat);
-}
-void FileTableNFSD::Write(void) {
-    NFSDLock lock(mutex);
-    FileTable::Write();
-}
-
-FileAttrDB* FileTableNFSD::GetDB(uint64_t handle) {
-    NFSDLock lock(mutex);
-    return FileTable::GetDB(handle);
+    return VirtualFS::setFileAttrs(absoluteVFSpath, fstat);
 }
 
-FileAttrs* FileTableNFSD::GetFileAttrs(const std::string& path) {
+FileAttrs FileTableNFSD::getFileAttrs(const VFSPath& absoluteVFSpath) {
     NFSDLock lock(mutex);
-    return FileTable::GetFileAttrs(path);
+    return VirtualFS::getFileAttrs(absoluteVFSpath);
 }
