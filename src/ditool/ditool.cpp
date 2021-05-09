@@ -64,6 +64,18 @@ static string join(const string& path, const string& name) {
     return result;
 }
 
+static void copy_attrs(struct stat& fstat, icommon& inode, uint32_t rdev) {
+    fstat.st_mode              = fsv(inode.ic_mode);
+    fstat.st_uid               = fsv(inode.ic_uid);
+    fstat.st_gid               = fsv(inode.ic_gid);
+    fstat.st_size              = fsv(inode.ic_size);
+    fstat.st_atimespec.tv_sec  = fsv(inode.ic_atime.tv_sec);
+    fstat.st_atimespec.tv_nsec = fsv(inode.ic_atime.tv_usec) * 1000;
+    fstat.st_mtimespec.tv_sec  = fsv(inode.ic_mtime.tv_sec);
+    fstat.st_mtimespec.tv_nsec = fsv(inode.ic_mtime.tv_usec) * 1000;
+    fstat.st_rdev              = rdev;
+}
+
 static void set_attrs_recr(UFS& ufs, set<string>& skip, uint32_t ino, const string& path, VirtualFS& ft) {
     vector<direct> entries = ufs.list(ino);
     
@@ -89,18 +101,9 @@ static void set_attrs_recr(UFS& ufs, set<string>& skip, uint32_t ino, const stri
                 break;
 
         }
-                
+    
         struct stat fstat;
-        fstat.st_mode              = fsv(inode.ic_mode);
-        fstat.st_uid               = fsv(inode.ic_uid);
-        fstat.st_gid               = fsv(inode.ic_gid);
-        fstat.st_size              = fsv(inode.ic_size);
-        fstat.st_atimespec.tv_sec  = fsv(inode.ic_atime.tv_sec);
-        fstat.st_atimespec.tv_nsec = fsv(inode.ic_atime.tv_usec) * 1000;
-        fstat.st_mtimespec.tv_sec  = fsv(inode.ic_mtime.tv_sec);
-        fstat.st_mtimespec.tv_nsec = fsv(inode.ic_mtime.tv_usec) * 1000;
-        fstat.st_rdev              = rdev;
-        
+        copy_attrs(fstat, inode, rdev);
         FileAttrs fattr(fstat);
         ft.setFileAttrs(dirEntPath, fattr);
         
@@ -109,11 +112,32 @@ static void set_attrs_recr(UFS& ufs, set<string>& skip, uint32_t ino, const stri
         times[0].tv_usec = fattr.atime_usec;
         times[1].tv_sec  = fattr.mtime_sec;
         times[1].tv_usec = fattr.mtime_usec;
+        
         if(ft.vfsChmod(dirEntPath, fstat.st_mode & ~IFMT))
             cout << "Unable to set mode for " << dirEntPath << endl;
         if(ft.vfsUtimes(dirEntPath, times))
             cout << "Unable to set times for " << dirEntPath << endl;
     }
+}
+
+static void set_attrs_inode(UFS& ufs, uint32_t ino, const string& path, VirtualFS& ft) {
+    icommon inode;
+    ufs.readInode(inode, ino);
+    struct stat fstat;
+    copy_attrs(fstat, inode, 0);
+    FileAttrs fattr(fstat);
+    ft.setFileAttrs(path, fattr);
+    
+    timeval times[2];
+    times[0].tv_sec  = fattr.atime_sec;
+    times[0].tv_usec = fattr.atime_usec;
+    times[1].tv_sec  = fattr.mtime_sec;
+    times[1].tv_usec = fattr.mtime_usec;
+    
+    if(ft.vfsChmod(path, fstat.st_mode & ~IFMT))
+        cout << "Unable to set mode for " << path << endl;
+    if(ft.vfsUtimes(path, times))
+        cout << "Unable to set times for " << path << endl;
 }
 
 static void verify_attr_recr(UFS& ufs, set<string>& skip, uint32_t ino, const string& path, VirtualFS& ft) {
@@ -139,6 +163,9 @@ static void verify_attr_recr(UFS& ufs, set<string>& skip, uint32_t ino, const st
                 rdev = fsv(inode.ic_db[0]);
                 break;
         }
+        
+        if(dirEntPath == "/NextAdmin")
+            cout << endl;
         
         struct stat fstat;
         ft.stat(dirEntPath, fstat);
@@ -327,6 +354,7 @@ static void dump_part(DiskImage& im, int part, const HostPath& outPath, ostream&
         cout << "---- copying " << im.path << " to " << ft->getBasePath() << endl;
         process_inodes_recr(ufs, inode2path, skip, ROOTINO, "", ft, os, listType);
         cout << "---- setting file attributes for NFSD" << endl;
+        set_attrs_inode(ufs, ROOTINO, "", *ft);
         set_attrs_recr(ufs, skip, ROOTINO, "", *ft);
         cout << "---- verifying inode structure" << endl;
         map<uint32_t, uint64_t> inode2inode;
@@ -344,7 +372,7 @@ static bool is_mount(const HostPath& path) {
     struct stat spdir; /* parent inode info */
     int res = ::stat(path.c_str(), &sdir);
     if (res < 0) return false;
-    auto pdir(path / "..");
+    HostPath pdir(path / "..");
     res = ::stat(pdir.string().c_str(), &spdir);
     if (res < 0) return false;
     return    sdir.st_dev != spdir.st_dev  /* different devices */
@@ -368,7 +396,7 @@ static void clean_dir(const HostPath& path) {
 
 class NullBuffer : public streambuf {public: int overflow(int c) {return c;};};
 
-static HostPath to_fs_path(const char* path) {
+static HostPath to_host_path(const char* path) {
     return path ? HostPath(path) : HostPath();
 }
 
@@ -385,12 +413,12 @@ extern "C" int main(int argc, const char * argv[]) {
     if(has_option(argv, argv+argc, "-h") || has_option(argv, argv+argc, "--help"))
         print_help();
     
-    auto        imageFile = to_fs_path(get_option(argv, argv + argc, "-im"));
+    HostPath    imageFile = to_host_path(get_option(argv, argv + argc, "-im"));
     bool        listParts = has_option(argv, argv+argc,   "-lsp");
     const char* partNum   = get_option(argv, argv + argc, "-p");
     bool        listFiles = has_option(argv, argv + argc, "-ls");
     const char* listType  = get_option(argv, argv + argc, "-lst");
-    auto        outPath   = to_fs_path(get_option(argv, argv + argc, "-out"));
+    HostPath    outPath   = to_host_path(get_option(argv, argv + argc, "-out"));
     bool        clean     = has_option(argv, argv + argc, "-clean");
 
     if (!(imageFile).empty()) {

@@ -168,8 +168,8 @@ std::vector<direct> UFS::list(uint32_t ino) {
     if((fsv(inode.ic_mode) & IFMT) != IFDIR)
         return result;
 
-    auto size = fsv(inode.ic_size);
-    uint8_t directory[size];
+    uint32_t size = fsv(inode.ic_size);
+    uint8_t  directory[size];
     if(readFile(inode, 0, size, directory))
         return result;
     

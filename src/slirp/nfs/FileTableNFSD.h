@@ -26,12 +26,12 @@ public:
     FileTableNFSD(const HostPath& basePath, const VFSPath& basePathAlias);
     virtual ~FileTableNFSD(void);
     
-    int         stat            (const VFSPath& absoluteVFSpath, struct stat& stat) override;
-    void        move            (const VFSPath& absoluteVFSpathFrom, const VFSPath& absoluteVFSpathTo) override;
-    void        remove          (const VFSPath& absoluteVFSpath) override;
-    uint64_t    getFileHandle   (const VFSPath& absoluteVFSpath) override;
-    void        setFileAttrs    (const VFSPath& absoluteVFSpath, const FileAttrs& fstat) override;
-    FileAttrs   getFileAttrs    (const VFSPath& absoluteVFSpath) override;
+    virtual int         stat            (const VFSPath& absoluteVFSpath, struct stat& stat);
+    virtual void        move            (const VFSPath& absoluteVFSpathFrom, const VFSPath& absoluteVFSpathTo);
+    virtual void        remove          (const VFSPath& absoluteVFSpath);
+    virtual uint64_t    getFileHandle   (const VFSPath& absoluteVFSpath);
+    virtual void        setFileAttrs    (const VFSPath& absoluteVFSpath, const FileAttrs& fstat);
+    virtual FileAttrs   getFileAttrs    (const VFSPath& absoluteVFSpath);
     
     bool        getCanonicalPath(uint64_t handle, std::string& result);
 };

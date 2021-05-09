@@ -82,7 +82,7 @@ PathCommon::PathCommon(const std::string& sep, const char* path)
 
 std::string PathCommon::to_string() const {
     std::string newPath(empty() ? sep : "");
-    for(const auto& comp : *this) {
+    for(const std::string& comp : *this) {
         newPath += sep;
         newPath += comp;
     }
@@ -105,7 +105,7 @@ vector<string> PathCommon::split(const std::string& sep, const std::string& path
 }
 
 void PathCommon::append(const PathCommon& path) {
-    for(const auto& comp : path)
+    for(const std::string& comp : path)
         push_back(comp);
     this->path = to_string();
 }
@@ -217,7 +217,7 @@ string VFSPath::filename() const {
 
 VFSPath VFSPath::parent_path() const {
     if(empty()) return *this;
-    auto result(*this);
+    VFSPath result(*this);
     result.pop_back();
     return VFSPath(result);
 }
@@ -232,7 +232,7 @@ VFSPath& VFSPath::operator /= (const VFSPath& path) {
 }
 
 VFSPath VFSPath::operator / (const VFSPath& path) const {
-    auto result(*this);
+    VFSPath result(*this);
     result /= path;
     return result;
 }
@@ -255,7 +255,7 @@ HostPath& HostPath::operator /= (const HostPath& path) {
 }
 
 HostPath HostPath::operator / (const HostPath& path) const {
-    auto result(*this);
+    HostPath result(*this);
     result /= path;
     return result;
 }
@@ -297,9 +297,9 @@ VFSPath VirtualFS::removeAlias(const VFSPath& absoluteVFSpath) {
 }
 
 int VirtualFS::stat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
-    auto path   = removeAlias(absoluteVFSpath);
-    auto result = vfsStat(path, fstat);
-    auto attrs  = getFileAttrs(path);
+    VFSPath   path   = removeAlias(absoluteVFSpath);
+    int       result = vfsStat(path, fstat);
+    FileAttrs attrs  = getFileAttrs(path);
     
     if(FileAttrs::valid(attrs.mode)) {
         uint32_t mode = fstat.st_mode; // copy format & permissions from actual file in the file system
@@ -335,7 +335,7 @@ static uint64_t make_file_handle(const struct stat& fstat) {
 }
 
 uint64_t VirtualFS::getFileHandle(const VFSPath& absoluteVFSPath) {
-    auto path = removeAlias(absoluteVFSPath);
+    VFSPath path = removeAlias(absoluteVFSPath);
     
     uint64_t result(0);
     struct stat fstat;
@@ -357,20 +357,20 @@ void VirtualFS::remove(const VFSPath& /*absoluteVFSPath*/) {
 const string NFSD_ATTRS(".nfsd_fattrs");
 
 void VirtualFS::setFileAttrs(const VFSPath& absoluteVFSpath, const FileAttrs& fstat) {
-    auto path   = removeAlias(absoluteVFSpath);
-    auto fname(absoluteVFSpath.filename());
+    VFSPath path   = removeAlias(absoluteVFSpath);
+    string fname(absoluteVFSpath.filename());
 
     assert("." != fname && ".." != fname);
             
-    auto serialized = fstat.serialize();
-    auto hostPath   = toHostPath(absoluteVFSpath);
+    string   serialized = fstat.serialize();
+    HostPath hostPath   = toHostPath(absoluteVFSpath);
     if(::setxattr(hostPath.c_str(), NFSD_ATTRS.c_str(), serialized.c_str(), serialized.length(), 0, XATTR_NOFOLLOW) != 0)
         printf("setxattr(%s) failed\n", hostPath.c_str());
 }
 
 FileAttrs VirtualFS::getFileAttrs(const VFSPath& absoluteVFSpath) {
     char buffer[128];
-    auto hostPath = toHostPath(absoluteVFSpath);
+    HostPath hostPath = toHostPath(absoluteVFSpath);
     if(::getxattr(hostPath.c_str(), NFSD_ATTRS.c_str(), buffer, sizeof(buffer), 0, XATTR_NOFOLLOW) > 0)
         return FileAttrs(buffer);
     else {
@@ -432,7 +432,7 @@ bool VFSFile::isOpen(void) {
 }
 
 HostPath VirtualFS::toHostPath(const VFSPath& absoluteVFSpath) {
-    auto path(removeAlias(absoluteVFSpath));
+    VFSPath path(removeAlias(absoluteVFSpath));
     
     assert(path.is_absolute());
     
@@ -466,7 +466,7 @@ int VirtualFS::vfsRename(const VFSPath& absoluteVFSpathFrom, const VFSPath& abso
 }
 
 int VirtualFS::vfsReadlink(const VFSPath& absoluteVFSpath, VFSPath& result) {
-    auto path = toHostPath(absoluteVFSpath);
+    HostPath path = toHostPath(absoluteVFSpath);
     
     struct stat sb;
     ssize_t nbytes, bufsiz;

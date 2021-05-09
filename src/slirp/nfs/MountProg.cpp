@@ -111,7 +111,7 @@ int CMountProg::ProcedureUMNT(void) {
 int CMountProg::ProcedureEXPORT(void) {
     Log("EXPORT");
     
-    auto path = nfsd_fts[0]->getBasePathAlias();
+    VFSPath path = nfsd_fts[0]->getBasePathAlias();
     // dirpath
     m_out->Write(1);
     m_out->Write(MAXPATHLEN, path.c_str());

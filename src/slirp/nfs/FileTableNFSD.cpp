@@ -37,8 +37,8 @@ bool FileTableNFSD::isCharDevice(const string& fname) {
 }
 
 bool FileTableNFSD::isDevice(const VFSPath& absoluteVFSpath, string& fname) {
-    auto  directory(absoluteVFSpath.parent_path().string());
-    fname          = absoluteVFSpath.filename();
+    string  directory(absoluteVFSpath.parent_path().string());
+    fname = absoluteVFSpath.filename();
     
     const size_t len = directory.size();
     return
@@ -77,7 +77,7 @@ int FileTableNFSD::stat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
 }
 bool FileTableNFSD::getCanonicalPath(uint64_t fhandle, std::string& result) {
     NFSDLock lock(mutex);
-    auto iter(handle2path.find(fhandle));
+    map<uint64_t, string>::iterator iter(handle2path.find(fhandle));
     if(iter != handle2path.end()) {
         result = iter->second;
         return true;
@@ -94,7 +94,7 @@ void  FileTableNFSD::remove(const VFSPath& absoluteVFSpath) {
 }
 uint64_t FileTableNFSD::getFileHandle(const VFSPath& absoluteVFSpath) {
     NFSDLock lock(mutex);
-    auto result(VirtualFS::getFileHandle(absoluteVFSpath));
+    uint64_t result(VirtualFS::getFileHandle(absoluteVFSpath));
     handle2path[result] = absoluteVFSpath.canonicalize().string();
     return result;
 }

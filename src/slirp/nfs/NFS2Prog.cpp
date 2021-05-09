@@ -277,7 +277,7 @@ int CNFS2Prog::ProcedureWRITE(void) {
     XDROpaque buffer;
 	m_in->Read(buffer);
 
-    auto attrs = nfsd_fts[0]->getFileAttrs(path);
+    FileAttrs attrs = nfsd_fts[0]->getFileAttrs(path);
     if((attrs.mode & S_IFMT) == S_IFREG) {
         VFSFile file(*nfsd_fts[0], path, "r+b");
         if(file.isOpen()) {
@@ -438,9 +438,9 @@ int CNFS2Prog::ProcedureREADDIR(void) {
         int skip = cookie;
         for(struct dirent* fileinfo = readdir(handle); fileinfo; fileinfo = readdir(handle)) {
 #if HAVE_STRUCT_DIRENT_D_NAMELEN
-            auto namelen = fileinfo->d_namlen;
+            size_t namelen = fileinfo->d_namlen;
 #else
-            auto namelen = strlen(fileinfo->d_name);
+            size_t namelen = strlen(fileinfo->d_name);
 #endif
             if(--skip >= 0) continue;
             
