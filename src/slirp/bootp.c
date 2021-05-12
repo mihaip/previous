@@ -39,11 +39,9 @@ typedef struct {
 BOOTPClient bootp_clients[NB_ADDR];
 
 static const uint8_t rfc1533_cookie[] = { RFC1533_COOKIE };
-#if BOOTP_VEND_NEXT
 static const uint8_t magic_next[]  = {'N','e','X','T'};
 static const char    kernel_next[] = "mach";
 static const char    tftp_root[]   = "/private/tftpboot/";
-#endif
 
 static char hostname[_SC_HOST_NAME_MAX];
 
@@ -127,10 +125,8 @@ static void bootp_reply(struct bootp_t *bp)
     struct mbuf *m;
     struct bootp_t *rbp;
     struct sockaddr_in saddr, daddr;
-#if BOOTP_VEND_NEXT == 0
     struct in_addr dns_addr;
     int val;
-#endif
     int dhcp_msg_type;
     uint8_t *q;
 
@@ -185,77 +181,90 @@ static void bootp_reply(struct bootp_t *bp)
     rbp->bp_giaddr.s_addr = htonl(ntohl(special_addr.s_addr) | CTL_GATEWAY); /* Gateway IP address */
     strcpy((char*)rbp->bp_sname, NAME_NFSD); /* Server namne */
 
-    q = rbp->bp_vend;
-#if BOOTP_VEND_NEXT
     char path[TFTP_FILENAME_MAX];
-    if(bp->bp_file[0])
-        sprintf(path, "%s%s", tftp_root, bp->bp_file);
-    else
-        sprintf(path, "%s", kernel_next);
+    
+    sprintf(path, "%s%s", tftp_root, kernel_next);
+    
+    if (memcmp(bp->bp_file, path, strlen(path)+1)) {
+        if (bp->bp_file[0]) {
+            sprintf(path, "%s%s", tftp_root, bp->bp_file);
+        }
+    }
     memcpy(rbp->bp_file, path, strlen(path)+1);
-    memcpy(q, magic_next, 4);
-    q += 4;
-    *q++ = 1; /* Version */
-    *q++ = 0; /* Opcode */
-    *q++ = 0; /* Transaction ID */
-    memset(q, 0, 56); /* Text */
-    q += 56;
-    *q++ = 0; /* Null terminator */
-#else
-    uint32_t val;
-    memcpy(q, rfc1533_cookie, 4);
-    q += 4;
-    if (dhcp_msg_type == DHCPDISCOVER) {
-        *q++ = RFC2132_MSG_TYPE;
-        *q++ = 1;
-        *q++ = DHCPOFFER;
-    } else if (dhcp_msg_type == DHCPREQUEST) {
-        *q++ = RFC2132_MSG_TYPE;
-        *q++ = 1;
-        *q++ = DHCPACK;
-    }
-        
-    if (dhcp_msg_type == DHCPDISCOVER ||
-        dhcp_msg_type == DHCPREQUEST) {
-        *q++ = RFC2132_SRV_ID;
-        *q++ = 4;
-        memcpy(q, &saddr.sin_addr, 4);
-        q += 4;
 
-        *q++ = RFC1533_NETMASK;
-        *q++ = 4;
-        val = htonl(CTL_NET_MASK);
-        memcpy(q, &val, 4);
-        q += 4;
+    q = rbp->bp_vend;
 
-        *q++ = RFC1533_GATEWAY;
-        *q++ = 4;
-        val = htonl(ntohl(special_addr.s_addr) | CTL_GATEWAY);
-        memcpy(q, &val, 4);
+    if (memcmp(bp->bp_vend, magic_next, 4) == 0) { /* NeXT */
+        memcpy(q, magic_next, 4);
         q += 4;
-        
-        *q++ = RFC1533_DNS;
-        *q++ = 4;
-        dns_addr.s_addr = htonl(ntohl(special_addr.s_addr) | CTL_DNS);
-        memcpy(q, &dns_addr, 4);
-        q += 4;
-
-        *q++ = RFC2132_LEASE_TIME;
-        *q++ = 4;
-        val = htonl(LEASE_TIME);
-        memcpy(q, &val, 4);
-        q += 4;
-
-        val = strlen(hostname);
-        *q++ = RFC1533_HOSTNAME;
-        *q++ = val;
-        memcpy(q, hostname, val);
-        q += val;
-    }
-    *q++ = RFC1533_END;
-#endif
-    m->m_len = sizeof(struct bootp_t) -
+        *q++ = 1; /* Version */
+        *q++ = 0; /* Opcode */
+        *q++ = 0; /* Transaction ID */
+        memset(q, 0, 56); /* Text */
+        q += 56;
+        *q++ = 0; /* Null terminator */
+        m->m_len = sizeof(struct bootp_t) -
+        DHCP_OPT_LEN + BOOTP_VENDOR_LEN -
         sizeof(struct ip) - sizeof(struct udphdr);
+    } else if (memcmp(bp->bp_vend, rfc1533_cookie, 4) == 0) { /* DHCP */
+        uint32_t val;
+        memcpy(q, rfc1533_cookie, 4);
+        q += 4;
+        if (dhcp_msg_type == DHCPDISCOVER) {
+            *q++ = RFC2132_MSG_TYPE;
+            *q++ = 1;
+            *q++ = DHCPOFFER;
+        } else if (dhcp_msg_type == DHCPREQUEST) {
+            *q++ = RFC2132_MSG_TYPE;
+            *q++ = 1;
+            *q++ = DHCPACK;
+        }
+        
+        if (dhcp_msg_type == DHCPDISCOVER ||
+            dhcp_msg_type == DHCPREQUEST) {
+            *q++ = RFC2132_SRV_ID;
+            *q++ = 4;
+            memcpy(q, &saddr.sin_addr, 4);
+            q += 4;
+            
+            *q++ = RFC1533_NETMASK;
+            *q++ = 4;
+            val = htonl(CTL_NET_MASK);
+            memcpy(q, &val, 4);
+            q += 4;
+            
+            *q++ = RFC1533_GATEWAY;
+            *q++ = 4;
+            val = htonl(ntohl(special_addr.s_addr) | CTL_GATEWAY);
+            memcpy(q, &val, 4);
+            q += 4;
+            
+            *q++ = RFC1533_DNS;
+            *q++ = 4;
+            dns_addr.s_addr = htonl(ntohl(special_addr.s_addr) | CTL_DNS);
+            memcpy(q, &dns_addr, 4);
+            q += 4;
+            
+            *q++ = RFC2132_LEASE_TIME;
+            *q++ = 4;
+            val = htonl(LEASE_TIME);
+            memcpy(q, &val, 4);
+            q += 4;
+            
+            val = strlen(hostname);
+            *q++ = RFC1533_HOSTNAME;
+            *q++ = val;
+            memcpy(q, hostname, val);
+            q += val;
+        }
+        *q++ = RFC1533_END;
+        m->m_len = sizeof(struct bootp_t) -
+        sizeof(struct ip) - sizeof(struct udphdr);
+    } else { /* Not supported */
+        m->m_len = sizeof(struct bootp_t) -
+        DHCP_OPT_LEN + BOOTP_VENDOR_LEN -
+        sizeof(struct ip) - sizeof(struct udphdr);
+    }
     udp_output2(NULL, m, &saddr, &daddr, IPTOS_LOWDELAY);
 }
 

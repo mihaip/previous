@@ -581,7 +581,7 @@ static void arp_input(const uint8_t *pkt, int pkt_len)
             return;
         arp_ok:
             /* XXX: make an ARP request to have the client address */
-            memcpy(client_ethaddr, eh->h_source, ETH_ALEN);
+            /* memcpy(client_ethaddr, eh->h_source, ETH_ALEN); */
 
             /* ARP request for alias/dns mac address */
             memcpy(reh->h_dest, pkt + ETH_ALEN, ETH_ALEN);
