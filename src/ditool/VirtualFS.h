@@ -24,8 +24,14 @@ public:
     size_t       length(void) const {return path.length();};
     std::string  string(void) const {return path;}
     void         append(const PathCommon& path);
-    bool         exists(void);
-    
+
+    bool         operator == (const PathCommon& path) {return string() == path.string();}
+    bool         operator != (const PathCommon& path) {return string() != path.string();}
+    bool         operator <  (const PathCommon& path) {return string() <  path.string();}
+    bool         operator >  (const PathCommon& path) {return string() >  path.string();}
+    bool         operator <= (const PathCommon& path) {return string() <= path.string();}
+    bool         operator >= (const PathCommon& path) {return string() >= path.string();}
+
     virtual bool is_absolute(void) const = 0;
 
     static std::vector<std::string> split(const std::string& sep, const std::string& path);
@@ -68,7 +74,9 @@ public:
     HostPath(const std::string& path) : PathCommon(HOST_SEPARATOR, path) {};
         
     virtual bool       is_absolute(void) const;
-    
+    bool               exists(void) const;
+    bool               is_directory(void) const;
+
     HostPath&  operator /= (const HostPath& path);
     HostPath   operator / (const HostPath& path) const;
 };
@@ -92,7 +100,8 @@ public:
     void        update(const FileAttrs& attrs);
     std::string serialize(void) const;
     
-    static bool valid(uint32_t statval);
+    static bool valid32(uint32_t statval);
+    static bool valid16(uint32_t statval);
 };
 
 class VirtualFS {
@@ -106,6 +115,7 @@ public:
     
     virtual HostPath  getBasePath     (void);
     virtual VFSPath   getBasePathAlias(void);
+    void              setDefaultUID_GID(uint32_t uid, uint32_t gid);
     virtual int       stat            (const VFSPath& absoluteVFSpath, struct stat& stat);
     virtual void      move            (const VFSPath& absoluteVFSpathFrom, const VFSPath& absoluteVFSpathTo);
     virtual void      remove          (const VFSPath& absoluteVFSpath);
@@ -128,9 +138,15 @@ public:
     int                   vfsStatvfs (const VFSPath& absoluteVFSpath, struct statvfs& fsstat);
     int                   vfsStat    (const VFSPath& absoluteVFSpath, struct stat& fstat);
     int                   vfsUtimes  (const VFSPath& absoluteVFSpath, const struct timeval times[2]);
-    
+    uint32_t              vfsGetUID  (const VFSPath& absoluteVFSpath, bool useParent);
+    uint32_t              vfsGetGID  (const VFSPath& absoluteVFSpath, bool useParent);
+
     static int            remove(const char* fpath, const struct stat* sb, int typeflag, struct FTW* ftwbuf);
     
+protected:
+    uint32_t m_defaultUID;
+    uint32_t m_defaultGID;
+
     friend class FileAttrDB;
     friend class VFSFile;
 };

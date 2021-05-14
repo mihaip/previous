@@ -52,33 +52,69 @@ static void printAbout(void) {
     printf("[NFSD] Edited in 2013 by Alexander Schneider (Jankowfsky AG)\n");
     printf("[NFSD] Edited in 2014 2015 by Yann Schepens\n");
     printf("[NFSD] Edited in 2016 by Peter Philipp (Cando Image GmbH), Marc Harding\n");
-    printf("[NFSD] Mostly rewritten in 2019 by Simon Schubiger for Previous NeXT emulator\n");
+    printf("[NFSD] Mostly rewritten in 2019-2021 by Simon Schubiger for Previous NeXT emulator\n");
+}
+
+extern "C" int nfsd_read(const char* path, size_t fileOffset, void* dst, size_t count) {
+    if(nfsd_fts[0]) {
+        VFSFile file(*nfsd_fts[0], path, "rb");
+        if(file.isOpen())
+            return file.read(fileOffset, dst, count);
+    }
+    return -1;
 }
 
 extern "C" void nfsd_start(void) {
-    delete nfsd_fts[0];
-    nfsd_fts[0] = NULL;
-        
     if(access(ConfigureParams.Ethernet.szNFSroot, F_OK | R_OK | W_OK) < 0) {
         printf("[NFSD] can not access directory '%s'. nfsd startup canceled.\n", ConfigureParams.Ethernet.szNFSroot);
+        delete nfsd_fts[0];
+        nfsd_fts[0] = NULL;
         return;
     }
     
+    if(nfsd_fts[0]) {
+        if(nfsd_fts[0]->getBasePath() != HostPath(ConfigureParams.Ethernet.szNFSroot)) {
+            VFSPath basePath = nfsd_fts[0]->getBasePathAlias();
+            delete nfsd_fts[0];
+            nfsd_fts[0] = new FileTableNFSD(ConfigureParams.Ethernet.szNFSroot, basePath);
+        }
+    } else {
+        nfsd_fts[0] = new FileTableNFSD(ConfigureParams.Ethernet.szNFSroot, "/netboot");
+    }
+    if(initialized) return;
+
     char nfsd_hostname[_SC_HOST_NAME_MAX];
     gethostname(nfsd_hostname, sizeof(nfsd_hostname));
     
     printf("[NFSD] starting local NFS daemon on '%s', exporting '%s'\n", nfsd_hostname, ConfigureParams.Ethernet.szNFSroot);
     printAbout();
     
-    nfsd_fts[0] = new FileTableNFSD(ConfigureParams.Ethernet.szNFSroot, "/netboot");
-
-    if(initialized) return;
-
     static CNFSProg       NFSProg;
     static CMountProg     MountProg;
     static CBootparamProg BootparamProg;
-    
-	NFSProg.SetUserID(0, 0);
+
+    // try to get uid/gid of user "me" from /etc/passwd and use it as the NFS default user
+    size_t buffer_size = 1024*1024;
+    char* buffer = (char*)malloc(buffer_size);
+    int count = nfsd_read("/etc/passwd", 0, buffer, buffer_size);
+    int uid;
+    int gid;
+    if(count > 0) {
+        buffer[count] = '\0';
+        char* line = strtok(buffer, "\n");
+        while(line) {
+            char user[256];
+            char passwd[1024];
+            if(sscanf(line, "%[^:]::%d:%d", user, &uid, &gid) < 3)
+                sscanf(line, "%[^:]:%[^:]:%d:%d", user, passwd, &uid, &gid);
+            if(strcmp("me", user) == 0) {
+                NFSProg.SetUserID(uid, gid);
+                break;
+            }
+            line  = strtok(NULL, "\n");
+        }
+    }
+    free(buffer);
     
     g_RPCServer.SetLogOn(g_bLogOn);
 
@@ -96,13 +132,4 @@ extern "C" int nfsd_match_addr(uint32_t addr) {
     return (addr == (ntohl(special_addr.s_addr) | CTL_NFSD)) ||
            (addr == (ntohl(special_addr.s_addr) | ~(uint32_t)CTL_NET_MASK)) ||
            (addr == (ntohl(special_addr.s_addr) | ~(uint32_t)CTL_CLASS_MASK(CTL_NET))); // NS kernel seems to broadcast on 10.255.255.255
-}
-
-extern "C" int nfsd_read(const char* path, size_t fileOffset, void* dst, size_t count) {
-    if(nfsd_fts[0]) {
-        VFSFile file(*nfsd_fts[0], path, "rb");
-        if(file.isOpen())
-            return file.read(fileOffset, dst, count);
-    }
-    return -1;
 }

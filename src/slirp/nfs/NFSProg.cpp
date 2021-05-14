@@ -2,7 +2,6 @@
 #include "nfsd.h"
 
 CNFSProg::CNFSProg() : CRPCProg(PROG_NFS, 0, "nfsd") {
-    SetUserID(0, 0);
 }
 
 CNFSProg::~CNFSProg() {}

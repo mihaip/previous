@@ -55,17 +55,10 @@ int CBootparamProg::ProcedureWHOAMI(void) {
     }
     char hostname[_SC_HOST_NAME_MAX];
     strcpy(hostname, NAME_HOST);
-    char* client = hostname;
-    char* domain = hostname;
-    while(*++domain) {
-        if(*domain == '.') {
-            *domain = '\0';
-            domain++;
-            break;
-        }
-    }
-    m_out->Write(_SC_HOST_NAME_MAX, client);
-    m_out->Write(_SC_HOST_NAME_MAX, domain);
+    char domain[_SC_HOST_NAME_MAX];
+    strcpy(domain, NAME_DOMAIN);
+    m_out->Write(_SC_HOST_NAME_MAX,  hostname);
+    m_out->Write(_SC_HOST_NAME_MAX,  &domain[domain[0] == '.' ? 1 : 0]);
     WriteInAddr(m_out, ntohl(special_addr.s_addr) | CTL_GATEWAY);
     return PRC_OK;
 }

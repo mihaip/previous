@@ -36,16 +36,9 @@ enum {
 	NFSERR_WFLUSH = 99,
 };
 
-enum {
-	NFNON = 0,
-	NFREG = 1,
-	NFDIR = 2,
-	NFBLK = 3,
-	NFCHR = 4,
-	NFLNK = 5,
-};
+enum NFTYPE { NFNON, NFREG, NFDIR, NFBLK, NFCHR, NFLNK, NFSOCK, NFFIFO, NFBAD };
 
-CNFS2Prog::CNFS2Prog() : CRPCProg(PROG_NFS, 2, "nfsd"), m_defUID(0), m_defGID(0) {
+CNFS2Prog::CNFS2Prog() : CRPCProg(PROG_NFS, 2, "nfsd") {
     #define RPC_PROG_CLASS CNFS2Prog
     SetProc(1,  GETATTR);
     SetProc(2,  SETATTR);
@@ -67,9 +60,8 @@ CNFS2Prog::CNFS2Prog() : CRPCProg(PROG_NFS, 2, "nfsd"), m_defUID(0), m_defGID(0)
 
 CNFS2Prog::~CNFS2Prog() { }
 
-void CNFS2Prog::SetUserID(unsigned int nUID, unsigned int nGID) {
-	m_defUID = nUID;
-	m_defGID = nGID;
+void CNFS2Prog::SetUserID(uint32_t uid, uint32_t gid) {
+    nfsd_fts[0]->setDefaultUID_GID(uid, gid);
 }
 
 int CNFS2Prog::ProcedureGETATTR(void) {
@@ -89,24 +81,24 @@ int CNFS2Prog::ProcedureGETATTR(void) {
 static void set_attrs(const string& path, const FileAttrs& fstat) {
     FileAttrs newAttrs = nfsd_fts[0]->getFileAttrs(path);
 
-    if(FileAttrs::valid(fstat.mode)) {
+    if(FileAttrs::valid16(fstat.mode)) {
         newAttrs.mode &= S_IFMT;
         newAttrs.mode |= fstat.mode & (S_IRWXU|S_IRWXG|S_IRWXO);
         nfsd_fts[0]->vfsChmod(path, fstat.mode);
     }
-    if(FileAttrs::valid(fstat.uid))
+    if(FileAttrs::valid16(fstat.uid))
         newAttrs.uid = fstat.uid;
-    if(FileAttrs::valid(fstat.gid))
+    if(FileAttrs::valid16(fstat.gid))
         newAttrs.gid = fstat.gid;
 
     timeval times[2];
     timeval now;
     gettimeofday(&now, NULL);
-    times[0].tv_sec  = FileAttrs::valid(fstat.atime_sec)  ? fstat.atime_sec  : now.tv_sec;
-    times[0].tv_usec = FileAttrs::valid(fstat.atime_usec) ? fstat.atime_usec : now.tv_usec;
-    times[1].tv_sec  = FileAttrs::valid(fstat.mtime_sec)  ? fstat.mtime_sec  : now.tv_sec;
-    times[1].tv_usec = FileAttrs::valid(fstat.mtime_usec) ? fstat.mtime_usec : now.tv_usec;
-    if(FileAttrs::valid(fstat.atime_sec) || FileAttrs::valid(fstat.mtime_sec))
+    times[0].tv_sec  = FileAttrs::valid32(fstat.atime_sec)  ? fstat.atime_sec  : now.tv_sec;
+    times[0].tv_usec = FileAttrs::valid32(fstat.atime_usec) ? fstat.atime_usec : now.tv_usec;
+    times[1].tv_sec  = FileAttrs::valid32(fstat.mtime_sec)  ? fstat.mtime_sec  : now.tv_sec;
+    times[1].tv_usec = FileAttrs::valid32(fstat.mtime_usec) ? fstat.mtime_usec : now.tv_usec;
+    if(FileAttrs::valid32(fstat.atime_sec) || FileAttrs::valid32(fstat.mtime_sec))
         nfsd_fts[0]->vfsUtimes(path, times);
     nfsd_fts[0]->setFileAttrs(path, newAttrs);
 }
@@ -304,8 +296,8 @@ int CNFS2Prog::ProcedureCREATE(void) {
 
     FileAttrs fstat(read_stat(m_in));
     if(nfsd_fts[0]->vfsAccess(path, F_OK)) {
-        if(!(FileAttrs::valid(fstat.uid))) fstat.uid = m_defUID;
-        if(!(FileAttrs::valid(fstat.gid))) fstat.gid = m_defGID;
+        if(!(FileAttrs::valid16(fstat.uid))) fstat.uid = nfsd_fts[0]->vfsGetUID(path, false);
+        if(!(FileAttrs::valid16(fstat.gid))) fstat.gid = nfsd_fts[0]->vfsGetGID(path, true);
     }
      // touch
     VFSFile file(*nfsd_fts[0], path, "wb");
@@ -471,9 +463,10 @@ static const int BLOCK_SIZE = 4096;
 
 static uint32_t nfs_blocks(const struct statvfs* fsstat, uint32_t fsblocks) {
     uint64_t result = fsblocks;
-    result *= (uint64_t)fsstat->f_bsize;
-    if(result >= 0x7FFFFFFF) result = 0x7FFFFFFF; // fix size for NS 2GB limit
+    // take minimum as block size, looks like every filesystem uses these fields somwhat different
+    result *= (uint64_t)min(fsstat->f_frsize, fsstat->f_bsize);
     result /= BLOCK_SIZE;
+    if(result >= 0x7FFFFFFF) result = 0x7FFFFFFF; // fix size for signed 32bit
     return static_cast<uint32_t>(result);
 }
 

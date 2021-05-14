@@ -54,16 +54,16 @@ rdev      (FATTR_INVALID)
 {update(attrs);}
 
 void FileAttrs::update(const FileAttrs& attrs) {
-#define UPDATE_ATTR(a) a = valid(attrs. a) ? attrs. a : a
-    UPDATE_ATTR(mode);
-    UPDATE_ATTR(uid);
-    UPDATE_ATTR(gid);
-    UPDATE_ATTR(size);
-    UPDATE_ATTR(atime_sec);
-    UPDATE_ATTR(atime_usec);
-    UPDATE_ATTR(mtime_sec);
-    UPDATE_ATTR(mtime_usec);
-    UPDATE_ATTR(rdev);
+#define UPDATE_ATTR(s,a) a = valid##s(attrs. a) ? attrs. a : a
+    UPDATE_ATTR(16,mode);
+    UPDATE_ATTR(16,uid);
+    UPDATE_ATTR(16,gid);
+    UPDATE_ATTR(32,size);
+    UPDATE_ATTR(32,atime_sec);
+    UPDATE_ATTR(32,atime_usec);
+    UPDATE_ATTR(32,mtime_sec);
+    UPDATE_ATTR(32,mtime_usec);
+    UPDATE_ATTR(16,rdev);
 }
 
 //----- VFS path
@@ -108,11 +108,6 @@ void PathCommon::append(const PathCommon& path) {
     for(const std::string& comp : path)
         push_back(comp);
     this->path = to_string();
-}
-
-bool PathCommon::exists() {
-    struct stat buffer;
-    return (stat (c_str(), &buffer) == 0);
 }
 
 ostream& operator<<(ostream& os, const PathCommon& path) {
@@ -219,7 +214,8 @@ VFSPath VFSPath::parent_path() const {
     if(empty()) return *this;
     VFSPath result(*this);
     result.pop_back();
-    return VFSPath(result);
+    result.path = result.to_string();
+    return result;
 }
 
 bool VFSPath::is_absolute() const {
@@ -260,6 +256,18 @@ HostPath HostPath::operator / (const HostPath& path) const {
     return result;
 }
 
+bool HostPath::exists() const {
+    struct stat fstat;
+    return (stat (c_str(), &fstat) == 0);
+}
+
+bool HostPath::is_directory() const {
+    struct stat fstat;
+    if(stat (c_str(), &fstat) == 0)
+        return S_ISDIR(fstat.st_mode);
+    return false;
+}
+
 //----- file attributes
 
 FileAttrs::FileAttrs(const string& serialized) {
@@ -272,13 +280,16 @@ string FileAttrs::serialize() const {
     return string(buffer);
 }
 
-bool FileAttrs::valid(uint32_t statval) {return statval != 0xFFFFFFFF;}
+bool FileAttrs::valid32(uint32_t statval) {return statval != 0xFFFFFFFF;}
+bool FileAttrs::valid16(uint32_t statval) {return (statval & 0x0000FFFF) != 0x0000FFFF;}
 
 //----- VFS
 
 VirtualFS::VirtualFS(const HostPath& basePath, const VFSPath& basePathAlias)
 : basePathAlias(basePathAlias)
 , basePath(basePath)
+, m_defaultUID(-2) // -2 = traditionally user nobody
+, m_defaultGID(-2)
 {
 }
 
@@ -288,6 +299,11 @@ VirtualFS::~VirtualFS() {
 HostPath VirtualFS::getBasePath() {return basePath;}
 
 VFSPath VirtualFS::getBasePathAlias() {return basePathAlias;}
+
+void VirtualFS::setDefaultUID_GID(uint32_t uid, uint32_t gid) {
+    m_defaultUID = uid;
+    m_defaultGID = gid;
+}
 
 VFSPath VirtualFS::removeAlias(const VFSPath& absoluteVFSpath) {
     VFSPath result("/");
@@ -301,7 +317,7 @@ int VirtualFS::stat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
     int       result = vfsStat(path, fstat);
     FileAttrs attrs  = getFileAttrs(path);
     
-    if(FileAttrs::valid(attrs.mode)) {
+    if(FileAttrs::valid16(attrs.mode)) {
         uint32_t mode = fstat.st_mode; // copy format & permissions from actual file in the file system
         mode &= ~(S_IWUSR  | S_IRUSR | S_ISVTX);
         mode |= attrs.mode & (S_IWUSR | S_IRUSR | S_ISVTX); // copy user R/W permissions and directory restrcted delete from attributes
@@ -312,9 +328,9 @@ int VirtualFS::stat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
         }
         fstat.st_mode = mode;
     }
-    fstat.st_uid  = FileAttrs::valid(attrs.uid)  ? attrs.uid  : fstat.st_uid;
-    fstat.st_gid  = FileAttrs::valid(attrs.gid)  ? attrs.gid  : fstat.st_gid;
-    fstat.st_rdev = FileAttrs::valid(attrs.rdev) ? attrs.rdev : fstat.st_rdev;
+    fstat.st_uid  = FileAttrs::valid16(attrs.uid)  ? attrs.uid  : fstat.st_uid;
+    fstat.st_gid  = FileAttrs::valid16(attrs.gid)  ? attrs.gid  : fstat.st_gid;
+    fstat.st_rdev = FileAttrs::valid16(attrs.rdev) ? attrs.rdev : fstat.st_rdev;
     
     return result;
 }
@@ -376,6 +392,8 @@ FileAttrs VirtualFS::getFileAttrs(const VFSPath& absoluteVFSpath) {
     else {
         struct stat fstat;
         ::lstat(hostPath.c_str(), &fstat);
+        fstat.st_uid = vfsGetUID(absoluteVFSpath.parent_path(), true);
+        fstat.st_gid = vfsGetGID(absoluteVFSpath.parent_path(), true);
         return FileAttrs(fstat);
     }
 }
@@ -447,6 +465,29 @@ static int get_error(int result) {
 
 int VirtualFS::vfsChmod(const VFSPath& absoluteVFSpath, mode_t mode) {
     return get_error(::fchmodat(AT_FDCWD, toHostPath(absoluteVFSpath).c_str(), mode | S_IWUSR  | S_IRUSR, AT_SYMLINK_NOFOLLOW));
+}
+
+uint32_t VirtualFS::vfsGetUID(const VFSPath& absoluteVFSpath, bool useParent) {
+    if(useParent) {
+        if(absoluteVFSpath.empty())
+            return m_defaultUID;
+        else if(toHostPath(absoluteVFSpath).is_directory()) {
+            FileAttrs attrs = getFileAttrs(absoluteVFSpath);
+            return attrs.uid;
+        }
+        return vfsGetUID(absoluteVFSpath.parent_path(), useParent);
+    }
+    return m_defaultUID;
+}
+
+uint32_t VirtualFS::vfsGetGID(const VFSPath& absoluteVFSpath, bool useParent) {
+    if(absoluteVFSpath.empty())
+        return m_defaultGID;
+    else if(toHostPath(absoluteVFSpath).is_directory()) {
+        FileAttrs attrs = getFileAttrs(absoluteVFSpath);
+        return attrs.gid;
+    }
+    return vfsGetGID(absoluteVFSpath.parent_path(), useParent);
 }
 
 int VirtualFS::vfsAccess(const VFSPath& absoluteVFSpath, int mode) {

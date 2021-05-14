@@ -15,6 +15,11 @@ using namespace std;
 const uint32_t BLOCK_INVALID = ~0;
 
 UFS::UFS(const Partition& part) : part(part) {
+    for(int i = 0; i <= BCACHE_SIZE; i++) {
+        blockCache[i]   = NULL;
+        cacheBlockNo[i] = BLOCK_INVALID;
+    }
+    
     if(strncmp(&part.part.p_type[1], "4.3BSD", 6) != 0)
         return;
     
@@ -33,7 +38,6 @@ UFS::UFS(const Partition& part) : part(part) {
     fsBSize  = fsv(superBlock.fs_bsize);
     fsFrag   = fsv(superBlock.fs_frag);
     
-    
     for(int i = 0; i <= BCACHE_SIZE; i++) {
         blockCache[i]   = new uint8_t[part.im->sectorSize * fsFrag];
         cacheBlockNo[i] = BLOCK_INVALID;
@@ -47,6 +51,9 @@ UFS::~UFS(void) {
 
 int UFS::readInode(icommon& inode, uint32_t ino) {
     struct inb indsb;
+    
+    if(!(INOPB(&superBlock)))
+        return ERR_FAIL;
     
     if(int err = part.readSectors(itod(&superBlock, ino), fsFrag, (uint8_t*)&indsb)) {
         cout << "Can't read inode " << ino << endl;
