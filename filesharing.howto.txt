@@ -1,25 +1,28 @@
-NOTE: This procedure is only valid when using SLiRP as networking
-      interface.
+NOTE: This procedure is only valid when using SLiRP as network
+      interface. For this procedure to work, networking must be 
+      setup first (see networking.howto.txt for details).
 
-      For this procedure to work networking must be setup first
-      (see networking.howto.txt for details).
-      To edit files inside /etc you need super user privileges.
+      If using PCAP as network interface you need to set up NFS 
+      file sharing on your host system or network and replace the 
+      server name (shared.local) with the name of your NFS 
+      server. You might also need to create an entry with your 
+      server's IP address and hostname in "/etc/hosts".
 
 
 NOWTO: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
 
 1. Open the file "/etc/fstab" using this command from the
    command line:
-   open /etc/fstab   
+      open /etc/fstab   
 
 2. Edit the file "/etc/fstab" by adding the shared filesystem.
    Add this line at the end of the file: 
-   shared.local:/ /Net nfs rw,net 0 0
+      shared.local:/ /Net nfs rw,net 0 0
 
 3. Load the edited file using these commands from the command
    line:
-   su
-   niload fstab / < /etc/fstab
+      su
+      niload fstab / < /etc/fstab
 
 4. The shared folder should be accessible from /Net directory
    after reboot.
@@ -27,7 +30,7 @@ NOWTO: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
 
 HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
 
-1. Open NFSManager (you find it in the NextAdmin directory).
+1. Open NFSManager (you find it in the /NextAdmin directory).
 
 2. Go to the Imported Directories window and press "Add...".
 
@@ -40,8 +43,8 @@ HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
 
 HOWTO: Manually mount NFS shared directory:
 1. Open Terminal and type these commands to the command line:
-   su
-   mount -o rw,net shared.local:/ /Net
+      su
+      mount -o rw,net shared.local:/ /Net
 
 2. The shared folder should immediately be accessible from /Net 
    directory.

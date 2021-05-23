@@ -1,0 +1,69 @@
+NOTE: This procedure is only valid when using SLiRP as network
+      interface. PCAP cannot be used for netbooting. 
+
+      It is not possible to extract images of magneto-optical 
+      disks using ditool. Netbooting NeXTstep 0.9 only works 
+      using ROM 0.8 and netbooting NeXTstep 1.0 and later only 
+      works using ROM 1.0 and later.
+
+
+NOWTO: Setup netboot under NeXTstep 0.9 and later:
+
+0. Before you start you need these things:
+   a  ditool: This command line utility comes with Previous. It
+      can extract files from raw disk images with NeXT (UFS) file
+      systems. To call it you have to specify the path and name 
+      of the utility and the input and output directories on the 
+      command line. 
+   b  image.dd: This is the raw disk image you want to extract to
+      some directory. It contains a bootable NeXTstep system. To 
+      extract it you have to specify the name of the image 
+      including the path to it after the "-im" option when 
+      calling the ditool utility.
+   c  nfsdir: This is the directory you want to share with the 
+      guest system via NFS. It is recommended to start with an 
+      empty directory. The bootable raw disk image will be 
+      extracted to this directory. During netboot it will be 
+      mounted at / on the guest system. To copy the bootable 
+      system to it you have to specify the path to the directory 
+      after the "-out" option when calling the ditool utility.
+
+1. Boot your raw disk image and on the guest system open Terminal 
+   (you find it in /NextApps directory). Create a new client 
+   using these commands from the command line:
+      su
+      newclient -s shared.local previous
+
+   If your guest system is NeXTstep 0.9 first use the procedure 
+   in networking.howto.txt to set up networking and then use 
+   these additional commands to copy the boot and kernel files to 
+   tftpboot:
+      cp /sdmach /private/tftpboot/mach
+      cp /usr/standalone/boot /private/tftpboot
+      #cp /sdmach /clients/previous/tftpboot/mach
+      #cp /usr/standalone/boot /clients/previous/tftpboot
+
+2. Shut down the guest system and use ditool from your host
+   system to extract your raw disk image to your NFS shared 
+   directory using this command from the command line:
+      ditool -im image.dd -out nfsdir
+
+3. From your host system replace the file "fstab" that is located 
+   in "nfsdir/private/etc" with the version of "fstab" located in
+   "nfsdir/clients/previous/etc". Then open the file "hosts" that
+   is located in "nfsdir/private/etc" using some text editor and 
+   append the following lines to the file:
+      10.0.2.15   previous
+      10.0.2.254  shared.local
+
+4. You can now netboot by setting "NFS shared directory" in the
+   "Network" options to nfsdir and "Boot device" from "Boot" 
+   options to "Ethernet".
+
+
+Boot guest SCSI disk:
+#su
+#newclient -s shared.local previous
+
+Host:
+#ditool -im image.dd -out shareddir -clean

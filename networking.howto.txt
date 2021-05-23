@@ -1,14 +1,8 @@
-WARNING: Do not start NeXTstep 0.8 or 0.9 with Ethernet 
-         connected. The system hangs in the boot process. If it 
-         hangs also with disconnected Ethernet you can proceed by          
-         simultaneously pressing 'ctrl'+'c'.
-
-NOTE:    This procedure is only valid when using SLiRP as 
-         networking interface.
-   
-FIXME:   There is no procedure for setting up networking on 
-         NeXTstep 0.8 and 0.9 yet. Make sure Ethernet is 
-         disconnected when booting NeXTstep 0.8 or 0.9.
+NOTE: This procedure is only valid when using SLiRP as network
+      interface. If using PCAP as network interface, you have to 
+      replace the IP address and the addresses of nameserver, 
+      router, broadcast and netmask with values valid on your 
+      local network.
 
 
 NOWTO: Setup networking on NeXTstep 1.0 and later:
@@ -27,14 +21,14 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
 
 3. This step is only required on NeXTstep 2.0 and later:
    Open "/etc/hosts" and append the following line:
-   10.0.2.15	XXX (replace XXX with your hostname, see 4c)
+      10.0.2.15 XXX (replace XXX with your hostname, see 4c)
 
-   Open Terminal (you find it in NextApps directory) and load the 
-   edited file using these commands:
-   su
-   niload hosts / < /etc/hosts 
+   Open Terminal (you find it in /NextApps directory) and load 
+   the edited file using these commands:
+      su
+      niload hosts / < /etc/hosts 
 
-4. Open NetManager (you find it in NextAdmin directory).
+4. Open NetManager (you find it in /NextAdmin directory).
 
    Go to "Local..." and configure with these values:
    a  For "Network Type" select  "Non-NetInfo Network"
@@ -53,24 +47,83 @@ NOTE: On NeXTstep 3.0 and later NetManager is called HostManager,
       called "NIS Domain Name".
 
 
-HOWTO: Open and save the above files using root privileges:
+HOWTO: Open and save "/etc/hosts" using root privileges:
 
-   a  Open Terminal (you find it in the NextApps directory) and 
+   a  Open Terminal (you find it in /NextApps directory) and 
       open "/etc/hosts" using these commands:
-      su
-      open /etc/hosts
+         su
+         open /etc/hosts
    b  Edit the file as described above.
    c  On NeXTstep 1.0 through 2.2 close the file. When asked if 
       you want to save changes, confirm it. On NeXTstep 1.0 
       through 2.2 the procedure is done and you can skip step d.
-      On NeXTstep 3.0 and later save a copy of the file to your 
+   d  On NeXTstep 3.0 and later save a copy of the file to your 
       home folder by selecting File > Save As... and writing
-      "~/hosts" to the name field.
-   d  Open Terminal and copy the file to its destination using 
-      these commands:
-      su
-      cp ~/hosts /etc
+      "~/hosts" to the name field. Then open Terminal and copy 
+      the file to its destination using these commands:
+         su
+         cp ~/hosts /etc
 
-NOTE: This procedure is valid for editing "/etc/hosts". For 
-      creating "/etc/resolv.conf" skip step a and start by 
-      creating a new file in Edit.app. Then proceed with step b.
+NOTE: This procedure also works for editing "/etc/resolv.conf". 
+      Just replace "/etc/hosts" with "/etc/resolv.conf". If 
+      "/etc/resolv.conf" does not exist you have to first create 
+      it using these commands before starting with step a:
+         su
+         touch /etc/resolv.conf
+
+
+NOWTO: Setup networking on NeXTstep 0.9:
+
+1. Make sure Ethernet is disconnected before the first boot. 
+   During the boot process you might be prompted to press 'c' 
+   or you might be dropped to the single user mode console. If 
+   prompted to press 'c' just do so or if on the single user mode
+   console just type "exit" to continue booting.
+
+2. Open Preferences (you find it in /NextApps directory) and go 
+   to the "Password" preferences panel. Set a password for "me" 
+   (leave old password field empty) and log out. You will then 
+   get the log in panel. Log in as super user by entering "root" 
+   in the "name" field and leaving the password field empty 
+   (press Enter twice).
+
+3. Open NetManager (you find it in /NextDeveloper/Apps directory)
+   and select "Local Configuration...". Set "Network Type" to 
+   "Non-NeXT Network" and click "Save". Confirm all messages 
+   until you are asked if you want to reboot. Skip reboot.
+
+4. Open Shell (you find it in /NextApps directory) to create, 
+   open and modify some files as follows:
+   a  Create and modify "/etc/resolv.conf" with these commands:
+         touch /etc/resolv.conf
+         open /etc/resolv.conf
+      Append this line to the file
+         nameserver 10.0.2.3
+      and save the changes by selecting Window > Save.
+   b  Modify "/etc/hostconfig" with these commands:
+         open /etc/hostconfig
+      Set the values as follows 
+         HOSTNAME=XXX (replace XXX with your preferred hostname)
+         INETADDR=10.0.2.15
+         ROUTER=10.0.2.2
+         NETMASTER=-NO-
+         YPDOMAIN=-NO-
+         IPNETMASK=255.255.255.0
+      and save the changes by selecting Window > Save. If a line
+      does not already exist, just create it.
+   c  Modify "/etc/rc" with these commands:
+         open /etc/rc
+      Find the term
+         /usr/etc/route add default $ROUTER 0
+      change it to
+         /usr/etc/route add default $ROUTER 1
+      and save the changes by selecting Window > Save.
+
+5. Open NetInfo (you find it in /NextDeveloper/Apps directory) 
+   and open "users" > "me". Double click the field right to 
+   "passwd" containing the encrypted password and delete the
+   contents of the field. Press OK and quit NetInfo.
+
+6. Connect Ethernet and from Shell reboot using this command:
+      reboot
+   Done.
