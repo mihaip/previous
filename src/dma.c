@@ -729,38 +729,54 @@ void dma_sndout_intr() {
 }
 
 int dma_sndin_write_memory() {
-	int value = 0;
-	
+    int value = 0;
+    int size = 0;
+    
     if (dma[CHANNEL_SOUNDIN].csr&DMA_ENABLE) {
-		
-		Audio_Input_Lock();
-
+        
+        Audio_Input_Lock();
+        
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Sound In: Write to memory at $%08x, %i bytes",
                    dma[CHANNEL_SOUNDIN].next,dma[CHANNEL_SOUNDIN].limit-dma[CHANNEL_SOUNDIN].next);
-
-		TRY(prb) {
+        
+        TRY(prb) {
             while (dma[CHANNEL_SOUNDIN].next<dma[CHANNEL_SOUNDIN].limit) {
                 value = Audio_Input_Read();
-				if (value < 0) {
-					break;
-				}
-				put_byte(dma[CHANNEL_SOUNDIN].next, value);
-				dma[CHANNEL_SOUNDIN].next++;
+                if (value < 0) {
+                    Log_Printf(LOG_WARN, "[DMA] Channel Sound In: Waiting for data");
+                    size = 256;
+                    break;
+                }
+                /* Time for syncing */
+                if (size == 256) {
+                    break;
+                }
+                size++;
+                put_byte(dma[CHANNEL_SOUNDIN].next, value);
+                dma[CHANNEL_SOUNDIN].next++;
             }
         } CATCH(prb) {
             Log_Printf(LOG_WARN, "[DMA] Channel Sound In: Bus error reading from %08x",dma[CHANNEL_SOUNDIN].next);
             dma[CHANNEL_SOUNDIN].csr &= ~DMA_ENABLE;
             dma[CHANNEL_SOUNDIN].csr |= (DMA_COMPLETE|DMA_BUSEXC);
         } ENDTRY
-		
-		Audio_Input_Unlock();
-
+        
+        /* If we accumulated too much data write it fast */
+        if (Audio_Input_BufSize() > 8192) {
+            Log_Printf(LOG_WARN, "[DMA] Channel Sound In: Fast write");
+            size = 16;
+        }
+        
+        Audio_Input_Unlock();
+        
         dma[CHANNEL_SOUNDIN].saved_limit = dma[CHANNEL_SOUNDIN].next;
         dma_interrupt(CHANNEL_SOUNDIN);
-		
-		return (dma[CHANNEL_SOUNDIN].next==dma[CHANNEL_SOUNDIN].limit);
+        
+        if (dma[CHANNEL_SOUNDIN].next==dma[CHANNEL_SOUNDIN].limit) {
+            return 0;
+        }
     }
-	return 1;
+    return size;
 }
 
 /* Channel Printer */

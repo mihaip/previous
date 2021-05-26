@@ -40,11 +40,17 @@ void Audio_Output_Queue(Uint8* data, int len) {
     }
 }
 
-Uint32 Audio_Output_Queue_Size() {
+Uint32 Audio_Output_Queue_Size(void) {
     if (bSoundOutputWorking) {
         return SDL_GetQueuedAudioSize(Audio_Output_Device) / 4;
     } else {
         return 0;
+    }
+}
+
+void Audio_Output_Queue_Clear(void) {
+    if (bSoundOutputWorking) {
+        SDL_ClearQueuedAudio(Audio_Output_Device);
     }
 }
 
@@ -74,13 +80,26 @@ void Audio_Input_Lock() {
  * Initialize recording buffer with silence to compensate for time gap
  * between Audio_Input_Enable and first call of Audio_Input_CallBack.
  */
-#define AUDIO_RECBUF_INIT	0 /* 16000 byte = 1 second */
+#define AUDIO_RECBUF_INIT	32 /* 16000 byte = 1 second */
 
 static void Audio_Input_InitBuf(void) {
-	recBufferRd = 0;
-	for (recBufferWr = 0; recBufferWr < AUDIO_RECBUF_INIT; recBufferWr++) {
-		recBuffer[recBufferWr] = 0;
-	}
+    recBufferRd = 0;
+    Log_Printf(LOG_WARN, "[Audio] Initializing input buffer with %d ms of silence.", AUDIO_RECBUF_INIT>>4);
+    for (recBufferWr = 0; recBufferWr < AUDIO_RECBUF_INIT; recBufferWr++) {
+        recBuffer[recBufferWr] = 0;
+    }
+}
+
+int Audio_Input_BufSize(void) {
+    if (bSoundInputWorking) {
+        if (recBufferRd < recBufferWr) {
+            return recBufferWr - recBufferRd;
+        } else {
+            return recBufferRd - recBufferWr;
+        }
+    } else {
+        return 0;
+    }
 }
 
 int Audio_Input_Read(void) {
@@ -250,7 +269,7 @@ void Audio_Output_Enable(bool bEnable) {
 void Audio_Input_Enable(bool bEnable) {
     if (bEnable && !bRecordingBuffer) {
         /* Start recording */
-		Audio_Input_InitBuf();
+        Audio_Input_InitBuf();
         SDL_PauseAudioDevice(Audio_Input_Device, false);
         bRecordingBuffer = true;
     }

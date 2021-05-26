@@ -256,6 +256,7 @@ Previous v2.4 (unreleased):
   > Improves network auto-configuration.
   > Improves performance and accuracy of FSINCOS.
   > Fixes bug that caused slow disk access when running Mac OS.
+  > Fixes bug that caused audio recording to be unreliable.
 
 
  7) Running Previous

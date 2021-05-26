@@ -115,6 +115,7 @@ void snd_start_output(Uint8 mode) {
     if (!sound_output_active) {
         Log_Printf(LOG_SND_LEVEL, "[Sound] Starting output loop.");
         sound_output_active = true;
+        Audio_Output_Queue_Clear();
         CycInt_AddRelativeInterruptCycles(10, INTERRUPT_SND_OUT);
     } else { /* Even re-enable loop if we are already active. This lowers the delay. */
         Log_Printf(LOG_DEBUG, "[Sound] Restarting output loop.");
@@ -201,18 +202,22 @@ bool snd_output_active() {
     return sound_output_active;
 }
 
+/*
+ Sound is recorded at 8012 Hz. One sample (byte) takes about 124 microseconds.
+*/
+static const int SNDIN_SAMPLE_TIME = 124;
 void SND_In_Handler(void) {
     CycInt_AcknowledgeInterrupt();
     
-    int dma_done = dma_sndin_write_memory();
-	
-	if (dma_done) {
-		if(snd_input_active()) {
-			kms_sndin_overrun();
-		}
-	} else {
-		CycInt_AddRelativeInterruptUs(10000, 0, INTERRUPT_SND_IN);
-	}
+    int size = dma_sndin_write_memory();
+    
+    if (!size) {
+        if(snd_input_active()) {
+            kms_sndin_overrun();
+        }
+    } else {
+        CycInt_AddRelativeInterruptUs(size*SNDIN_SAMPLE_TIME, 0, INTERRUPT_SND_IN);
+    }
 }
 
 bool snd_input_active() {
