@@ -255,8 +255,9 @@ Previous v2.4 (unreleased):
   > Adds support for netbooting from a shared directory.
   > Improves network auto-configuration.
   > Improves performance and accuracy of FSINCOS.
+  > Improves mouse movement handling.
   > Fixes bug that caused slow disk access when running Mac OS.
-  > Fixes bug that caused audio recording to be unreliable.
+  > Fixes bug that caused sound recording to be unreliable.
 
 
  7) Running Previous

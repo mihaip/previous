@@ -182,8 +182,8 @@ static int adjust_cycles(int cycles) {
     // General instruction timing scaling factors for 030/040. Mostly guesswork based
     // on NXbench scores
     switch(cpu_level) {
-        case 3: cycles *= 3; cycles /= 2; break;
-        case 4: cycles *= 1; cycles /= 3; break;
+        case 3: cycles *= 3; cycles /= 2; break; // *3/4 for correct MIPS
+        case 4: cycles *= 1; cycles /= 3; break; // *1/5 for correct MIPS
     }
     if(cycles == 0) cycles = 1;
     // special cases for timing loops, ROM POST depend on these

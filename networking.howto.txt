@@ -41,7 +41,7 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
    h  Hit "OK" and confirm all messages. It will reboot. Done.
 
 NOTE: On NeXTstep 3.0 and later NetManager is called HostManager, 
-      "Network type" is called "NetInfo Binding" and "Non-NetInfo 
+      "Network Type" is called "NetInfo Binding" and "Non-NetInfo 
       Network" is called "Use local domain only".
       On NeXTstep 2.0 and later "Yellow Pages Domain Name" is 
       called "NIS Domain Name".
