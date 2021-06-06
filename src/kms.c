@@ -505,7 +505,7 @@ void kms_mouse_move(int x, bool left, int y, bool up) {
     
     m_move_left = left;
     m_move_up   = up;
-
+#if 0
     int xsteps = x / 8; if(xsteps == 0) xsteps = 1;
     int ysteps = y / 8; if(ysteps == 0) ysteps = 1;
     
@@ -514,7 +514,13 @@ void kms_mouse_move(int x, bool left, int y, bool up) {
     
     m_move_y  = y;
     m_move_dy = y / ysteps;
+#else
+    m_move_x = x;
+    m_move_y = y;
     
+    m_move_dx = 1;
+    m_move_dy = 1;
+#endif
     CycInt_AddRelativeInterruptCycles(10, INTERRUPT_MOUSE);
 }
 
