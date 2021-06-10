@@ -8,6 +8,22 @@ NOTE: This procedure is only valid when using SLiRP as network
       server. You might also need to create an entry with your 
       server's IP address and hostname in "/etc/hosts".
 
+      There is no procedure for NeXTstep 0.9 but manual mounting
+      does work.
+
+
+HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
+
+1. Open NFSManager (you find it in the /NextAdmin directory).
+
+2. Go to the Imported Directories window and press "Add...".
+
+3. Set server name to "shared.local" and remote directory to "/".
+   Click OK and quit NFSManager. 
+
+4. The shared folder should immediately be accessible from /Net 
+   directory.
+
 
 NOWTO: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
 
@@ -28,23 +44,32 @@ NOWTO: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
    after reboot.
 
 
-HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
+HOWTO: Setup NFS file sharing under NeXTstep 0.8:
 
-1. Open NFSManager (you find it in the /NextAdmin directory).
+1. Open Shell (you find it in /bootdisk/NeXT/Apps directory) and 
+   copy "/etc/fstab" to your home directory using these commands:
+      su
+      cp /etc/fstab /bootdisk/Homes/me
 
-2. Go to the Imported Directories window and press "Add...".
+2. Open the file "/bootdisk/Homes/me/fstab" and append this line
+   at the end of the file:
+      shared.local:/ /bootdisk/Network nfs rw 0 0
 
-3. Set server name to "shared.local" and remote directory to "/".
-   Click OK and quit NFSManager. 
+3. Using Shell copy the modified file back in place and reboot:
+      su
+      cp /bootdisk/Homes/me/fstab /etc
+      touch /bootdisk/fastboot
+      reboot
 
-4. The shared folder should immediately be accessible from /Net 
+4. The shared folder should be accessible from /bootdisk/Network
    directory.
 
 
 HOWTO: Manually mount NFS shared directory:
+
 1. Open Terminal and type these commands to the command line:
       su
-      mount -o rw,net shared.local:/ /Net
+      mount -o rw shared.local:/ /Net
 
 2. The shared folder should immediately be accessible from /Net 
    directory.

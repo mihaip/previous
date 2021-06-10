@@ -2,9 +2,12 @@ NOTE: This procedure is only valid when using SLiRP as network
       interface. PCAP cannot be used for netbooting. 
 
       It is not possible to extract images of magneto-optical 
-      disks using ditool. Netbooting NeXTstep 0.9 only works 
-      using ROM 0.8 and netbooting NeXTstep 1.0 and later only 
-      works using ROM 1.0 and later.
+      disks using ditool. It is also not possible to extract 
+      images which have NeXTstep 0.8 installed. 
+
+      Netbooting NeXTstep 0.9 only works using ROM 0.8 and 
+      netbooting NeXTstep 1.0 and later only works using ROM 1.0 
+      and later.
 
       Before you start you need these things:
       a  ditool: This command line utility comes with Previous. 

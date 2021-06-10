@@ -12,16 +12,21 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
    press 'c' just do so or if on the single user mode console 
    just type "exit" to continue booting.
 
-2. Open "/etc/resolv.conf" and add "nameserver 10.0.2.3". If this 
-   file does not exist, you have to first create it. Be sure you 
-   create a plain text file. If you use Edit.app you can do this 
-   by selecting Format > Text > Make ASCII. You can save the file 
-   from the save dialog by typing "/etc/resolv.conf" to the name 
-   field.
+2. Open "/etc/resolv.conf" and add these two lines to the file:
+      domain local
+      nameserver 10.0.2.3
 
-3. This step is only required on NeXTstep 2.0 and later:
-   Open "/etc/hosts" and append the following line:
-      10.0.2.15 XXX (replace XXX with your hostname, see 4c)
+   If the file does not exist, you have to first create it. Make 
+   sure you create a plain text file. If you use Edit.app you can 
+   do this by selecting Format > Text > Make ASCII. You can save 
+   the file from the save dialog by typing "/etc/resolv.conf" to 
+   the name field.
+
+3. Open "/etc/hosts" and append the following lines. In the first 
+   line replace xxx with your preferred hostname. It has to 
+   consist of a maximum of eight lower case letters.
+      10.0.2.15 xxx
+      10.0.2.254 shared.local
 
    Open Terminal (you find it in /NextApps directory) and load 
    the edited file using these commands:
@@ -33,7 +38,7 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
    Go to "Local..." and configure with these values:
    a  For "Network Type" select  "Non-NetInfo Network"
    b  For "Yellow Pages Domain Name" select "None"
-   c  Choose a hostname (choose whatever you want, see step 3)
+   c  Set "Hostname" to the name chosen in step 3
    d  Set "Address" to "10.0.2.15"
    e  Set "Router" to "10.0.2.2"
    f  Set "Broadcast Address to "10.0.2.255"
@@ -93,17 +98,20 @@ NOWTO: Setup networking on NeXTstep 0.9:
    until you are asked if you want to reboot. Skip reboot.
 
 4. Open Shell (you find it in /NextApps directory) to create, 
-   open and modify some files as follows:
+   open and modify some files as follows. Replace xxx in steps b 
+   and c with your preferred hostname. It has to consist of a 
+   maximum of eight lower case letters.
    a  Create and modify "/etc/resolv.conf" with these commands:
          touch /etc/resolv.conf
          open /etc/resolv.conf
-      Append this line to the file
+      Append these two lines to the file
+         domain local
          nameserver 10.0.2.3
       and save the changes by selecting Window > Save.
    b  Modify "/etc/hostconfig" with these commands:
          open /etc/hostconfig
       Set the values as follows 
-         HOSTNAME=XXX (replace XXX with your preferred hostname)
+         HOSTNAME=xxx
          INETADDR=10.0.2.15
          ROUTER=10.0.2.2
          NETMASTER=-NO-
@@ -111,7 +119,12 @@ NOWTO: Setup networking on NeXTstep 0.9:
          IPNETMASK=255.255.255.0
       and save the changes by selecting Window > Save. If a line
       does not already exist, just create it.
-   c  Modify "/etc/rc" with these commands:
+   c  Modify "/etc/hosts" with these commands:
+         open /etc/hosts
+      Append these two lines to the file
+         10.0.2.15 xxx
+         10.0.2.254 shared.local
+   d  Modify "/etc/rc" with these commands:
          open /etc/rc
       Find the term
          /usr/etc/route add default $ROUTER 0
@@ -127,3 +140,59 @@ NOWTO: Setup networking on NeXTstep 0.9:
 6. Connect Ethernet and from Shell reboot using this command:
       reboot
    Done.
+
+
+NOWTO: Setup networking on NeXTstep 0.8:
+
+1. Open the file "/etc/hosts" and append the following lines to
+   the file. In the first line replace xxx with your preferred
+   hostname. It has to consist of a maximum of eight lower case 
+   letters.
+      10.0.2.15 xxx
+      10.0.2.254 shared.local
+
+2. Open the file "/etc/resolv.conf" and append the following two
+   lines to the file:
+      domain local
+      nameserver 10.0.2.3
+
+3. Open Shell (you find it in /bootdisk/NeXT/Apps directory) and 
+   use these commands to write your hostname to the disk label. 
+   Replace xxx with the hostname chosen in step 1.
+      su
+      disk -t XT-8760S-512 -H xxx /dev/rsd0a
+
+4. From Shell use these commands to copy "rc.local" to your home 
+   directory:
+      su
+      cp /etc/rc.local /bootdisk/Homes/me
+
+5. Open the file "/bootdisk/Homes/me/rc.local" and disable the 
+   following lines by adding # at the beginning of each line:
+     #if [ -f /etc/routed ]; then
+     #	  /etc/routed &
+     #	  (echo -n ' routed') >/dev/console
+     #fi
+
+   Then insert the following lines after the disabled part:
+     if [ -f /etc/route ]; then
+        (/etc/route add default 10.0.2.2 1) >/dev/console
+     fi
+
+6. Using Shell copy the modified "rc.local" back in place and 
+   reboot using these commands:
+      su
+      cp /bootdisk/Homes/me/rc.local /etc
+      touch /bootdisk/fastboot
+      reboot
+
+7. You can now do some basic networking like telnet to a specific
+   IP address. Note that resolving host names does not work.
+
+8. If you prefer not to modify the system files as described in 
+   the above steps you can also manually configure the network 
+   interface after every reboot using these commands from the 
+   command line:
+      su
+      ifconfig en0 10.0.2.15
+      route add default 10.0.2.2 1
