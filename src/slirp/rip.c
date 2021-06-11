@@ -26,7 +26,7 @@
 #include "ctl.h"
 #include "nfs/nfsd.h"
 
-
+#if 0 // unused
 static void rip_request(void)
 {
     struct mbuf *m;
@@ -55,6 +55,42 @@ static void rip_request(void)
     rt->af             = htons(AF_UNSPEC);
     rt->rt_addr.s_addr = htonl(INADDR_ANY);
     rt->metric         = htonl(RIP_HOP_UNREACH);
+    
+    m->m_len = sizeof(struct rip_t) -
+    sizeof(struct ip) - sizeof(struct udphdr);
+    
+    udp_output2(NULL, m, &saddr, &daddr, IPTOS_LOWDELAY);
+}
+#endif
+
+void rip_broadcast(void)
+{
+    struct mbuf *m;
+    struct rip_t *rrp;
+    struct rtentry_t *rt;
+    struct sockaddr_in saddr, daddr;
+    
+    if ((m = m_get()) == NULL)
+        return;
+    m->m_data += if_maxlinkhdr;
+    rrp = (struct rip_t *)m->m_data;
+    m->m_data += sizeof(struct udpiphdr);
+    memset(rrp, 0, sizeof(struct rip_t));
+    
+    saddr.sin_addr        = alias_addr;
+    saddr.sin_port        = htons(RIP_ROUTER);
+    daddr.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+    daddr.sin_port        = htons(RIP_ROUTER);
+    
+    rrp->rp_cmd  = RIP_REPLY;
+    rrp->rp_vers = RIP_VERSION;
+    
+    rt = &rrp->rp_rt[0];
+    
+    /* Send default routing table entry */
+    rt->af             = htons(AF_INET);
+    rt->rt_addr.s_addr = htonl(INADDR_ANY);
+    rt->metric         = htonl(RIP_HOP_DEFAULT);
     
     m->m_len = sizeof(struct rip_t) -
     sizeof(struct ip) - sizeof(struct udphdr);

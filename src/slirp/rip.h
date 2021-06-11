@@ -49,3 +49,4 @@ struct rip_t {
 #endif
 
 void rip_input(struct mbuf *m);
+void rip_broadcast(void);

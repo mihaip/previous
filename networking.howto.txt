@@ -1,8 +1,10 @@
 NOTE: This procedure is only valid when using SLiRP as network
       interface. If using PCAP as network interface, you have to 
-      replace the IP address and the addresses of nameserver, 
-      router, broadcast and netmask with values valid on your 
-      local network.
+      replace your domain and address and the addresses of 
+      nameserver, router, broadcast and netmask with values valid 
+      on your local network. If your router does not support the 
+      Routing Information Protocol version 1 you have to 
+      statically configure the router address.
 
 
 NOWTO: Setup networking on NeXTstep 1.0 and later:
@@ -113,7 +115,7 @@ NOWTO: Setup networking on NeXTstep 0.9:
       Set the values as follows 
          HOSTNAME=xxx
          INETADDR=10.0.2.15
-         ROUTER=10.0.2.2
+         ROUTER=-ROUTED-
          NETMASTER=-NO-
          YPDOMAIN=-NO-
          IPNETMASK=255.255.255.0
@@ -124,13 +126,6 @@ NOWTO: Setup networking on NeXTstep 0.9:
       Append these two lines to the file
          10.0.2.15 xxx
          10.0.2.254 shared.local
-   d  Modify "/etc/rc" with these commands:
-         open /etc/rc
-      Find the term
-         /usr/etc/route add default $ROUTER 0
-      change it to
-         /usr/etc/route add default $ROUTER 1
-      and save the changes by selecting Window > Save.
 
 5. Open NetInfo (you find it in /NextDeveloper/Apps directory) 
    and open "users" > "me". Double click the field right to 
@@ -140,6 +135,12 @@ NOWTO: Setup networking on NeXTstep 0.9:
 6. Connect Ethernet and from Shell reboot using this command:
       reboot
    Done.
+
+NOTE: If you prefer to statically configure the router you have 
+      to modify the file "/etc/rc" by replacing the term
+         /usr/etc/route add default $ROUTER 0
+      with the term
+         /usr/etc/route add default $ROUTER 1
 
 
 NOWTO: Setup networking on NeXTstep 0.8:
@@ -157,42 +158,28 @@ NOWTO: Setup networking on NeXTstep 0.8:
       nameserver 10.0.2.3
 
 3. Open Shell (you find it in /bootdisk/NeXT/Apps directory) and 
-   use these commands to write your hostname to the disk label. 
-   Replace xxx with the hostname chosen in step 1.
+   use these commands to write your hostname to the disk label
+   and reboot. Replace xxx with the hostname chosen in step 1.
       su
       disk -t XT-8760S-512 -H xxx /dev/rsd0a
-
-4. From Shell use these commands to copy "rc.local" to your home 
-   directory:
-      su
-      cp /etc/rc.local /bootdisk/Homes/me
-
-5. Open the file "/bootdisk/Homes/me/rc.local" and disable the 
-   following lines by adding # at the beginning of each line:
-     #if [ -f /etc/routed ]; then
-     #	  /etc/routed &
-     #	  (echo -n ' routed') >/dev/console
-     #fi
-
-   Then insert the following lines after the disabled part:
-     if [ -f /etc/route ]; then
-        (/etc/route add default 10.0.2.2 1) >/dev/console
-     fi
-
-6. Using Shell copy the modified "rc.local" back in place and 
-   reboot using these commands:
-      su
-      cp /bootdisk/Homes/me/rc.local /etc
       touch /bootdisk/fastboot
       reboot
 
-7. You can now do some basic networking like telnet to a specific
-   IP address. Note that resolving host names does not work.
+4. You can now do some basic networking like telnet to a specific
+   IP address or set up an NFS share. Note that resolving host 
+   names via DNS does not work.
 
-8. If you prefer not to modify the system files as described in 
-   the above steps you can also manually configure the network 
-   interface after every reboot using these commands from the 
-   command line:
-      su
-      ifconfig en0 10.0.2.15
-      route add default 10.0.2.2 1
+NOTE: The /etc/rc.boot script configures the network with this 
+      command:
+         ifconfig en0 10.0.2.15
+
+      The router can be statically configured by modifying the 
+      /etc/rc.local script. You need to replace the lines
+         if [ -f /etc/routed ]; then
+            /etc/routed &
+            (echo -n ' routed') >/dev/console
+         fi
+      with the lines
+         if [ -f /etc/route ]; then
+            (/etc/route add default 10.0.2.2 1) >/dev/console
+         fi

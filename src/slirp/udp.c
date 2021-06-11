@@ -184,6 +184,10 @@ udp_input(m, iphlen)
             tftp_input(m);
             goto done;
             break;
+        case RIP_ROUTER:
+            rip_input(m);
+            goto done;
+            break;
         default:
             break;
     }

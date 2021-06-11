@@ -21,6 +21,8 @@ int slirp_select_fill(int *pnfds,
 void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds);
 
 void slirp_input(const uint8_t *pkt, int pkt_len);
+    
+void slirp_rip_broadcast(void);
 
 /* you must provide the following functions: */
 int slirp_can_output(void);

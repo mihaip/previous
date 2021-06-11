@@ -680,3 +680,8 @@ int slirp_add_exec(int do_pty, const char *args, int addr_low_byte,
     return add_exec(&exec_list, do_pty, args, 
                     addr_low_byte, htons(guest_port));
 }
+
+void slirp_rip_broadcast(void)
+{
+    rip_broadcast();
+}

@@ -245,6 +245,7 @@ const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
 
 #include "bootp.h"
 #include "tftp.h"
+#include "rip.h"
 #include "libslirp.h"
 
 extern struct ttys *ttys_unit[MAX_INTERFACES];
