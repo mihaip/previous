@@ -8,9 +8,6 @@ NOTE: This procedure is only valid when using SLiRP as network
       server. You might also need to create an entry with your 
       server's IP address and hostname in "/etc/hosts".
 
-      There is no procedure for NeXTstep 0.9 but manual mounting
-      does work.
-
 
 HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
 
@@ -44,6 +41,35 @@ NOWTO: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
    after reboot.
 
 
+HOWTO: Setup NFS file sharing under NeXTstep 0.9:
+
+1. Open Shell (you find it in /NextApps directory) and copy the
+   files "/etc/fstab" and "/etc/rc" to your home directory using 
+   these commands:
+      su
+      cp /etc/fstab /me
+      cp /etc/rc /me
+
+2. Open the file "/me/fstab" and append this line at the end of 
+   the file:
+      shared.local:/ /Net nfs rw 0 0
+   Save the changes by selecting Window > Save.
+
+3. Open the file "/me/rc" and replace the term 
+      mount -vat nfs
+   with the term
+      mount -v shared.local:/ /Net
+   Save the changes by selecting Window > Save.
+
+4. Using Shell copy the modified files back in place and reboot:
+      su
+      cp /me/fstab /etc
+      cp /me/rc /etc
+      reboot
+
+5. The shared folder should be accessible from /Net directory.
+
+
 HOWTO: Setup NFS file sharing under NeXTstep 0.8:
 
 1. Open Shell (you find it in /bootdisk/NeXT/Apps directory) and 
@@ -54,6 +80,7 @@ HOWTO: Setup NFS file sharing under NeXTstep 0.8:
 2. Open the file "/bootdisk/Homes/me/fstab" and append this line
    at the end of the file:
       shared.local:/ /bootdisk/Network nfs rw 0 0
+   Save the changes by selecting Window > Save.
 
 3. Using Shell copy the modified file back in place and reboot:
       su

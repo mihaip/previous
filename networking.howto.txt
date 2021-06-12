@@ -126,6 +126,7 @@ NOWTO: Setup networking on NeXTstep 0.9:
       Append these two lines to the file
          10.0.2.15 xxx
          10.0.2.254 shared.local
+      and save the changes by selecting Window > Save.
 
 5. Open NetInfo (you find it in /NextDeveloper/Apps directory) 
    and open "users" > "me". Double click the field right to 
