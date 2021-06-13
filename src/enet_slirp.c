@@ -86,32 +86,39 @@ static void slirp_rip_tick(void)
 {
     if (slirp_started)
     {
+        Log_Printf(LOG_WARN, "[SLIRP] Routing table broadcast");
         SDL_LockMutex(slirp_mutex);
         slirp_rip_broadcast();
         SDL_UnlockMutex(slirp_mutex);
     }
 }
 
+
 #define SLIRP_TICK_MS   10
-#define SLIRP_RIP_MS    (30*1000)
+#define SLIRP_RIP_SEC   30
 
 static int tick_func(void *arg)
 {
-    int time = 0;
-    
+    Uint32 time = host_get_save_time();
+    Uint32 last_time = time;
+    Uint64 next_time = time + SLIRP_RIP_SEC;
+
     while(slirp_started)
     {
         host_sleep_ms(SLIRP_TICK_MS);
         slirp_tick();
         
-        if(time < SLIRP_RIP_MS)
+        // for routing information protocol
+        last_time = time;
+        time = host_get_save_time();
+        if (time < last_time) // if time counter wrapped
         {
-            time += SLIRP_TICK_MS;
+            next_time = 0; // reset next_time
         }
-        else
+        if (time >= next_time)
         {
             slirp_rip_tick();
-            time = 0;
+            next_time += SLIRP_RIP_SEC;
         }
     }
     return 0;

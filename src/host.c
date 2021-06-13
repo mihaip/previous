@@ -42,6 +42,7 @@ static double       unixTimeOffset = 0;
 static double       perfFrequency;
 static Uint64       pauseTimeStamp;
 static bool         osDarkmatter;
+static double       saveTime;
 
 static inline double real_time(void) {
     double rt  = (SDL_GetPerformanceCounter() - perfCounterStart);
@@ -62,6 +63,7 @@ void host_reset(void) {
     hardClockActual   = 0;
     enableRealtime    = ConfigureParams.System.bRealtime;
     osDarkmatter      = false;
+    saveTime          = 0;
     
     for(int i = NUM_BLANKS; --i >= 0;) {
         vblCounter[i] = 0;
@@ -106,6 +108,15 @@ void host_hardclock(int expected, int actual) {
     }
 }
 
+// this can be used by other threads to read hostTime
+Uint32 host_get_save_time(void) {
+    Uint32 hosttime_sec;
+    host_lock(&timeLock);
+    hosttime_sec = (Uint32)saveTime;
+    host_unlock(&timeLock);
+    return hosttime_sec;
+}
+
 extern Sint64           nCyclesMainCounter;
 extern struct regstruct regs;
 
@@ -121,6 +132,9 @@ double host_time_sec() {
         hostTime /= cycleDivisor;
         hostTime += cycleSecsStart;
     }
+    
+    // save hostTime to be read by other threads
+    saveTime = hostTime;
     
     // switch to realtime if...
     // 1) ...realtime mode is enabled and...
