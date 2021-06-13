@@ -82,9 +82,9 @@ PathCommon::PathCommon(const std::string& sep, const char* path)
 
 std::string PathCommon::to_string() const {
     std::string newPath(empty() ? sep : "");
-    for(const std::string& comp : *this) {
+    for(size_t i = 0; i < size(); i++) {
         newPath += sep;
-        newPath += comp;
+        newPath += (*this)[i];
     }
     return is_absolute() ? newPath : newPath.substr(1);
 }
@@ -105,8 +105,7 @@ vector<string> PathCommon::split(const std::string& sep, const std::string& path
 }
 
 void PathCommon::append(const PathCommon& path) {
-    for(const std::string& comp : path)
-        push_back(comp);
+    insert(end(), path.begin(), path.end());
     this->path = to_string();
 }
 

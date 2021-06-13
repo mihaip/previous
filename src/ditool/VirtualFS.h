@@ -132,7 +132,7 @@ public:
     int                   vfsRemove  (const VFSPath& absoluteVFSpath);
     int                   vfsRename  (const VFSPath& absoluteVFSpath, const VFSPath& to);
     int                   vfsReadlink(const VFSPath& absoluteVFSpath1, VFSPath& result);
-    int                   vfsLink    (const VFSPath& absoluteVFSpath1, const VFSPath& absoluteVFSpath2, bool soft);
+    int                   vfsLink    (const VFSPath& absoluteVFSpathFrom, const VFSPath& absoluteVFSpathTo, bool soft);
     int                   vfsMkdir   (const VFSPath& absoluteVFSpath, mode_t mode);
     int                   vfsNftw    (const VFSPath& absoluteVFSpath, int (*fn)(const char *, const struct stat *ptr, int flag, struct FTW *), int depth, int flags);
     int                   vfsStatvfs (const VFSPath& absoluteVFSpath, struct statvfs& fsstat);

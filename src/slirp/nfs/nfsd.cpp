@@ -64,6 +64,28 @@ extern "C" int nfsd_read(const char* path, size_t fileOffset, void* dst, size_t 
     return -1;
 }
 
+static bool getUID_GID(const char* userName, int* uid, int* gid) {
+    // try to get uid/gid of user "me" from /etc/passwd and use it as the NFS default user
+    size_t buffer_size = 1024*1024;
+    char* buffer = (char*)malloc(buffer_size);
+    int count = nfsd_read("/etc/passwd", 0, buffer, buffer_size);
+    if(count > 0) {
+        buffer[count] = '\0';
+        char* line = strtok(buffer, "\n");
+        while(line) {
+            char user[256];
+            char passwd[1024];
+            if(sscanf(line, "%[^:]::%d:%d", user, uid, gid) < 3)
+                sscanf(line, "%[^:]:%[^:]:%d:%d", user, passwd, uid, gid);
+            if(strcmp(userName, user) == 0)
+                return true;
+            line  = strtok(NULL, "\n");
+        }
+    }
+    free(buffer);
+    return false;
+}
+
 extern "C" void nfsd_start(void) {
     if(access(ConfigureParams.Ethernet.szNFSroot, F_OK | R_OK | W_OK) < 0) {
         printf("[NFSD] can not access directory '%s'. nfsd startup canceled.\n", ConfigureParams.Ethernet.szNFSroot);
@@ -79,7 +101,7 @@ extern "C" void nfsd_start(void) {
             nfsd_fts[0] = new FileTableNFSD(ConfigureParams.Ethernet.szNFSroot, basePath);
         }
     } else {
-        nfsd_fts[0] = new FileTableNFSD(ConfigureParams.Ethernet.szNFSroot, "/netboot");
+        nfsd_fts[0] = new FileTableNFSD(ConfigureParams.Ethernet.szNFSroot, "/");
     }
     if(initialized) return;
 
@@ -93,28 +115,10 @@ extern "C" void nfsd_start(void) {
     static CMountProg     MountProg;
     static CBootparamProg BootparamProg;
 
-    // try to get uid/gid of user "me" from /etc/passwd and use it as the NFS default user
-    size_t buffer_size = 1024*1024;
-    char* buffer = (char*)malloc(buffer_size);
-    int count = nfsd_read("/etc/passwd", 0, buffer, buffer_size);
     int uid;
     int gid;
-    if(count > 0) {
-        buffer[count] = '\0';
-        char* line = strtok(buffer, "\n");
-        while(line) {
-            char user[256];
-            char passwd[1024];
-            if(sscanf(line, "%[^:]::%d:%d", user, &uid, &gid) < 3)
-                sscanf(line, "%[^:]:%[^:]:%d:%d", user, passwd, &uid, &gid);
-            if(strcmp("me", user) == 0) {
-                NFSProg.SetUserID(uid, gid);
-                break;
-            }
-            line  = strtok(NULL, "\n");
-        }
-    }
-    free(buffer);
+    if(getUID_GID("me", &uid, &gid))
+       NFSProg.SetUserID(uid, gid);
     
     g_RPCServer.SetLogOn(g_bLogOn);
 

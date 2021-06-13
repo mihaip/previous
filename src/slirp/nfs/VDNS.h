@@ -11,6 +11,8 @@
 #ifdef __cplusplus
 
 #include <stdio.h>
+#include <string>
+#include <vector>
 
 #include "UDPServerSocket.h"
 #include "host.h"
@@ -31,17 +33,17 @@ typedef enum {
 
 typedef struct {
     vdns_rec_type type;
-    char          key[_SC_HOST_NAME_MAX];
+    std::string   key;
     uint8_t       data[1024];
     size_t        size;
     uint32_t      inaddr;
 } vdns_record;
 
 class VDNS : public ISocketListener {
-    static vdns_record s_dns_db[32];
-    static size_t      s_dns_db_sz;
-    mutex_t*           m_hMutex;
-    UDPServerSocket*   m_udp;
+    static std::vector<vdns_record> sDB;
+    static vdns_record              errNonSuchName;
+    mutex_t*                        mMutex;
+    UDPServerSocket*                mUDP;
     
     void AddRecord(uint32_t addr, const char* name = NULL);
 public:
@@ -52,9 +54,9 @@ public:
     void   SocketReceived(CSocket* pSocket);
 };
 
-extern "C" int nfsd_vdns_match(struct mbuf *m);
+extern "C" int nfsd_vdns_match(struct mbuf *m, uint32_t addr, int dport);
 #else
-int nfsd_vdns_match(struct mbuf *m);
+int nfsd_vdns_match(struct mbuf *m, uint32_t addr, int dport);
 
 #endif /* __cplusplus */
 

@@ -18,10 +18,6 @@ class CMountProg : public CRPCProg
 public:
 	CMountProg();
 	~CMountProg();
-    
-	const char* GetClientAddr(int nIndex) const;
-	int         GetMountNumber(void) const;
-
 protected:
 	int m_nMountNum;
     
@@ -32,8 +28,6 @@ protected:
 	int   ProcedureUMNT(void);
     int   ProcedureUMNTALL(void);
     int   ProcedureEXPORT(void);
-    
-    char* FormatPath(const char *pPath, pathFormats format);
 };
 
 #endif

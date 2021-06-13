@@ -1,7 +1,9 @@
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <vector>
 #include <map>
+#include <memory>
 
 #include <stdio.h>
 #include <unistd.h>
@@ -11,6 +13,7 @@
 #include "fsdir.h"
 #include "UFS.h"
 #include "VirtualFS.h"
+#include "ctl.h"
 
 using namespace std;
 
@@ -36,6 +39,7 @@ static void print_help(void) {
     cout << "  -lst <type> List files in disk image of type. type=FILE|DIR|SLINK|HLINK|FIFO|CHAR|BLOCK|SOCK" << endl;
     cout << "  -out <path> Copy files from disk image to <path>." << endl;
     cout << "  -clean      Clean output directory before copying." << endl;
+    cout << "  -netboot    Prepare files in output directory for netboot." << endl;
 }
 
 static bool ignore_name(const char* name) {
@@ -190,7 +194,7 @@ static void verify_attr_recr(UFS& ufs, set<string>& skip, uint32_t ino, const st
                 cout << "mtime_nsec mismatch diff:" << (fstat.st_mtimespec.tv_nsec << - (fsv(inode.ic_mtime.tv_usec)) * 1000) << " " << dirEntPath << endl;
         }
         if((uint32_t)fstat.st_rdev != rdev)
-            cout << "rdev mismatch " << dirEntPath << endl;
+            cout << "rdev mismatch (act/exp)" << dirEntPath << fstat.st_rdev << "!=" << rdev << endl;
     }
 }
 
@@ -420,6 +424,7 @@ extern "C" int main(int argc, const char * argv[]) {
     const char* listType  = get_option(argv, argv + argc, "-lst");
     HostPath    outPath   = to_host_path(get_option(argv, argv + argc, "-out"));
     bool        clean     = has_option(argv, argv + argc, "-clean");
+    bool        netboot   = has_option(argv, argv + argc, "-netboot");
 
     if (!(imageFile).empty()) {
         ifstream imf(imageFile.string(), ios::binary | ios::in);
@@ -463,13 +468,154 @@ extern "C" int main(int argc, const char * argv[]) {
                     dump_part(im, part, outPath, listFiles ? cout : nullStream, listType);
             }
         }
-    } else {
+    } else if(!(netboot)) {
         cout << "Missing image file." << endl;
         print_help();
         return 1;
+    }
+    
+    VirtualFS vfs(outPath, "/");
+    
+    NetbootTask* tasks[] = {
+        new NBTLink("../../sdmach", "/private/tftpboot/mach"),
+        new NBTResolveConf("/private/etc/resolv.conf"),
+        new NBTHosts("/private/etc/hosts"),
+        new NBTHostConfig("/private/etc/hostconfig"),
+        new NBTFstab("/private/etc/fstab"),
+        nullptr
+    };
+    
+    if(netboot) {
+        if(outPath.exists()) {
+            cout << "---- Preparing for netbbot." << endl;
+
+            for(NetbootTask** task = tasks; *task; task++) {
+                cout << **task << ((*task)->run(vfs) ? " [OK]" : " [FAIL]") << endl;
+            }
+        } else {
+            cout << "Missing output path." << endl;
+            print_help();
+            return 1;
+        }
     }
     
     cout << "---- done." << endl;
     return 0;
 }
 
+// netboot tasks
+
+bool NBTLink::run(VirtualFS& vfs) {
+    vfs.vfsRemove(to);
+    return vfs.vfsLink(from, to, true) == 0;
+}
+
+static string ip_addr_str(uint32_t addr) {
+    stringstream ss;
+    ss << ((addr >> 24) & 0xFF) << "." << ((addr >> 16) & 0xFF) << "." << ((addr >> 8) & 0xFF) << "." << (addr & 0xFF);
+    return ss.str();
+}
+
+bool NetbootTaskFile::run(VirtualFS& vfs) {
+    try {
+        if(!(preRun(vfs)))
+            return false;
+        
+        ofstream out(vfs.toHostPath(file).string());
+        if(!(out)) return false;
+        
+        return run(out);
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return false;
+    }
+}
+
+bool NBTResolveConf::run(std::ofstream& out) {
+    out << "domain " << (NAME_DOMAIN[0] == '.' ? &NAME_DOMAIN[1]  : &NAME_DOMAIN[0]) << '\n';
+    out << "nameserver " << ip_addr_str(CTL_NET | CTL_DNS) << '\n';
+    return true;
+}
+
+bool NBTHosts::preRun(VirtualFS& vfs) {
+    try {
+        ifstream in(vfs.toHostPath(file).string());
+        if(!(in)) return false;
+        
+        cout << endl;
+        int net[] = {((CTL_NET >> 24) & 0xFF), ((CTL_NET >> 16) & 0xFF), ((CTL_NET >> 8) & 0xFF), 0};
+        for(string line; getline(in, line);) {
+            char name[256];
+            int  ip[4];
+            if(sscanf(line.c_str(), "%d.%d.%d.%d%s", &ip[0], &ip[1], &ip[2], &ip[4], name) >= 5) {
+                if(ip[0] == net[0] && ip[1] == net[1] && ip[2] == net[2]) {
+                    cout << "- removing " << line << endl;
+                    continue;
+                }
+            } else if(line.find("# added by ditool") != string::npos)
+                continue;
+            lines.push_back(line);
+        }
+        in.close();
+        
+        return true;
+    } catch(exception& e) {
+        cout << e.what() << endl;
+        return false;
+    }
+}
+
+bool NBTHosts::run(std::ofstream& out) {
+    for(size_t line = 0; line < lines.size(); line++)
+        out << lines[line] << '\n';
+    out << "# added by ditool for previous" << '\n';
+    addHost(out, CTL_NET | CTL_HOST, NAME_HOST);
+    addHost(out, CTL_NET | CTL_NFSD, NAME_NFSD);
+    return true;
+}
+
+void NBTHosts::addHost(ofstream& out, uint32_t addr, const std::string& hostName) {
+    cout << "- adding " << ip_addr_str(addr) << " " << hostName << endl;
+    out << ip_addr_str(addr) << "\t" << hostName << '\n';
+}
+
+bool NBTHostConfig::run(std::ofstream& out) {
+    out << "#" << '\n';
+    out << "# /etc/hostconfig" << '\n';
+    out << "#" << '\n';
+    out << "# This file sets up shell variables used by the various rc scripts to" << '\n';
+    out << "# configure the host.  Edit this file instead of rc.boot." << '\n';
+    out << "#" << '\n';
+    out << "# Warning:  This is sourced by /bin/sh.  Make sure there are no spaces" << '\n';
+    out << "#        on either side of the \"=\"." << '\n';
+    out << "#" << '\n';
+    out << "# There are some special keywords used by rc.boot and the programs it" << '\n';
+    out << "# calls:" << '\n';
+    out << "#" << '\n';
+    out << "#    -AUTOMATIC-    Configure automatically" << '\n';
+    out << "#    -YES-        Turn a feature on" << '\n';
+    out << "#    -NO-        Leave a feature off or do not configure" << '\n';
+    out << "#" << '\n';
+    out << "HOSTNAME=" << NAME_HOST << '\n';
+    out << "INETADDR=" << ip_addr_str(CTL_NET | CTL_HOST) << '\n';
+    out << "ROUTER=" << ip_addr_str(CTL_NET | CTL_GATEWAY)<< '\n';
+    out << "IPNETMASK=" << ip_addr_str(CTL_NET_MASK) << '\n';
+    out << "IPBROADCAST=-AUTOMATIC-" << '\n';
+    out << "NETMASTER=-NO-" << '\n';
+    out << "YPDOMAIN=-NO-" << '\n';
+    out << "TIME=-AUTOMATIC-" << '\n';
+    return true;
+}
+
+bool NBTFstab::run(std::ofstream& out) {
+    out << "# fstab generated by ditool" << '\n';
+    out << NAME_NFSD << ":/ / nfs rw,noauto 0 0" << '\n';
+    out << NAME_NFSD << ":/private /private nfs rw,noauto 0 0" << '\n';
+    out << "/dev/sd0a /private/swapdisk 4.3 rw,noquota,noauto 0 0" << '\n';
+    return true;
+}
+
+ostream& operator<<(ostream& os, const NetbootTask& task) {
+    os << task.info;
+    return os;
+}

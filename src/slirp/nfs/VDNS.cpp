@@ -9,20 +9,25 @@
 #include "nfsd.h"
 
 #include "compat.h"
+#include <socket.h>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <string>
+#include <sstream>
 
-vdns_record VDNS::s_dns_db[32];
-size_t      VDNS::s_dns_db_sz = 0;
+using namespace std;
 
-static size_t from_dot(uint8_t* dst, const char* src) {
+vector<vdns_record> VDNS::sDB;
+vdns_record         VDNS::errNonSuchName;
+
+static size_t domain_name(uint8_t* dst, const char* src) {
     size_t   result = strlen(src) + 2;
     uint8_t* len    = dst++;
     *len            = 0;
     while(*src) {
         if(*src == '.') {
-            len = dst;
+            len = dst++;
             *len = 0;
             src++;
             continue;
@@ -34,61 +39,74 @@ static size_t from_dot(uint8_t* dst, const char* src) {
     return result;
 }
 
+static string ip_addr_str(uint32_t addr, string suffix) {
+    stringstream ss;
+    ss << (0xFF&(addr >> 24)) << "." << (0xFF&(addr >> 16)) << "." <<  (0xFF&(addr >> 8)) << "." << (0xFF&(addr)) << suffix;
+    return ss.str();
+}
+
 void VDNS::AddRecord(uint32_t addr, const char* _name) {
-    
     size_t size = strlen(_name);
-    char name[size + 1];
+    char name[size + 2];
     for(size_t i = 0; i < size; i++)
         name[i] = tolower(_name[i]);
     name[size] = '\0';
     
-    vdns_record* rec = &s_dns_db[s_dns_db_sz++];
-    rec->type   = REC_A;
-    rec->inaddr = addr;
-    sprintf(rec->key,  "%d.%d.%d.%d.", 0xFF&(addr >> 24), 0xFF&(addr >> 16), 0xFF&(addr >> 8),  0xFF&(addr));
+    vdns_record rec;
+    rec.type   = REC_A;
+    rec.inaddr = addr;
+    rec.key    = ip_addr_str(addr, ".");
     uint32_t inaddr = htonl(addr);
-    rec->size = 4;
-    memcpy(rec->data, &inaddr, rec->size);
+    rec.size = 4;
+    memcpy(rec.data, &inaddr, rec.size);
+    sDB.push_back(rec);
     
     if(_name) {
-        vdns_record* rec = &s_dns_db[s_dns_db_sz++];
-        rec->type   = REC_A;
-        rec->inaddr = addr;
-        sprintf(rec->key,  "%s.", name);
+        rec.type   = REC_A;
+        rec.inaddr = addr;
+        rec.key    = name;
+        rec.key    += ".";
         uint32_t inaddr = htonl(addr);
-        rec->size = 4;
-        memcpy(rec->data, &inaddr, rec->size);
-        
-        rec         = &s_dns_db[s_dns_db_sz++];
-        rec->type   = REC_PTR;
-        rec->inaddr = addr;
-        sprintf(rec->key,  "%d.%d.%d.%d.in-addr.arpa.", 0xFF&(addr), 0xFF&(addr >> 8),  0xFF&(addr >> 16), 0xFF&(addr >> 24));
-        rec->size = from_dot(rec->data , name);
+        rec.size = 4;
+        memcpy(rec.data, &inaddr, rec.size);
+        sDB.push_back(rec);
+
+        rec.type   = REC_PTR;
+        rec.inaddr = addr;
+        rec.key    = ip_addr_str(SDL_Swap32(addr), ".in-addr.arpa.");
+        rec.size = domain_name(rec.data , name);
+        sDB.push_back(rec);
     }
 }
 
-VDNS::VDNS(void)  : m_hMutex(host_mutex_create()) {
-    m_udp = new UDPServerSocket(this);
-    m_udp->Open(PROG_VDNS, PORT_DNS);
+VDNS::VDNS(void)
+: mMutex(host_mutex_create())
+{
+    mUDP = new UDPServerSocket(this);
+    mUDP->Open(PROG_VDNS, PORT_DNS);
     
     char hostname[_SC_HOST_NAME_MAX];
     hostname[0] = '\0';
     gethostname(hostname, sizeof(hostname));
     
+    // for some unknonw reason NS 2.x-3.x doesn't like DNS responses
+    // for "previous.local.". Don't add them to the DNS
+    
     AddRecord(ntohl(special_addr.s_addr) | CTL_ALIAS, hostname);
-    AddRecord(ntohl(special_addr.s_addr) | CTL_HOST,  NAME_HOST);
-    AddRecord(ntohl(special_addr.s_addr) | CTL_DNS,   NAME_DNS);
-    AddRecord(ntohl(special_addr.s_addr) | CTL_NFSD,  NAME_NFSD);
+//    AddRecord(ntohl(special_addr.s_addr) | CTL_HOST,  FQDN_HOST);
+    AddRecord(ntohl(special_addr.s_addr) | CTL_DNS,   FQDN_DNS);
+    AddRecord(ntohl(special_addr.s_addr) | CTL_NFSD,  FQDN_NFSD);
+//    AddRecord(ntohl(special_addr.s_addr) | CTL_HOST,  NAME_HOST);
     AddRecord(0x7F000001,                             "localhost");
 }
 
 VDNS::~VDNS(void) {
-    m_udp->Close();
-    delete m_udp;
-    host_mutex_destroy(m_hMutex);
+    mUDP->Close();
+    delete mUDP;
+    host_mutex_destroy(mMutex);
 }
 
-static vdns_rec_type to_dot(char* dst, const uint8_t* src, size_t size) {
+static vdns_rec_type to_dot(string& dst, const uint8_t* src, size_t size) {
     const uint8_t* end   = &src[size];
     uint8_t        count = 0;
     int            result = REC_UNKNOWN;
@@ -98,98 +116,129 @@ static vdns_rec_type to_dot(char* dst, const uint8_t* src, size_t size) {
         if(count > 63) goto error;
         for(int j = 0; j < count; j++) {
             if(src >= end) goto error;
-            *dst++ = tolower(*src++);
+            dst.push_back(tolower(*src++));
         }
-        *dst++ = '.';
+        dst.push_back('.');
     }
     src++;
     result = *src++;
     result <<= 8;
     result |= *src;
 error:
-    *dst = '\0';
-    return (vdns_rec_type)result;
+    return static_cast<vdns_rec_type>(result);
 }
 
 vdns_record* VDNS::Query(uint8_t* data, size_t size) {
-    char  qname[_SC_HOST_NAME_MAX];
+    string  qname;
     vdns_rec_type qtype = to_dot(qname, data, size);
     std::cout << "[VDNS] query(" << qtype << ") '" << qname << "'" << std::endl;
     
-    if(qtype < 0) return NULL;
+    if(qtype < 0) return nullptr;
     
-    for(size_t n = 0; n < s_dns_db_sz; n++)
-        if(!(strcmp(qname, s_dns_db[n].key)) && s_dns_db[n].type == qtype)
-            return &s_dns_db[n];
+    for(size_t n = 0; n < sDB.size(); n++)
+        if(qname ==sDB[n].key && sDB[n].type == qtype)
+            return &sDB[n];
     
-    return NULL;
+    string domain(NAME_DOMAIN + string("."));
+    if(qname.rfind(domain) == qname.size() -  domain.size())
+        return &errNonSuchName;
+    
+    return nullptr;
 }
 
-extern "C" void dump_packet(const char* ptr, size_t len) {
-    static std::fstream dumpFile("/tmp/previous_dump_packet.txt", std::fstream::out | std::fstream::trunc);
-    
-    std::string ascii;
-    for(size_t i = 0; i < len; i++) {
-        if((i % 32) == 0) {
-            dumpFile << " " << ascii << std::endl << std::hex << std::setfill('0') << std::setw(8) << static_cast<int>(i) << " ";
-            ascii.clear();
-        }
-        dumpFile << std::hex << std::setfill('0') << std::setw(2) << (ptr[i] & 0x0FF) << " ";
-        ascii.push_back(isprint(ptr[i]) ? ptr[i] : '.');
-    }
-    dumpFile << std::endl;
-}
 
-extern "C" int nfsd_vdns_match(struct mbuf *m) {
-    if(m->m_hdr.mh_len <= 40) return false;
-    return VDNS::Query((uint8_t*)&m->m_data[40], m->m_hdr.mh_len-40) != NULL;
+extern "C" int nfsd_vdns_match(struct mbuf *m, uint32_t addr, int dport) {
+    if(m->m_len > 40 &&
+       dport == PORT_DNS &&
+       addr == (CTL_NET | CTL_DNS))
+        return VDNS::Query(reinterpret_cast<uint8_t*>(&m->m_data[40]), m->m_len-40) != NULL;
+    else
+        return false;
 }
 
 void VDNS::SocketReceived(CSocket* pSocket) {
-    NFSDLock lock(m_hMutex);
+    NFSDLock lock(mMutex);
     
-    XDRInput*  in  = pSocket->GetInputStream();
-    XDROutput* out = pSocket->GetOutputStream();
-    uint8_t*   msg = &in->GetBuffer()[in->GetPosition()];
-    int        n   = static_cast<int>(in->GetSize());
-
-    // SameId
-    msg[2]=0x81;msg[3]=0x80;
-    // Change Opcode and flags
-    msg[8]=0;msg[9]=0; // NSCOUNT
-    msg[10]=0;msg[11]=0; // ARCOUNT
-    // Keep request in message and add answer
-    size_t off = 12;
-    msg[n++]=0xC0; msg[n++]=off; // Offset to the domain name
+    XDRInput*    in  = pSocket->GetInputStream();
+    XDROutput*   out = pSocket->GetOutputStream();
+    uint8_t*     msg = &in->GetBuffer()[in->GetPosition()];
+    int          n   = static_cast<int>(in->GetSize());
+    size_t       off = 12;
     vdns_record* rec = Query(&msg[off], in->GetSize()-(in->GetPosition()+off));
 
-    msg[n++]=0x00;
-    msg[n++]=rec->type;  // Type
-    
-    msg[n++]=0x00;msg[n++]=0x01; // Class 1
-    msg[n++]=0x00;msg[n++]=0x00;msg[n++]=0x00;msg[n++]=0x3c; // TTL
-
-    if(rec) {
-        msg[6]=0;msg[7] = 1; // Num answers
-        uint32_t inaddr = rec->inaddr;
-        printf("[VDNS] reply '%s' -> %d.%d.%d.%d\n", rec->key, 0xFF&(inaddr >> 24), 0xFF&(inaddr >> 16), 0xFF&(inaddr >> 8), 0xFF&(inaddr));
-        switch(rec->type) {
-            case REC_A:
-            case REC_PTR:
-                msg[n++]=0x00;msg[n++]=rec->size;
-                memcpy(&msg[n], rec->data, rec->size);
-                n += rec->size;
-                break;
-            default:
-                printf("[VDNS] unknown query:%d ('%s')\n", rec->type, rec->key);
-                break;
-        }
-    } else {
-        msg[6]=0;msg[7] = 0; // Num answers
+    if(rec == &errNonSuchName) {
+        /*
+        1... .... .... .... = Response: Message is a response
+        .000 0... .... .... = Opcode: Standard query (0)
+        .... .1.. .... .... = Authoritative: Server is an authority for domain
+        .... ..0. .... .... = Truncated: Message is not truncated
+        .... ...0 .... .... = Recursion desired: Do not query recursively
+        .... .... 0... .... = Recursion available: Server can not do recursive queries
+        .... .... .0.. .... = Z: reserved (0)
+        .... .... ..0. .... = Answer authenticated: Answer/authority portion was authenticated by the server
+        .... .... ...1 .... = Non-authenticated data: Acceptable
+        .... .... .... 0011 = Reply code: No such name (3)
+        */
+        msg[2]=0x84;
+        msg[3]=0x13;
+ 
+        // Change Opcode and flags
+        msg[6]=0;msg[7]   = 0; // No answers
+        msg[8]=0;msg[9]   = 0;   // NSCOUNT
+        msg[10]=0;msg[11] = 0; // ARCOUNT
+        
         printf("[VDNS] no record found.\n");
+    } else {
+        /*
+        1... .... .... .... = Response: Message is a response
+        .000 0... .... .... = Opcode: Standard query (0)
+        .... .1.. .... .... = Authoritative: Server is an authority for domain
+        .... ..0. .... .... = Truncated: Message is not truncated
+        .... ...0 .... .... = Recursion desired: Do not query recursively
+        .... .... 0... .... = Recursion available: Server can not do recursive queries
+        .... .... .0.. .... = Z: reserved (0)
+        .... .... ..0. .... = Answer authenticated: Answer/authority portion was authenticated by the server
+        .... .... ...1 .... = Non-authenticated data: Acceptable
+        .... .... .... 0000 = Reply code: No error (0)
+        */
+
+        msg[2]=0x84;
+        msg[3]=0x10;
+        // Change Opcode and flags
+        msg[8]=0;msg[9]=0; // NSCOUNT
+        msg[10]=0;msg[11]=0; // ARCOUNT
+
+        if(rec) {
+            // Keep request in message and add answer
+            msg[n++]=0xC0; msg[n++]=off; // Offset to the domain name
+
+            msg[n++]=0x00;
+            msg[n++]=rec->type;  // Type
+            
+            msg[n++]=0x00;msg[n++]=0x01; // Class 1
+            msg[n++]=0x00;msg[n++]=0x00;msg[n++]=0x00;msg[n++]=0x3c; // TTL
+            
+            msg[6]=0;msg[7] = 1; // Num answers
+            uint32_t inaddr = rec->inaddr;
+            printf("[VDNS] reply '%s' -> %d.%d.%d.%d\n", rec->key.c_str(), 0xFF&(inaddr >> 24), 0xFF&(inaddr >> 16), 0xFF&(inaddr >> 8), 0xFF&(inaddr));
+            switch(rec->type) {
+                case REC_A:
+                case REC_PTR:
+                    msg[n++]=0x00;msg[n++]=rec->size;
+                    memcpy(&msg[n], rec->data, rec->size);
+                    n += rec->size;
+                    break;
+                default:
+                    printf("[VDNS] unknown query:%d ('%s')\n", rec->type, rec->key.c_str());
+                    break;
+            }
+        } else {
+            msg[6]=0;msg[7] = 0; // Num answers
+            printf("[VDNS] no record found.\n");
+        }
     }
-    // Send the answer
     
+    // Send the answer
     out->Write(msg, n);
     pSocket->Send();  //send response
 }

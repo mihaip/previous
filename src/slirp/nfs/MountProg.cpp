@@ -32,25 +32,6 @@ CMountProg::~CMountProg() {
 	for (int i = 0; i < MOUNT_NUM_MAX; i++) delete[] m_clientAddr[i];
 }
 
-int CMountProg::GetMountNumber(void) const {
-	return m_nMountNum;  //the number of clients mounted
-}
-
-const char* CMountProg::GetClientAddr(int nIndex) const {
-	if (nIndex < 0 || nIndex >= m_nMountNum)
-		return NULL;
-	for (int i = 0; i < MOUNT_NUM_MAX; i++) {
-        if (m_clientAddr[i]) {
-            if (nIndex == 0) {
-				return m_clientAddr[i];  //client address
-            } else {
-				--nIndex;
-            }
-        }
-	}
-	return NULL;
-}
-
 int CMountProg::ProcedureMNT(void) {
     XDRString path;
     int i, addr_len;
@@ -73,7 +54,7 @@ int CMountProg::ProcedureMNT(void) {
         }
         
         ++m_nMountNum;
-	addr_len = strlen(m_param->remoteAddr);
+        addr_len = strlen(m_param->remoteAddr);
         
         for (i = 0; i < MOUNT_NUM_MAX; i++) {
             if (m_clientAddr[i] == NULL) { //search an empty space
@@ -125,109 +106,4 @@ int CMountProg::ProcedureEXPORT(void) {
     m_out->Write(0);
     
     return PRC_OK;
-}
-
-char *CMountProg::FormatPath(const char *pPath, pathFormats format) {
-    size_t len = strlen(pPath);
-    
-    //Remove head spaces
-    while (*pPath == ' ') {
-        ++pPath;
-        len--;
-    }
-    
-    //Remove tail spaces
-    while (len > 0 && *(pPath + len - 1) == ' ') {
-        len--;
-    }
-    
-    //Remove windows tail slashes (except when its only a drive letter)
-    while (len > 0 && *(pPath + len - 2) != ':' && *(pPath + len - 1) == '\\') {
-        len--;
-    }
-    
-    //Remove unix tail slashes
-    while (len > 1 && *(pPath + len - 1) == '/') {
-        len--;
-    }
-    
-    //Is comment?
-    if (*pPath == '#') {
-        return NULL;
-    }
-    
-    //Remove head "
-    if (*pPath == '"') {
-        ++pPath;
-        len--;
-    }
-    
-    //Remove tail "
-    if (len > 0 && *(pPath + len - 1) == '"') {
-        len--;
-    }
-    
-    if (len < 1) {
-        return NULL;
-    }
-    
-    char *result = (char *)malloc(len + 1);
-    strncpy_s(result, len + 1, pPath, len);
-    
-    //Check for right path format
-    if (format == FORMAT_PATH) {
-        if (result[0] == '.') {
-            static char path1[MAXPATHLEN];
-            getcwd(path1, MAXPATHLEN);
-            
-            if (result[1] == '\0') {
-                len = strlen(path1);
-                result = (char *)realloc(result, len + 1);
-                strcpy_s(result, len + 1, path1);
-            } else if (result[1] == '/') {
-                strcat_s(path1, result + 1);
-                len = strlen(path1);
-                result = (char *)realloc(result, len + 1);
-                strcpy_s(result, len + 1, path1);
-            }
-            
-        }
-        if (len >= 2 && result[1] == ':' && ((result[0] >= 'A' && result[0] <= 'Z') || (result[0] >= 'a' && result[0] <= 'z'))) { //check path format
-            char tempPath[MAXPATHLEN] = "\\\\?\\";
-            strcat_s(tempPath, result);
-            len = strlen(tempPath);
-            result = (char *)realloc(result, len + 1);
-            strcpy_s(result, len + 1, tempPath);
-        }
-        
-        if (len < 6 || (result[0] != '/' && (result[5] != ':' || !((result[4] >= 'A' && result[4] <= 'Z') || (result[4] >= 'a' && result[4] <= 'z'))))) { //check path format
-            Log("Path %s format is incorrect.", pPath);
-            Log("Please use a full path such as C:\\previous or \\\\?\\C:\\previous or /home/foo/previous");
-            free(result);
-            return NULL;
-        }
-        
-        for (size_t i = 0; i < len; i++)
-            if (result[i] == '\\')
-                result[i] = '/';
-    } else if (format == FORMAT_PATHALIAS) {
-        if (pPath[1] == ':' && ((pPath[0] >= 'A' && pPath[0] <= 'Z') || (pPath[0] >= 'a' && pPath[0] <= 'z'))) {
-            strncpy_s(result, len + 1, pPath, len);
-            //transform Windows format to mount path d:\work => /d/work
-            result[1] = result[0];
-            result[0] = '/';
-            for (size_t i = 2; i < strlen(result); i++) {
-                if (result[i] == '\\') {
-                    result[i] = '/';
-                }
-            }
-        } else if (pPath[0] != '/') { //check path alias format
-            Log("Path alias format is incorrect.\n");
-            Log("Please use a path like /exports\n");
-            free(result);
-            return NULL;
-        }
-    }
-    
-    return result;
 }
