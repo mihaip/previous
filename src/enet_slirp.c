@@ -113,7 +113,7 @@ static int tick_func(void *arg)
         time = host_get_save_time();
         if (time < last_time) // if time counter wrapped
         {
-            next_time = 0; // reset next_time
+            next_time = time; // reset next_time
         }
         if (time >= next_time)
         {

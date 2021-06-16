@@ -44,10 +44,39 @@ static Uint64       pauseTimeStamp;
 static bool         osDarkmatter;
 static double       saveTime;
 
+// external
+extern Sint64       nCyclesMainCounter;
+extern struct regstruct regs;
+
 static inline double real_time(void) {
     double rt  = (SDL_GetPerformanceCounter() - perfCounterStart);
     rt        /= perfFrequency;
     return rt;
+}
+
+// Report counter capacity
+void host_report_limits(void) {
+    Uint64 cycleCounterLimit;
+    Uint64 perfCounterLimit;
+    
+    cycleCounterLimit = perfCounterLimit = 1ULL << DBL_MANT_DIG;
+    
+    cycleCounterLimit -= nCyclesMainCounter - cycleCounterStart;
+    cycleCounterLimit /= cycleDivisor;
+    cycleCounterLimit -= cycleSecsStart;
+    cycleCounterLimit /= 60 * 60 * 24;
+    
+    perfCounterLimit -= SDL_GetPerformanceCounter() - perfCounterStart;
+    perfCounterLimit /= perfFrequency;
+    perfCounterLimit /= 60 * 60 * 24;
+    
+    Log_Printf(LOG_WARN, "[Hosttime] Timing system reset:");
+    Log_Printf(LOG_WARN, "[Hosttime] Cycle counter:    %lld", nCyclesMainCounter);
+    Log_Printf(LOG_WARN, "[Hosttime] Cycle divisor:    %lld", (Uint64)cycleDivisor);
+    Log_Printf(LOG_WARN, "[Hosttime] Cycle timer will start losing precision after %llu days", cycleCounterLimit);
+    Log_Printf(LOG_WARN, "[Hosttime] Realtime counter: %lld", (Uint64)perfCounterStart);
+    Log_Printf(LOG_WARN, "[Hosttime] Realtime divisor: %lld", (Uint64)perfFrequency);
+    Log_Printf(LOG_WARN, "[Hosttime] Realtime timer will start losing precision after %llu days", perfCounterLimit);
 }
 
 void host_reset(void) {
@@ -71,6 +100,8 @@ void host_reset(void) {
     }
     
     cycleDivisor = ConfigureParams.System.nCpuFreq * 1000 * 1000;
+    
+    host_report_limits();
     
     SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 }
@@ -110,16 +141,14 @@ void host_hardclock(int expected, int actual) {
 
 // this can be used by other threads to read hostTime
 Uint32 host_get_save_time(void) {
-    Uint32 hosttime_sec;
+    double hostTime;
     host_lock(&timeLock);
-    hosttime_sec = (Uint32)saveTime;
+    hostTime = saveTime;
     host_unlock(&timeLock);
-    return hosttime_sec;
+    return (Uint32)hostTime;
 }
 
-extern Sint64           nCyclesMainCounter;
-extern struct regstruct regs;
-
+// Return current time as seconds with double precision
 double host_time_sec() {
     double hostTime;
     
