@@ -56,27 +56,31 @@ static inline double real_time(void) {
 
 // Report counter capacity
 void host_report_limits(void) {
-    Uint64 cycleCounterLimit;
-    Uint64 perfCounterLimit;
+    Uint64 cycleCounterLimit, perfCounterLimit, perfCounter;
     
-    cycleCounterLimit = perfCounterLimit = 1ULL << DBL_MANT_DIG;
-    
-    cycleCounterLimit -= nCyclesMainCounter - cycleCounterStart;
+    cycleCounterLimit = INT64_MAX - nCyclesMainCounter;
+    if (cycleCounterLimit > (1ULL<<DBL_MANT_DIG)-1) {
+        cycleCounterLimit = (1ULL<<DBL_MANT_DIG)-1;
+    }
     cycleCounterLimit /= cycleDivisor;
     cycleCounterLimit -= cycleSecsStart;
     cycleCounterLimit /= 60 * 60 * 24;
     
-    perfCounterLimit -= SDL_GetPerformanceCounter() - perfCounterStart;
+    perfCounter = SDL_GetPerformanceCounter();
+    perfCounterLimit = UINT64_MAX - perfCounter;
+    if (perfCounterLimit > (1ULL<<DBL_MANT_DIG)-1) {
+        perfCounterLimit = (1ULL<<DBL_MANT_DIG)-1;
+    }
     perfCounterLimit /= perfFrequency;
     perfCounterLimit /= 60 * 60 * 24;
     
     Log_Printf(LOG_WARN, "[Hosttime] Timing system reset:");
     Log_Printf(LOG_WARN, "[Hosttime] Cycle counter:    %lld", nCyclesMainCounter);
-    Log_Printf(LOG_WARN, "[Hosttime] Cycle divisor:    %lld", (Uint64)cycleDivisor);
-    Log_Printf(LOG_WARN, "[Hosttime] Cycle timer will start losing precision after %llu days", cycleCounterLimit);
-    Log_Printf(LOG_WARN, "[Hosttime] Realtime counter: %lld", (Uint64)perfCounterStart);
-    Log_Printf(LOG_WARN, "[Hosttime] Realtime divisor: %lld", (Uint64)perfFrequency);
-    Log_Printf(LOG_WARN, "[Hosttime] Realtime timer will start losing precision after %llu days", perfCounterLimit);
+    Log_Printf(LOG_WARN, "[Hosttime] Cycle divisor:    %f", cycleDivisor);
+    Log_Printf(LOG_WARN, "[Hosttime] Cycle timer will start losing precision after %lld days", cycleCounterLimit);
+    Log_Printf(LOG_WARN, "[Hosttime] Realtime counter: %lld", perfCounter);
+    Log_Printf(LOG_WARN, "[Hosttime] Realtime divisor: %f", perfFrequency);
+    Log_Printf(LOG_WARN, "[Hosttime] Realtime timer will start losing precision after %lld days", perfCounterLimit);
 }
 
 void host_reset(void) {
