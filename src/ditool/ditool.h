@@ -39,7 +39,7 @@ protected:
 
 class NBTResolveConf : public NetbootTaskFile {
 public:
-    NBTResolveConf(const VFSPath& resolvConf) : NetbootTaskFile("Patching ", resolvConf) {}
+    NBTResolveConf(const VFSPath& resolvConf) : NetbootTaskFile("Writing ", resolvConf) {}
 protected:
     virtual bool run(std::ofstream& out);
 };
@@ -57,9 +57,13 @@ private:
 
 class NBTHostConfig : public NetbootTaskFile {
 public:
-    NBTHostConfig(const VFSPath& hostconfig) : NetbootTaskFile("Writing ", hostconfig) {}
+    NBTHostConfig(const VFSPath& hostconfig) : NetbootTaskFile("Patching ", hostconfig) {}
 protected:
+    virtual bool preRun(VirtualFS& vfs);
     virtual bool run(std::ofstream& out);
+private:
+    void addParameter(std::ofstream& out, const std::string& param, const std::string& val);
+    std::vector<std::string> lines;
 };
 
 class NBTFstab : public NetbootTaskFile {

@@ -54,10 +54,10 @@
 #define NeXT 1
 
 #define DIRBLKSIZ	1024		/* a convenient number */
-#if !defined(_MAXNAMLEN)
-#define _MAXNAMLEN
+#if !defined(MAXNAMLEN)
+//#define _MAXNAMLEN
 #define	MAXNAMLEN	255
-#endif /* _MAXNAMLEN */
+#endif /* MAXNAMLEN */
 
 struct	direct {
 	uint32_t	d_ino;			/* inode number of entry */
