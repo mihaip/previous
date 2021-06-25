@@ -160,9 +160,14 @@ static void bootp_reply(struct bootp_t *bp)
     } else {
         bc = find_addr(&daddr.sin_addr, bp->bp_hwaddr);
         if (!bc) {
+#if 0
             /* if never assigned, behaves as if it was already
                assigned (windows fix because it remembers its address) */
             goto new_addr;
+#else
+            /* XXX: always assign same IP address for Previous */
+            daddr.sin_addr.s_addr = htonl(ntohl(special_addr.s_addr) | CTL_HOST);
+#endif
         }
     }
 
