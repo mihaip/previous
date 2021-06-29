@@ -523,7 +523,7 @@ static void enet_io(void) {
 		if (en_state != EN_DISCONNECTED) {
 			if (enet.tx_status&TXSTAT_NET_BUSY) {
 				/* Wait until network is free */
-				Log_Printf(LOG_WARN, "[EN] Network is busy. Transmission delayed.");
+				Log_Printf(LOG_EN_LEVEL, "[EN] Network is busy. Transmission delayed.");
 			} else {
 				old_size = enet_tx_buffer.size;
 				tx_done=dma_enet_read_memory();
@@ -661,7 +661,7 @@ static void new_enet_io(void) {
 		if (en_state != EN_DISCONNECTED) {
 			if (enet.tx_status&TXSTAT_NET_BUSY) {
 				/* Wait until network is free */
-				Log_Printf(LOG_WARN, "[EN] Network is busy. Transmission delayed.");
+				Log_Printf(LOG_EN_LEVEL, "[newEN] Network is busy. Transmission delayed.");
 			} else {
 				dma_enet_read_memory();
 				if (enet_tx_buffer.size>0) {

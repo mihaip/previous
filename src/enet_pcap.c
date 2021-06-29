@@ -10,6 +10,8 @@
 #endif
 #include <pcap.h>
 
+#define LOG_EN_PCAP_LEVEL LOG_DEBUG
+
 /****************/
 /* --- PCAP --- */
 
@@ -47,7 +49,7 @@ static void pcap_tick(void)
             memcpy(p->data,data,h.caplen);
             QueueEnter(pcapq,p);
             SDL_UnlockMutex(pcap_mutex);
-            Log_Printf(LOG_WARN, "[PCAP] Output packet with %i bytes to queue",h.caplen);
+            Log_Printf(LOG_EN_PCAP_LEVEL, "[PCAP] Output packet with %i bytes to queue",h.caplen);
         }
     }
 }
@@ -71,7 +73,7 @@ void enet_pcap_queue_poll(void)
         {
             struct queuepacket *qp;
             qp=QueueDelete(pcapq);
-            Log_Printf(LOG_WARN, "[PCAP] Getting packet from queue");
+            Log_Printf(LOG_EN_PCAP_LEVEL, "[PCAP] Getting packet from queue");
             enet_receive(qp->data,qp->len);
             free(qp);
         }
@@ -81,7 +83,7 @@ void enet_pcap_queue_poll(void)
 
 void enet_pcap_input(Uint8 *pkt, int pkt_len) {
     if (pcap_started) {
-        Log_Printf(LOG_WARN, "[PCAP] Input packet with %i bytes",enet_tx_buffer.size);
+        Log_Printf(LOG_EN_PCAP_LEVEL, "[PCAP] Input packet with %i bytes",enet_tx_buffer.size);
         SDL_LockMutex(pcap_mutex);
         if (pcap_sendpacket(pcap_handle, pkt, pkt_len) < 0) {
             Log_Printf(LOG_WARN, "[PCAP] Error: Couldn't transmit packet!");

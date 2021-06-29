@@ -14,6 +14,8 @@
 int inet_aton(const char *cp, struct in_addr *addr);
 #endif
 
+#define LOG_EN_SLIRP_LEVEL LOG_DEBUG
+
 /****************/
 /* -- SLIRP -- */
 
@@ -44,7 +46,7 @@ void slirp_output (const unsigned char *pkt, int pkt_len)
     memcpy(p->data,pkt,pkt_len);
     QueueEnter(slirpq,p);
     SDL_UnlockMutex(slirp_mutex);
-    Log_Printf(LOG_WARN, "[SLIRP] Output packet with %i bytes to queue",pkt_len);
+    Log_Printf(LOG_EN_SLIRP_LEVEL, "[SLIRP] Output packet with %i bytes to queue",pkt_len);
 }
 
 //This function is to be periodically called
@@ -86,7 +88,7 @@ static void slirp_rip_tick(void)
 {
     if (slirp_started)
     {
-        Log_Printf(LOG_WARN, "[SLIRP] Routing table broadcast");
+        Log_Printf(LOG_EN_SLIRP_LEVEL, "[SLIRP] Routing table broadcast");
         SDL_LockMutex(slirp_mutex);
         slirp_rip_broadcast();
         SDL_UnlockMutex(slirp_mutex);
@@ -132,7 +134,7 @@ void enet_slirp_queue_poll(void)
     {
         struct queuepacket *qp;
         qp=QueueDelete(slirpq);
-        Log_Printf(LOG_WARN, "[SLIRP] Getting packet from queue");
+        Log_Printf(LOG_EN_SLIRP_LEVEL, "[SLIRP] Getting packet from queue");
         enet_receive(qp->data,qp->len);
         free(qp);
     }
@@ -141,7 +143,7 @@ void enet_slirp_queue_poll(void)
 
 void enet_slirp_input(Uint8 *pkt, int pkt_len) {
     if (slirp_started) {
-        Log_Printf(LOG_WARN, "[SLIRP] Input packet with %i bytes",enet_tx_buffer.size);
+        Log_Printf(LOG_EN_SLIRP_LEVEL, "[SLIRP] Input packet with %i bytes",enet_tx_buffer.size);
         SDL_LockMutex(slirp_mutex);
         slirp_input(pkt,pkt_len);
         SDL_UnlockMutex(slirp_mutex);
