@@ -66,20 +66,14 @@ NOWTO: Setup netboot under NeXTstep 0.9:
       cp /sdmach /private/tftpboot/mach
       cp /usr/standalone/boot /private/tftpboot
       cp /etc/fstab /me
-      cp /etc/hosts /me
 
 3. Go to the /me directory and open the file "fstab". Remove all 
    lines not starting with # and add these two lines at the end 
    of the file:
-      shared.local:/ / nfs rw,noauto 0 0
-      shared.local:/private /private nfs rw,noauto 0 0
+      nfs:/ / nfs rw,noauto 0 0
+      nfs:/private /private nfs rw,noauto 0 0
 
-4. Go to the /me directory and open the file "hosts". Append 
-   these two lines at the end of the file:
-      shared.local:/ / nfs rw,noauto 0 0
-      shared.local:/private /private nfs rw,noauto 0 0
-
-5. Shut down the guest system and from the command line on your 
+4. Shut down the guest system and from the command line on your 
    host system use the following command to extract your image 
    (add the path where ditool is located in front of its name, 
    replace image.dd with the path and name of the image you want 
@@ -87,11 +81,11 @@ NOWTO: Setup netboot under NeXTstep 0.9:
    you want to use for netboot):
       ditool -im image.dd -out nfsdir
 
-6. Using your host system replace the files "fstab" and "hosts" 
+5. Using your host system replace the files "fstab" and "hosts" 
    in the directory "nfsdir/private/etc/hosts" with the copies 
    located in the directory "nfsdir/me".
 
-7. You can now netboot by setting "NFS shared directory" in the
+6. You can now netboot by setting "NFS shared directory" in the
    "Network" options to nfsdir and "Boot device" from "Boot" 
    options to "Ethernet".
 
@@ -100,4 +94,4 @@ NOTE: The procedures in ditool's netboot preparation routines are
       derived from what the "newclient" script from NeXTstep does 
       when called like this:
          su
-         newclient -s shared.local previous
+         newclient -s nfs previous

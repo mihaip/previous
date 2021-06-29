@@ -4,9 +4,9 @@ NOTE: This procedure is only valid when using SLiRP as network
 
       If using PCAP as network interface you need to set up NFS 
       file sharing on your host system or network and replace the 
-      server name (shared.local) with the name of your NFS 
-      server. You might also need to create an entry with your 
-      server's IP address and hostname in "/etc/hosts".
+      server name (nfs) with the name of your NFS server. You 
+      might also need to create an entry with your server's IP 
+      address and hostname in "/etc/hosts".
 
 
 HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
@@ -15,7 +15,7 @@ HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
 
 2. Go to the Imported Directories window and press "Add...".
 
-3. Set server name to "shared.local" and remote directory to "/".
+3. Set server name to "nfs" and remote directory to "/".
    Click OK and quit NFSManager. 
 
 4. The shared folder should immediately be accessible from /Net 
@@ -30,7 +30,7 @@ NOWTO: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
 
 2. Edit the file "/etc/fstab" by adding the shared filesystem.
    Add this line at the end of the file: 
-      shared.local:/ /Net nfs rw,net 0 0
+      nfs:/ /Net nfs rw,net 0 0
 
 3. Load the edited file using these commands from the command
    line:
@@ -52,13 +52,13 @@ HOWTO: Setup NFS file sharing under NeXTstep 0.9:
 
 2. Open the file "/me/fstab" and append this line at the end of 
    the file:
-      shared.local:/ /Net nfs rw 0 0
+      nfs:/ /Net nfs rw 0 0
    Save the changes by selecting Window > Save.
 
 3. Open the file "/me/rc" and replace the term 
       mount -vat nfs
    with the term
-      mount -v shared.local:/ /Net
+      mount -v nfs:/ /Net
    Save the changes by selecting Window > Save.
 
 4. Using Shell copy the modified files back in place and reboot:
@@ -79,7 +79,7 @@ HOWTO: Setup NFS file sharing under NeXTstep 0.8:
 
 2. Open the file "/bootdisk/Homes/me/fstab" and append this line
    at the end of the file:
-      shared.local:/ /bootdisk/Network nfs rw 0 0
+      nfs:/ /bootdisk/Network nfs rw 0 0
    Save the changes by selecting Window > Save.
 
 3. Using Shell copy the modified file back in place and reboot:
@@ -96,7 +96,7 @@ HOWTO: Manually mount NFS shared directory:
 
 1. Open Terminal and type these commands to the command line:
       su
-      mount -o rw shared.local:/ /Net
+      mount -o rw nfs:/ /Net
 
 2. The shared folder should immediately be accessible from /Net 
    directory.

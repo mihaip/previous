@@ -28,7 +28,7 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
    line replace xxx with your preferred hostname. It has to 
    consist of a maximum of eight lower case letters.
       10.0.2.15 xxx
-      10.0.2.254 shared.local
+      10.0.2.254 nfs
 
    Open Terminal (you find it in /NextApps directory) and load 
    the edited file using these commands:
@@ -125,7 +125,7 @@ NOWTO: Setup networking on NeXTstep 0.9:
          open /etc/hosts
       Append these two lines to the file
          10.0.2.15 xxx
-         10.0.2.254 shared.local
+         10.0.2.254 nfs
       and save the changes by selecting Window > Save.
 
 5. Open NetInfo (you find it in /NextDeveloper/Apps directory) 
@@ -151,7 +151,7 @@ NOWTO: Setup networking on NeXTstep 0.8:
    hostname. It has to consist of a maximum of eight lower case 
    letters.
       10.0.2.15 xxx
-      10.0.2.254 shared.local
+      10.0.2.254 nfs
 
 2. Open the file "/etc/resolv.conf" and append the following two
    lines to the file:
