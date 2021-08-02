@@ -59,7 +59,7 @@ int CBootparamProg::ProcedureWHOAMI(void) {
     strcpy(domain, NAME_DOMAIN);
     m_out->Write(_SC_HOST_NAME_MAX,  hostname);
     m_out->Write(_SC_HOST_NAME_MAX,  &domain[domain[0] == '.' ? 1 : 0]);
-    WriteInAddr(m_out, ntohl(special_addr.s_addr) | CTL_GATEWAY);
+    WriteInAddr(m_out, ntohl(special_addr.s_addr) | CTL_HOST);
     return PRC_OK;
 }
 
