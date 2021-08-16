@@ -1,12 +1,11 @@
-NOTE: This procedure is only valid when using SLiRP as network
-      interface. For this procedure to work, networking must be 
-      setup first (see networking.howto.txt for details).
+NOTE: This procedure is only valid when using SLiRP as network interface. For 
+      this procedure to work, networking must be setup first (read the file 
+      networking.howto.txt for instructions).
 
-      If using PCAP as network interface you need to set up NFS 
-      file sharing on your host system or network and replace the 
-      server name (nfs) with the name of your NFS server. You 
-      might also need to create an entry with your server's IP 
-      address and hostname in "/etc/hosts".
+      If using PCAP as network interface you need to set up NFS file sharing on 
+      your host system or network and replace the server name (nfs) with the 
+      name of your NFS server. You might also need to create an entry with your 
+      server's IP address and hostname in "/etc/hosts".
 
 
 HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
@@ -15,56 +14,56 @@ HOWTO: Setup NFS file sharing under NeXTstep 3.0 and later:
 
 2. Go to the Imported Directories window and press "Add...".
 
-3. Set server name to "nfs" and remote directory to "/".
-   Click OK and quit NFSManager. 
+3. Set server name to "nfs" and remote directory to "/". Click OK and quit 
+   NFSManager. 
 
-4. The shared folder should immediately be accessible from /Net 
-   directory.
+4. The shared folder should immediately be accessible from /Net directory.
 
 
 NOWTO: Setup NFS file sharing under NeXTstep 1.0 through 2.2:
 
-1. Open the file "/etc/fstab" using this command from the
-   command line:
+1. Open the file "/etc/fstab" using this command from the command line:
       open /etc/fstab   
 
-2. Edit the file "/etc/fstab" by adding the shared filesystem.
-   Add this line at the end of the file: 
+2. Edit the file "/etc/fstab" by adding the shared filesystem. Add this line at 
+   the end of the file: 
       nfs:/ /Net nfs rw,net 0 0
 
-3. Load the edited file using these commands from the command
-   line:
+3. Load the edited file using these commands from the command line:
       su
       niload fstab / < /etc/fstab
 
-4. The shared folder should be accessible from /Net directory
-   after reboot.
+4. The shared folder should be accessible from /Net directory after reboot.
 
 
 HOWTO: Setup NFS file sharing under NeXTstep 0.9:
 
-1. Open Shell (you find it in /NextApps directory) and copy the
-   files "/etc/fstab" and "/etc/rc" to your home directory using 
-   these commands:
+1. Open NetInfo (you find it in /NextDeveloper/Apps directory) and select 
+   "Login...". Log in as root by typing "root" to the "Name:" field and leaving 
+   the "Password:" field empty (hit Enter twice). Then go to "mounts" and in the 
+   now empty "Directories" part of the window click on the small black bar to 
+   highlight it. Select Edit > New to create a new field called "__edit_me__". 
+   Open the new field by double clicking it and set its properties as follows:
+      name   nfs:/
+      dir    /Net
+      opts   rw
+   You can edit properties from the "Properties" part of the window by double 
+   clicking them. You can create new lines by selecting the black bar below the 
+   last property and selecting Edit > New. After setting the properties you can 
+   quit NetInfo.
+
+2. Open Shell (you find it in /NextApps directory) and copy "/etc/fstab" to your 
+   home directory using these commands:
       su
       cp /etc/fstab /me
-      cp /etc/rc /me
 
-2. Open the file "/me/fstab" and append this line at the end of 
-   the file:
+3. Open the file "/me/fstab" and append this line at the end of the file:
       nfs:/ /Net nfs rw 0 0
    Save the changes by selecting Window > Save.
 
-3. Open the file "/me/rc" and replace the term 
-      mount -vat nfs
-   with the term
-      mount -v nfs:/ /Net
-   Save the changes by selecting Window > Save.
-
-4. Using Shell copy the modified files back in place and reboot:
+4. Using Shell copy the modified file back in place and reboot:
       su
       cp /me/fstab /etc
-      cp /me/rc /etc
       reboot
 
 5. The shared folder should be accessible from /Net directory.
@@ -72,13 +71,13 @@ HOWTO: Setup NFS file sharing under NeXTstep 0.9:
 
 HOWTO: Setup NFS file sharing under NeXTstep 0.8:
 
-1. Open Shell (you find it in /bootdisk/NeXT/Apps directory) and 
-   copy "/etc/fstab" to your home directory using these commands:
+1. Open Shell (you find it in /bootdisk/NeXT/Apps directory) and copy 
+   "/etc/fstab" to your home directory using these commands:
       su
       cp /etc/fstab /bootdisk/Homes/me
 
-2. Open the file "/bootdisk/Homes/me/fstab" and append this line
-   at the end of the file:
+2. Open the file "/bootdisk/Homes/me/fstab" and append this line at the end of 
+   the file:
       nfs:/ /bootdisk/Network nfs rw 0 0
    Save the changes by selecting Window > Save.
 
@@ -88,15 +87,13 @@ HOWTO: Setup NFS file sharing under NeXTstep 0.8:
       touch /bootdisk/fastboot
       reboot
 
-4. The shared folder should be accessible from /bootdisk/Network
-   directory.
+4. The shared folder should be accessible from /bootdisk/Network directory.
 
 
-HOWTO: Manually mount NFS shared directory:
+HOWTO: Manually mount NFS shared directory under NeXTstep 0.9 and later:
 
 1. Open Terminal and type these commands to the command line:
       su
       mount -o rw nfs:/ /Net
 
-2. The shared folder should immediately be accessible from /Net 
-   directory.
+2. The shared folder should immediately be accessible from /Net directory.

@@ -18,27 +18,28 @@
  1) License
  ----------
 
-This program is free software; you can redistribute it and/or modify it under 
+This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software 
 Foundation; either version 2 of the License, or (at your option) any later 
 version.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY 
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A 
 PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License along with 
-this program; if not, write to the Free Software Foundation, 51 Franklin Street, 
-Fifth Floor, Boston, MA 02110-1335 USA
+You should have received a copy of the GNU General Public License along with
+this program; if not, write to the
+  Free Software Foundation, Inc.,
+  51 Franklin Street, Fifth Floor, 
+  Boston, MA 02110-1301, USA
 
 
  2) About Previous
  -----------------
 
-Previous is a NeXT Computer emulator based on the Atari emulator Hatari. It 
-uses the latest m68k emulation core from WinUAE and the i860 emulator from 
-Jason Eckhardt. Previous works on all Systems which are supported by the SDL2 
-library.
+Previous is a NeXT Computer emulator based on the Atari emulator Hatari. It uses 
+the latest m68k emulation core from WinUAE and the i860 emulator from Jason 
+Eckhardt. Previous works on all Systems which are supported by the SDL2 library.
 
 Previous emulates the following machines:
   NeXT Computer (original 68030 Cube)
@@ -72,25 +73,24 @@ Don't forget to also install the header files of these libraries for compiling
 Previous (some Linux distributions use separate development packages for these
 header files)!
 
-For compiling Previous, you need C and C++ compilers and a working CMake 
-(v3.3 or later) installation (see http://www.cmake.org/ for details).
+For compiling Previous, you need C and C++ compilers and a working CMake (v3.3 
+or later) installation (see http://www.cmake.org/ for details).
 
-CMake can generate makefiles for various flavors of "Make" (like GNU-Make)
-and various IDEs like Xcode on macOS. To run CMake, you have to pass the
-path to the sources of Previous as parameter. For example, run the following
-command sequence to configure the build of Previous in a separate build 
-directory (assuming that the current working directory is the top of the source 
-tree):
+CMake can generate makefiles for various flavors of "Make" (like GNU-Make) and 
+various IDEs like Xcode on macOS. To run CMake, you have to pass the path to the 
+sources of Previous as parameter. For example, run the following command 
+sequence to configure the build of Previous in a separate build directory 
+(assuming that the current working directory is the top of the source tree):
 
 	mkdir -p build
 	cd build
 	cmake ..
 
-Have a look at the manual of CMake for other options. Alternatively, you can
-use the "cmake-gui" program to configure the sources with a graphical
-application or "ccmake" to configure them with ncurses UI.
+Have a look at the manual of CMake for other options. Alternatively, you can use 
+the "cmake-gui" program to configure the sources with a graphical application or 
+"ccmake" to configure them with ncurses UI.
 
-Once CMake has successfully configured the build settings, you can compile
+Once CMake has successfully configured the build settings, you can compile 
 Previous with:
 
 	cmake --build .
@@ -102,8 +102,8 @@ directory of the build tree.
  4) Status
  ---------
 
-Previous is stable, but some parts are still work in progress. Some hardware 
-is not yet emulated. Status of the individual components is as follows:
+Previous is stable, but some parts are still work in progress. Some hardware is 
+not yet emulated. Status of the individual components is as follows:
   CPU             good (but not cycle-exact)
   MMU             good
   FPU             good
@@ -129,7 +129,7 @@ is not yet emulated. Status of the individual components is as follows:
   Dimension       partial (no video I/O)
 
 
-There are remaining problems with the host to emulated machine interface for
+There are remaining problems with the host to emulated machine interface for 
 input devices.
 
 
@@ -151,10 +151,9 @@ input devices.
   > CPU timings are not correct. You may experience performance differences 
     compared to real hardware.
   > 68882 transcendental FPU instructions produce results identical to 68040 
-    FPSP.
-    The results are slightly different from real 68882 results.
-  > Changing network connection settings while a guest system is running 
-    can cause permanently lost connections, especially under NeXTstep 2.2.
+    FPSP. The results are slightly different from real 68882 results.
+  > Changing network connection settings while a guest system is running can 
+    cause permanently lost connections, especially under NeXTstep 2.2.
 
 
  6) Release notes
@@ -267,8 +266,8 @@ For running the emulator, you need an image of the boot ROM of the emulated
 machine.
 
 While the emulator is running, you can open the configuration menu by pressing 
-F12, toggle between fullscreen and windowed mode by pressing F11 and initiate 
-a clean shut down by pressing F10 (emulates the power button).
+F12, toggle between fullscreen and windowed mode by pressing F11 and initiate a 
+clean shut down by pressing F10 (emulates the power button).
 
 
  8) Contributors
@@ -287,5 +286,5 @@ This emulator would not exist without their help.
  9) Contact
  ----------
 
-If you want to contact the authors of Previous, please have a look at the 
-NeXT International Forums (http://www.nextcomputers.org/forums).
+If you want to contact the authors of Previous, please have a look at the NeXT 
+International Forums (http://www.nextcomputers.org/forums).
