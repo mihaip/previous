@@ -52,6 +52,11 @@ Previous emulates the following machines:
   NeXTdimension Graphics Board
 
 
+Previous comes with a command line utility called "ditool" (disk image tool). 
+You can get informations about its features and how to use it by calling it with 
+the -h option (ditool -h). Be careful using the -clean option, because it will delete all files from the specified directory without asking.
+
+
  3) Compiling and installing
  ---------------------------
 

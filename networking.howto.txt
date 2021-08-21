@@ -3,7 +3,10 @@ NOTE: This procedure is only valid when using SLiRP as network interface. If
       address and the addresses of nameserver, router, broadcast and netmask 
       with values valid on your local network. If your router does not support 
       the Routing Information Protocol version 1 you have to statically 
-      configure the router address.
+      configure the router address. If using PCAP or if you do not intend to use 
+      Previous' internal NFS server for filesharing or netbooting you may also 
+      choose your own hostname. Please note that it has to consist of a maximum 
+      of eight lower case letters.
 
 
 NOWTO: Setup networking on NeXTstep 1.0 and later:
@@ -12,35 +15,34 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
    the single user mode console. If prompted to press 'c' just do so or if on 
    the single user mode console just type "exit" to continue booting.
 
-2. Open "/etc/resolv.conf" and add these two lines to the file:
+2. Open Terminal (you find it in /NextApps directory) and use these commands to 
+   copy the files that need to be modified to your home directory (/me):
+      touch /me/resolv.conf
+      cp /etc/hosts /me
+
+3. Open "/me/resolv.conf" and add these two lines to the file:
       domain local
       nameserver 10.0.2.3
 
-   If the file does not exist, you have to first create it. Make sure you create 
-   a plain text file. If using Edit.app select Format > Text > Make ASCII. You 
-   can save the file from the save dialog by typing "/etc/resolv.conf" to the 
-   name field.
-
-3. Open "/etc/hosts" and append the following lines. In the first line replace 
-   xxx with your preferred hostname. It has to consist of a maximum of eight 
-   lower case letters.
-      10.0.2.15 xxx
+4. Open "/me/hosts" and append the following lines at the end of the file:
+      10.0.2.15 previous
       10.0.2.254 nfs
 
-   Open Terminal (you find it in /NextApps directory) and load the edited file 
-   using these commands:
+5. Use these commands from the command line (Terminal) to copy and load the 
+   edited files:
       su
-      niload hosts / < /etc/hosts 
+      cp /me/resolv.conf /etc
+      cp /me/hosts /etc
+      niload hosts / < /etc/hosts
 
-4. Open NetManager (you find it in /NextAdmin directory).
-
-   Go to "Local..." and configure with these values:
+6. Open NetManager (you find it in /NextAdmin directory), go to "Local..." and 
+   configure with these values:
    a  For "Network Type" select  "Non-NetInfo Network"
    b  For "Yellow Pages Domain Name" select "None"
-   c  Set "Hostname" to the name chosen in step 3
+   c  Set "Hostname" to "previous"
    d  Set "Address" to "10.0.2.15"
    e  Set "Router" to "10.0.2.2"
-   f  Set "Broadcast Address to "10.0.2.255"
+   f  Set "Broadcast Address" to "10.0.2.255"
    g  Set "Netmask" to "255.255.255.0"
    h  Hit "OK" and confirm all messages. It will reboot. Done.
 
@@ -49,29 +51,6 @@ NOTE: On NeXTstep 3.0 and later NetManager is called HostManager, "Network Type"
       domain only".
       On NeXTstep 2.0 and later "Yellow Pages Domain Name" is called "NIS Domain 
       Name".
-
-
-HOWTO: Open and save "/etc/hosts" using root privileges:
-
-   a  Open Terminal (you find it in /NextApps directory) and open "/etc/hosts" 
-      using these commands:
-         su
-         open /etc/hosts
-   b  Edit the file as described above.
-   c  On NeXTstep 1.0 through 2.2 close the file. When asked if you want to save 
-      changes, confirm it. On NeXTstep 1.0 through 2.2 the procedure is done and 
-      you can skip step d.
-   d  On NeXTstep 3.0 and later save a copy of the file to your home folder by 
-      selecting File > Save As... and writing "~/hosts" to the name field. Then 
-      open Terminal and copy the file to its destination using these commands:
-         su
-         cp ~/hosts /etc
-
-NOTE: This procedure also works for editing "/etc/resolv.conf". Just replace 
-      "/etc/hosts" with "/etc/resolv.conf". If "/etc/resolv.conf" does not exist 
-      you can create it using these commands before starting with step a:
-         su
-         touch /etc/resolv.conf
 
 
 NOWTO: Setup networking on NeXTstep 0.9:
@@ -93,8 +72,7 @@ NOWTO: Setup networking on NeXTstep 0.9:
    reboot.
 
 4. Open Shell (you find it in /NextApps directory) to create, open and modify 
-   some files as follows. Replace xxx in steps b and c with your preferred 
-   hostname. It has to consist of a maximum of eight lower case letters.
+   some files as follows:
    a  Create and modify "/etc/resolv.conf" with these commands:
          touch /etc/resolv.conf
          open /etc/resolv.conf
@@ -105,7 +83,7 @@ NOWTO: Setup networking on NeXTstep 0.9:
    b  Modify "/etc/hostconfig" with these commands:
          open /etc/hostconfig
       Set the values as follows 
-         HOSTNAME=xxx
+         HOSTNAME=previous
          INETADDR=10.0.2.15
          ROUTER=-ROUTED-
          NETMASTER=-NO-
@@ -116,7 +94,7 @@ NOWTO: Setup networking on NeXTstep 0.9:
    c  Modify "/etc/hosts" with these commands:
          open /etc/hosts
       Append these two lines to the file
-         10.0.2.15 xxx
+         10.0.2.15 previous
          10.0.2.254 nfs
       and save the changes by selecting Window > Save.
 
@@ -138,22 +116,18 @@ NOTE: If you prefer to statically configure the router you have to modify the
 
 NOWTO: Setup networking on NeXTstep 0.8:
 
-1. Open the file "/etc/hosts" and append the following lines to the file. In the 
-   first line replace xxx with your preferred hostname. It has to consist of a 
-   maximum of eight lower case letters.
-      10.0.2.15 xxx
+1. Open the file "/etc/hosts" and append the following lines to the file:
+      10.0.2.15 previous
       10.0.2.254 nfs
 
-2. Open the file "/etc/resolv.conf" and append the following two lines to the 
-   file:
+2. Open the file "/etc/resolv.conf" and append the following lines to the file:
       domain local
       nameserver 10.0.2.3
 
 3. Open Shell (you find it in /bootdisk/NeXT/Apps directory) and use these 
-   commands to write your hostname to the disk label and reboot. Replace xxx 
-   with the hostname chosen in step 1.
+   commands to write the hostname to the disk label and reboot:
       su
-      disk -t XT-8760S-512 -H xxx /dev/rsd0a
+      disk -t XT-8760S-512 -H previous /dev/rsd0a
       touch /bootdisk/fastboot
       reboot
 

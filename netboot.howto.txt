@@ -50,8 +50,7 @@ NOWTO: Setup netboot under NeXTstep 1.0 and later:
 NOWTO: Setup netboot under NeXTstep 0.9:
 
 1. Prepare the image you want to use for netboot by setting up networking using 
-   the procedure from networking.howto.txt. Make sure you set your preferred 
-   hostname to "previous".
+   the procedure from networking.howto.txt.
 
 2. From your guest system open Shell (you find it in /NextApps directory) and 
    copy some files using these commands from the command line:
