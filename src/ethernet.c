@@ -520,7 +520,14 @@ static void enet_io(void) {
 	
 	/* Send packet */
 	if (enet.tx_status&TXSTAT_READY) {
-		if (en_state != EN_DISCONNECTED) {
+		if (en_state == EN_DISCONNECTED) {
+			if (dma_enet_read_memory()) {
+				Log_Printf(LOG_EN_LEVEL, "[EN] Ethernet disconnected. 16 collisions in a row!");
+				enet.tx_status &= ~(TXSTAT_TX_RECVD|TXSTAT_SHORTED);
+				enet_tx_buffer.size=0;
+				enet_tx_interrupt(TXSTAT_16COLLS);
+			}
+		} else {
 			if (enet.tx_status&TXSTAT_NET_BUSY) {
 				/* Wait until network is free */
 				Log_Printf(LOG_EN_LEVEL, "[EN] Network is busy. Transmission delayed.");
@@ -528,7 +535,7 @@ static void enet_io(void) {
 				old_size = enet_tx_buffer.size;
 				tx_done=dma_enet_read_memory();
 				if (enet_tx_buffer.size>0) {
-					enet.tx_status &= ~TXSTAT_TX_RECVD;
+					enet.tx_status &= ~(TXSTAT_TX_RECVD|TXSTAT_SHORTED);
 					if (enet_tx_buffer.size==old_size && !tx_done) {
 						Log_Printf(LOG_WARN, "[EN] Sending packet: Error! Transmitter underflow (no EOP)!");
 						enet_tx_interrupt(TXSTAT_UNDERFLOW);
@@ -658,7 +665,18 @@ static void new_enet_io(void) {
 	
 	/* Send packet */
 	if (enet.tx_mode&TXMODE_ENABLE) {
-		if (en_state != EN_DISCONNECTED) {
+		if (en_state == EN_DISCONNECTED) {
+			dma_enet_read_memory();
+			Log_Printf(LOG_EN_LEVEL, "[newEN] Ethernet disconnected. 16 collisions in a row!");
+			enet_tx_buffer.size=0;
+			enet_tx_interrupt(TXSTAT_16COLLS);
+			/* strange, but required by ROM and 2.2 kernel */
+			if (ConfigureParams.Ethernet.bEthernetConnected) {
+				if (!ConfigureParams.Ethernet.bTwistedPair) {
+					enet_tx_interrupt(TXSTAT_READY);
+				}
+			}
+		} else {
 			if (enet.tx_status&TXSTAT_NET_BUSY) {
 				/* Wait until network is free */
 				Log_Printf(LOG_EN_LEVEL, "[newEN] Network is busy. Transmission delayed.");
@@ -671,12 +689,6 @@ static void new_enet_io(void) {
 							   enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
 					enet.tx_status &= ~TXSTAT_TX_RECVD;
 					enet_send(enet_tx_buffer.data, enet_tx_buffer.size);
-					enet_tx_interrupt(TXSTAT_READY);
-				}
-			}
-		} else { /* disconnected - strange, but required by ROM and 2.2 kernel */
-			if (ConfigureParams.Ethernet.bEthernetConnected) {
-				if (!ConfigureParams.Ethernet.bTwistedPair) {
 					enet_tx_interrupt(TXSTAT_READY);
 				}
 			}
