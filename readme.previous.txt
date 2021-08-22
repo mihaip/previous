@@ -51,10 +51,17 @@ Previous emulates the following machines:
   NeXTstation Turbo Color
   NeXTdimension Graphics Board
 
+Note that some hardware is only supported by later operating system versions:
+  NeXT Computer (68030):                       all versions
+  NeXTcube and NeXTstation (68040 non-Turbo):  NeXTstep 2.0 and later
+  NeXTdimension Graphics Board:                NeXTstep 2.1 and later
+  NeXTcube and NeXTstation (68040 Turbo):      NeXTstep 2.2 and later
+
 
 Previous comes with a command line utility called "ditool" (disk image tool). 
 You can get informations about its features and how to use it by calling it with 
-the -h option (ditool -h). Be careful using the -clean option, because it will delete all files from the specified directory without asking.
+the -h option (ditool -h). Be careful using the -clean option, because it will 
+delete all files from the specified directory without asking.
 
 
  3) Compiling and installing
@@ -157,8 +164,6 @@ input devices.
     compared to real hardware.
   > 68882 transcendental FPU instructions produce results identical to 68040 
     FPSP. The results are slightly different from real 68882 results.
-  > Changing network connection settings while a guest system is running can 
-    cause permanently lost connections, especially under NeXTstep 2.2.
 
 
  6) Release notes
@@ -262,6 +267,7 @@ Previous v2.4 (unreleased):
   > Improves mouse movement handling.
   > Fixes bug that caused slow disk access when running Mac OS.
   > Fixes bug that caused sound recording to be unreliable.
+  > Fixes bug that caused lost connection when changing network interface.
 
 
  7) Running Previous

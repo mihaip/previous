@@ -57,10 +57,9 @@ NOWTO: Setup netboot under NeXTstep 0.9:
       su
       cp /sdmach /private/tftpboot/mach
       cp /usr/standalone/boot /private/tftpboot
-      cp /etc/fstab /me
+      touch /me/fstab
 
-3. Go to the /me directory and open the file "fstab". Remove all lines not 
-   starting with # and add these two lines at the end of the file:
+3. Open "/me/fstab" and add these two lines to the file:
       nfs:/ / nfs rw,noauto 0 0
       nfs:/private /private nfs rw,noauto 0 0
 
@@ -71,9 +70,8 @@ NOWTO: Setup netboot under NeXTstep 0.9:
    you want to use for netboot):
       ditool -im image.dd -out nfsdir
 
-5. Using your host system replace the files "fstab" and "hosts" located in the 
-   directory "nfsdir/private/etc/hosts" with the copies located in the directory 
-   "nfsdir/me".
+5. Using your host system replace the file "fstab" located in the directory 
+   "nfsdir/private/etc" with the version located in the directory "nfsdir/me".
 
 6. You can now netboot by setting "NFS shared directory" in the "Network" 
    options to nfsdir and "Boot device" from "Boot" options to "Ethernet".
