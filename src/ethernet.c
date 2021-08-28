@@ -68,10 +68,10 @@ bool enet_stopped;
 
 #define RXMASK_PKT_OK       0x80
 #define RXMASK_RESET_PKT    0x10
-#define RXMASK_SHORT_PKT    0x80
-#define RXMASK_ALIGN_ERR    0x40
-#define RXMASK_CRC_ERR      0x20
-#define RXMASK_OVERFLOW     0x10
+#define RXMASK_SHORT_PKT    0x08
+#define RXMASK_ALIGN_ERR    0x04
+#define RXMASK_CRC_ERR      0x02
+#define RXMASK_OVERFLOW     0x01
 
 #define TXMODE_COLL_ATMPT   0xF0    /* r */
 #define TXMODE_IGNORE_PAR   0x08    /* rw */
@@ -106,18 +106,18 @@ void EN_TX_Status_Write(void) {
     Uint8 val=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Transmitter status write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 	if (ConfigureParams.System.bTurbo) {
-		enet.tx_status&=~val;
+		enet.tx_status&=~(val&0xBE);
 	} else {
 		enet.tx_status&=~(val&0x0F);
 	}
 	
-    if ((enet.tx_status&enet.tx_mask&0x0F)==0) {
+    if ((enet.tx_status&enet.tx_mask)==0) {
         set_interrupt(INT_EN_TX, RELEASE_INT);
     }
 }
 
 void EN_TX_Mask_Read(void) { // 0x02006001
-    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.tx_mask&0xAF;
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.tx_mask;
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Transmitter masks read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -125,7 +125,10 @@ void EN_TX_Mask_Write(void) {
     enet.tx_mask=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Transmitter masks write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
-    if ((enet.tx_status&enet.tx_mask&0x0F)==0) {
+    enet.tx_mask&=ConfigureParams.System.bTurbo?0xBE:0xAF;
+    if (enet.tx_status&enet.tx_mask) {
+        set_interrupt(INT_EN_TX, SET_INT);
+    } else {
         set_interrupt(INT_EN_TX, RELEASE_INT);
     }
 }
@@ -138,15 +141,19 @@ void EN_RX_Status_Read(void) { // 0x02006002
 void EN_RX_Status_Write(void) {
     Uint8 val=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver status write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
-    enet.rx_status&=~(val&0x8F);
+    if (ConfigureParams.System.bTurbo) {
+        enet.rx_status&=~(val&0xDF);
+    } else {
+        enet.rx_status&=~(val&0x8F);
+    }
     
-    if ((enet.rx_status&enet.rx_mask&0x8F)==0) {
+    if ((enet.rx_status&enet.rx_mask)==0) {
         set_interrupt(INT_EN_RX, RELEASE_INT);
     }
 }
 
 void EN_RX_Mask_Read(void) { // 0x02006003
-    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.rx_mask&0x9F;
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.rx_mask;
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver masks read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -154,7 +161,10 @@ void EN_RX_Mask_Write(void) {
     enet.rx_mask=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver masks write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
-    if ((enet.rx_status&enet.rx_mask&0x8F)==0) {
+    enet.rx_mask&=ConfigureParams.System.bTurbo?0xDF:0x9F;
+    if (enet.rx_status&enet.rx_mask) {
+        set_interrupt(INT_EN_RX, SET_INT);
+    } else {
         set_interrupt(INT_EN_RX, RELEASE_INT);
     }
 }
@@ -259,6 +269,13 @@ static void enet_tx_interrupt(Uint8 intr) {
     enet.tx_status|=intr;
     if (enet.tx_status&enet.tx_mask) {
         set_interrupt(INT_EN_TX, SET_INT);
+    }
+}
+
+static void enet_tx_release(Uint8 intr) {
+    enet.tx_status&=~intr;
+    if ((enet.tx_status&enet.tx_mask)==0) {
+        set_interrupt(INT_EN_TX, RELEASE_INT);
     }
 }
 
@@ -469,7 +486,6 @@ static void enet_io(void) {
 						   enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
 						   enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
 				rx_chain = false;
-				enet.rx_status&=~RXSTAT_PKT_OK;
 				if (enet_rx_buffer.size<ENET_FRAMESIZE_MIN && !(enet.rx_mode&RXMODE_ENA_SHORT)) {
 					Log_Printf(LOG_WARN, "[EN] Received packet is short (%i byte)",enet_rx_buffer.size);
 					enet_rx_interrupt(RXSTAT_SHORT_PKT);
@@ -520,41 +536,37 @@ static void enet_io(void) {
 	
 	/* Send packet */
 	if (enet.tx_status&TXSTAT_READY) {
-		if (en_state == EN_DISCONNECTED) {
-			if (dma_enet_read_memory()) {
-				Log_Printf(LOG_EN_LEVEL, "[EN] Ethernet disconnected. 16 collisions in a row!");
-				enet.tx_status &= ~(TXSTAT_TX_RECVD|TXSTAT_SHORTED);
-				enet_tx_buffer.size=0;
-				enet_tx_interrupt(TXSTAT_16COLLS);
-			}
+		if (enet.tx_status&TXSTAT_NET_BUSY) {
+			/* Wait until network is free */
+			Log_Printf(LOG_EN_LEVEL, "[EN] Network is busy. Transmission delayed.");
 		} else {
-			if (enet.tx_status&TXSTAT_NET_BUSY) {
-				/* Wait until network is free */
-				Log_Printf(LOG_EN_LEVEL, "[EN] Network is busy. Transmission delayed.");
-			} else {
-				old_size = enet_tx_buffer.size;
-				tx_done=dma_enet_read_memory();
-				if (enet_tx_buffer.size>0) {
-					enet.tx_status &= ~(TXSTAT_TX_RECVD|TXSTAT_SHORTED);
-					if (enet_tx_buffer.size==old_size && !tx_done) {
-						Log_Printf(LOG_WARN, "[EN] Sending packet: Error! Transmitter underflow (no EOP)!");
-						enet_tx_interrupt(TXSTAT_UNDERFLOW);
-						enet_tx_buffer.size=0;
-					} else if (enet_tx_buffer.size>15) {
-						enet_tx_buffer.size-=15;
-					} else if (tx_done) {
-						Log_Printf(LOG_WARN, "[EN] Transmitter error: Early EOP!");
-						enet_tx_buffer.size=0;
-						tx_done = false;
-					}
+			old_size = enet_tx_buffer.size;
+			tx_done=dma_enet_read_memory();
+			if (enet_tx_buffer.size>0) {
+				enet_tx_release(TXSTAT_TX_RECVD|TXSTAT_SHORTED);
+				if (enet_tx_buffer.size==old_size && !tx_done) {
+					Log_Printf(LOG_WARN, "[EN] Sending packet: Error! Transmitter underflow (no EOP)!");
+					enet_tx_interrupt(TXSTAT_UNDERFLOW);
+					enet_tx_buffer.size=0;
+				} else if (en_state == EN_DISCONNECTED) {
+					Log_Printf(LOG_EN_LEVEL, "[EN] Ethernet disconnected. 16 collisions in a row!");
+					enet_tx_interrupt(TXSTAT_16COLLS);
+					enet_tx_buffer.size=0;
+					tx_done = false;
+				} else if (enet_tx_buffer.size>15) {
+					enet_tx_buffer.size-=15;
+				} else if (tx_done) {
+					Log_Printf(LOG_WARN, "[EN] Transmitter error: Early EOP!");
+					enet_tx_buffer.size=0;
+					tx_done = false;
 				}
-				if (tx_done) {
-					Statusbar_BlinkLed(DEVICE_LED_ENET);
-					Log_Printf(LOG_EN_LEVEL, "[EN] Sending packet to %02X:%02X:%02X:%02X:%02X:%02X",
-							   enet_tx_buffer.data[0], enet_tx_buffer.data[1], enet_tx_buffer.data[2],
-							   enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
-					enet_send(enet_tx_buffer.data, enet_tx_buffer.size);
-				}
+			}
+			if (tx_done) {
+				Statusbar_BlinkLed(DEVICE_LED_ENET);
+				Log_Printf(LOG_EN_LEVEL, "[EN] Sending packet to %02X:%02X:%02X:%02X:%02X:%02X",
+						   enet_tx_buffer.data[0], enet_tx_buffer.data[1], enet_tx_buffer.data[2],
+						   enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
+				enet_send(enet_tx_buffer.data, enet_tx_buffer.size);
 			}
 		}
 	}
@@ -614,7 +626,6 @@ static void new_enet_io(void) {
 						   enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
 						   enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
 				rx_chain = false;
-				enet.rx_status&=~RXSTAT_PKT_OK;
 				if (enet_rx_buffer.size<ENET_FRAMESIZE_MIN && !(enet.rx_mode&RXMODE_ENA_SHORT)) {
 					Log_Printf(LOG_WARN, "[newEN] Received packet is short (%i byte)",enet_rx_buffer.size);
 					enet_rx_interrupt(RXSTAT_SHORT_PKT);
@@ -665,32 +676,24 @@ static void new_enet_io(void) {
 	
 	/* Send packet */
 	if (enet.tx_mode&TXMODE_ENABLE) {
-		if (en_state == EN_DISCONNECTED) {
-			dma_enet_read_memory();
-			Log_Printf(LOG_EN_LEVEL, "[newEN] Ethernet disconnected. 16 collisions in a row!");
-			enet_tx_buffer.size=0;
-			enet_tx_interrupt(TXSTAT_16COLLS);
-			/* strange, but required by ROM and 2.2 kernel */
-			if (ConfigureParams.Ethernet.bEthernetConnected) {
-				if (!ConfigureParams.Ethernet.bTwistedPair) {
-					enet_tx_interrupt(TXSTAT_READY);
-				}
-			}
+		if (enet.tx_status&TXSTAT_NET_BUSY) {
+			/* Wait until network is free */
+			Log_Printf(LOG_EN_LEVEL, "[newEN] Network is busy. Transmission delayed.");
 		} else {
-			if (enet.tx_status&TXSTAT_NET_BUSY) {
-				/* Wait until network is free */
-				Log_Printf(LOG_EN_LEVEL, "[newEN] Network is busy. Transmission delayed.");
-			} else {
-				dma_enet_read_memory();
-				if (enet_tx_buffer.size>0) {
+			dma_enet_read_memory();
+			if (enet_tx_buffer.size>0) {
+				if (en_state == EN_DISCONNECTED) {
+					Log_Printf(LOG_EN_LEVEL, "[newEN] Ethernet disconnected. 16 collisions in a row!");
+					enet_tx_interrupt(TXSTAT_16COLLS);
+					enet_tx_buffer.size=0;
+				} else {
 					Statusbar_BlinkLed(DEVICE_LED_ENET);
 					Log_Printf(LOG_EN_LEVEL, "[newEN] Sending packet to %02X:%02X:%02X:%02X:%02X:%02X",
 							   enet_tx_buffer.data[0], enet_tx_buffer.data[1], enet_tx_buffer.data[2],
 							   enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
-					enet.tx_status &= ~TXSTAT_TX_RECVD;
 					enet_send(enet_tx_buffer.data, enet_tx_buffer.size);
-					enet_tx_interrupt(TXSTAT_READY);
 				}
+				enet_tx_interrupt(TXSTAT_READY);
 			}
 		}
 		enet.tx_status |= TXSTAT_READY; /* really? */
