@@ -142,7 +142,7 @@ static void bootp_reply(struct bootp_t *bp)
         dhcp_msg_type != DHCPREQUEST)
         return;
     /* XXX: this is a hack to get the client mac address */
-    memcpy(client_ethaddr, bp->bp_hwaddr, 6);
+    /* memcpy(client_ethaddr, bp->bp_hwaddr, 6); */
     
     if ((m = m_get()) == NULL)
         return;

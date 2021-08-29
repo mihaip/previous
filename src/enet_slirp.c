@@ -172,7 +172,8 @@ void enet_slirp_start(Uint8 *mac) {
         slirp_redir(0, 42323, guest_addr, 23);
     }
     if (slirp_inited && !slirp_started) {
-        Log_Printf(LOG_WARN, "Starting SLIRP");
+        Log_Printf(LOG_WARN, "Starting SLIRP (%02x:%02x:%02x:%02x:%02x:%02x)",
+                   mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
         memcpy(client_ethaddr, mac, 6);
         slirp_started=1;
         slirpq = QueueCreate();

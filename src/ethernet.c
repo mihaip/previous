@@ -253,6 +253,8 @@ void EN_NodeID5_Read(void) { // 0x0200600d
 void EN_NodeID5_Write(void) {
     enet.mac_addr[5]=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] MAC byte 5 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    /* Make sure the interface has the correct MAC */
+    Ethernet_Reset(false);
 }
 
 void EN_CounterLo_Read(void) { // 0x02006007
@@ -647,6 +649,7 @@ static void new_enet_io(void) {
 				if (enet_rx_buffer.size==old_size) {
 					Log_Printf(LOG_WARN, "[newEN] Receiving packet: Error! Receiver overflow (DMA disabled)!");
 					enet_rx_interrupt(RXSTAT_OVERFLOW);
+					enet.rx_mode &= ~RXMODE_ENABLE;
 					rx_chain = false;
 					enet_rx_buffer.size = 0;
 					enet.tx_status &= ~TXSTAT_NET_BUSY;
