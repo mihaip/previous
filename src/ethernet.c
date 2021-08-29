@@ -741,10 +741,11 @@ void enet_reset(void) {
 
 void Ethernet_Reset(bool hard) {
     static int init_done = 0;
-
+    
+    enet_stopped = true;
+    
     if (hard) {
         enet.reset=EN_RESET;
-        enet_stopped=true;
         enet_rx_buffer.size=enet_tx_buffer.size=0;
         enet_rx_buffer.limit=enet_tx_buffer.limit=64*1024;
         enet.tx_status=ConfigureParams.System.bTurbo?0:TXSTAT_READY;
@@ -770,13 +771,7 @@ void Ethernet_Reset(bool hard) {
     }
     init_done = 1;
     
-    if (ConfigureParams.Ethernet.bEthernetConnected && !(enet.reset&EN_RESET)) {
-        /* Start SLIRP/PCAP */
-        enet_start(enet.mac_addr);
-    } else {
-        /* Stop SLIRP/PCAP */
-        enet_stop();
-    }
+    enet_reset();
 }
 
 
