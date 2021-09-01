@@ -41,5 +41,5 @@ void Ethernet_Reset(bool hard);
 void enet_receive(Uint8 *pkt, int len);
 
 /* Turbo ethernet controller */
-void EN_Control_Read(void);
-void EN_Control_Write(void);
+void EN_Turbo_RX_Status_Read(void);
+void EN_Turbo_Control_Read(void);

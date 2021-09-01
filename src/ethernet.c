@@ -41,8 +41,6 @@ struct {
     Uint8 mac_addr[6];
 } enet;
 
-bool enet_stopped;
-
 #define TXSTAT_READY        0x80    /* r */
 #define TXSTAT_NET_BUSY     0x40    /* r */
 #define TXSTAT_TX_RECVD     0x20    /* r */
@@ -579,23 +577,29 @@ static void enet_io(void) {
 #define RXMODE_ENABLE	0x80
 #define TXMODE_LOOP     0x02
 #define TXMODE_TPE      0x04
-#define ENCTRL_TPE      0x40
+#define ENCTRL_BADTPE   0x40
 
-void EN_Control_Read(void) { // 0x02006006
-    Uint8 val = enet.reset;
-    if (ConfigureParams.Ethernet.bEthernetConnected && ConfigureParams.Ethernet.bTwistedPair) {
-        val &= ~ENCTRL_TPE;
-    } else {
-        val |= ENCTRL_TPE;
+void EN_Turbo_RX_Status_Read(void) { // 0x02006002
+    if (!(enet.tx_mode&(TXMODE_TPE|TXMODE_LOOP))) {
+        if (!ConfigureParams.Ethernet.bEthernetConnected || ConfigureParams.Ethernet.bTwistedPair) {
+            Log_Printf(LOG_WARN,"[newEN] Receiver status read bus error!\n");
+            M68000_BusError(IoAccessCurrentAddress, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, BUS_ERROR_ACCESS_DATA, 0);
+            return;
+        }
     }
-    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = val;
-	Log_Printf(LOG_EN_REG_LEVEL,"[newEN] Control read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.rx_status;
+    Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
-void EN_Control_Write(void) {
-	enet.reset=(IoMem[IoAccessCurrentAddress & IO_SEG_MASK])&EN_RESET;
-	Log_Printf(LOG_EN_REG_LEVEL,"[newEN] Control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
-	enet_reset();
+void EN_Turbo_Control_Read(void) { // 0x02006006
+	Uint8 val = enet.reset&EN_RESET;
+	if (enet.tx_mode&TXMODE_TPE) {
+		if (!ConfigureParams.Ethernet.bEthernetConnected || !ConfigureParams.Ethernet.bTwistedPair) {
+			val |= ENCTRL_BADTPE;
+		}
+	}
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = val;
+	Log_Printf(LOG_EN_REG_LEVEL,"[newEN] Control read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 static int new_enet_state(void) {
@@ -708,7 +712,6 @@ void ENET_IO_Handler(void) {
 	
 	if (enet.reset&EN_RESET) {
 		Log_Printf(LOG_WARN, "Stopping Ethernet Transmitter/Receiver");
-		enet_stopped=true;
 		/* Stop SLIRP/PCAP */
 		if (ConfigureParams.Ethernet.bEthernetConnected) {
 			enet_stop();
@@ -728,21 +731,20 @@ void ENET_IO_Handler(void) {
 void enet_reset(void) {
     if (enet.reset&EN_RESET) {
         enet.tx_status=ConfigureParams.System.bTurbo?0:TXSTAT_READY;
-    } else if (enet_stopped==true) {
-        Log_Printf(LOG_WARN, "Starting Ethernet Transmitter/Receiver");
-        enet_stopped=false;
-        CycInt_AddRelativeInterruptUs(ENET_IO_DELAY, 0, INTERRUPT_ENET_IO);
+    } else {
         /* Start SLIRP/PCAP */
         if (ConfigureParams.Ethernet.bEthernetConnected) {
             enet_start(enet.mac_addr);
+        }
+        if (!CycInt_InterruptActive(INTERRUPT_ENET_IO)) {
+            Log_Printf(LOG_WARN, "Starting Ethernet Transmitter/Receiver");
+            CycInt_AddRelativeInterruptUs(ENET_IO_DELAY, 0, INTERRUPT_ENET_IO);
         }
     }
 }
 
 void Ethernet_Reset(bool hard) {
     static int init_done = 0;
-    
-    enet_stopped = true;
     
     if (hard) {
         enet.reset=EN_RESET;

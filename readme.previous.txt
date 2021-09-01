@@ -267,7 +267,8 @@ Previous v2.4 (unreleased):
   > Improves mouse movement handling.
   > Fixes bug that caused slow disk access when running Mac OS.
   > Fixes bug that caused sound recording to be unreliable.
-  > Fixes bug that caused lost connection when changing network interface.
+  > Fixes bug that caused network interface detection to be unreliable.
+  > Fixes bug that caused keyboard initiated reset and NMI to fail.
 
 
  7) Running Previous
