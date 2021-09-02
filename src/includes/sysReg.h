@@ -71,7 +71,7 @@ static inline int intlev(void) {
     /* Poll interrupt level from interrupt status and mask registers
      * --> see sysReg.c
      */
-    Uint32 interrupt = scrIntStat&(scrIntMask|INT_NMI);
+    Uint32 interrupt = scrIntStat&scrIntMask;
     return interrupt ? scr_get_interrupt_level(interrupt) : 0;
 }
 

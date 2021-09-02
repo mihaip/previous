@@ -409,14 +409,25 @@ int scr_get_interrupt_level(Uint32 interrupt) {
 }
 
 /* Interrupt Mask Register */
+#define INT_NONMASKABLE 0x80027640
+#define INT_ZEROBITS    0xC22E7600 // Turbo
 
 void IntRegMaskRead(void) {
-	IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK,scrIntMask);
+    if (ConfigureParams.System.bTurbo) {
+        IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, scrIntMask&~INT_ZEROBITS);
+    } else {
+        IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, scrIntMask);
+    }
 }
 
 void IntRegMaskWrite(void) {
-	scrIntMask = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-        Log_Printf(LOG_DEBUG,"Interrupt mask: %08x", intMask);
+    scrIntMask = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
+    if (ConfigureParams.System.bTurbo) {
+        scrIntMask |= INT_ZEROBITS;
+    } else {
+        scrIntMask |= INT_NONMASKABLE;
+    }
+    Log_Printf(LOG_DEBUG, "Interrupt mask: %08x", scrIntMask);
 }
 
 
