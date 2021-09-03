@@ -362,7 +362,7 @@ void IntRegStatRead(void) {
 }
 
 void IntRegStatWrite(void) {
-    scrIntStat = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
+    Log_Printf(LOG_WARN, "[INT] Interrupt status register is read-only.");
 }
 
 void set_dsp_interrupt(Uint8 state) {

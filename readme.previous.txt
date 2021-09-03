@@ -148,13 +148,9 @@ input devices.
  5) Known issues
  ---------------
 
+Issues in Previous:
   > Un-emulated hardware may cause problems when attempted to being used.
   > NeXTdimension emulation does not work on hosts with big endian byte order.
-  > ROM Monitor, boot log and boot animations won't show on NeXTdimension 
-    monitor, if NeXTdimension main memory exceeds 32 MB. This is a bug in the 
-    NeXT ROM.
-  > The MO drive causes slow downs and hangs when both drives are connected, but 
-    only one disk is inserted. This is no emulation issue but a bug in NeXTstep.
   > DSP sound has timing related issues. playscore under NeXTstep 0.9 sometimes 
     produces bad audio in variable speed mode. ScorePlayer under NeXTstep 2.x 
     produces distorted sound in normal CPU mode.
@@ -164,6 +160,18 @@ input devices.
     compared to real hardware.
   > 68882 transcendental FPU instructions produce results identical to 68040 
     FPSP. The results are slightly different from real 68882 results.
+
+Issues in NeXTstep:
+  > The MO drive causes slow downs and hangs when both drives are connected, but 
+    only one disk is inserted. This is most likely a bug in NeXTstep, but it has 
+    not yet been confirmed.
+  > ROM Monitor, boot log and boot animations won't show on NeXTdimension 
+    monitor, if NeXTdimension main memory exceeds 32 MB. This is confirmed to be 
+    a bug in the NeXT ROM.
+  > Trying to netboot a non-Turbo 68040 machine while no Ethernet cable is 
+    connected causes a hang. "ben" stops the system immediately while "btp" 
+    shows one dot before it stops. This is the exact same behavior as seen on 
+    real hardware. This is confirmed to be a bug in the NeXT ROM.
 
 
  6) Release notes
