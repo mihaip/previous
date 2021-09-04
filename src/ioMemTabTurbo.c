@@ -117,9 +117,6 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_Turbo[] =
 	{ 0x0200600d, SIZE_BYTE, EN_NodeID5_Read, EN_NodeID5_Write },
 	{ 0x0200600e, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x0200600f, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	/* Required for daydream kernel */
-	{ 0x02006202, SIZE_BYTE, EN_Turbo_RX_Status_Read, EN_RX_Status_Write },
-	{ 0x02006205, SIZE_BYTE, EN_RX_Mode_Read, EN_RX_Mode_Write },
 	
 	/* Interrupt Status and Mask Registers */
 	{ 0x02007000, SIZE_LONG, IntRegStatRead, IntRegStatWrite },

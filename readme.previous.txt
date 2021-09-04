@@ -273,6 +273,7 @@ Previous v2.4 (unreleased):
   > Improves network auto-configuration.
   > Improves performance and accuracy of FSINCOS.
   > Improves mouse movement handling.
+  > Improves DMA emulation accuracy.
   > Fixes bug that caused slow disk access when running Mac OS.
   > Fixes bug that caused sound recording to be unreliable.
   > Fixes bug that caused network interface detection to be unreliable.

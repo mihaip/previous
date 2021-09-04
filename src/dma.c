@@ -231,8 +231,9 @@ void DMA_CSR_Write(void) {
     if (writecsr&DMA_CLRCOMPLETE) {
         dma[channel].csr &= ~DMA_COMPLETE;
     }
-
-    set_interrupt(interrupt, RELEASE_INT); // experimental
+    if (!(dma[channel].csr&DMA_COMPLETE)) {
+        set_interrupt(interrupt, RELEASE_INT);
+    }
 }
 
 void DMA_Saved_Next_Read(void) { // 0x02004000
@@ -383,8 +384,8 @@ void dma_interrupt(int channel) {
         } else {
             dma[channel].csr &= ~DMA_ENABLE; /* all done */
         }
-        set_interrupt(interrupt, SET_INT);
-    } else if (dma[channel].csr&DMA_BUSEXC) {
+    }
+    if (dma[channel].csr&DMA_COMPLETE) {
         set_interrupt(interrupt, SET_INT);
     }
 }
@@ -1053,9 +1054,10 @@ bool dma_dsp_ready(void) {
 /* Interrupt Handler (called from Video_InterruptHandler in video.c) */
 void dma_video_interrupt(void) {
     if (dma[CHANNEL_VIDEO].limit==0xEA) {
+        dma[CHANNEL_VIDEO].csr |= DMA_COMPLETE;
         set_interrupt(INT_VIDEO, SET_INT); /* interrupt is released by writing to CSR */
     } else if (dma[CHANNEL_VIDEO].limit && dma[CHANNEL_VIDEO].limit!=0xEA) {
-        abort();
+        Log_Printf(LOG_WARN, "[DMA] Channel Video: Limit not supported: %08x", dma[CHANNEL_VIDEO].limit);
     }
 }
 
@@ -1163,8 +1165,9 @@ void TDMA_CSR_Write(void) {
 	if (writecsr&TDMA_CLRCOMPLETE) {
 		dma[channel].csr &= ~DMA_COMPLETE;
 	}
-	
-	set_interrupt(interrupt, RELEASE_INT);
+    if (!(dma[channel].csr&DMA_COMPLETE)) {
+        set_interrupt(interrupt, RELEASE_INT);
+    }
 }
 
 void TDMA_Saved_Next_Read(void) { // 0x02004050
