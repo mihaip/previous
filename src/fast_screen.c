@@ -34,6 +34,8 @@ volatile bool bInFullScreen = false; /* true if in full screen */
 
 static const int NeXT_SCRN_WIDTH  = 1120;
 static const int NeXT_SCRN_HEIGHT = 832;
+int width;   /* guest framebuffer */
+int height;  /* guest framebuffer */
 
 static SDL_Thread*   repaintThread;
 static SDL_Renderer* sdlRenderer;
@@ -197,16 +199,7 @@ static void blitScreen(SDL_Texture* tex) {
  shows it.
  */
 static int repainter(void* unused) {
-    int width;
-    int height;
-
     SDL_SetThreadPriority(SDL_THREAD_PRIORITY_NORMAL);
-    SDL_GetWindowSize(sdlWindow, &width, &height);
-    
-    statusBar.x = 0;
-    statusBar.y = NeXT_SCRN_HEIGHT;
-    statusBar.w = width;
-    statusBar.h = height - NeXT_SCRN_HEIGHT;
     
     SDL_Texture*  uiTexture;
     SDL_Texture*  fbTexture;
@@ -325,15 +318,19 @@ void Screen_Pause(bool pause) {
  */
 void Screen_Init(void) {
     /* Set initial window resolution */
+    width  = NeXT_SCRN_WIDTH;
+    height = NeXT_SCRN_HEIGHT;    
     bInFullScreen = ConfigureParams.Screen.bFullScreen;
     nScreenZoomX  = 1;
     nScreenZoomY  = 1;
 
-    int width  = NeXT_SCRN_WIDTH;
-    int height = NeXT_SCRN_HEIGHT;
-    
-    /* Statusbar height */
-    height += Statusbar_SetHeight(width, height);
+    /* Statusbar */
+    statusBar.x = 0;
+    statusBar.y = height;
+    statusBar.w = width;
+    Statusbar_SetHeight(width, height);
+    /* Grow to fit statusbar */
+    height += Statusbar_GetHeight();
     
     /* Set new video mode */
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
