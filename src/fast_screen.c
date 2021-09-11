@@ -325,10 +325,11 @@ void Screen_Init(void) {
     nScreenZoomY  = 1;
 
     /* Statusbar */
+    Statusbar_SetHeight(width, height);
     statusBar.x = 0;
     statusBar.y = height;
     statusBar.w = width;
-    Statusbar_SetHeight(width, height);
+    statusBar.h = Statusbar_GetHeight();
     /* Grow to fit statusbar */
     height += Statusbar_GetHeight();
     
