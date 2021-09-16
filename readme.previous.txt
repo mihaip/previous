@@ -163,8 +163,7 @@ Issues in Previous:
 
 Issues in NeXTstep:
   > The MO drive causes slow downs and hangs when both drives are connected, but 
-    only one disk is inserted. This is most likely a bug in NeXTstep, but it has 
-    not yet been confirmed.
+    only one disk is inserted. This is confirmed to be a bug in NeXTstep.
   > ROM Monitor, boot log and boot animations won't show on NeXTdimension 
     monitor, if NeXTdimension main memory exceeds 32 MB. This is confirmed to be 
     a bug in the NeXT ROM.
@@ -274,6 +273,7 @@ Previous v2.4 (unreleased):
   > Improves performance and accuracy of FSINCOS.
   > Improves mouse movement handling.
   > Improves DMA emulation accuracy.
+  > Improves reliability of dual magneto-optical disk drive setups.
   > Fixes bug that caused slow disk access when running Mac OS.
   > Fixes bug that caused sound recording to be unreliable.
   > Fixes bug that caused network interface detection to be unreliable.
