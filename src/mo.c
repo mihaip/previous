@@ -81,8 +81,8 @@ struct {
     
     bool protected;
     bool inserted;
+    bool enabled;
     bool connected;
-    bool stopped;
 } mo[MO_MAX_DRIVES];
 
 static int dnum;
@@ -224,8 +224,9 @@ static void mo_stop_spiraling(void);
 static void mo_self_diagnostic(void);
 static void mo_unimplemented_cmd(void);
 
-static bool mo_drive_empty(void);
+static bool mo_empty(void);
 static bool mo_protected(void);
+static bool mo_stopped(void);
 static void mo_spiraling_operation(void);
 static void mo_insert_disk(int drive);
 
@@ -505,6 +506,14 @@ void osp_interrupt(Uint8 interrupt) {
     osp_set_interrupts();
 }
 
+void osp_set_interrupts(void) {
+    if (osp.intstatus&osp.intmask) {
+        set_interrupt(INT_DISK, SET_INT);
+    } else {
+        set_interrupt(INT_DISK, RELEASE_INT);
+    }
+}
+
 
 enum {
     ECC_MODE_READ,
@@ -653,7 +662,6 @@ void fmt_io(Uint32 sector_id) {
             osp.tracknumh = (sector_id>>16)&0xFF;
             osp.tracknuml = (sector_id>>8)&0xFF;
             osp.sector_num = sector_id&0x0F;
-            fmt_mode = FMT_MODE_IDLE;
             osp_interrupt(MOINT_OPER_COMPL);
             break;
         case FMT_MODE_READ:
@@ -712,10 +720,10 @@ void fmt_io(Uint32 sector_id) {
 }
 
 
-/* Drive selection (formatter command 2) */
+/* Drive selection and formatter command 2 (ECC) */
 void osp_select(int drive) {
     Log_Printf(LOG_MO_CMD_LEVEL, "[OSP] Selecting drive %i",drive);
-    if (!mo[dnum].connected) {
+    if (!mo[drive].connected) {
         Log_Printf(LOG_WARN, "[OSP] Selected drive %i not connected.",drive);
     }
     if (drive!=dnum && mo[drive].attn) {
@@ -724,31 +732,6 @@ void osp_select(int drive) {
     }
     dnum=drive;
     mo_connect_signals();
-}
-
-/* Check for MO drive signals (used for interrupt status register) */
-void osp_set_interrupts(void) {
-    if (osp.intstatus&osp.intmask) {
-        set_interrupt(INT_DISK, SET_INT);
-    } else {
-        set_interrupt(INT_DISK, RELEASE_INT);
-    }
-}
-
-void ecc_toggle_buffer(void) {
-    if (eccin==0) {
-        eccout=0;
-        eccin=1;
-    } else {
-        eccout=1;
-        eccin=0;
-    }
-    Log_Printf(LOG_MO_ECC_LEVEL, "[OSP] ECC switching buffer (in: %i, out: %i)",eccin,eccout);
-}
-
-void ecc_clear_buffer(void) {
-    ecc_buffer[eccin].size=ecc_buffer[eccout].size=0;
-    ecc_buffer[eccin].limit=ecc_buffer[eccout].limit=MO_SECTORSIZE_DATA;
 }
 
 void osp_formatter_cmd2(void) {
@@ -806,6 +789,21 @@ bool ecc_repeat=false; /* This is for ECC blocks */
 
 int eccin=0;
 int eccout=1;
+
+void ecc_toggle_buffer(void) {
+    if (eccin==0) {
+        eccout=0;
+        eccin=1;
+    } else {
+        eccout=1;
+        eccin=0;
+    }
+    Log_Printf(LOG_MO_ECC_LEVEL, "[OSP] ECC switching buffer (in: %i, out: %i)",eccin,eccout);
+}
+void ecc_clear_buffer(void) {
+    ecc_buffer[eccin].size=ecc_buffer[eccout].size=0;
+    ecc_buffer[eccin].limit=ecc_buffer[eccout].limit=MO_SECTORSIZE_DATA;
+}
 
 void ecc_decode(void) {
     if (osp.ctrlr_csr2&MOCSR2_ECC_DIS && !(osp.ctrlr_csr2&MOCSR2_ECC_MODE)) {
@@ -1279,7 +1277,7 @@ void mo_drive_cmd(Uint16 command) {
 }
 
 
-bool mo_drive_empty(void) {
+bool mo_empty(void) {
     if (!mo[dnum].inserted) {
         Log_Printf(LOG_MO_CMD_LEVEL,"[MO] Drive command: Drive %i: No disk inserted.\n", dnum);
         mo_set_signals_delayed(true, true, CMD_DELAY);
@@ -1291,7 +1289,7 @@ bool mo_drive_empty(void) {
 bool mo_protected(void) {
     if (mo[dnum].protected) {
         if (mo[dnum].head==ERASE_HEAD || mo[dnum].head==WRITE_HEAD) {
-            Log_Printf(LOG_MO_CMD_LEVEL,"[MO] Drive command: Drive %i: Disk is write protected!\n", dnum);
+            Log_Printf(LOG_WARN,"[MO] Drive command: Drive %i: Disk is write protected!\n", dnum);
             mo[dnum].head=NO_HEAD;
             mo_set_signals_delayed(true, true, CMD_DELAY);
             return true;
@@ -1300,17 +1298,26 @@ bool mo_protected(void) {
     return false;
 }
 
+bool mo_stopped(void) {
+    if (!mo[dnum].spinning) {
+        Log_Printf(LOG_WARN,"[MO] Drive command: Drive %i: Disk not spinning.\n", dnum);
+        mo_unimplemented_cmd();
+        return true;
+    }
+    return false;
+}
+
 void mo_seek(Uint16 command) {
 #if SEEK_TIMING
-    int seek_time=mo[dnum].head_pos;
+    Uint32 seek_time=mo[dnum].head_pos;
 #endif
-    if (mo_drive_empty()) {
+    if (mo_stopped()) {
         return;
     }
     mo[dnum].seeking = true;
     mo[dnum].head_pos = (mo[dnum].ho_head_pos&0xF000) | (command&0x0FFF);
 #if SEEK_TIMING
-    if ((Uint32)seek_time>mo[dnum].head_pos) {
+    if (seek_time>mo[dnum].head_pos) {
         seek_time=seek_time-mo[dnum].head_pos;
     } else {
         seek_time=mo[dnum].head_pos-seek_time;
@@ -1327,20 +1334,19 @@ void mo_seek(Uint16 command) {
 }
 
 void mo_high_order_seek(Uint16 command) {
-    if (mo_drive_empty()) {
+    if (mo_stopped()) {
         return;
     }
     if ((command&0xF)>4) {
-        mo[dnum].dstat|=DS_SEEK;
-        mo_set_signals_delayed(true, true, CMD_DELAY);
-    } else {
-        mo[dnum].ho_head_pos = (command&0xF)<<12;
-        mo_set_signals_delayed(true, false, CMD_DELAY);
+        mo_unimplemented_cmd();
+        return;
     }
+    mo[dnum].ho_head_pos = (command&0xF)<<12;
+    mo_set_signals_delayed(true, false, CMD_DELAY);
 }
 
 void mo_jump_head(Uint16 command) {
-    if (mo_drive_empty()) {
+    if (mo_stopped()) {
         return;
     }
     mo[dnum].seeking = true;
@@ -1390,7 +1396,7 @@ void mo_jump_head(Uint16 command) {
 }
 
 void mo_recalibrate(void) {
-    if (mo_drive_empty()) {
+    if (mo_stopped()) {
         return;
     }
     mo[dnum].head_pos = 0;
@@ -1437,7 +1443,7 @@ void mo_return_version(void) {
 }
 
 void mo_select_head(int head) {
-    if (mo_drive_empty()) {
+    if (mo_stopped()) {
         return;
     }
     mo[dnum].head = head;
@@ -1454,7 +1460,7 @@ void mo_reset_attn_status(void) {
 }
 
 void mo_stop_spinning(void) {
-    if (mo_drive_empty()) {
+    if (mo_empty()) {
         return;
     }
     Statusbar_AddMessage("Stop magneto-optical disk spin.", 0);
@@ -1464,7 +1470,7 @@ void mo_stop_spinning(void) {
 }
 
 void mo_start_spinning(void) {
-    if (mo_drive_empty()) {
+    if (mo_empty()) {
         return;
     }
     Statusbar_AddMessage("Spin-up magneto-optical disk.", 0);
@@ -1475,7 +1481,7 @@ void mo_start_spinning(void) {
 void mo_eject_disk(int drive) {
     if (drive<0) { /* Called from emulator, else called from GUI */
         drive=dnum;
-        if (mo_drive_empty())
+        if (mo_empty())
             return;
         
         Statusbar_AddMessage("Ejecting magneto-optical disk.", 0);
@@ -1525,13 +1531,9 @@ void mo_insert_disk(int drive) {
 }
 
 void mo_start_spiraling(void) {
-    if (!mo[dnum].spinning || !mo[dnum].inserted) {
-        Log_Printf(LOG_WARN, "[MO] Warning: Start spiraling but drive not ready!");
-        mo[dnum].dstat|=DS_CMD; /* really? */
-        mo_set_signals_delayed(true, true, CMD_DELAY);
+    if (mo_stopped()) {
         return;
     }
-
     if (!mo[0].spiraling && !mo[1].spiraling) { /* periodic disk operation already active? */
         CycInt_AddRelativeInterruptUsCycles(SECTOR_IO_DELAY, 400, INTERRUPT_MO_IO);
     }
@@ -1541,7 +1543,7 @@ void mo_start_spiraling(void) {
 }
 
 void mo_stop_spiraling(void) {
-    if (mo_drive_empty()) {
+    if (mo_stopped()) {
         return;
     }
     mo[dnum].spiraling=false;
@@ -1587,8 +1589,8 @@ void mo_unimplemented_cmd(void) {
 }
 
 void mo_stop(void) {
-    Log_Printf(LOG_WARN,"[MO] Resetting drive %i", dnum);
-    mo[dnum].stopped=true;
+    Log_Printf(LOG_WARN,"[MO] Stopping drive %i", dnum);
+    mo[dnum].enabled=false;
     
     mo[dnum].spinning=false;
     mo[dnum].spiraling=false;
@@ -1605,11 +1607,11 @@ void mo_stop(void) {
 }
 
 void mo_start(void) {
-    if (mo[dnum].connected && mo[dnum].stopped) {
+    if (mo[dnum].connected && !mo[dnum].enabled) {
         Log_Printf(LOG_WARN,"[MO] Starting drive %i", dnum);
-        mo[dnum].stopped=false;
+        mo[dnum].enabled=true;
         mo[dnum].dstat=DS_RESET;
-        mo_set_signals_delayed(true, true, 500000);
+        mo_set_signals_delayed(true, false, 500000);
     }
 }
 
@@ -1638,6 +1640,9 @@ void mo_set_signals(bool complete, bool attn, int drive) {
     mo[drive].complete = complete;
     mo[drive].attn = mo[drive].attn || attn;
     
+    if (mo[drive].attn) {
+        mo[drive].spiraling=false;
+    }
     mo[drive].seeking = false;
     
     mo_connect_signals();
@@ -1693,7 +1698,7 @@ void MO_Reset(void) {
 
         if (ConfigureParams.MO.drive[dnum].bDriveConnected) {
             mo[dnum].connected=true;
-            mo[dnum].stopped=false;
+            mo[dnum].enabled=true;
             mo[dnum].complete=true;
             /* Insert disk */
             if (ConfigureParams.MO.drive[dnum].bDiskInserted) {
