@@ -20,23 +20,42 @@
 */
 
 /*
-	DSP memory mapping (FIXME: This is mostly a guess)
+	DSP memory mapping
 	------------------
 	
-	The memory map is configured as follows :
+	The following table describes the memory map for the DSP private RAM (8K words):
 	
-	0x0000 to 0x7fff:
-	Program space P and data spaces X and Y are contiguous
-	8k dsp Word blocks. They overlap in physical memory.
+	Start       End         Name
+ 
+	p:$0000     p:$01FF     On-chip  program RAM
+	p:$2000     p:$3FFF     Off-chip program RAM, image 1
+	p:$A000     p:$BFFF     Off-chip program RAM, image 2
 	
-	0x8000 to 0xffff:
-	X and Y data spaces are physically separate 4k dsp Word
-	blocks. Program space P is a contiguous 8k dsp Word block
-	and phyically overlaps X and Y data space.
-	Y: memory is mapped at address $8000 in P memory
-	X: memory is mapped at address $9000 in P memory
+	x:$0000     x:$00FF     On-chip  data RAM, x bank
+	x:$0100     x:$01FF     On-chip  data ROM, x bank (Mu-Law, A-law tables)
+	x:$2000     x:$3FFF     Off-chip data RAM, x bank, image 1
+	x:$A000     x:$AFFF     Off-chip data RAM, x bank, image 2
 	
-	FIXME: Is this true for NeXT?:
+	y:$0000     x:$00FF     On-chip  data RAM, y bank
+	y:$0100     x:$01FF     On-chip  data ROM, y bank (Sine wave cycle)
+	y:$2000     x:$3FFF     Off-chip data RAM, y bank, image 1
+	y:$A000     x:$AFFF     Off-chip data RAM, y bank, image 2
+	
+	Off-chip memory exists in two "images" for each space. In image 1, all three memory 
+	spaces occupy the same physical memory (in other words, the X/Y~, PS~, and DS~ pins
+	of the DSP56001 are not connected when address line A15 is low). In image 2, x and y
+	are split into separate 4K banks, and p overlaps them both with an 8K image (that is,
+	X/Y~ is used as address line A12 and PS~ and DS~ are not connected when A15 is high).
+	External memory starts at 8K ($2000) instead of 512 ($200) because address line A13 in
+	the DSP must be high to enable external DSP RAM. (Note that there is another enable 
+	for this RAM in the System Control Register 2.)
+	
+	
+	********************** Everything below is unconfirmed on NeXT: **********************
+ 
+	y: memory is mapped at address $A000 in p memory
+	x: memory is mapped at address $B000 in p memory
+	
 	The DSP external RAM is zero waitstate, but there is a penalty for
 	accessing it twice or more in a single instruction, because there is only
 	one external data bus. The extra access costs 2 cycles penalty.
@@ -47,23 +66,57 @@
 	$ffff  |--------------+--------------+--------------|
 	       |   Int. I/O   |   Ext. I/O   |              |
 	$ffc0  |--------------+--------------+              |
+	       |                                            |
+	       |          Mirror of $8000 to $C000          |
+	       |                                            |
+	$C000  |--------------|--------------|--------------|
+	       |      4k      |              |              |
+	       |   External   |    Mirror    |              |
+	       |     RAM      |              |      8k      |
+	$B000  |--------------+--------------|   External   |
+	       |              |      4k      |     RAM      |
+	       |    Mirror    |   External   |              |
+	       |              |     RAM      |              |
+	$A000  |--------------+--------------+--------------|
 	       |              |              |              |
-	       |   Mirror(8)  |   Mirror(8)  |   Mirror(4)  |
+	       |   Disabled   |   Disabled   |   Disabled   |
 	       |              |              |              |
-	$A000  |              |              |--------------|
-	       |              |              |              |
-	       |              |              |              |
-	       |              |              |      8k      |
-	$9000  |--------------+--------------|   External   |
-	       |      4k      |      4k      |     RAM      |
-	       |   External   |   External   |              |
-	       |     RAM      |     RAM      |              |
 	$8000  |--------------+--------------+--------------|
-	       |              |              |              |
-	       |   Mirror(4)  |   Mirror(4)  |   Mirror(4)  |
-	       |              |              |              |
-	$2000  |--------------+--------------+--------------|
+	       |                                            |
+	       |          Mirror of $0200 to $4000          |
+	       |                                            |
+	$4000  |--------------+--------------+--------------|
 	       |      8k      |      8k      |      8k      |
+	       |   External   |   External   |   External   |
+	       |     RAM      |     RAM      |     RAM      |
+	$2000  |--------------+--------------+--------------|
+	       |              |              |              |
+	       |   Disabled   |   Disabled   |   Disabled   |
+	       |              |              |              |
+	$0200  |--------------+--------------+--------------|
+	       |   Internal   |   Internal   |              |
+	       |   Log table  |   Sin table  |   Internal   |
+	$0100  |--------------+--------------+    program   |
+	       |  Internal X  |  Internal Y  |    memory    |
+	       |    memory    |    memory    |              |
+	$0000  |--------------+--------------+--------------|
+ 
+ 
+	DSP memory expansion module (32k dsp Words):
+	
+	              X:             Y:             P:
+	$ffff  |--------------+--------------+--------------|
+	       |   Int. I/O   |   Ext. I/O   |              |
+	$ffc0  |--------------+--------------+              |
+	       |     16k      |              |              |
+	       |   External   |    Mirror    |              |
+	       |     RAM      |              |     32k      |
+	$C000  |--------------+--------------|   External   |
+	       |              |     16k      |     RAM      |
+	       |    Mirror    |   External   |              |
+	       |              |     RAM      |              |
+	$8000  |--------------+--------------+--------------|
+	       |     32k      |     32k      |     32k      |
 	       |   External   |   External   |   External   |
 	       |     RAM      |     RAM      |     RAM      |
 	$0200  |--------------+--------------+--------------|
@@ -73,10 +126,11 @@
 	       |  Internal X  |  Internal Y  |    memory    |
 	       |    memory    |    memory    |              |
 	$0000  |--------------+--------------+--------------|
- 
- 
-	FIXME (NeXT): Special Note : As the Falcon DSP is a 0 waitstate access memory, I've simplified a little the cycle counting.
-	If this DSP emulator code is used in another project, one should take into account the bus control register (BCR) waitstates.
+
+	
+	Special Note : As the Falcon DSP is a 0 waitstate access memory, I've simplified a
+	little the cycle counting. If this DSP emulator code is used in another project, one
+	should take into account the bus control register (BCR) waitstates.
 */
 
 #ifdef HAVE_CONFIG_H
