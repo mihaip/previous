@@ -29,14 +29,14 @@ static Uint8 scr2_1=0x00;
 static Uint8 scr2_2=0x00;
 static Uint8 scr2_3=0x00;
 
- Uint32 scrIntStat=0x00000000;
- Uint32 scrIntMask=0x00000000;
+Uint32 scrIntStat=0x00000000;
+Uint32 scrIntMask=0x00000000;
 
 
 
 void SID_Read(void) {
-	Log_Printf(LOG_WARN,"SID read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x00; // slot ID 0
+    Log_Printf(LOG_WARN,"SID read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x00; // slot ID 0
 }
 
 /* System Control Register 1
@@ -89,18 +89,25 @@ void SID_Read(void) {
 #define SCR1_CONST_MASK     0xFFFFFF00
 
 void SCR_Reset(void) {
+    Uint8 cpu_speed = 0;
+    Uint8 memory_speed = 0;
+    
     SCR_ROM_overlay = 0;
+    dsp_intr_at_block_end = 0;
+    dsp_dma_unpacked = 0;
     
     scr2_0=0x00;
     scr2_1=0x00;
-	if (ConfigureParams.System.bTurbo) {
-		scr2_2=0x10;
-		scr2_3=0x80;
-	} else {
-		scr2_2=0x00;
-		scr2_3=0x00;
-	}
-	
+    if (ConfigureParams.System.bTurbo) {
+        scr2_2=0x10;
+        scr2_3=0x80;
+    } else {
+        scr2_2=0x00;
+        scr2_3=0x00;
+    }
+    
+    Statusbar_SetSystemLed(false);
+    
     scrIntStat=0x00000000;
     scrIntMask=0x00000000;
 
@@ -127,9 +134,6 @@ void SCR_Reset(void) {
         }
     }
     
-    Uint8 cpu_speed;
-    Uint8 memory_speed = 0;
-    
     if (ConfigureParams.System.nCpuFreq<20) {
         cpu_speed = 0;
     } else if (ConfigureParams.System.nCpuFreq<25) {
@@ -154,22 +158,22 @@ void SCR_Reset(void) {
 
 void SCR1_Read0(void)
 {
-	Log_Printf(LOG_SCR_LEVEL,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    Log_Printf(LOG_SCR_LEVEL,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
     IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (scr1&0xFF000000)>>24;
 }
 void SCR1_Read1(void)
 {
-	Log_Printf(LOG_SCR_LEVEL,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    Log_Printf(LOG_SCR_LEVEL,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
     IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (scr1&0x00FF0000)>>16;
 }
 void SCR1_Read2(void)
 {
-	Log_Printf(LOG_SCR_LEVEL,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    Log_Printf(LOG_SCR_LEVEL,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
     IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (scr1&0x0000FF00)>>8;
 }
 void SCR1_Read3(void)
 {
-	Log_Printf(LOG_SCR_LEVEL,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    Log_Printf(LOG_SCR_LEVEL,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
     IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = scr1&0x000000FF;
 }
 
@@ -205,152 +209,157 @@ void SCR1_Read3(void)
 #define SCR2_DSP_UNPKD      0x20
 #define SCR2_DSP_MODE_B     0x10
 #define SCR2_DSP_MODE_A     0x08
-#define SCR2_SOFTINT2		0x02
-#define SCR2_SOFTINT1		0x01
+#define SCR2_SOFTINT2       0x02
+#define SCR2_SOFTINT1       0x01
 
 /* byte 2 */
-#define SCR2_TIMERIPL7		0x80
-#define SCR2_RTDATA		0x04
-#define SCR2_RTCLK		0x02
-#define SCR2_RTCE		0x01
+#define SCR2_TIMERIPL7      0x80
+#define SCR2_RTDATA         0x04
+#define SCR2_RTCLK          0x02
+#define SCR2_RTCE           0x01
 
 /* byte 3 */
-#define SCR2_ROM		0x80
-#define SCR2_DSP_INT_EN 0x40
-#define SCR2_DSP_MEM_EN 0x20
-#define SCR2_LED		0x01
+#define SCR2_ROM            0x80
+#define SCR2_DSP_INT_EN     0x40
+#define SCR2_DSP_MEM_EN     0x20
+#define SCR2_LED            0x01
 
 
 void SCR2_Write0(void)
-{	
-	Uint8 old_scr2_0=scr2_0;
-    //	Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
-	scr2_0=IoMem[IoAccessCurrentAddress & 0x1FFFF];
-
-	if ((old_scr2_0&SCR2_SOFTINT1)!=(scr2_0&SCR2_SOFTINT1)) {
-		Log_Printf(LOG_SOFTINT_LEVEL,"SCR2 SCR2_SOFTINT1 change at $%08x val=%x PC=$%08x\n",
-                           IoAccessCurrentAddress,scr2_0&SCR2_SOFTINT1,m68k_getpc());
-		if (scr2_0&SCR2_SOFTINT1) 
-			set_interrupt(INT_SOFT1,SET_INT);
-		else
-			set_interrupt(INT_SOFT1,RELEASE_INT);
-	}
-
-	if ((old_scr2_0&SCR2_SOFTINT2)!=(scr2_0&SCR2_SOFTINT2)) {
-		Log_Printf(LOG_SOFTINT_LEVEL,"SCR2 SCR2_SOFTINT2 change at $%08x val=%x PC=$%08x\n",
+{
+    Uint8 changed_bits=scr2_0;
+//  Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
+    scr2_0=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    changed_bits ^= scr2_0;
+    
+    if (changed_bits&SCR2_SOFTINT1) {
+        Log_Printf(LOG_SOFTINT_LEVEL,"[SCR2] SOFTINT1 change at $%08x val=%x PC=$%08x\n",
+                   IoAccessCurrentAddress,scr2_0&SCR2_SOFTINT1,m68k_getpc());
+        if (scr2_0&SCR2_SOFTINT1)
+            set_interrupt(INT_SOFT1,SET_INT);
+        else
+            set_interrupt(INT_SOFT1,RELEASE_INT);
+    }
+    
+    if (changed_bits&SCR2_SOFTINT2) {
+        Log_Printf(LOG_SOFTINT_LEVEL,"[SCR2] SOFTINT2 change at $%08x val=%x PC=$%08x\n",
                            IoAccessCurrentAddress,scr2_0&SCR2_SOFTINT2,m68k_getpc());
-		if (scr2_0&SCR2_SOFTINT2) 
-			set_interrupt(INT_SOFT2,SET_INT);
-		else
-			set_interrupt(INT_SOFT2,RELEASE_INT);
-	}
+        if (scr2_0&SCR2_SOFTINT2) 
+            set_interrupt(INT_SOFT2,SET_INT);
+        else
+            set_interrupt(INT_SOFT2,RELEASE_INT);
+    }
     
     /* DSP bits */
-    if (scr2_0&SCR2_DSP_MODE_A) {
-        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Mode A");
+    if (changed_bits&SCR2_DSP_RESET) {
+        if (scr2_0&SCR2_DSP_RESET) {
+            if (!(scr2_0&SCR2_DSP_MODE_A)) {
+                Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Mode A");
+            }
+            if (!(scr2_0&SCR2_DSP_MODE_B)) {
+                Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Mode B");
+            }
+            Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Start (mode %i)",(~(scr2_0>>3))&3);
+            DSP_Start((~(scr2_0>>3))&3);
+        } else {
+            Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Reset");
+            DSP_Reset();
+        }
     }
-    if (scr2_0&SCR2_DSP_MODE_B) {
-        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Mode B");
+    if (changed_bits&SCR2_DSP_BLK_END) {
+        dsp_intr_at_block_end = scr2_0&SCR2_DSP_BLK_END;
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] %s DSP interrupt from DMA at block end",dsp_intr_at_block_end?"enable":"disable");
     }
-    if (!(scr2_0&SCR2_DSP_RESET) && (old_scr2_0&SCR2_DSP_RESET)) {
-        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Reset");
-        DSP_Reset();
-    } else if ((scr2_0&SCR2_DSP_RESET) && !(old_scr2_0&SCR2_DSP_RESET)) {
-        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Start (mode %i)",(~(scr2_0>>3))&3);
-        DSP_Start((~(scr2_0>>3))&3);
-    }
-	dsp_intr_at_block_end = scr2_0&SCR2_DSP_BLK_END;
-    if ((old_scr2_0&SCR2_DSP_BLK_END) != (scr2_0&SCR2_DSP_BLK_END)) {
-        Log_Printf(LOG_DSP_LEVEL,"[SCR2] %s DSP interrupt from DMA at block end",dsp_intr_at_block_end?"Enable":"Disable");
-    }
-	dsp_dma_unpacked = scr2_0&SCR2_DSP_UNPKD;
-    if ((old_scr2_0&SCR2_DSP_UNPKD) != (scr2_0&SCR2_DSP_UNPKD)) {
-        Log_Printf(LOG_DSP_LEVEL,"[SCR2] %s DSP DMA unpacked mode",dsp_dma_unpacked?"Enable":"Disable");
+    if (changed_bits&SCR2_DSP_UNPKD) {
+        dsp_dma_unpacked = scr2_0&SCR2_DSP_UNPKD;
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] %s DSP DMA unpacked mode",dsp_dma_unpacked?"enable":"disable");
     }
 }
 
 void SCR2_Read0(void)
 {
-    //	Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_0;
+//  Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_0;
 }
 
 void SCR2_Write1(void)
-{	
-    //	Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
-	scr2_1=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+{
+//  Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
+    scr2_1=IoMem[IoAccessCurrentAddress & 0x1FFFF];
 }
 
 void SCR2_Read1(void)
 {
-    //	Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_1;
+//  Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_1;
 }
 
 void SCR2_Write2(void)
 {    
-	Uint8 old_scr2_2=scr2_2;
+    Uint8 changed_bits=scr2_2;
 
-	scr2_2=IoMem[IoAccessCurrentAddress & 0x1FFFF];
-
-	if ((old_scr2_2&SCR2_TIMERIPL7)!=(scr2_2&SCR2_TIMERIPL7)) {
-		Log_Printf(LOG_WARN,"SCR2 TIMER IPL7 change at $%08x val=%x PC=$%08x\n",
-                           IoAccessCurrentAddress,scr2_2&SCR2_TIMERIPL7,m68k_getpc());
-	}
+    scr2_2=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    changed_bits^=scr2_2;
+    
+    if (changed_bits&SCR2_TIMERIPL7) {
+        Log_Printf(LOG_WARN,"[SCR2] TIMER IPL7 change at $%08x val=%x PC=$%08x\n",
+                   IoAccessCurrentAddress,scr2_2&SCR2_TIMERIPL7,m68k_getpc());
+    }
 
     /* RTC enabled */
-	if (scr2_2&SCR2_RTCE) {
-        if (((old_scr2_2&SCR2_RTCLK)!=(scr2_2&SCR2_RTCLK)) && ((scr2_2&SCR2_RTCLK)==0) ) {
+    if (scr2_2&SCR2_RTCE) {
+        if ((changed_bits&SCR2_RTCLK) && ((scr2_2&SCR2_RTCLK)==0)) {
             Uint8 rtdata = scr2_2&SCR2_RTDATA;
             scr2_2 &= ~SCR2_RTDATA;
             scr2_2 |= rtc_interface_io(rtdata)?SCR2_RTDATA:0;
         }
-	} else {
+    } else {
         rtc_interface_reset();
     }
 }
 
 void SCR2_Read2(void)
 {
-    //	Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    //	IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_2 & (SCR2_RTDATA|SCR2_RTCLK|SCR2_RTCE)); // + data
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_2;
+//  Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_2;
 }
 
 void SCR2_Write3(void)
-{	
-	Uint8 old_scr2_3=scr2_3;
-    //	Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
-	scr2_3=IoMem[IoAccessCurrentAddress & 0x1FFFF];
-	if ((old_scr2_3&SCR2_ROM)!=(scr2_3&SCR2_ROM)) {
-		Log_Printf(LOG_WARN,"SCR2 ROM change at $%08x val=%x PC=$%08x\n",
+{    
+    Uint8 changed_bits=scr2_3;
+//  Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
+    scr2_3=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    changed_bits^=scr2_3;
+    
+    if (changed_bits&SCR2_ROM) {
+        SCR_ROM_overlay=scr2_3&SCR2_ROM;
+        Log_Printf(LOG_WARN,"[SCR2] ROM change at $%08x val=%x PC=$%08x\n",
                    IoAccessCurrentAddress,scr2_3&SCR2_ROM,m68k_getpc());
-		   SCR_ROM_overlay=scr2_3&SCR2_ROM;
-		}
-	if ((old_scr2_3&SCR2_LED)!=(scr2_3&SCR2_LED)) {
-		Log_Printf(LOG_DEBUG,"SCR2 LED change at $%08x val=%x PC=$%08x\n",
+    }
+    if (changed_bits&SCR2_LED) {
+        Log_Printf(LOG_DEBUG,"[SCR2] LED change at $%08x val=%x PC=$%08x\n",
                    IoAccessCurrentAddress,scr2_3&SCR2_LED,m68k_getpc());
         Statusbar_SetSystemLed(scr2_3&SCR2_LED);
     }
     
-    if ((old_scr2_3&SCR2_DSP_INT_EN) != (scr2_3&SCR2_DSP_INT_EN)) {
+    if (changed_bits&SCR2_DSP_INT_EN) {
         Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP interrupt at level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
-		if (scrIntStat&(INT_DSP_L3|INT_DSP_L4)) {
-			Log_Printf(LOG_DSP_LEVEL,"[SCR2] Switching DSP interrupt to level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
-			set_interrupt(INT_DSP_L3|INT_DSP_L4, RELEASE_INT);
-			set_dsp_interrupt(SET_INT);
-		}
+        if (scrIntStat&(INT_DSP_L3|INT_DSP_L4)) {
+            Log_Printf(LOG_DSP_LEVEL,"[SCR2] Switching DSP interrupt to level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
+            set_interrupt(INT_DSP_L3|INT_DSP_L4, RELEASE_INT);
+            set_dsp_interrupt(SET_INT);
+        }
     }
-    if ((old_scr2_3&SCR2_DSP_MEM_EN) != (scr2_3&SCR2_DSP_MEM_EN)) {
-        Log_Printf(LOG_DSP_LEVEL,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"Enable":"Disable");
+    if (changed_bits&SCR2_DSP_MEM_EN) {
+        Log_Printf(LOG_WARN,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"disable":"enable");
     }
 }
 
 
 void SCR2_Read3(void)
 {
-    //	Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_3;
+//  Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_3;
 }
 
 
@@ -367,9 +376,9 @@ void IntRegStatWrite(void) {
 
 void set_dsp_interrupt(Uint8 state) {
     if (scr2_3&SCR2_DSP_INT_EN || ConfigureParams.System.bTurbo) {
-		set_interrupt(INT_DSP_L4, state);
+        set_interrupt(INT_DSP_L4, state);
     } else {
-		set_interrupt(INT_DSP_L3, state);
+        set_interrupt(INT_DSP_L3, state);
     }
 }
 
@@ -446,56 +455,56 @@ static Uint64 hardClockLastLatch;
 
 void Hardclock_InterruptHandler ( void )
 {
-	CycInt_AcknowledgeInterrupt();
-	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
-//		Log_Printf(LOG_WARN,"[INT] throwing hardclock %lld", host_time_us());
+    CycInt_AcknowledgeInterrupt();
+    if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
+//      Log_Printf(LOG_WARN,"[INT] throwing hardclock %lld", host_time_us());
         set_interrupt(INT_TIMER,SET_INT);
         Uint64 now = host_time_us();
         host_hardclock(latch_hardclock, now - hardClockLastLatch);
         hardClockLastLatch = now;
         CycInt_AddRelativeInterruptUs(latch_hardclock, 0, INTERRUPT_HARDCLOCK);
-	}
+    }
 }
 
 
 void HardclockRead0(void){
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=(latch_hardclock>>8);
-	Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+    IoMem[IoAccessCurrentAddress & 0x1FFFF]=(latch_hardclock>>8);
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
 }
 void HardclockRead1(void){
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=latch_hardclock&0xff;
-	Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+    IoMem[IoAccessCurrentAddress & 0x1FFFF]=latch_hardclock&0xff;
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
 }
 
 void HardclockWrite0(void){
-	Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
-	hardclock0=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+    hardclock0=IoMem[IoAccessCurrentAddress & 0x1FFFF];
 }
 void HardclockWrite1(void){
-	Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x",IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
-	hardclock1=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x",IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+    hardclock1=IoMem[IoAccessCurrentAddress & 0x1FFFF];
 }
 
 void HardclockWriteCSR(void) {
-	Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
-	hardclock_csr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
-	if (hardclock_csr&HARDCLOCK_LATCH) {
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+    hardclock_csr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    if (hardclock_csr&HARDCLOCK_LATCH) {
         hardclock_csr&= ~HARDCLOCK_LATCH;
-		latch_hardclock=(hardclock0<<8)|hardclock1;
+        latch_hardclock=(hardclock0<<8)|hardclock1;
         hardClockLastLatch = host_time_us();
-	}
-	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
+    }
+    if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
         Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] enable periodic interrupt (%i microseconds).", latch_hardclock);
         CycInt_AddRelativeInterruptUs(latch_hardclock, 0, INTERRUPT_HARDCLOCK);
-	} else {
+    } else {
         Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] disable periodic interrupt.");
     }
     set_interrupt(INT_TIMER,RELEASE_INT);
 }
 void HardclockReadCSR(void) {
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=hardclock_csr;
-	// Log_Printf(LOG_WARN,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
-	set_interrupt(INT_TIMER,RELEASE_INT);
+    IoMem[IoAccessCurrentAddress & 0x1FFFF]=hardclock_csr;
+//  Log_Printf(LOG_WARN,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+    set_interrupt(INT_TIMER,RELEASE_INT);
 }
 
 
@@ -527,17 +536,17 @@ void System_Timer_Write(void) {
 Uint8 col_vid_intr = 0;
 
 void ColorVideo_CMD_Write(void) {
-	col_vid_intr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
-	Log_Printf(LOG_DEBUG,"[Color Video] Command write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
-	
-	if (col_vid_intr&VID_CMD_CLEAR_INT) {
-		set_interrupt(INT_DISK, RELEASE_INT);
-	}
+    col_vid_intr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_DEBUG,"[Color Video] Command write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    
+    if (col_vid_intr&VID_CMD_CLEAR_INT) {
+        set_interrupt(INT_DISK, RELEASE_INT);
+    }
 }
 
 void color_video_interrupt(void) {
-	if (col_vid_intr&VID_CMD_ENABLE_INT) {
-		set_interrupt(INT_DISK, SET_INT);
-		col_vid_intr &= ~VID_CMD_ENABLE_INT;
-	}
+    if (col_vid_intr&VID_CMD_ENABLE_INT) {
+        set_interrupt(INT_DISK, SET_INT);
+        col_vid_intr &= ~VID_CMD_ENABLE_INT;
+    }
 }

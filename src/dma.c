@@ -399,7 +399,7 @@ void dma_esp_write_memory(void) {
                dma[CHANNEL_SCSI].next,dma[CHANNEL_SCSI].limit-dma[CHANNEL_SCSI].next,esp_counter);
     
     if (!(dma[CHANNEL_SCSI].csr&DMA_ENABLE)) {
-        Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Error! DMA not enabled!");
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Error! DMA not enabled!");
         return;
     }
     if ((dma[CHANNEL_SCSI].limit%DMA_BURST_SIZE) || (dma[CHANNEL_SCSI].next%4)) {
@@ -574,7 +574,7 @@ void dma_mo_write_memory(void) {
                dma[CHANNEL_DISK].next,dma[CHANNEL_DISK].limit-dma[CHANNEL_DISK].next);
     
     if (!(dma[CHANNEL_DISK].csr&DMA_ENABLE)) {
-        Log_Printf(LOG_WARN, "[DMA] Channel MO: Error! DMA not enabled!");
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: Error! DMA not enabled!");
         return;
     }
     if ((dma[CHANNEL_DISK].limit%DMA_BURST_SIZE) || (dma[CHANNEL_DISK].next%4)) {
@@ -642,7 +642,7 @@ void dma_mo_read_memory(void) {
     
     TRY(prb) {
         if (modma_buf_size>0) {
-            Log_Printf(LOG_WARN, "[DMA] Channel MO: Starting with %i residual bytes in DMA buffer.", modma_buf_size);
+            Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: Starting with %i residual bytes in DMA buffer.", modma_buf_size);
         }
         
         while (dma[CHANNEL_DISK].next<dma[CHANNEL_DISK].limit) {

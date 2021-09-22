@@ -70,12 +70,15 @@ static void TurboSCR1_Reset(void) {
 		default: Log_Printf(LOG_WARN, "Turbo SCR1 error: unknown memory speed\n"); break;
 	}
 	tmc.scr1 = ((memory_speed&0xF0)|(cpu_speed&0x07));
-	if (ConfigureParams.System.nMachineType == NEXT_CUBE040)
+	if (ConfigureParams.System.nMachineType == NEXT_CUBE040) {
 		tmc.scr1 |= 0x8000;
-	else if (ConfigureParams.System.bColor) {
+	} else if (ConfigureParams.System.bColor) {
 		tmc.scr1 |= 0x5000;
 	} else {
 		tmc.scr1 |= 0x4000;
+	}
+	if (ConfigureParams.System.nMachineType == NEXT_STATION) {
+		tmc.scr1 |= 0xF0000000;
 	}
 	tmc.scr1 |= TURBOSCR_FMASK;
 }
