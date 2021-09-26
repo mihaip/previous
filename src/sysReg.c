@@ -20,6 +20,56 @@
 
 #define IO_SEG_MASK	0x1FFFF
 
+/* Results from real machines:
+ *
+ * NeXTstation (CPU MC68040 25 MHz, memory 100 nS, Memory size 20MB)
+ * intrstat: 00000020 (likely called while running boot animation)
+ * intrmask: 88027640
+ * scr1:     00011102
+ * scr2:     00ff0c80
+ *
+ * NeXTcube (CPU MC68040 25 MHz, memory 100 nS, Memory size 12MB)
+ * intrstat: 00000000
+ * intrmask: 80027640
+ * scr1:     00012002
+ * scr2:     00ff0c80
+ *
+ * NeXTstation Color (CPU MC68040 25 MHz, memory 100 nS, Memory size 32MB)
+ * intrstat: 00000000
+ * intrmask: 80027640
+ * scr1:     00013002
+ * scr2:     00000c80
+ *
+ * NeXTstation Turbo (CPU MC68040 33 MHz, memory 60 nS, Memory size 128MB)
+ * intrstat: 00000000
+ * intrmask: 00000000
+ * scr1:     ffff4fcf (really tmc scr1)
+ * scr2:     00001080
+ * 200c000:  f0004000 (original scr1)
+ *
+ * NeXTstation Turbo Color (CPU MC68040 33 MHz, memory 70 nS, Memory size 128MB)
+ * intrstat: 00000000
+ * intrmask: 00000000
+ * scr1:     ffff5fdf (really tmc scr1)
+ * scr2:     00001080
+ * 200c000:  f0004000 (original scr1)
+ * 200c004:  f0004000 (address mask missing in Previous)
+ *
+ *
+ * intrmask after writing 00000000
+ * non-Turbo:80027640
+ * Turbo:    00000000
+ *
+ * intrmask after writing ffffffff
+ * non-Turbo:ffffffff
+ * Turbo:    3dd189ff
+ *
+ * SCR1:
+ * for Cube 030:
+ * 0000 0000 0000 0001 0000 0001 0101 0010
+ * 00 01 01 52
+ */
+
 int SCR_ROM_overlay=0;
 
 static Uint32 scr1=0x00000000;
@@ -32,11 +82,11 @@ static Uint8 scr2_3=0x00;
 Uint32 scrIntStat=0x00000000;
 Uint32 scrIntMask=0x00000000;
 
-
+#define SLOT_ID 0 // slot ID 0
 
 void SID_Read(void) {
     Log_Printf(LOG_WARN,"SID read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x00; // slot ID 0
+    IoMem[IoAccessCurrentAddress & 0x1FFFF]=SLOT_ID;
 }
 
 /* System Control Register 1
@@ -53,8 +103,8 @@ void SID_Read(void) {
  * xxxx---- -------- -------- --------  bits 28:31 --> slot id
  *
  * cpu speed:       0 = 40MHz, 1 = 20MHz, 2 = 25MHz, 3 = 33MHz
- * main mem speed:  0 = 120ns, 1 = 100ns, 2 = 80ns, 3 = 60ns
- * video mem speed: 0 = 120ns, 1 = 100ns, 2 = 80ns, 3 = 60ns
+ * main mem speed:  0 = 120ns, 1 = 100ns, 2 = 80ns,  3 = 60ns
+ * video mem speed: 0 = 120ns, 1 = 100ns, 2 = 80ns,  3 = 60ns
  * board revision:  for 030 Cube:
  *                  0 = DCD input inverted
  *                  1 = DCD polarity fixed
@@ -72,23 +122,30 @@ void SID_Read(void) {
  * ----xxxx xxxxxxxx ----xxxx xxxxxxxx
  */
 
-/* for Slab 040:
- * 0000 0000 0000 0001 0001 0000 0101 0010
- * 00 01 10 52
- *
- * for Cube 030:
- * 0000 0000 0000 0001 0000 0001 0101 0010
- * 00 01 01 52
- */
-#define SCR1_NEXT_COMPUTER  0x00010152
-#define SCR1_SLAB_MONO      0x00011052
-#define SCR1_SLAB_COLOR     0x00013052
-#define SCR1_CUBE           0x00012052
-#define SCR1_TURBO          0x00004000
+#define DMA_REVISION 1
 
-#define SCR1_CONST_MASK     0xFFFFFF00
+#define TYPE_NEXT    0
+#define TYPE_SLAB    1
+#define TYPE_CUBE    2
+#define TYPE_COLOR   3
+#define TYPE_TURBO   4
+
+#define BOARD_REV0   0
+#define BOARD_REV1   1
+
+#define MEM_120NS    0
+#define MEM_100NS    0
+#define MEM_80NS     2
+#define MEM_60NS     3
+
+#define CPU_16MHZ    0
+#define CPU_20MHZ    1
+#define CPU_25MHZ    2
+#define CPU_33MHZ    3
 
 void SCR_Reset(void) {
+    Uint8 system_type = 0;
+    Uint8 board_rev = 0;
     Uint8 cpu_speed = 0;
     Uint8 memory_speed = 0;
     
@@ -96,62 +153,80 @@ void SCR_Reset(void) {
     dsp_intr_at_block_end = 0;
     dsp_dma_unpacked = 0;
     
+    scr1=0x00000000;
     scr2_0=0x00;
     scr2_1=0x00;
-    if (ConfigureParams.System.bTurbo) {
-        scr2_2=0x10;
-        scr2_3=0x80;
-    } else {
-        scr2_2=0x00;
-        scr2_3=0x00;
-    }
-    
-    Statusbar_SetSystemLed(false);
-    
+    scr2_2=0x00;
+    scr2_3=0x00;
     scrIntStat=0x00000000;
     scrIntMask=0x00000000;
 
+    Statusbar_SetSystemLed(false);
+    rtc_interface_reset();
+    
+    /* Turbo */
     if (ConfigureParams.System.bTurbo) {
-        scr1 = SCR1_TURBO;
-        scr1 |= (ConfigureParams.System.nMachineType==NEXT_CUBE040)?0:0xF0000000;
-        return;
-    } else {
-        switch (ConfigureParams.System.nMachineType) {
-            case NEXT_CUBE030:
-                scr1 = SCR1_NEXT_COMPUTER & SCR1_CONST_MASK;
-                break;
-            case NEXT_CUBE040:
-                scr1 = SCR1_CUBE & SCR1_CONST_MASK;
-                break;
-            case NEXT_STATION:
-                if (ConfigureParams.System.bColor)
-                    scr1 = SCR1_SLAB_COLOR & SCR1_CONST_MASK;
-                else
-                    scr1 = SCR1_SLAB_MONO & SCR1_CONST_MASK;
-                break;
-            default:
-                break;
+        scr2_2=0x10; // video mode is 25 MHz
+        scr2_3=0x80; // local only resets to 1
+
+        if (ConfigureParams.System.nMachineType==NEXT_STATION) {
+            scr1 |= 0xF<<28;
+        } else {
+            scr1 |= SLOT_ID<<28;
         }
+        scr1 |= TYPE_TURBO<<12;
+        return;
     }
     
-    if (ConfigureParams.System.nCpuFreq<20) {
-        cpu_speed = 0;
-    } else if (ConfigureParams.System.nCpuFreq<25) {
-        cpu_speed = 1;
-    } else if (ConfigureParams.System.nCpuFreq<33) {
-        cpu_speed = 2;
-    } else {
-        cpu_speed = 3;
+    /* Non-Turbo */
+    scr1 |= SLOT_ID<<28;
+    scr1 |= DMA_REVISION<<16;
+    
+    switch (ConfigureParams.System.nMachineType) {
+        case NEXT_CUBE030:
+            system_type = TYPE_NEXT;
+            board_rev   = BOARD_REV1;
+            break;
+        case NEXT_CUBE040:
+            system_type = TYPE_CUBE;
+            board_rev   = BOARD_REV0;
+            break;
+        case NEXT_STATION:
+            if (ConfigureParams.System.bColor) {
+                system_type = TYPE_COLOR;
+                board_rev   = BOARD_REV0;
+            } else {
+                system_type = TYPE_SLAB;
+                board_rev   = BOARD_REV1;
+            }
+            break;
+        default:
+            break;
     }
+    scr1 |= system_type<<12;
+    scr1 |= board_rev<<8;
+    
+    scr1 |= MEM_100NS<<6; // video memory
     
     switch (ConfigureParams.Memory.nMemorySpeed) {
-        case MEMORY_120NS: memory_speed = 0x00; break;
-        case MEMORY_100NS: memory_speed = 0x50; break;
-        case MEMORY_80NS: memory_speed = 0xA0; break;
-        case MEMORY_60NS: memory_speed = 0xF0; break;
-        default: Log_Printf(LOG_WARN, "SCR1 error: unknown memory speed\n"); break;
+        case MEMORY_60NS:  memory_speed = MEM_60NS;  break;
+        case MEMORY_80NS:  memory_speed = MEM_80NS;  break;
+        case MEMORY_100NS:
+        case MEMORY_120NS: memory_speed = MEM_120NS; break;
+        default: break;
     }
-    scr1 |= ((memory_speed&0xF0)|(cpu_speed&0x03));
+    scr1 |= memory_speed<<4; // main memory
+
+    if (ConfigureParams.System.nCpuFreq<20) {
+        cpu_speed = CPU_16MHZ;
+    } else if (ConfigureParams.System.nCpuFreq<25) {
+        cpu_speed = CPU_20MHZ;
+    } else if (ConfigureParams.System.nCpuFreq<33) {
+        cpu_speed = CPU_25MHZ;
+    } else {
+        cpu_speed = CPU_33MHZ;
+    }
+    scr1 |= cpu_speed;
 }
 
 #define LOG_SCR_LEVEL LOG_NONE
@@ -315,6 +390,11 @@ void SCR2_Write2(void)
         }
     } else {
         rtc_interface_reset();
+        if (ConfigureParams.System.bTurbo) {
+            scr2_2 &= ~SCR2_RTDATA;
+        } else {
+            scr2_2 |= SCR2_RTDATA;
+        }
     }
 }
 
