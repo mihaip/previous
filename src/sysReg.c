@@ -388,13 +388,9 @@ void SCR2_Write2(void)
             scr2_2 &= ~SCR2_RTDATA;
             scr2_2 |= rtc_interface_io(rtdata)?SCR2_RTDATA:0;
         }
-    } else {
-        rtc_interface_reset();
-        if (ConfigureParams.System.bTurbo) {
-            scr2_2 &= ~SCR2_RTDATA;
-        } else {
-            scr2_2 |= SCR2_RTDATA;
-        }
+    } else if (changed_bits&SCR2_RTCE) {
+        scr2_2 &= ~SCR2_RTDATA;
+        scr2_2 |= rtc_interface_reset()?SCR2_RTDATA:0;
     }
 }
 

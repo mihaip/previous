@@ -588,10 +588,6 @@ void Configuration_Apply(bool bReset) {
  * Set defaults depending on selected machine type.
  */
 void Configuration_SetSystemDefaults(void) {
-    for(int i = 0; i < MO_MAX_DRIVES; i++)
-        if(ConfigureParams.MO.drive[i].bDriveConnected)
-            ConfigureParams.System.bRealtime = false;
-    
     switch (ConfigureParams.System.nMachineType) {
         case NEXT_CUBE030:
             ConfigureParams.System.bTurbo = false;
@@ -628,9 +624,6 @@ void Configuration_SetSystemDefaults(void) {
             if (ConfigureParams.System.bTurbo) {
                 ConfigureParams.System.nCpuFreq = 33;
                 ConfigureParams.System.nRTC = MCCS1850;
-            } else if (ConfigureParams.System.bColor) {
-                ConfigureParams.System.nCpuFreq = 25;
-                ConfigureParams.System.nRTC = MCCS1850;
             } else {
                 ConfigureParams.System.nCpuFreq = 25;
                 ConfigureParams.System.nRTC = MC68HC68T1;
@@ -658,8 +651,13 @@ void Configuration_SetSystemDefaults(void) {
     } else {
         ConfigureParams.Memory.nMemoryBankSize[0] = 16;
         ConfigureParams.Memory.nMemoryBankSize[1] = 16;
-        ConfigureParams.Memory.nMemoryBankSize[2] = 16;
-        ConfigureParams.Memory.nMemoryBankSize[3] = 16;
+        if (ConfigureParams.System.nMachineType==NEXT_STATION) {
+            ConfigureParams.Memory.nMemoryBankSize[2] = 0;
+            ConfigureParams.Memory.nMemoryBankSize[3] = 0;
+        } else {
+            ConfigureParams.Memory.nMemoryBankSize[2] = 16;
+            ConfigureParams.Memory.nMemoryBankSize[3] = 16;
+        }
     }
 }
 
@@ -676,14 +674,6 @@ int Configuration_CheckMemory(int *banksize) {
     /* To boot we need at least 4 MB in bank0 */
     if (banksize[0]<4) {
         banksize[0]=4;
-    }
-    
-    /* On monochrome non-Turbo NeXTstations only the first
-     * 2 banks are accessible via memory sockets */
-    if (ConfigureParams.System.nMachineType == NEXT_STATION &&
-        !ConfigureParams.System.bTurbo && !ConfigureParams.System.bColor) {
-        banksize[2]=0;
-        banksize[3]=0;
     }
 #endif
     
@@ -723,6 +713,11 @@ int Configuration_CheckMemory(int *banksize) {
                 banksize[i]=16;
             else
                 banksize[i]=16;
+        }
+        /* Non-Turbo monochrome Slab: Only first two banks are physically accessible */
+        if (ConfigureParams.System.nMachineType==NEXT_STATION) {
+            banksize[2]=0;
+            banksize[3]=0;
         }
     }
     return (banksize[0]+banksize[1]+banksize[2]+banksize[3]);

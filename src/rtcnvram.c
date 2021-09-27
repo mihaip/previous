@@ -44,10 +44,18 @@ int rtc_interface_io(Uint8 rtdatabit) {
     }
 }
 
-void rtc_interface_reset(void) {
+int rtc_interface_reset(void) {
+    Log_Printf(LOG_RTC_LEVEL, "[RTC] interface reset");
     phase    = 0;
     rtc_addr = 0;
     rtc_val  = 0;
+    switch (ConfigureParams.System.nRTC) {
+        case MC68HC68T1: return 1;
+        case MCCS1850: return 0;
+        default:
+            Log_Printf(LOG_WARN, "[RTC] error: no reset function for this chip!");
+            return 1; /* trying old chip */
+    }
 }
 
 
