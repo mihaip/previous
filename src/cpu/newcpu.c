@@ -4843,9 +4843,35 @@ static int do_specialties (int cycles)
 			cputrace.cyclecounter = cputrace.cyclecounter_pre = cputrace.cyclecounter_post = 0;
 			cputrace.readcounter = cputrace.writecounter = 0;
 		}
-//		if (!first)
-//			x_do_cycles (currprefs.cpu_cycle_exact ? 2 * CYCLE_UNIT : 4 * CYCLE_UNIT);
+#if 0 // Previous: for now this is done inside the run-loops
+		if (m68k_interrupt_delay) {
+			unset_special(SPCFLAG_INT);
+			ipl_fetch ();
+			if (time_for_interrupt ()) {
+				do_interrupt (regs.ipl);
+			}
+		} else {
+			if (regs.spcflags & (SPCFLAG_INT | SPCFLAG_DOINT)) {
+				int intr = intlev ();
+				unset_special (SPCFLAG_INT | SPCFLAG_DOINT);
+#ifdef WITH_PPC
+				bool m68kint = true;
+				if (ppc_state) {
+					m68kint = ppc_interrupt(intr);
+				}
+				if (m68kint) {
+#endif
+					if (intr > 0 && intr > regs.intmask)
+						do_interrupt (intr);
+#ifdef WITH_PPC
+				}
+#endif
+			}
+		}
 
+		if (!first)
+			x_do_cycles(currprefs.cpu_cycle_exact ? 2 * CYCLE_UNIT : 4 * CYCLE_UNIT);
+#endif // Previous
 #ifdef WINUAE_FOR_HATARI
 		if (!first)
 			M68000_AddCycles(4);
@@ -4870,22 +4896,7 @@ static int do_specialties (int cycles)
 			do_interrupt (intr);
 #endif
 		first = false;
-#ifndef WINUAE_FOR_HATARI
-		if (m68k_interrupt_delay) {
-			unset_special(SPCFLAG_INT);
-			ipl_fetch ();
-			if (time_for_interrupt ()) {
-				do_interrupt (regs.ipl);
-			}
-		} else {
-			if (regs.spcflags & (SPCFLAG_INT | SPCFLAG_DOINT)) {
-				int intr = intlev ();
-				unset_special (SPCFLAG_INT | SPCFLAG_DOINT);
-				if (intr > 0 && intr > regs.intmask)
-					do_interrupt (intr);
-			}
-		}
-#endif
+
 		if (regs.spcflags & SPCFLAG_MODE_CHANGE) {
 			m68k_resumestopped();
 			return 1;
