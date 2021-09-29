@@ -28,33 +28,40 @@
 #define RTC_ADDR_CLOCK  0x20
 #define RTC_ADDR_MASK   0x7F
 Uint8 rtc_addr = 0;
-Uint8 rtc_val = 0;
+Uint8 rtc_val  = 0;
+Uint8 rtc_data = 0;
 int phase = 0;
 
 int oldrtc_interface_io(Uint8 rtdatabit);
 int newrtc_interface_io(Uint8 rtdatabit);
 
-int rtc_interface_io(Uint8 rtdatabit) {
+void rtc_interface_write(Uint8 rtdatabit) {
     switch (ConfigureParams.System.nRTC) {
-        case MC68HC68T1: return oldrtc_interface_io(rtdatabit);
-        case MCCS1850: return newrtc_interface_io(rtdatabit);
+        case MC68HC68T1: rtc_data = oldrtc_interface_io(rtdatabit); break;
+        case MCCS1850:   rtc_data = newrtc_interface_io(rtdatabit); break;
         default:
             Log_Printf(LOG_WARN, "[RTC] error: no I/O function for this chip!");
-            return oldrtc_interface_io(rtdatabit); /* trying old chip */
+            rtc_data = oldrtc_interface_io(rtdatabit); /* trying old chip */
+            break;
     }
 }
 
-int rtc_interface_reset(void) {
+Uint8 rtc_interface_read(void) {
+    return rtc_data;
+}
+
+void rtc_interface_reset(void) {
     Log_Printf(LOG_RTC_LEVEL, "[RTC] interface reset");
     phase    = 0;
     rtc_addr = 0;
     rtc_val  = 0;
     switch (ConfigureParams.System.nRTC) {
-        case MC68HC68T1: return 1;
-        case MCCS1850: return 0;
+        case MC68HC68T1: rtc_data = 1; break;
+        case MCCS1850:   rtc_data = 0; break;
         default:
             Log_Printf(LOG_WARN, "[RTC] error: no reset function for this chip!");
-            return 1; /* trying old chip */
+            rtc_data = 1; /* trying old chip */
+            break;
     }
 }
 
@@ -267,8 +274,7 @@ static int fromBCD(Uint8 bcd) {
 }
 
 static void my_get_rtc_time(void) {
-    time_t tmp = host_unix_time();
-    struct tm t =*gmtime(&tmp);
+    struct tm t = *host_unix_tm();
     
     rtc.time.sec   = toBCD(t.tm_sec);
     rtc.time.min   = toBCD(t.tm_min);
@@ -279,7 +285,7 @@ static void my_get_rtc_time(void) {
     rtc.time.year  = toBCDyr(t.tm_year);
 }
 
-static void my_set_rtc_time(int which,int val) {
+static void my_set_rtc_time(void) {
     static struct tm t;
     
     t.tm_sec  = fromBCD(rtc.time.sec);
@@ -290,32 +296,7 @@ static void my_set_rtc_time(int which,int val) {
     t.tm_mon  = fromBCD(rtc.time.month) - 1;
     t.tm_year = fromBCD(rtc.time.year);
     
-    val = fromBCD(val);
-    
-    switch (which) {
-        case 0:
-            t.tm_sec=val;
-            break;
-        case 1:
-            t.tm_min=val;
-            break;
-        case 2:
-            t.tm_hour=val;
-            break;
-        case 3:
-            t.tm_mday=val;
-            break;
-        case 4:
-            t.tm_mon=val-1;
-            break;
-        case 5:
-            t.tm_year=val;
-            break;
-    }
-    
-    Log_Printf(LOG_WARN,"setting %d to %x",which,val);
-    
-    host_set_unix_time(mktime(&t));
+    host_set_unix_tm(&t);
 }
 
 Uint8 rtc_get_clock(Uint8 addr) {
@@ -353,35 +334,41 @@ Uint8 rtc_get_clock(Uint8 addr) {
     return val;
 }
 
-void my_set_rtc_time(int which,int val);
-
 void rtc_put_clock(Uint8 addr, Uint8 val) {
-    switch (rtc_addr&RTC_ADDR_MASK) {
+    switch (addr&RTC_ADDR_MASK) {
         case 0x20: /* seconds */
-		my_set_rtc_time(0,val);
-		break;
+            rtc.time.sec=val;
+            my_set_rtc_time();
+            break;
         case 0x21: /* minutes */
-		my_set_rtc_time(1,val);
-		break;
+            rtc.time.min=val;
+            my_set_rtc_time();
+            break;
         case 0x22: /* hours */
-		my_set_rtc_time(2,val);
-		break;
+            rtc.time.hour=val;
+            my_set_rtc_time();
+            break;
         case 0x23: /* day of week (sunday = 1) */
-		break;
+            rtc.time.wday=val;
+            my_set_rtc_time();
+            break;
         case 0x24: /* day of month */
-		my_set_rtc_time(3,val);
-		break;
+            rtc.time.mday=val;
+            my_set_rtc_time();
+            break;
         case 0x25: /* month */
-		my_set_rtc_time(4,val);
-		break;
+            rtc.time.month=val;
+            my_set_rtc_time();
+            break;
         case 0x26: /* year (0 - 99) */
-		my_set_rtc_time(5,val);
-		break;
+            rtc.time.year=val;
+            my_set_rtc_time();
+            break;
             
         case 0x28: /* alarm: seconds */
         case 0x29: /* alarm: minutes */
         case 0x2A: /* alarm: hours */
-		Log_Printf(LOG_WARN,"Trying to program alarm (not implemented) %x",val);
+            Log_Printf(LOG_WARN,"Trying to program alarm (not implemented) %x",val);
             break; /* not yet! */
             
         case 0x31: /* clock control register */
@@ -396,6 +383,9 @@ void rtc_put_clock(Uint8 addr, Uint8 val) {
             break;
             
         default: break;
+    }
+    if ((addr&RTC_ADDR_MASK) <= 0x26) {
+        Log_Printf(LOG_WARN,"[RTC] setting %d to %02x",addr&RTC_ADDR_MASK,val);
     }
 }
 

@@ -1,5 +1,6 @@
-int rtc_interface_io(Uint8 rtdatabit);
-int rtc_interface_reset(void);
+Uint8 rtc_interface_read(void);
+void rtc_interface_write(Uint8 rtdatabit);
+void rtc_interface_reset(void);
 
 void rtc_request_power_down(void);
 void rtc_stop_pdown_request(void);

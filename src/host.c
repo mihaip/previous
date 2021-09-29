@@ -33,7 +33,7 @@ static Uint64       perfCounterStart;
 static Uint64       perfFrequency;
 static bool         perfCounterFreqInt;
 static Uint64       perfDivisor;
-static double  perfMultiplicator;
+static double       perfMultiplicator;
 static Uint64       pauseTimeStamp;
 static bool         enableRealtime;
 static bool         osDarkmatter;
@@ -41,7 +41,6 @@ static bool         currentIsRealtime;
 static Uint64       hardClockExpected;
 static Uint64       hardClockActual;
 static time_t       unixTimeStart;
-static time_t       unixTimeOffset = 0;
 static lock_t       timeLock;
 static Uint64       saveTime;
 
@@ -230,11 +229,21 @@ Uint64 host_time_ms() {
 }
 
 time_t host_unix_time() {
-    return unixTimeStart + unixTimeOffset + host_time_sec();
+    return unixTimeStart + host_time_sec();
 }
 
 void host_set_unix_time(time_t now) {
-    unixTimeOffset += difftime(now, host_unix_time());
+    unixTimeStart = now - host_time_sec();
+}
+
+struct tm* host_unix_tm() {
+    time_t tmp = host_unix_time();
+    return gmtime(&tmp);
+}
+
+void host_set_unix_tm(struct tm* now) {
+    time_t tmp = timegm(now);
+    host_set_unix_time(tmp);
 }
 
 Sint64 host_real_time_offset() {

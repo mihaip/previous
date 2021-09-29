@@ -370,7 +370,7 @@ void SCR2_Read1(void)
 }
 
 void SCR2_Write2(void)
-{    
+{
     Uint8 changed_bits=scr2_2;
 
     scr2_2=IoMem[IoAccessCurrentAddress & 0x1FFFF];
@@ -383,20 +383,22 @@ void SCR2_Write2(void)
 
     /* RTC enabled */
     if (scr2_2&SCR2_RTCE) {
-        if ((changed_bits&SCR2_RTCLK) && ((scr2_2&SCR2_RTCLK)==0)) {
-            Uint8 rtdata = scr2_2&SCR2_RTDATA;
-            scr2_2 &= ~SCR2_RTDATA;
-            scr2_2 |= rtc_interface_io(rtdata)?SCR2_RTDATA:0;
+        if ((changed_bits&SCR2_RTCLK) && !(scr2_2&SCR2_RTCLK)) {
+            rtc_interface_write(scr2_2&SCR2_RTDATA);
         }
     } else if (changed_bits&SCR2_RTCE) {
-        scr2_2 &= ~SCR2_RTDATA;
-        scr2_2 |= rtc_interface_reset()?SCR2_RTDATA:0;
+        rtc_interface_reset();
     }
 }
 
 void SCR2_Read2(void)
 {
 //  Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    if (rtc_interface_read()) {
+        scr2_2 |= SCR2_RTDATA;
+    } else {
+        scr2_2 &= ~SCR2_RTDATA;
+    }
     IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_2;
 }
 

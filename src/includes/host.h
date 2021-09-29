@@ -46,6 +46,8 @@ extern "C" {
     void        host_time(Uint64* realTime, Uint64* hostTime);
     time_t      host_unix_time(void);
     void        host_set_unix_time(time_t now);
+    struct tm*  host_unix_tm(void);
+    void        host_set_unix_tm(struct tm* now);
     Uint64      host_get_save_time(void);
     void        host_sleep_ms(Uint32 ms);
     void        host_sleep_us(Uint64 us);
