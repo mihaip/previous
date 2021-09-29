@@ -41,20 +41,19 @@ extern "C" {
     void        host_blank(int slot, int src, bool state);
     bool        host_blank_state(int slot, int src);
     Uint64      host_time_us(void);
-    Uint32      host_time_ms(void);
-    double      host_time_sec(void);
-    void        host_time(double* realTime, double* hostTime);
+    Uint64      host_time_ms(void);
+    Uint64      host_time_sec(void);
+    void        host_time(Uint64* realTime, Uint64* hostTime);
     time_t      host_unix_time(void);
     void        host_set_unix_time(time_t now);
-    Uint32      host_get_save_time(void);
-    void        host_sleep_sec(double sec);
+    Uint64      host_get_save_time(void);
     void        host_sleep_ms(Uint32 ms);
     void        host_sleep_us(Uint64 us);
     int         host_num_cpus(void);
     void        host_hardclock(int expected, int actual);
-    double      host_real_time_offset(void);
+    Sint64      host_real_time_offset(void);
     void        host_pause_time(bool pausing);
-    const char* host_report(double realTime, double hostTime);
+    const char* host_report(Uint64 realTime, Uint64 hostTime);
     
     void        host_lock(lock_t* lock);
     void        host_unlock(lock_t* lock);

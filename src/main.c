@@ -59,23 +59,22 @@ typedef struct {
     const report_func report;
 } report_t;
 
-static double lastRT;
+static Uint64 lastRT;
 static Uint64 lastCycles;
 static double speedFactor;
 static char   speedMsg[32];
 
-static void Main_Speed(double realTime, double hostTime) {
-    double dRT = realTime - lastRT;
-    speedFactor = nCyclesMainCounter - lastCycles;
+static void Main_Speed(Uint64 realTime, Uint64 hostTime) {
+    Uint64  dRT  = realTime - lastRT;
+    speedFactor  = (nCyclesMainCounter - lastCycles);
     speedFactor /= ConfigureParams.System.nCpuFreq;
-    speedFactor /= 1000 * 1000;
     speedFactor /= dRT;
-    lastRT     = realTime;
-    lastCycles = nCyclesMainCounter;
+    lastRT       = realTime;
+    lastCycles   = nCyclesMainCounter;
 }
 
 void Main_SpeedReset(void) {
-    double realTime, hostTime;
+    Uint64 realTime, hostTime;
     host_time(&realTime, &hostTime);
     lastRT     = realTime;
     lastCycles = nCyclesMainCounter;
@@ -255,8 +254,8 @@ void Main_EventHandler(void) {
     int events;
     
     if(++statusBarUpdate > 400) {
-        double vt;
-        double rt;
+        Uint64 vt;
+        Uint64 rt;
         host_time(&rt, &vt);
 #if ENABLE_TESTING
         fprintf(stderr, "[reports]");
@@ -289,7 +288,7 @@ void Main_EventHandler(void) {
         }
         
         if (bEmulationActive) {
-            double time_offset = host_real_time_offset() * 1000;
+            Sint64 time_offset = host_real_time_offset() / 1000;
             if(time_offset > 10)
                 events = SDL_WaitEventTimeout(&event, time_offset);
             else
