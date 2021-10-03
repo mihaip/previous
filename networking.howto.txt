@@ -21,7 +21,7 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
       cp /etc/hosts /me
 
 3. Open "/me/resolv.conf" and add these two lines to the file:
-      domain local
+      domain home
       nameserver 10.0.2.3
 
 4. Open "/me/hosts" and append the following lines at the end of the file:
@@ -77,7 +77,7 @@ NOWTO: Setup networking on NeXTstep 0.9:
          touch /etc/resolv.conf
          open /etc/resolv.conf
       Append these two lines to the file
-         domain local
+         domain home
          nameserver 10.0.2.3
       and save the changes by selecting Window > Save.
    b  Modify "/etc/hostconfig" with these commands:
@@ -121,7 +121,7 @@ NOWTO: Setup networking on NeXTstep 0.8:
       10.0.2.254 nfs
 
 2. Open the file "/etc/resolv.conf" and append the following lines to the file:
-      domain local
+      domain home
       nameserver 10.0.2.3
 
 3. Open Shell (you find it in /bootdisk/NeXT/Apps directory) and use these 

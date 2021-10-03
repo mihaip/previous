@@ -111,7 +111,11 @@ icmp_input(m, hlen)
   case ICMP_ECHO:
     icp->icmp_type = ICMP_ECHOREPLY;
     ip->ip_len += hlen;	             /* since ip_input subtracts this */
-    if (ip->ip_dst.s_addr == alias_addr.s_addr) {
+    if (ip->ip_dst.s_addr == alias_addr.s_addr ||
+        ip->ip_dst.s_addr == ntohl(CTL_NET | CTL_ALIAS) ||
+        ip->ip_dst.s_addr == ntohl(CTL_NET | CTL_DNS) ||
+        ip->ip_dst.s_addr == ntohl(CTL_NET | CTL_NFSD)
+        ) {
       icmp_reflect(m);
     } else {
       struct socket *so;
@@ -225,7 +229,7 @@ icmp_error(
   /* check msrc */
   if(!msrc) goto end_error;
   ip = mtod(msrc, struct ip *);
-#if DEBUG  
+#ifdef DEBUG
   { char bufa[INET_ADDRSTRLEN], bufb[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &ip->ip_src, bufa, sizeof(bufa));
 	inet_ntop(AF_INET, &ip->ip_dst, bufb, sizeof(bufb));
@@ -282,7 +286,7 @@ icmp_error(
   HTONS(icp->icmp_ip.ip_id);
   HTONS(icp->icmp_ip.ip_off);
 
-#if DEBUG
+#ifdef DEBUG
   if(message) {           /* DEBUG : append message to ICMP packet */
     int message_len;
     char *cpnt;

@@ -3,7 +3,7 @@
 
 #define CONFIG_QEMU
 
-#define DEBUG 0
+// #define DEBUG
 
 #ifndef CONFIG_QEMU
 #include "version.h"

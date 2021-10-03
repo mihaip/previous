@@ -11,10 +11,11 @@
 FILE *dfd = NULL;
 #ifdef DEBUG
 int dostats = 1;
+int slirp_debug = DEBUG_DEFAULT;
 #else
 int dostats = 0;
-#endif
 int slirp_debug = 0;
+#endif
 
 /* Carry over one item from main.c so that the tty's restored. 
  * Only done when the tty being used is /dev/tty --RedWolf */

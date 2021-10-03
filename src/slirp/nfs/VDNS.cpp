@@ -89,14 +89,10 @@ VDNS::VDNS(void)
     hostname[0] = '\0';
     gethostname(hostname, sizeof(hostname));
     
-    // for some unknonw reason NS 2.x-3.x doesn't like DNS responses
-    // for "previous.local.". Don't add them to the DNS
-    
     AddRecord(ntohl(special_addr.s_addr) | CTL_ALIAS, hostname);
-//    AddRecord(ntohl(special_addr.s_addr) | CTL_HOST,  FQDN_HOST);
+    AddRecord(ntohl(special_addr.s_addr) | CTL_HOST,  FQDN_HOST);
     AddRecord(ntohl(special_addr.s_addr) | CTL_DNS,   FQDN_DNS);
     AddRecord(ntohl(special_addr.s_addr) | CTL_NFSD,  FQDN_NFSD);
-//    AddRecord(ntohl(special_addr.s_addr) | CTL_HOST,  NAME_HOST);
     AddRecord(0x7F000001,                             "localhost");
 }
 

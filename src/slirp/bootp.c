@@ -130,8 +130,8 @@ static void bootp_reply(struct bootp_t *bp)
     int dhcp_msg_type;
     uint8_t *q;
 
-    gethostname(hostname, _SC_HOST_NAME_MAX);
-
+    strcpy(hostname, NAME_HOST);
+    
     /* extract exact DHCP msg type */
     dhcp_decode(bp->bp_vend, DHCP_OPT_LEN, &dhcp_msg_type);
     
