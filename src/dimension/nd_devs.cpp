@@ -400,6 +400,19 @@ void DP::iicmsg(void) {
     nd->video_dev_write(iic_addr, iic_msgsz-1, iic_msg);
 }
 
+void DP::led(Uint32 v) {
+#if ND_STEP
+    Uint32 changed_bits = csr^v;
+    if ((changed_bits&0xC) == 0xC) {
+        switch (v&0xC) {
+            case 0x0: Log_Printf(LOG_NONE, "[ND] Slot %i: board LED: on",  nd->slot); break;
+            case 0xC: Log_Printf(LOG_NONE, "[ND] Slot %i: board LED: off", nd->slot); break;
+            default: break;
+        }
+    }
+#endif
+}
+
 Uint32 DP::lget(Uint32 addr) {
     switch(addr) {
         case 0x300: case 0x304: case 0x308: case 0x30C:
@@ -444,6 +457,7 @@ void DP::lput(Uint32 addr, Uint32 v) {
             doff  = v;
             break;
         case 0x340:
+            led(v);
             csr = v;
             break;
         case 0x344:

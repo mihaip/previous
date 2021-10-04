@@ -93,6 +93,7 @@ public:
     Uint32 lget(Uint32 addr);
     void   lput(Uint32 addr, Uint32 val);
     void   iicmsg(void);
+    void   led(Uint32 val);
 };
 
 #define ND_DMCD_NUM_REG 25

@@ -502,8 +502,12 @@ void i860_cpu_device::init(void) {
         }
     }
     
-    err = memtest(true); if(err) goto error;
-    err = memtest(false); if(err) goto error;
+    if (ConfigureParams.Dimension.board[ND_NUM(nd->slot)].nMemoryBankSize[0] > 0) {
+        err = memtest(true); if(err) goto error;
+        err = memtest(false); if(err) goto error;
+    } else {
+        Log_Printf(LOG_WARN, "[i860] No main memory detected. NeXTdimension requires at least 4 MB of memory in bank 0.");
+    }
     
 error:
     if(err) {
