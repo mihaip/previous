@@ -313,7 +313,7 @@ extern "C" {
         ((NextDimension*)nextbus[slot])->send_msg(MSG_VIDEO_BLANK);
     }
 
-    const char* nd_reports(double realTime, double hostTime) {
+    const char* nd_reports(Uint64 realTime, Uint64 hostTime) {
         FOR_EACH_SLOT(slot) {
             IF_NEXT_DIMENSION(slot, nd) {
                 return nd->i860.reports(realTime, hostTime);

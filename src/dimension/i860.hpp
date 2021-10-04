@@ -453,7 +453,7 @@ public:
     
     static int thread(void* data);
     
-    const char* reports(double realTime, double hostTIme);
+    const char* reports(Uint64 realTime, Uint64 hostTIme);
 private:
     // debugger
     void debugger(char cmd, const char* format, ...);
@@ -472,8 +472,8 @@ private:
     UINT64 m_tlb_miss;
     UINT64 m_tlb_inval;
     UINT64 m_intrs;
-    UINT32 m_last_rt;
-    UINT32 m_last_vt;
+    UINT64 m_last_rt;
+    UINT64 m_last_vt;
     char   m_report[1024];
 
     /* Debugger stuff */

@@ -52,7 +52,7 @@ static bool bIgnoreNextMouseMotion = false;  /* Next mouse motion will be ignore
 
 volatile int mainPauseEmulation;
 
-typedef const char* (*report_func)(double realTime, double hostTime);
+typedef const char* (*report_func)(Uint64 realTime, Uint64 hostTime);
 
 typedef struct {
     const char*       label;
@@ -265,9 +265,8 @@ void Main_EventHandler(void) {
         }
         fprintf(stderr, "\n");
         fflush(stderr);
-#else
-        Main_Speed(rt, vt);
 #endif
+        Main_Speed(rt, vt);
         Statusbar_UpdateInfo();
         statusBarUpdate = 0;
     }
