@@ -43,28 +43,28 @@ static const char* Reset_NeXT(bool bCold)
 			return error_str;
 		}
 	}
-    
-    host_reset();                 /* Reset host related timing vars */
-    
-    M68000_Reset(bCold);          /* Reset CPU */
+
+	host_reset();                 /* Reset host related timing vars */
+
+	M68000_Reset(bCold);          /* Reset CPU */
 	CycInt_Reset();               /* Reset interrupts */
-    Main_SpeedReset();            /* Reset speed reporting system */
+	Main_SpeedReset();            /* Reset speed reporting system */
 	Video_Reset();                /* Reset video */
 	TMC_Reset();				  /* Reset TMC Registers */
 	SCR_Reset();                  /* Reset System Control Registers */
-	nvram_init();                 /* Reset NVRAM */
+	RTC_Reset();                  /* Reset RTC and NVRAM */
 	SCSI_Reset();                 /* Reset SCSI disks */
 	MO_Reset();                   /* Reset MO disks */
 	Floppy_Reset();               /* Reset Floppy disks */
 	SCC_Reset(2);                 /* Reset SCC */
 	Ethernet_Reset(true);         /* Reset Ethernet */
-    KMS_Reset();                  /* Reset KMS */
+	KMS_Reset();                  /* Reset KMS */
 	Sound_Reset();                /* Reset Sound */
 	Printer_Reset();              /* Reset Printer */
 	DSP_Reset();                  /* Reset DSP */
-    NextBus_Reset();              /* Reset NextBus */
+	NextBus_Reset();              /* Reset NextBus */
 	DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
-    
+
 	return NULL;
 }
 

@@ -94,6 +94,29 @@ void rtc_stop_pdown_request(void) {
 }
 
 
+/* RTC time check (check for NeXT specific limits) */
+void oldrtc_check_time(void);
+void newrtc_check_time(void);
+
+void rtc_check_time(void) {
+    switch (ConfigureParams.System.nRTC) {
+        case MC68HC68T1: oldrtc_check_time(); return;
+        case MCCS1850:   newrtc_check_time(); return;
+        default:
+            Log_Printf(LOG_WARN, "[RTC] error: no time check function for this chip!");
+            oldrtc_check_time(); return; /* trying old chip */
+    }
+}
+
+
+/* RTC reset */
+void RTC_Reset(void) {
+    Log_Printf(LOG_WARN, "[RTC] Reset");
+    rtc_check_time();
+    nvram_init();
+    rtc_interface_reset();
+}
+
 
 /* --------------------- MC68HC68T1 --------------------- */
 
@@ -106,6 +129,16 @@ Uint8 rtc_get_clock(Uint8 addr);
 void rtc_put_clock(Uint8 addr, Uint8 val);
 
 /* All time values in RTC clock are in packed decimal format */
+static char rtc_treg_name[8][8] = {
+    "second ",
+    "minute ",
+    "hour   ",
+    "wday   ",
+    "day    ",
+    "month  ",
+    "year   ",
+    "unknown"
+};
 
 typedef struct {
     Uint8 sec;      /* 00 - 59 */
@@ -274,15 +307,15 @@ static int fromBCD(Uint8 bcd) {
 }
 
 static void my_get_rtc_time(void) {
-    struct tm t = *host_unix_tm();
+    struct tm* t = host_unix_tm();
     
-    rtc.time.sec   = toBCD(t.tm_sec);
-    rtc.time.min   = toBCD(t.tm_min);
-    rtc.time.hour  = toBCD(t.tm_hour);
-    rtc.time.wday  = toBCD(t.tm_wday+1);
-    rtc.time.mday  = toBCD(t.tm_mday);
-    rtc.time.month = toBCD(t.tm_mon+1);
-    rtc.time.year  = toBCDyr(t.tm_year);
+    rtc.time.sec   = toBCD(t->tm_sec);
+    rtc.time.min   = toBCD(t->tm_min);
+    rtc.time.hour  = toBCD(t->tm_hour);
+    rtc.time.wday  = toBCD(t->tm_wday + 1);
+    rtc.time.mday  = toBCD(t->tm_mday);
+    rtc.time.month = toBCD(t->tm_mon + 1);
+    rtc.time.year  = toBCDyr(t->tm_year);
 }
 
 static void my_set_rtc_time(void) {
@@ -297,6 +330,18 @@ static void my_set_rtc_time(void) {
     t.tm_year = fromBCD(rtc.time.year);
     
     host_set_unix_tm(&t);
+}
+
+void oldrtc_check_time(void) {
+    Uint8 year;
+    
+    my_get_rtc_time();
+    year = fromBCD(rtc.time.year);
+    if (year >= NEXT_LIMIT_YEAR || year < NEXT_MIN_YEAR) {
+        Log_Printf(LOG_WARN,"[RTC] Year %d beyond valid range. Setting year to %d.", 1900+year, 1900+NEXT_START_YEAR);
+        rtc.time.year = toBCDyr(NEXT_START_YEAR);
+        my_set_rtc_time();
+    }
 }
 
 Uint8 rtc_get_clock(Uint8 addr) {
@@ -385,7 +430,7 @@ void rtc_put_clock(Uint8 addr, Uint8 val) {
         default: break;
     }
     if ((addr&RTC_ADDR_MASK) <= 0x26) {
-        Log_Printf(LOG_WARN,"[RTC] setting %d to %02x",addr&RTC_ADDR_MASK,val);
+        Log_Printf(LOG_WARN,"[RTC] setting %s to %02x",rtc_treg_name[addr&7],val);
     }
 }
 
@@ -635,6 +680,15 @@ void newrtc_put_clock(Uint8 addr, Uint8 val) {
             break;
             
         default: break;
+    }
+}
+
+void newrtc_check_time(void) {
+    newrtc.timecntr = host_unix_time();
+    if (newrtc.timecntr >= NEXT_LIMIT_SEC || newrtc.timecntr < NEXT_MIN_SEC) {
+        Log_Printf(LOG_WARN,"[newRTC] Time %d beyond valid range. Setting to %d", newrtc.timecntr, NEXT_START_SEC);
+        newrtc.timecntr = NEXT_START_SEC;
+        host_set_unix_time(newrtc.timecntr);
     }
 }
 

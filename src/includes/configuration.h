@@ -281,6 +281,14 @@ typedef enum
   NCR53C90A
 } SCSICHIP;
 
+#define NEXT_MIN_SEC     0           // Thu Jan  1 00:00:00 1970 UTC
+#define NEXT_MAX_SEC     2147483647  // Tue Jan 19 03:14:07 2038 UTC
+#define NEXT_START_SEC   552225600   // Thu Jul  2 12:00:00 1987 UTC
+#define NEXT_LIMIT_SEC   2145916800  // Fri Jan  1 00:00:00 2038 UTC
+
+#define NEXT_MIN_YEAR    (1970-1900)
+#define NEXT_START_YEAR  (1988-1900)
+#define NEXT_LIMIT_YEAR  (2038-1900)
 typedef enum
 {
   MC68HC68T1,

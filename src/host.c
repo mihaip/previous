@@ -97,6 +97,41 @@ void host_report_limits(void) {
     }
 }
 
+// Check NeXT specific UNIX time limits and adjust time if needed
+#define TIME_LIMIT_SECONDS 0
+
+void host_check_unix_time(void) {
+    struct tm* t;
+    char* s;
+    bool b = false;
+
+    t = gmtime(&unixTimeStart);
+    s = asctime(t);
+    s[strlen(s)-1] = 0;
+    Log_Printf(LOG_WARN, "[Hosttime] Unix time start: %s GMT", s);
+    Log_Printf(LOG_WARN, "[Hosttime] Unix time will overflow in %f days", difftime(NEXT_MAX_SEC, unixTimeStart)/(24*60*60));
+#if TIME_LIMIT_SECONDS
+    if (unixTimeStart < NEXT_MIN_SEC || unixTimeStart >= NEXT_LIMIT_SEC) {
+        unixTimeStart = NEXT_START_SEC;
+        t = gmtime(&unixTimeStart);
+        b = true;
+    }
+#else
+    if (t->tm_year < NEXT_MIN_YEAR || t->tm_year >= NEXT_LIMIT_YEAR) {
+        t->tm_year = NEXT_START_YEAR;
+        unixTimeStart = timegm(t);
+        b = true;
+    }
+#endif
+    if (b) {
+        s = asctime(t);
+        s[strlen(s)-1] = 0;
+        Log_Printf(LOG_WARN, "[Hosttime] Unix time is beyond valid range!");
+        Log_Printf(LOG_WARN, "[Hosttime] Unix time is valid from Thu Jan 1 00:00:00 1970 through Thu Dec 31 23:59:59 2037 GMT");
+        Log_Printf(LOG_WARN, "[Hosttime] Setting time to %s GMT", s);
+    }
+}
+
 void host_reset(void) {
     perfCounterStart  = SDL_GetPerformanceCounter();
     pauseTimeStamp    = perfCounterStart;
@@ -122,7 +157,8 @@ void host_reset(void) {
     perfMultiplicator  = 1000000.0 / perfFrequency;
     
     host_report_limits();
-    
+    host_check_unix_time();
+
     SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 }
 
