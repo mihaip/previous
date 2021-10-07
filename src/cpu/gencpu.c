@@ -10006,8 +10006,9 @@ int main(int argc, char *argv[])
 
 	for (int i = 0; i <= 55; i++) {
 //		if ((i >= 6 && i < 11) || (i > 14 && i < 20) || (i > 25 && i < 31) || (i > 35 && i < 40)) // original Hatari
-        if (i!=31 && i!=32) // Previous
+		if (i!=31 && i!=32) // Previous
 			continue;
+		using_nocycles = 1; // Previous
 		generate_stbl = 1;
 		generate_cpu (i, 0);
 	}
