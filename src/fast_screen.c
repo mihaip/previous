@@ -178,19 +178,24 @@ void blitDimension(Uint32* vram, SDL_Texture* tex) {
 /*
  Blit NeXT framebuffer to texture.
  */
-static void blitScreen(SDL_Texture* tex) {
+static bool blitScreen(SDL_Texture* tex) {
     if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
         Uint32* vram = nd_vram_for_slot(ND_SLOT(ConfigureParams.Screen.nMonitorNum));
-        if(vram) blitDimension(vram, tex);
-        return;
-    }
-    if(NEXTVideo) {
-        if(ConfigureParams.System.bColor) {
-            blitColor(tex);
-        } else {
-            blitBW(tex);
+        if (vram) {
+            blitDimension(vram, tex);
+            return true;
+        }
+    } else {
+        if (NEXTVideo) {
+            if (ConfigureParams.System.bColor) {
+                blitColor(tex);
+            } else {
+                blitBW(tex);
+            }
+            return true;
         }
     }
+    return false;
 }
 
 /*
@@ -267,9 +272,8 @@ static int repainter(void* unused) {
         bool updateUI = false;
         
         if (SDL_AtomicGet(&blitFB)) {
-            // Blit the NeXT framebuffer to textrue
-            blitScreen(fbTexture);
-            updateFB = true;
+            // Blit the NeXT framebuffer to texture
+            updateFB = blitScreen(fbTexture);
         }
         
         // Copy UI surface to texture
