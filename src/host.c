@@ -101,12 +101,10 @@ void host_report_limits(void) {
 #define TIME_LIMIT_SECONDS 0
 
 void host_check_unix_time(void) {
-    struct tm* t;
-    char* s;
+    struct tm* t = gmtime(&unixTimeStart);
+    char* s = asctime(t);
     bool b = false;
 
-    t = gmtime(&unixTimeStart);
-    s = asctime(t);
     s[strlen(s)-1] = 0;
     Log_Printf(LOG_WARN, "[Hosttime] Unix time start: %s GMT", s);
     Log_Printf(LOG_WARN, "[Hosttime] Unix time will overflow in %f days", difftime(NEXT_MAX_SEC, unixTimeStart)/(24*60*60));

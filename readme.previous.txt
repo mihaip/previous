@@ -280,6 +280,7 @@ Previous v2.4 (unreleased):
   > Fixes bug that caused network interface detection to be unreliable.
   > Fixes bug that caused keyboard initiated reset and NMI to fail.
   > Fixes bug in Real Time Clock. Time is now saved correctly.
+  > Fixes bug that caused black screen instead of options dialog on start.
 
 
  7) Running Previous

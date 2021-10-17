@@ -74,7 +74,6 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 {
 	int retbut;
 	bool bOldMouseVisibility;
-	int nOldMouseX, nOldMouseY;
 	char *psNewCfg;
 
 	*bReset = false;
@@ -83,7 +82,6 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 	if (SDLGui_SetScreen(sdlscrn))
 		return false;
 
-	SDL_GetMouseState(&nOldMouseX, &nOldMouseY);
 	bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
 	SDL_ShowCursor(SDL_ENABLE);
 
@@ -179,7 +177,6 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 		*bReset = true;
 
 	SDL_ShowCursor(bOldMouseVisibility);
-	Main_WarpMouse(nOldMouseX, nOldMouseY);
 
 	return (retbut == MAINDLG_OK);
 }

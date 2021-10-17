@@ -75,8 +75,6 @@ static const char* Reset_NeXT(bool bCold)
  */
 const char* Reset_Cold(void)
 {
-	Main_WarpMouse(sdlscrn->w/2, sdlscrn->h/2);  /* Set mouse pointer to the middle of the screen */
-
 	return Reset_NeXT(true);
 }
 

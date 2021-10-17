@@ -72,6 +72,7 @@ bool Main_PauseEmulation(bool visualize);
 bool Main_UnPauseEmulation(void);
 void Main_RequestQuit(void);
 void Main_WarpMouse(int x, int y);
+void Main_SetMouseGrab(bool grab);
 void Main_EventHandler(void);
 void Main_EventHandlerInterrupt(void);
 void Main_SetTitle(const char *title);

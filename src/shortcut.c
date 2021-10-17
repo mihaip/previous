@@ -51,25 +51,8 @@ static void ShortCut_FullScreen(void)
  */
 static void ShortCut_MouseGrab(void)
 {
-
 	bGrabMouse = !bGrabMouse;        /* Toggle flag */
-
-	/* If we are in windowed mode, toggle the mouse cursor mode now: */
-	if (!bInFullScreen)
-	{
-		if (bGrabMouse)
-		{
-			SDL_SetRelativeMouseMode(SDL_TRUE);
-            SDL_SetWindowGrab(sdlWindow, SDL_TRUE);
-            Main_SetTitle(MOUSE_LOCK_MSG);
-		}
-		else
-		{
-			SDL_SetRelativeMouseMode(SDL_FALSE);
-            SDL_SetWindowGrab(sdlWindow, SDL_FALSE);
-            Main_SetTitle(NULL);
-		}
-	}
+	Main_SetMouseGrab(bGrabMouse);
 }
 
 

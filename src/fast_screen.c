@@ -239,13 +239,10 @@ static int repainter(void* unused) {
     
     Statusbar_Init(sdlscrn);
     
-	if (bGrabMouse) {
-		SDL_SetRelativeMouseMode(SDL_TRUE);
-        SDL_SetWindowGrab(sdlWindow, SDL_TRUE);
-    }
+    Main_SetMouseGrab(bGrabMouse);
 
-	/* Configure some SDL stuff: */
-	SDL_ShowCursor(SDL_DISABLE);
+    /* Configure some SDL stuff: */
+    SDL_ShowCursor(SDL_DISABLE);
     
     /* Setup lookup tables */
     SDL_PixelFormat* pformat = SDL_AllocFormat(format);
@@ -389,25 +386,29 @@ void Screen_UnInit(void) {
  * Enter Full screen mode
  */
 void Screen_EnterFullScreen(void) {
-	bool bWasRunning;
+    bool bWasRunning;
 
-	if (!bInFullScreen) {
-		/* Hold things... */
-		bWasRunning = Main_PauseEmulation(false);
-		bInFullScreen = true;
+    if (!bInFullScreen) {
+        /* Hold things... */
+        bWasRunning = Main_PauseEmulation(false);
+        bInFullScreen = true;
 
         SDL_GetWindowPosition(sdlWindow, &saveWindowBounds.x, &saveWindowBounds.y);
         SDL_GetWindowSize(sdlWindow, &saveWindowBounds.w, &saveWindowBounds.h);
         SDL_SetWindowFullscreen(sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-		SDL_Delay(20);                  /* To give monitor time to change to new resolution */
-		
-		if (bWasRunning) {
-			/* And off we go... */
-			Main_UnPauseEmulation();
-		}
-		SDL_SetRelativeMouseMode(SDL_TRUE);
-        SDL_SetWindowGrab(sdlWindow, SDL_TRUE);
-	}
+        SDL_Delay(20);                  /* To give monitor time to change to new resolution */
+        
+        if (bWasRunning) {
+            /* And off we go... */
+            Main_UnPauseEmulation();
+        }
+        
+        /* Always grab mouse pointer in full screen mode */
+        Main_SetMouseGrab(true);
+        
+        /* Make sure screen is painted in case emulation is paused */
+        SDL_AtomicSet(&blitUI, 1);
+    }
 }
 
 /*-----------------------------------------------------------------------*/
@@ -415,29 +416,29 @@ void Screen_EnterFullScreen(void) {
  * Return from Full screen mode back to a window
  */
 void Screen_ReturnFromFullScreen(void) {
-	bool bWasRunning;
+    bool bWasRunning;
 
-	if (bInFullScreen) {
-		/* Hold things... */
-		bWasRunning = Main_PauseEmulation(false);
-		bInFullScreen = false;
+    if (bInFullScreen) {
+        /* Hold things... */
+        bWasRunning = Main_PauseEmulation(false);
+        bInFullScreen = false;
 
         SDL_SetWindowFullscreen(sdlWindow, 0);
-		SDL_Delay(20);                /* To give monitor time to switch resolution */
+        SDL_Delay(20);                /* To give monitor time to switch resolution */
         SDL_SetWindowPosition(sdlWindow, saveWindowBounds.x, saveWindowBounds.y);
         SDL_SetWindowSize(sdlWindow, saveWindowBounds.w, saveWindowBounds.h);
         
-		if (bWasRunning) {
-			/* And off we go... */
-			Main_UnPauseEmulation();
-		}
+        if (bWasRunning) {
+            /* And off we go... */
+            Main_UnPauseEmulation();
+        }
 
-		if (!bGrabMouse) {
-			/* Un-grab mouse pointer in windowed mode */
-			SDL_SetRelativeMouseMode(SDL_FALSE);
-            SDL_SetWindowGrab(sdlWindow, SDL_FALSE);
-		}
-	}
+        /* Go back to windowed mode mouse grab settings */
+        Main_SetMouseGrab(bGrabMouse);
+        
+        /* Make sure screen is painted in case emulation is paused */
+        SDL_AtomicSet(&blitUI, 1);
+    }
 }
 
 /*-----------------------------------------------------------------------*/
@@ -445,17 +446,11 @@ void Screen_ReturnFromFullScreen(void) {
  * Force things associated with changing between fullscreen/windowed
  */
 void Screen_ModeChanged(void) {
-	if (!sdlscrn) {
-		/* screen not yet initialized */
-		return;
-	}
-	if (bInFullScreen || bGrabMouse) {
-		SDL_SetRelativeMouseMode(SDL_TRUE);
-        SDL_SetWindowGrab(sdlWindow, SDL_TRUE);
-	} else {
-		SDL_SetRelativeMouseMode(SDL_FALSE);
-        SDL_SetWindowGrab(sdlWindow, SDL_FALSE);
+    if (!sdlscrn) {
+        /* screen not yet initialized */
+        return;
     }
+    Main_SetMouseGrab(bInFullScreen || bGrabMouse);
 }
 
 

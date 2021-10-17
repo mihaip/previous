@@ -5,8 +5,8 @@
   your option any later version. Read the file gpl.txt for details.
 */
 
-//#ifndef HATARI_KEYMAP_H
-//#define HATARI_KEYMAP_H
+#ifndef HATARI_KEYMAP_H
+#define HATARI_KEYMAP_H
 
 #include <SDL_keyboard.h>
 #include "SDL.h"
@@ -140,5 +140,4 @@ void Keymap_MouseUp(bool left);
 #define NEXTKEY_MOD_LALT        0x20
 #define NEXTKEY_MOD_RALT        0x40
 
-
-//#endif
+#endif
