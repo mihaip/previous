@@ -240,14 +240,6 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
         return true;
     }
 	
-	/* Did we change monitor count? */
-	if (current->Screen.nMonitorType != changed->Screen.nMonitorType &&
-		(current->Screen.nMonitorType == MONITOR_TYPE_DUAL ||
-		 changed->Screen.nMonitorType == MONITOR_TYPE_DUAL)) {
-			printf("monitor reset\n");
-			return true;
-	}
-	
     /* Else no reset is required */
     printf("No Reset needed!\n");
     return false;
@@ -291,7 +283,10 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
     
     /* Do we need to change Screen configuration? */
     if (!NeedReset &&
-        current->Screen.nMonitorType != changed->Screen.nMonitorType) {
+        current->Screen.nMonitorType != changed->Screen.nMonitorType &&
+        (current->Screen.nMonitorType == MONITOR_TYPE_DUAL ||
+         changed->Screen.nMonitorType == MONITOR_TYPE_DUAL)) {
+        bScreenModeChange = true;
     }
 
 	/* Copy details to configuration,

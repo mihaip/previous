@@ -44,6 +44,7 @@ static SDL_atomic_t  blitFB;
 static SDL_atomic_t  blitUI;           /* When value == 1, the repaint thread will blit the sldscrn surface to the screen on the next redraw */
 static bool          doUIblit;
 static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen. Used to restore window size & position. */
+static MONITORTYPE   saveMonitorType;  /* Save monitor type to restore on return from fullscreen */
 static void*         uiBuffer;         /* uiBuffer used for ui texture */
 static void*         uiBufferTmp;      /* Temporary uiBuffer used by repainter */
 static SDL_SpinLock  uiBufferLock;     /* Lock for concurrent access to UI buffer between m68k thread and repainter */
@@ -396,7 +397,14 @@ void Screen_EnterFullScreen(void) {
         SDL_GetWindowPosition(sdlWindow, &saveWindowBounds.x, &saveWindowBounds.y);
         SDL_GetWindowSize(sdlWindow, &saveWindowBounds.w, &saveWindowBounds.h);
         SDL_SetWindowFullscreen(sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-        SDL_Delay(20);                  /* To give monitor time to change to new resolution */
+        SDL_Delay(100);                  /* To give monitor time to change to new resolution */
+        
+        /* If using multiple screen windows, save and go to single window mode */
+        saveMonitorType = ConfigureParams.Screen.nMonitorType;
+        if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
+            ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
+            Screen_ModeChanged();
+        }
         
         if (bWasRunning) {
             /* And off we go... */
@@ -424,9 +432,15 @@ void Screen_ReturnFromFullScreen(void) {
         bInFullScreen = false;
 
         SDL_SetWindowFullscreen(sdlWindow, 0);
-        SDL_Delay(20);                /* To give monitor time to switch resolution */
+        SDL_Delay(100);                /* To give monitor time to switch resolution */
         SDL_SetWindowPosition(sdlWindow, saveWindowBounds.x, saveWindowBounds.y);
         SDL_SetWindowSize(sdlWindow, saveWindowBounds.w, saveWindowBounds.h);
+        
+        /* Return to windowed monitor mode */
+        if (saveMonitorType == MONITOR_TYPE_DUAL) {
+            ConfigureParams.Screen.nMonitorType = saveMonitorType;
+            Screen_ModeChanged();
+        }
         
         if (bWasRunning) {
             /* And off we go... */
@@ -450,7 +464,17 @@ void Screen_ModeChanged(void) {
         /* screen not yet initialized */
         return;
     }
-    Main_SetMouseGrab(bInFullScreen || bGrabMouse);
+    
+    /* Do not use multiple windows in full screen mode */
+    if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL && bInFullScreen) {
+        saveMonitorType = ConfigureParams.Screen.nMonitorType;
+        ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
+    }
+    if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL && !bInFullScreen) {
+        nd_sdl_show();
+    } else {
+        nd_sdl_hide();
+    }
 }
 
 

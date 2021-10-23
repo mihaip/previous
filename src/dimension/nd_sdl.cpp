@@ -7,11 +7,6 @@
 #include "cycInt.h"
 #include "NextBus.hpp"
 
-/* Because of SDL time (in)accuracy, timing is very approximative */
-const int DISPLAY_VBL_MS = 1000 / 68; // main display at 68Hz, actually this is 71.42 Hz because (int)1000/(int)68Hz=14ms
-const int VIDEO_VBL_MS   = 1000 / 60; // NTSC display at 60Hz, actually this is 62.5 Hz because (int)1000/(int)60Hz=16ms
-const int BLANK_MS       = 2;         // Give some blank time for both
-
 volatile bool NDSDL::ndVBLtoggle;
 volatile bool NDSDL::ndVideoVBLtoggle;
 
@@ -51,9 +46,10 @@ int NDSDL::repainter(void) {
 }
 
 void NDSDL::init(void) {
-    if(!(repaintThread)) {
-        int x, y, w, h;
-        char title[32];
+    int x, y, w, h;
+    char title[32], name[32];
+
+    if(!ndWindow) {
         SDL_GetWindowPosition(sdlWindow, &x, &y);
         SDL_GetWindowSize(sdlWindow, &w, &h);
         sprintf(title, "NeXTdimension (Slot %i)", slot);
@@ -65,6 +61,17 @@ void NDSDL::init(void) {
         }
     }
     
+    if (!(repaintThread) && ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
+        ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+        if (!ndRenderer) {
+            fprintf(stderr,"[ND] Slot %i: Failed to create renderer!\n", slot);
+            exit(-1);
+        }
+        
+        sprintf(name, "[ND] Slot %i: Repainter", slot);
+        repaintThread = SDL_CreateThread(NDSDL::repainter, name, this);
+    }
+
     if(ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
         SDL_ShowWindow(ndWindow);
     } else {
@@ -73,19 +80,6 @@ void NDSDL::init(void) {
 }
 
 void NDSDL::start_interrupts() {
-    char name[32];
-    
-    if (!(repaintThread) && ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
-        ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-        if (!ndRenderer) {
-            fprintf(stderr,"[ND] Slot %i: Failed to create renderer!\n", slot);
-            exit(-1);
-        }
-		
-        sprintf(name, "[ND] Slot %i: Repainter", slot);
-        repaintThread = SDL_CreateThread(NDSDL::repainter, name, this);
-    }
-    
     CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VBL);
     CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VIDEO_VBL);
 }
@@ -127,7 +121,28 @@ void NDSDL::uninit(void) {
 }
 
 void NDSDL::pause(bool pause) {
-    SDL_AtomicSet(&blitNDFB, pause ? 0 : 1);
+    if (!pause && ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
+        SDL_AtomicSet(&blitNDFB, 1);
+    } else {
+        SDL_AtomicSet(&blitNDFB, 0);
+    }
+}
+
+void nd_sdl_show(void) {
+    FOR_EACH_SLOT(slot) {
+        IF_NEXT_DIMENSION(slot, nd) {
+            nd->sdl.init();
+        }
+    }
+}
+
+void nd_sdl_hide(void) {
+    FOR_EACH_SLOT(slot) {
+        IF_NEXT_DIMENSION(slot, nd) {
+            nd->sdl.pause(true);
+            nd->sdl.uninit();
+        }
+    }
 }
 
 void nd_sdl_destroy(void) {

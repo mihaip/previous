@@ -63,7 +63,8 @@ static const char* Reset_NeXT(bool bCold)
 	Printer_Reset();              /* Reset Printer */
 	DSP_Reset();                  /* Reset DSP */
 	NextBus_Reset();              /* Reset NextBus */
-	DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
+	Screen_ModeChanged();         /* Reset Screen Mode */
+	DebugCpu_SetDebugging();      /* Reset debugging flag if needed */
 
 	return NULL;
 }

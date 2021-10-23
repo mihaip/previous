@@ -269,6 +269,7 @@ Previous v2.3:
 
 Previous v2.4 (unreleased):
   > Adds support for netbooting from a shared directory.
+  > Adds support for switching between single and multiple screen mode.
   > Improves network auto-configuration.
   > Improves performance and accuracy of FSINCOS.
   > Improves mouse movement handling.

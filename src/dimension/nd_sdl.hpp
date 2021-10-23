@@ -39,7 +39,9 @@ extern "C" {
     extern const int BLANK_MS;
     
     void nd_vbl_handler(void);
-    void nd_video_vbl_handler(void);    
+    void nd_video_vbl_handler(void);
+    void nd_sdl_show(void);
+    void nd_sdl_hide(void);
     void nd_sdl_destroy(void);
 #ifdef __cplusplus
 }
