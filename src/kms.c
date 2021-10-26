@@ -137,6 +137,11 @@ void KMS_command(Uint8 command, Uint32 data);
 #define KM_ADDR_MASK    0x0E
 #define KM_ADDR_MOUSE   0x01
 
+#define KM_REV        1
+#define KM_KBD_REV    0
+#define KM_KBD_ID     0
+#define KM_MOUSE_REV  0
+#define KM_MOUSE_ID   0
 
 /* Device mask
  *
@@ -177,8 +182,9 @@ static void access_km_reg(Uint32 data) {
                 Log_Printf(LOG_KMS_LEVEL, "Poll device");
                 break;
             case 7:
-                Log_Printf(LOG_KMS_LEVEL, "Request device revision");
-                break;
+                Log_Printf(LOG_KMS_LEVEL, "Read version of %s",device_kbd?"keyboard":"mouse");
+                kms_version(device_kbd);
+                return;
             default:
                 Log_Printf(LOG_WARN, "Unknown device register");
                 break;
@@ -226,6 +232,7 @@ void KMS_command(Uint8 command, Uint32 data) {
         case KMSCMD_VOLCTRL:
             Log_Printf(LOG_KMS_LEVEL, "[KMS] Access volume control (simple)");
             Log_Printf(LOG_KMS_LEVEL, "[KMS] Data = %08X",data);
+            snd_vol_access(data>>24);
             break;
             
         default: // commands without data
@@ -554,6 +561,15 @@ void kms_response(void) {
     kms.km_data = km_address<<24; /* keyboard */
     kms.km_data |= USER_POLL;
     kms.km_data |= (NO_RESPONSE_ERR|DEVICE_INVALID); /* checked on real hardware */
+    
+    kms_interrupt();
+}
+
+void kms_version(bool keyboard) {
+    kms.km_data = (km_address|(keyboard?0:KM_ADDR_MOUSE))<<24;
+    kms.km_data |= (ConfigureParams.System.bTurbo?KM_REV:0)<<16;
+    kms.km_data |= (keyboard?KM_KBD_REV:KM_MOUSE_REV)<<8;
+    kms.km_data |= (keyboard?KM_KBD_ID:KM_MOUSE_ID);
     
     kms_interrupt();
 }

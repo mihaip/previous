@@ -20,6 +20,7 @@ void kms_mouse_move(int x, bool left, int y, bool up);
 void kms_mouse_button(bool left, bool down);
 
 void kms_response(void);
+void kms_version(bool keyboard);
 
 void kms_sndout_underrun(void);
 void kms_sndin_overrun(void);

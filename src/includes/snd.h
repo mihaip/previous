@@ -16,3 +16,4 @@ void snd_stop_input(void);
 bool snd_output_active(void);
 bool snd_input_active(void);
 void snd_gpo_access(Uint8 data);
+void snd_vol_access(Uint8 data);
