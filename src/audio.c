@@ -29,7 +29,7 @@ static Uint32        recBufferRd         = 0;
 static lock_t        recBufferLock;
 
 void Audio_Output_Queue(Uint8* data, int len) {
-    int chunkSize = AUDIO_BUFFER_SAMPLES;
+    int chunkSize = SOUND_BUFFER_SAMPLES;
     if (bSoundOutputWorking) {
         while (len > 0) {
             if (len < chunkSize) chunkSize = len;
@@ -92,31 +92,29 @@ static void Audio_Input_InitBuf(void) {
 
 int Audio_Input_BufSize(void) {
     if (bSoundInputWorking) {
-        if (recBufferRd < recBufferWr) {
+        if (recBufferRd <= recBufferWr) {
             return recBufferWr - recBufferRd;
         } else {
-            return recBufferRd - recBufferWr;
+            return (1<<REC_BUFFER_SZ) - (recBufferRd - recBufferWr);
         }
     } else {
         return 0;
     }
 }
 
-int Audio_Input_Read(void) {
-	Sint16 sample = 0;
-	
+int Audio_Input_Read(Sint16* sample) {
     if (bSoundInputWorking) {
 		if ((recBufferRd&REC_BUFFER_MASK)==(recBufferWr&REC_BUFFER_MASK)) {
 			return -1;
 		} else {
-			sample = ((recBuffer[recBufferRd&REC_BUFFER_MASK]<<8)|recBuffer[(recBufferRd&REC_BUFFER_MASK)+1]);
+			*sample = ((recBuffer[recBufferRd&REC_BUFFER_MASK]<<8)|recBuffer[(recBufferRd&REC_BUFFER_MASK)+1]);
 			recBufferRd += 2;
 			recBufferRd &= REC_BUFFER_MASK;
-			return snd_make_ulaw(sample);
 		}
 	} else {
-        return snd_make_ulaw(0); // silence
+        *sample = 0; // silence
 	}
+    return 0;
 }
 
 void Audio_Input_Unlock() {
@@ -149,12 +147,12 @@ void Audio_Output_Init(void)
     }
     
     /* Set up SDL audio: */
-    request.freq     = AUDIO_OUT_FREQUENCY; /* 44,1 kHz */
+    request.freq     = SOUND_OUT_FREQUENCY; /* 44,1 kHz */
     request.format   = AUDIO_S16MSB;        /* 16-Bit signed, big endian */
     request.channels = 2;                   /* stereo */
     request.callback = NULL;
     request.userdata = NULL;
-    request.samples  = AUDIO_BUFFER_SAMPLES; /* buffer size in samples */
+    request.samples  = SOUND_BUFFER_SAMPLES; /* buffer size in samples */
 
     Audio_Output_Device = SDL_OpenAudioDevice(NULL, 0, &request, &granted, 0);
     if (Audio_Output_Device==0)	/* Open audio device */ {
@@ -192,12 +190,12 @@ void Audio_Input_Init(void) {
     }
     
     /* Set up SDL audio: */
-    request.freq     = AUDIO_IN_FREQUENCY; /* 8kHz */
+    request.freq     = SOUND_IN_FREQUENCY; /* 8kHz */
     request.format   = AUDIO_S16MSB;	   /* 16-Bit signed, big endian */
     request.channels = 1;			       /* mono */
     request.callback = Audio_Input_CallBack;
     request.userdata = NULL;
-    request.samples  = AUDIO_BUFFER_SAMPLES; /* buffer size in samples */
+    request.samples  = SOUND_BUFFER_SAMPLES; /* buffer size in samples */
     
     Audio_Input_Device = SDL_OpenAudioDevice(NULL, 1, &request, &granted, 0); /* Open audio device */
     

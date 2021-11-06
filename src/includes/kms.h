@@ -19,11 +19,9 @@ void kms_keyup(Uint8 modkeys, Uint8 keycode);
 void kms_mouse_move(int x, bool left, int y, bool up);
 void kms_mouse_button(bool left, bool down);
 
-void kms_response(void);
-void kms_version(bool keyboard);
-
-void kms_sndout_underrun(void);
-void kms_sndin_overrun(void);
+bool kms_send_codec_receive(Uint32 data);
+bool kms_can_receive_codec(void);
+void kms_send_sndout_underrun(void);
+void kms_send_sndout_request(void);
 
 void Mouse_Handler(void);
-

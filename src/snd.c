@@ -4,7 +4,6 @@
 #include "sysdeps.h"
 #include "cycInt.h"
 #include "audio.h"
-#include "dma.h"
 #include "snd.h"
 #include "kms.h"
 
@@ -18,14 +17,17 @@ static bool   sndout_inited;
 static bool   sound_output_active = false;
 static bool   sndin_inited;
 static bool   sound_input_active = false;
-static Uint8* snd_buffer = NULL;
+
+Uint8* snd_buffer = NULL;
+int    snd_buffer_len = 0;
 
 static void sound_init(void) {
     if(snd_buffer)
         free(snd_buffer);
     snd_buffer = NULL;
+    snd_buffer_len = 0;
     if (!sndout_inited && ConfigureParams.Sound.bEnableSound) {
-        Log_Printf(LOG_WARN, "[Audio] Initializing audio device.");
+        Log_Printf(LOG_WARN, "[Sound] Initializing output device.");
         Audio_Output_Init();
         sndout_inited=true;
     }
@@ -35,8 +37,9 @@ static void sound_uninit(void) {
     if(snd_buffer)
         free(snd_buffer);
     snd_buffer = NULL;
+    snd_buffer_len = 0;
     if(sndout_inited) {
-        Log_Printf(LOG_WARN, "[Audio] Uninitializing audio device.");
+        Log_Printf(LOG_WARN, "[Sound] Uninitializing output device.");
         sndout_inited=false;
         Audio_Output_UnInit();
     }
@@ -53,23 +56,23 @@ void Sound_Reset(void) {
 void Sound_Pause(bool pause) {
     if (pause) {
         if (sndout_inited) {
-            Log_Printf(LOG_WARN, "[Audio] Uninitializing audio output device (pause).");
+            Log_Printf(LOG_WARN, "[Sound] Uninitializing output device (pause).");
             sndout_inited=false;
             Audio_Output_UnInit();
         }
         if (sndin_inited) {
-            Log_Printf(LOG_WARN, "[Audio] Uninitializing audio input device (pause).");
+            Log_Printf(LOG_WARN, "[Sound] Uninitializing input device (pause).");
             sndin_inited=false;
             Audio_Input_UnInit();
         }
     } else {
         if (!sndout_inited && ConfigureParams.Sound.bEnableSound) {
-            Log_Printf(LOG_WARN, "[Audio] Initializing audio output device (resume).");
+            Log_Printf(LOG_WARN, "[Sound] Initializing output device (resume).");
             Audio_Output_Init();
             sndout_inited=true;
         }
         if (!sndin_inited && sound_input_active && ConfigureParams.Sound.bEnableSound) {
-            Log_Printf(LOG_WARN, "[Audio] Initializing audio input device (resume).");
+            Log_Printf(LOG_WARN, "[Sound] Initializing input device (resume).");
             Audio_Input_Init();
             sndin_inited=true;
         }
@@ -111,7 +114,7 @@ void snd_start_output(Uint8 mode) {
     if (sndout_inited) {
         Audio_Output_Enable(true);
     } else {
-        Log_Printf(LOG_SND_LEVEL, "[Audio] Not starting. Audio output device not initialized.");
+        Log_Printf(LOG_SND_LEVEL, "[Sound] Not starting. Sound output device not initialized.");
     }
     /* Starting sound output loop */
     if (!sound_output_active) {
@@ -139,7 +142,7 @@ void snd_start_input(Uint8 mode) {
         Audio_Input_Init();
         Audio_Input_Enable(true);
     }
-    /* Starting sound output loop */
+    /* Starting sound input loop */
     if (!sound_input_active) {
         Log_Printf(LOG_SND_LEVEL, "[Sound] Starting input loop.");
         sound_input_active = true;
@@ -158,14 +161,6 @@ void snd_stop_input(void) {
 
 /* Sound IO loops */
 
-static void do_dma_sndout_intr(void) {
-    if(snd_buffer) {
-        dma_sndout_intr();
-        free(snd_buffer);
-        snd_buffer = NULL;
-    }
-}
-
 /*
  At a playback rate of 44.1kHz a sample takes about 23 microseconds.
  Assuming that the emulation runs at least 1/3 as fast as a real m68k
@@ -173,28 +168,25 @@ static void do_dma_sndout_intr(void) {
 */
 static const int SND_CHECK_DELAY = 8;
 void SND_Out_Handler(void) {
-    int len;
-
     CycInt_AcknowledgeInterrupt();
     
     if (!sound_output_active) {
         return;
     }
 
-    if (sndout_inited && Audio_Output_Queue_Size() > AUDIO_BUFFER_SAMPLES * 2) {
-        CycInt_AddRelativeInterruptUs(SND_CHECK_DELAY * AUDIO_BUFFER_SAMPLES, 0, INTERRUPT_SND_OUT);
+    if (sndout_inited && Audio_Output_Queue_Size() > SOUND_BUFFER_SAMPLES * 2) {
+        CycInt_AddRelativeInterruptUs(SND_CHECK_DELAY * SOUND_BUFFER_SAMPLES, 0, INTERRUPT_SND_OUT);
         return;
     }
     
-    do_dma_sndout_intr();
-    snd_buffer = dma_sndout_read_memory(&len);
+    kms_send_sndout_request();
     
-    if (len) {
-        len = snd_send_samples(snd_buffer, len);
-        len = (len / 4) + 1;
-        CycInt_AddRelativeInterruptUs(SND_CHECK_DELAY * len, 0, INTERRUPT_SND_OUT);
+    if (snd_buffer_len) {
+        snd_buffer_len = snd_send_samples(snd_buffer, snd_buffer_len);
+        snd_buffer_len = (snd_buffer_len / 4) + 1;
+        CycInt_AddRelativeInterruptUs(SND_CHECK_DELAY * snd_buffer_len, 0, INTERRUPT_SND_OUT);
     } else {
-        kms_sndout_underrun();
+        kms_send_sndout_underrun();
         /* Call do_dma_sndout_intr() a little bit later */
         CycInt_AddRelativeInterruptUs(100, 0, INTERRUPT_SND_OUT);
     }
@@ -204,71 +196,107 @@ bool snd_output_active() {
     return sound_output_active;
 }
 
+/* This functions generates 8-bit ulaw samples from 16 bit pcm audio */
+#define BIAS 0x84               /* define the add-in bias for 16 bit samples */
+#define CLIP 32635
+
+Uint8 snd_make_ulaw(Sint16 sample) {
+    static Sint16 exp_lut[256] = {
+        0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
+        4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+        5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+        5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+        6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+        7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7
+    };
+    Sint16 sign, exponent, mantissa;
+    Uint8 ulawbyte;
+    
+    /** get the sample into sign-magnitude **/
+    sign = (sample >> 8) & 0x80;        /* set aside the sign */
+    if (sign != 0) {
+        sample = -sample;         /* get magnitude */
+    }
+    /* sample can be zero because we can overflow in the inversion,
+     * checking against the unsigned version solves this */
+    if (((Uint16) sample) > CLIP)
+        sample = CLIP;            /* clip the magnitude */
+    
+    /** convert from 16 bit linear to ulaw **/
+    sample = sample + BIAS;
+    exponent = exp_lut[(sample >> 7) & 0xFF];
+    mantissa = (sample >> (exponent + 3)) & 0x0F;
+    ulawbyte = ~(sign | (exponent << 4) | mantissa);
+    
+    return ulawbyte;
+}
+
 /*
  Sound is recorded at 8012 Hz. One sample (byte) takes about 124 microseconds.
 */
 static const int SNDIN_SAMPLE_TIME = 124;
 void SND_In_Handler(void) {
+    Sint16 sample;
+    Uint32 foursamples;
+    int size = 0;
+    
     CycInt_AcknowledgeInterrupt();
     
-    int size = dma_sndin_write_memory();
+    if (!sound_input_active) {
+        return;
+    }
+    if (!kms_can_receive_codec()) {
+        return;
+    }
+
+    Audio_Input_Lock();
     
-    if (!size) {
-        if(snd_input_active()) {
-            kms_sndin_overrun();
+    /* Process 256 samples at a time and then sync */
+    while (size<256) {
+        if (Audio_Input_Read(&sample) < 0) {
+            Log_Printf(LOG_WARN, "[Sound] Waiting for sound input data");
+            size = 256;
+            break;
         }
-    } else {
+        
+        /* Shift in sample (oldest first) */
+        foursamples = (foursamples<<8) | snd_make_ulaw(sample);
+        
+        size++;
+
+        /* After accumulating 4 samples, send them to KMS */
+        if ((size&3)==0) {
+            if (kms_send_codec_receive(foursamples)) {
+                break;
+            }
+        }
+    }
+    
+    /* If we accumulated too much data write it fast */
+    if (Audio_Input_BufSize() > 8192) { /* this is 4096 ulaw samples equaling about 0.5 seconds */
+        Log_Printf(LOG_WARN, "[Sound] Writing input data fast");
+        size = 16; /* Short delay */
+    }
+    
+    Audio_Input_Unlock();
+
+    if (kms_can_receive_codec()) {
         CycInt_AddRelativeInterruptUs(size*SNDIN_SAMPLE_TIME, 0, INTERRUPT_SND_IN);
     }
 }
 
 bool snd_input_active() {
     return sound_input_active;
-}
-
-/* This functions generates 8-bit ulaw samples from 16 bit pcm audio */
-#define BIAS 0x84               /* define the add-in bias for 16 bit samples */
-#define CLIP 32635
-
-Uint8 snd_make_ulaw(Sint16 sample) {
-	static Sint16 exp_lut[256] = {
-		0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
-		4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
-		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-		5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
-		6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-		6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-		6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-		6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-		7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-		7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-		7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-		7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-		7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-		7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-		7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
-		7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7
-	};
-	Sint16 sign, exponent, mantissa;
-	Uint8 ulawbyte;
-	
-	/** get the sample into sign-magnitude **/
-	sign = (sample >> 8) & 0x80;        /* set aside the sign */
-	if (sign != 0) {
-		sample = -sample;         /* get magnitude */
-	}
-	/* sample can be zero because we can overflow in the inversion,
-	 * checking against the unsigned version solves this */
-	if (((Uint16) sample) > CLIP)
-		sample = CLIP;            /* clip the magnitude */
-	
-	/** convert from 16 bit linear to ulaw **/
-	sample = sample + BIAS;
-	exponent = exp_lut[(sample >> 7) & 0xFF];
-	mantissa = (sample >> (exponent + 3)) & 0x0F;
-	ulawbyte = ~(sign | (exponent << 4) | mantissa);
-	
-	return ulawbyte;
 }
 
 
@@ -316,6 +344,21 @@ int snd_send_samples(Uint8* buffer, int len) {
             Log_Printf(LOG_WARN, "[Sound] Error: Unknown sound output mode!");
             return 0;
     }
+}
+
+/* This function processes and sends one single sample */
+void snd_send_sample(Uint32 data) {
+    Uint8 buf[8];
+    
+    if (!sound_output_active)
+        return;
+    
+    buf[0] = data<<24;
+    buf[1] = data<<16;
+    buf[2] = data<<8;
+    buf[3] = data;
+    
+    snd_send_samples(buf, 4);
 }
 
 #if ENABLE_LOWPASS

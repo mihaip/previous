@@ -64,9 +64,10 @@ void dma_m2m_write_memory(void);
 
 void dma_scc_read_memory(void);
 
-Uint8* dma_sndout_read_memory(int* len);
-void   dma_sndout_intr(void);
-int    dma_sndin_write_memory(void);
+void dma_sndout_read_memory(void);
+void dma_sndout_intr(void);
+bool dma_sndin_write_memory(Uint32 val);
+bool dma_sndin_intr(void);
 
 void dma_printer_read_memory(void);
 

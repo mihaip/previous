@@ -23,8 +23,6 @@
 #include "snd.h"
 #include "dsp.h"
 #include "mmu_common.h"
-#include "kms.h"
-#include "audio.h"
 
 #define LOG_DMA_LEVEL LOG_DEBUG
 
@@ -691,10 +689,8 @@ void dma_mo_read_memory(void) {
 }
 
 
-Uint8* dma_sndout_read_memory(int* len) {
+void dma_sndout_read_memory(void) {
     int i;
-    Uint8* result = NULL;
-    *len          = 0;
     
     if (dma[CHANNEL_SOUNDOUT].csr&DMA_ENABLE) {
         
@@ -709,52 +705,44 @@ Uint8* dma_sndout_read_memory(int* len) {
         }
         
         TRY(prb) {
-            *len   = dma[CHANNEL_SOUNDOUT].limit - dma[CHANNEL_SOUNDOUT].next;
-            result = malloc(*len * 2);
-            for(i = 0; dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit; dma[CHANNEL_SOUNDOUT].next++, i++)
-                result[i] = get_byte(dma[CHANNEL_SOUNDOUT].next);
+            snd_buffer_len = dma[CHANNEL_SOUNDOUT].limit - dma[CHANNEL_SOUNDOUT].next;
+            snd_buffer = malloc(snd_buffer_len * 2);
+            for (i = 0; dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit; dma[CHANNEL_SOUNDOUT].next++, i++)
+                snd_buffer[i] = get_byte(dma[CHANNEL_SOUNDOUT].next);
         } CATCH(prb) {
             Log_Printf(LOG_WARN, "[DMA] Channel Sound Out: Bus error reading from %08x",dma[CHANNEL_SOUNDOUT].next);
             dma[CHANNEL_SOUNDOUT].csr &= ~DMA_ENABLE;
             dma[CHANNEL_SOUNDOUT].csr |= (DMA_COMPLETE|DMA_BUSEXC);
         } ENDTRY
     }
-    
-    return result;
 }
 
-void dma_sndout_intr() {
+void dma_sndout_intr(void) {
+    free(snd_buffer);
+    snd_buffer = NULL;
+    snd_buffer_len = 0;
+
     if (dma[CHANNEL_SOUNDOUT].csr&DMA_ENABLE) {
         dma_interrupt(CHANNEL_SOUNDOUT);
     }
 }
 
-int dma_sndin_write_memory() {
-    int value = 0;
-    int size = 0;
-    
+bool dma_sndin_write_memory(Uint32 val) {
     if (dma[CHANNEL_SOUNDIN].csr&DMA_ENABLE) {
         
-        Audio_Input_Lock();
-        
+        if ((dma[CHANNEL_SOUNDIN].next%4) || (dma[CHANNEL_SOUNDIN].limit%4)) {
+            Log_Printf(LOG_WARN, "[DMA] Channel Sound In: Error! Bad alignment! (Next: $%08X, Limit: $%08X)",
+                       dma[CHANNEL_SOUNDIN].next, dma[CHANNEL_SOUNDIN].limit);
+            abort();
+        }
+
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Sound In: Write to memory at $%08x, %i bytes",
                    dma[CHANNEL_SOUNDIN].next,dma[CHANNEL_SOUNDIN].limit-dma[CHANNEL_SOUNDIN].next);
         
         TRY(prb) {
-            while (dma[CHANNEL_SOUNDIN].next<dma[CHANNEL_SOUNDIN].limit) {
-                value = Audio_Input_Read();
-                if (value < 0) {
-                    Log_Printf(LOG_WARN, "[DMA] Channel Sound In: Waiting for data");
-                    size = 256;
-                    break;
-                }
-                /* Time for syncing */
-                if (size == 256) {
-                    break;
-                }
-                size++;
-                put_byte(dma[CHANNEL_SOUNDIN].next, value);
-                dma[CHANNEL_SOUNDIN].next++;
+            if (dma[CHANNEL_SOUNDIN].next<dma[CHANNEL_SOUNDIN].limit) {
+                put_long(dma[CHANNEL_SOUNDIN].next, val);
+                dma[CHANNEL_SOUNDIN].next+=4;
             }
         } CATCH(prb) {
             Log_Printf(LOG_WARN, "[DMA] Channel Sound In: Bus error reading from %08x",dma[CHANNEL_SOUNDIN].next);
@@ -762,22 +750,18 @@ int dma_sndin_write_memory() {
             dma[CHANNEL_SOUNDIN].csr |= (DMA_COMPLETE|DMA_BUSEXC);
         } ENDTRY
         
-        /* If we accumulated too much data write it fast */
-        if (Audio_Input_BufSize() > 8192) {
-            Log_Printf(LOG_WARN, "[DMA] Channel Sound In: Fast write");
-            size = 16;
-        }
-        
-        Audio_Input_Unlock();
-        
         dma[CHANNEL_SOUNDIN].saved_limit = dma[CHANNEL_SOUNDIN].next;
-        dma_interrupt(CHANNEL_SOUNDIN);
         
-        if (dma[CHANNEL_SOUNDIN].next==dma[CHANNEL_SOUNDIN].limit) {
-            return 0;
-        }
+        return (dma[CHANNEL_SOUNDIN].next==dma[CHANNEL_SOUNDIN].limit);
     }
-    return size;
+    return true;
+}
+
+bool dma_sndin_intr(void) {
+    if (dma[CHANNEL_SOUNDIN].csr&DMA_ENABLE) {
+        dma_interrupt(CHANNEL_SOUNDIN);
+    }
+    return !(dma[CHANNEL_SOUNDIN].csr&DMA_ENABLE);
 }
 
 /* Channel Printer */
