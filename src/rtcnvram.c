@@ -673,9 +673,16 @@ void newrtc_put_clock(Uint8 addr, Uint8 val) {
             if (newrtc.control&NRTC_CLRPDOWN) {
                 newrtc.status&= ~NRTC_INT_PDOWN;
             }
+            if (!(newrtc.control&NRTC_LBE)) {
+                newrtc.status&= ~NRTC_INT_LBAT;
+            }
             if (newrtc.control&NRTC_POWERDOWN) {
                 Log_Printf(LOG_WARN, "[newRTC] Power down!");
                 M68000_Stop();
+            }
+            if (!(newrtc.status&(NRTC_FIRSTUP|NRTC_INT_ALARM|NRTC_INT_PDOWN|NRTC_INT_LBAT))) {
+                newrtc.status&= ~NRTC_INT;
+                set_interrupt(INT_POWER, RELEASE_INT);
             }
             break;
             
@@ -697,9 +704,7 @@ void newrtc_request_power_down(void) {
     set_interrupt(INT_POWER, SET_INT);
 }
 
-void newrtc_stop_pdown_request(void) {
-    set_interrupt(INT_POWER, RELEASE_INT);
-}
+void newrtc_stop_pdown_request(void) {}
 
 
 /* ---------------------- RTC NVRAM ---------------------- */
