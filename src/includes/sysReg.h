@@ -77,9 +77,8 @@ static inline int intlev(void) {
 
 void set_dsp_interrupt(Uint8 state);
 
-void SID_Read(void);
-
 void SCR_Reset(void);
+    
 void SCR1_Read0(void);
 void SCR1_Read1(void);
 void SCR1_Read2(void);

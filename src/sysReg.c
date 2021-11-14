@@ -14,6 +14,7 @@
 #include "statusbar.h"
 #include "host.h"
 
+#define LOG_SCR_LEVEL       LOG_DEBUG
 #define LOG_HARDCLOCK_LEVEL LOG_DEBUG
 #define LOG_SOFTINT_LEVEL   LOG_DEBUG
 #define LOG_DSP_LEVEL       LOG_DEBUG
@@ -82,13 +83,6 @@ static Uint8 scr2_3=0x00;
 Uint32 scrIntStat=0x00000000;
 Uint32 scrIntMask=0x00000000;
 
-#define SLOT_ID 0 // slot ID 0
-
-void SID_Read(void) {
-    Log_Printf(LOG_WARN,"SID read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem[IoAccessCurrentAddress & 0x1FFFF]=SLOT_ID;
-}
-
 /* System Control Register 1
  *
  * These values are valid for all non-Turbo systems:
@@ -121,6 +115,8 @@ void SID_Read(void) {
  * These bits are always 0 on all Turbo systems:
  * ----xxxx xxxxxxxx ----xxxx xxxxxxxx
  */
+
+#define SLOT_ID      0
 
 #define DMA_REVISION 1
 
@@ -229,8 +225,6 @@ void SCR_Reset(void) {
     scr1 |= cpu_speed;
 }
 
-#define LOG_SCR_LEVEL LOG_NONE
-
 void SCR1_Read0(void)
 {
     Log_Printf(LOG_SCR_LEVEL,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
@@ -303,8 +297,8 @@ void SCR1_Read3(void)
 void SCR2_Write0(void)
 {
     Uint8 changed_bits=scr2_0;
-//  Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
-    scr2_0=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_SCR_LEVEL,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress&IO_SEG_MASK],m68k_getpc());
+    scr2_0=IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
     changed_bits ^= scr2_0;
     
     if (changed_bits&SCR2_SOFTINT1) {
@@ -353,27 +347,27 @@ void SCR2_Write0(void)
 
 void SCR2_Read0(void)
 {
-//  Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_0;
+    Log_Printf(LOG_SCR_LEVEL,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK]=scr2_0;
 }
 
 void SCR2_Write1(void)
 {
-//  Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
-    scr2_1=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_SCR_LEVEL,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress&IO_SEG_MASK],m68k_getpc());
+    scr2_1=IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
 }
 
 void SCR2_Read1(void)
 {
-//  Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_1;
+    Log_Printf(LOG_SCR_LEVEL,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK]=scr2_1;
 }
 
 void SCR2_Write2(void)
 {
     Uint8 changed_bits=scr2_2;
-
-    scr2_2=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_SCR_LEVEL,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress&IO_SEG_MASK],m68k_getpc());
+    scr2_2=IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
     changed_bits^=scr2_2;
     
     if (changed_bits&SCR2_TIMERIPL7) {
@@ -393,20 +387,20 @@ void SCR2_Write2(void)
 
 void SCR2_Read2(void)
 {
-//  Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    Log_Printf(LOG_SCR_LEVEL,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
     if (rtc_interface_read()) {
         scr2_2 |= SCR2_RTDATA;
     } else {
         scr2_2 &= ~SCR2_RTDATA;
     }
-    IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_2;
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK]=scr2_2;
 }
 
 void SCR2_Write3(void)
 {    
     Uint8 changed_bits=scr2_3;
-//  Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
-    scr2_3=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_SCR_LEVEL,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
+    scr2_3=IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
     changed_bits^=scr2_3;
     
     if (changed_bits&SCR2_ROM) {
@@ -436,8 +430,8 @@ void SCR2_Write3(void)
 
 void SCR2_Read3(void)
 {
-//  Log_Printf(LOG_WARN,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_3;
+    Log_Printf(LOG_SCR_LEVEL,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK]=scr2_3;
 }
 
 
@@ -546,26 +540,26 @@ void Hardclock_InterruptHandler ( void )
 
 
 void HardclockRead0(void){
-    IoMem[IoAccessCurrentAddress & 0x1FFFF]=(latch_hardclock>>8);
-    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=(latch_hardclock>>8);
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
 }
 void HardclockRead1(void){
-    IoMem[IoAccessCurrentAddress & 0x1FFFF]=latch_hardclock&0xff;
-    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=latch_hardclock&0xff;
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
 }
 
 void HardclockWrite0(void){
-    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
-    hardclock0=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
+    hardclock0=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
 }
 void HardclockWrite1(void){
-    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x",IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
-    hardclock1=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x",IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
+    hardclock1=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
 }
 
 void HardclockWriteCSR(void) {
-    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
-    hardclock_csr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
+    hardclock_csr=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
     if (hardclock_csr&HARDCLOCK_LATCH) {
         hardclock_csr&= ~HARDCLOCK_LATCH;
         latch_hardclock=(hardclock0<<8)|hardclock1;
@@ -580,8 +574,8 @@ void HardclockWriteCSR(void) {
     set_interrupt(INT_TIMER,RELEASE_INT);
 }
 void HardclockReadCSR(void) {
-    IoMem[IoAccessCurrentAddress & 0x1FFFF]=hardclock_csr;
-//  Log_Printf(LOG_WARN,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=hardclock_csr;
+//  Log_Printf(LOG_WARN,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
     set_interrupt(INT_TIMER,RELEASE_INT);
 }
 
@@ -614,7 +608,7 @@ void System_Timer_Write(void) {
 Uint8 col_vid_intr = 0;
 
 void ColorVideo_CMD_Write(void) {
-    col_vid_intr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+    col_vid_intr=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
     Log_Printf(LOG_DEBUG,"[Color Video] Command write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
     if (col_vid_intr&VID_CMD_CLEAR_INT) {
