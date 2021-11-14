@@ -355,10 +355,10 @@ static void km_user_poll(Uint8 addr) {
 #define KM_CMD_SET_ADDR 0xEF
 
 /* Keyboard/Mouse versions */
-#define KM_KBD_REV    0
-#define KM_KBD_ID     0
-#define KM_MOUSE_REV  0
-#define KM_MOUSE_ID   0
+#define KM_KBD_REV    1
+#define KM_KBD_ID     1
+#define KM_MOUSE_REV  1
+#define KM_MOUSE_ID   2
 
 static void km_no_response(void) {
     Uint8 addr = 0;
