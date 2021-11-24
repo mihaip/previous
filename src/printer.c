@@ -483,6 +483,8 @@ static void lp_interface_on(void) {
 }
 
 void lp_interface_off(void) {
+    lp_copyright_sequence = 0;
+    
     lp.csr.dma = 0;
     lp.csr.printer = 0;
     lp.csr.interface = 0;
@@ -494,10 +496,8 @@ void lp_interface_off(void) {
 }
 
 static void lp_power_on(void) {
-    if (ConfigureParams.Printer.bPrinterConnected) {
-        Log_Printf(LOG_LP_PRINT_LEVEL, "[Printer] Power on");
-        lp_interface_status(LP_GPI_PWR_RDY|LP_GPI_RDY,true);
-    }
+    Log_Printf(LOG_LP_PRINT_LEVEL, "[Printer] Power on");
+    lp_interface_status(LP_GPI_PWR_RDY|LP_GPI_RDY,true);
 }
 
 static void lp_power_off(void) {

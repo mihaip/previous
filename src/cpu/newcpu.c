@@ -2268,6 +2268,7 @@ void check_prefs_changed_cpu(void)
 
 void init_m68k (void)
 {
+	disasm_init();
 	prefs_changed_cpu ();
 	update_68k_cycles ();
 
