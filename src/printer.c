@@ -400,13 +400,9 @@ static Uint8 lp_serial_status[16] = {
 static Uint8 lp_serial_phase = 0;
 
 static void lp_interface_status(Uint8 changed_bits, bool set) {
-    bool lp_gpi_message = false;
+    Uint8 old_stat = lp.stat;
     
     Log_Printf(LOG_LP_PRINT_LEVEL,"[Printer] Interface status %s: %02X (mask: %02X)",set?"set":"release",changed_bits,lp.statmask);
-    
-    if ((changed_bits&lp.statmask) != (lp.stat&changed_bits&lp.statmask)) {
-        lp_gpi_message = true;
-    }
     
     if (set) {
         lp.stat |= changed_bits;
@@ -414,7 +410,7 @@ static void lp_interface_status(Uint8 changed_bits, bool set) {
         lp.stat &= ~changed_bits;
     }
     
-    if (lp_gpi_message) {
+    if ((old_stat^lp.stat)&lp.statmask) {
         lp_command_out(LP_CMD_GPI, (~lp.stat)<<24);
     }
 }
@@ -527,7 +523,7 @@ static Uint8 lp_printer_command(Uint8 cmd) {
         case CMD_STATUS15:
             Log_Printf(LOG_LP_PRINT_LEVEL, "[Printer] Read status register 15");
             return lp_printer_status(15);
-            /* Commands with no status */
+        /* Commands with no status */
         case CMD_EXT_CLK:
             Log_Printf(LOG_LP_PRINT_LEVEL, "[Printer] External clock");
             return lp_printer_status(16);
