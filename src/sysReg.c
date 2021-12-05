@@ -23,6 +23,12 @@
 
 /* Results from real machines:
  *
+ * NeXT Computer (CPU 68030 25 MHz, memory 100 nS, Memory size 64MB)
+ * intrstat: ?
+ * intrmask: ?
+ * scr1:     00010102
+ * scr2:     ?
+ *
  * NeXTstation (CPU MC68040 25 MHz, memory 100 nS, Memory size 20MB)
  * intrstat: 00000020 (likely called while running boot animation)
  * intrmask: 88027640
@@ -56,7 +62,6 @@
  * 200c000:  f0004000 (original scr1)
  * 200c004:  f0004000 (address mask missing in Previous)
  *
- *
  * intrmask after writing 00000000
  * non-Turbo:80027640
  * Turbo:    00000000
@@ -64,11 +69,6 @@
  * intrmask after writing ffffffff
  * non-Turbo:ffffffff
  * Turbo:    3dd189ff
- *
- * SCR1:
- * for Cube 030:
- * 0000 0000 0000 0001 0000 0001 0101 0010
- * 00 01 01 52
  */
 
 int SCR_ROM_overlay=0;

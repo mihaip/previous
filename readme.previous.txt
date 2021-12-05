@@ -272,6 +272,7 @@ Previous v2.4 (unreleased):
   > Adds support for switching between single and multiple screen mode.
   > Improves network auto-configuration.
   > Improves performance and accuracy of FSINCOS.
+  > Improves sound volume adjustment and low-pass filter.
   > Improves mouse movement handling.
   > Improves DMA emulation accuracy.
   > Improves accuracy of system control and status registers.

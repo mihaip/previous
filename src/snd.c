@@ -362,22 +362,19 @@ void snd_send_sample(Uint32 data) {
 }
 
 #if ENABLE_LOWPASS
-/* This is a simple lowpass filter */
-static Sint16 snd_lowpass_filter(Sint16 insample, bool left) {
-    Sint16 outsample;
-    static Sint16 lfiltersample[2] = {0,0};
-    static Sint16 rfiltersample[2] = {0,0};
+/* This is a third-order Butterworth low-pass filter (alpha value 0.1) */
+static Sint16 snd_lowpass_filter(Sint16 sample, int channel) {
+    static double v[2][4] = { {0.0,0.0,0.0,0.0}, {0.0,0.0,0.0,0.0} };
     
-    if (left) {
-        outsample = (lfiltersample[0] + (lfiltersample[1]<<1) + insample)>>2;
-        lfiltersample[0] = lfiltersample[1];
-        lfiltersample[1] = insample;
-    } else {
-        outsample = (rfiltersample[0] + (rfiltersample[1]<<1) + insample)>>2;
-        rfiltersample[0] = rfiltersample[1];
-        rfiltersample[1] = insample;
-    }
-    return outsample;
+    v[channel][0] = v[channel][1];
+    v[channel][1] = v[channel][2];
+    v[channel][2] = v[channel][3];
+    v[channel][3] = ( 0.01809893300751444500 * sample)
+                  + ( 0.27805991763454640520 * v[channel][0])
+                  + (-1.18289326203783096148 * v[channel][1])
+                  + ( 1.76004188034316899625 * v[channel][2]);
+
+    return (Sint16)((v[channel][0] + v[channel][3]) + 3 * (v[channel][1] + v[channel][2]));
 }
 #endif
 
@@ -408,10 +405,10 @@ void snd_adjust_volume_and_lowpass(Uint8 *buf, int len) {
         for (i=0; i<len; i+=4) {
             ldata = ((Sint16)buf[i+0]<<8)|buf[i+1];
             rdata = ((Sint16)buf[i+2]<<8)|buf[i+3];
-#if ENABLE_LOWPASS /* Append lowpass filter */
+#if ENABLE_LOWPASS
             if (sndout_state.lowpass) {
-                ldata = snd_lowpass_filter(ldata, true);
-                rdata = snd_lowpass_filter(rdata, false);
+                ldata = snd_lowpass_filter(ldata, 0);
+                rdata = snd_lowpass_filter(rdata, 1);
             }
 #endif
             ldata *= ladjust;
