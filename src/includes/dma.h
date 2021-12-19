@@ -62,7 +62,7 @@ bool dma_dsp_ready(void);
 void dma_m2m(void);
 void dma_m2m_write_memory(void);
 
-void dma_scc_read_memory(void);
+Uint8 dma_scc_read_memory(void);
 
 void dma_sndout_read_memory(void);
 void dma_sndout_intr(void);

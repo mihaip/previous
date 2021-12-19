@@ -1048,15 +1048,22 @@ void dma_video_interrupt(void) {
 
 /* FIXME: This is just for passing power-on test. Add real SCC channel later. */
 
-void dma_scc_read_memory(void) {
-    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCC: Read from memory at $%08x, %i bytes",
-               dma[CHANNEL_SCC].next,dma[CHANNEL_SCC].limit-dma[CHANNEL_SCC].next);
-    while (dma[CHANNEL_SCC].next<dma[CHANNEL_SCC].limit) {
-        scc_buf[0]=get_byte(dma[CHANNEL_SCC].next);
-        dma[CHANNEL_SCC].next++;
+Uint8 dma_scc_read_memory(void) {
+    Uint8 val = 0;
+    
+    if (dma[CHANNEL_SCC].csr&DMA_ENABLE) {
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCC: Read from memory at $%08x", dma[CHANNEL_SCC].next);
+        
+        if (dma[CHANNEL_SCC].next<dma[CHANNEL_SCC].limit) {
+            val = get_byte(dma[CHANNEL_SCC].next);
+            dma[CHANNEL_SCC].next++;
+        }
+        dma_interrupt(CHANNEL_SCC);
+    } else {
+        Log_Printf(LOG_WARN, "[DMA] Channel SCC: Error! DMA not enabled!");
     }
     
-    dma_interrupt(CHANNEL_SCC);
+    return val;
 }
 
 
