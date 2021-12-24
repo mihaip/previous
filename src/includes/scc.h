@@ -7,5 +7,7 @@ void SCC_DataA_Read(void);
 void SCC_DataA_Write(void);
 void SCC_DataB_Read(void);
 void SCC_DataB_Write(void);
+void SCC_Clock_Read(void);
+void SCC_Clock_Write(void);
 
 void SCC_Reset(int mode);

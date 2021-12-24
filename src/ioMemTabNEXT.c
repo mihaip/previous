@@ -297,7 +297,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x02018002, SIZE_BYTE, SCC_DataB_Read, SCC_DataB_Write },
 	{ 0x02018003, SIZE_BYTE, SCC_DataA_Read, SCC_DataA_Write },
 	/* Serial Interface Clock */
-	{ 0x02018004, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02018004, SIZE_LONG, SCC_Clock_Read, SCC_Clock_Write },
 	
 	/* RAMDAC (Brooktree Bt463) */
 	{ 0x02018100, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },

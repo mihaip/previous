@@ -50,23 +50,23 @@ enum {
 typedef struct
 {
     int     type;   /* Type of time (CPU Cycles, microseconds) or NONE for inactive */
-    int64_t time;   /* number of CPU cycles to go until interupt or absolute microsecond timeout until interrupt */
+    Sint64 time;   /* number of CPU cycles to go until interupt or absolute microsecond timeout until interrupt */
     void (*pFunction)(void);
 } INTERRUPTHANDLER;
 
 extern INTERRUPTHANDLER PendingInterrupt;
 
-extern int64_t nCyclesMainCounter;
-extern int64_t nCyclesOver;
+extern Sint64 nCyclesMainCounter;
+extern Sint64 nCyclesOver;
 
 extern int usCheckCycles;
 
 void CycInt_Reset(void);
 void CycInt_MemorySnapShot_Capture(bool bSave);
 void CycInt_AcknowledgeInterrupt(void);
-void CycInt_AddRelativeInterruptCycles(int64_t CycleTime, interrupt_id Handler);
-void CycInt_AddRelativeInterruptUs(int64_t us, int64_t usreal, interrupt_id Handler);
-void CycInt_AddRelativeInterruptUsCycles(int64_t us, int64_t usreal, interrupt_id Handler);
+void CycInt_AddRelativeInterruptCycles(Sint64 CycleTime, interrupt_id Handler);
+void CycInt_AddRelativeInterruptUs(Sint64 us, Sint64 usreal, interrupt_id Handler);
+void CycInt_AddRelativeInterruptUsCycles(Sint64 us, Sint64 usreal, interrupt_id Handler);
 void CycInt_RemovePendingInterrupt(interrupt_id Handler);
 bool CycInt_InterruptActive(interrupt_id Handler);
 bool CycInt_SetNewInterruptUs(void);

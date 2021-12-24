@@ -19,7 +19,8 @@
 
 #define IO_SEG_MASK 0x1FFFF
 
-#define LOG_SCC_LEVEL       LOG_DEBUG
+#define LOG_SCC_LEVEL     LOG_DEBUG
+#define LOG_SCC_IO_LEVEL  LOG_DEBUG
 #define LOG_SCC_REG_LEVEL LOG_DEBUG
 
 
@@ -29,6 +30,7 @@ struct {
     Uint8 wreg[16];
     
     Uint8 data;
+    Uint8 clock;
 } scc[2];
 
 Uint8 scc_register_pointer = 0;
@@ -398,11 +400,65 @@ void scc_control_write(int ch, Uint8 val) {
     }
 }
 
+Uint8 scc_clock_read(void) {
+    return scc[0].clock;
+}
+
+void scc_clock_write(Uint8 val) {
+    if (ConfigureParams.System.bTurbo) {
+        if ((scc[0].clock&0x80) && !(val&0x80)) {
+            Log_Printf(LOG_SCC_REG_LEVEL, "[SCC] System clock: Reset\n");
+            SCC_Reset(2);
+        }
+        switch ((val>>4)&3) {
+            case 0: Log_Printf(LOG_SCC_LEVEL, "[SCC] System clock: 3.684 MHz\n"); break;
+            case 1:
+            case 2: Log_Printf(LOG_SCC_LEVEL, "[SCC] System clock: 4 MHz\n"); break;
+            case 3: Log_Printf(LOG_SCC_LEVEL, "[SCC] System clock: 10 MHz\n"); break;
+            default: break;
+        }
+        switch ((val>>2)&3) {
+            case 0: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel B clock: 3.684 MHz\n"); break;
+            case 1: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel B clock: 10 MHz\n"); break;
+            case 2: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel B clock: 4 MHz\n"); break;
+            case 3: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel B clock: External\n"); break;
+            default: break;
+        }
+        switch (val&3) {
+            case 0: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel A clock: 3.684 MHz\n"); break;
+            case 1: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel A clock: 10 MHz\n"); break;
+            case 2: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel A clock: 4 MHz\n"); break;
+            case 3: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel A clock: External\n"); break;
+            default: break;
+        }
+    } else {
+        switch ((val>>4)&1) {
+            case 0: Log_Printf(LOG_SCC_LEVEL, "[SCC] System clock: 3.684 MHz\n"); break;
+            case 1: Log_Printf(LOG_SCC_LEVEL, "[SCC] System clock: External\n"); break;
+            default: break;
+        }
+        switch ((val>>2)&3) {
+            case 0: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel B clock: 3.684 MHz\n"); break;
+            case 1: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel B clock: External\n"); break;
+            case 2: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel B clock: 4 MHz\n"); break;
+            case 3: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel B clock: None\n"); break;
+            default: break;
+        }
+        switch (val&3) {
+            case 0: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel A clock: 3.684 MHz\n"); break;
+            case 1: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel A clock: External\n"); break;
+            case 2: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel A clock: 4 MHz\n"); break;
+            case 3: Log_Printf(LOG_SCC_LEVEL, "[SCC] Channel A clock: RTxCA\n"); break;
+            default: break;
+        }
+    }
+    scc[0].clock = val;
+}
 
 /* Reset functions */
 static void scc_channel_reset(int ch, bool hard) {
     
-    Log_Printf(LOG_SCC_LEVEL, "[SCC] Reset channel %c\n", ch?'B':'A');
+    Log_Printf(LOG_WARN, "[SCC] Reset channel %c\n", ch?'B':'A');
     
     scc[ch].wreg[0] = 0x00;
     scc[ch].wreg[1] &= ~0xDB;
@@ -478,4 +534,21 @@ void SCC_DataA_Read(void) { // 0x02018003
 void SCC_DataA_Write(void) {
     scc_data_write(0, IoMem[IoAccessCurrentAddress & IO_SEG_MASK]);
     Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Channel A data write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void SCC_Clock_Read(void) { // 0x02018004
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = scc_clock_read();
+    IoMem[(IoAccessCurrentAddress+1) & IO_SEG_MASK] = 0;
+    IoMem[(IoAccessCurrentAddress+2) & IO_SEG_MASK] = 0;
+    IoMem[(IoAccessCurrentAddress+3) & IO_SEG_MASK] = 0;
+    Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Clock select read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void SCC_Clock_Write(void) {
+    Uint8 val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    val |= IoMem[(IoAccessCurrentAddress+1) & IO_SEG_MASK];
+    val |= IoMem[(IoAccessCurrentAddress+2) & IO_SEG_MASK];
+    val |= IoMem[(IoAccessCurrentAddress+3) & IO_SEG_MASK];
+    scc_clock_write(val);
+    Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Clock select write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, val, m68k_getpc());
 }

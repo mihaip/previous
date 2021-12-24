@@ -1046,7 +1046,7 @@ void dma_video_interrupt(void) {
 }
 
 
-/* FIXME: This is just for passing power-on test. Add real SCC channel later. */
+/* Channel SCC */
 
 Uint8 dma_scc_read_memory(void) {
     Uint8 val = 0;
@@ -1064,6 +1064,16 @@ Uint8 dma_scc_read_memory(void) {
     }
     
     return val;
+}
+
+bool dma_scc_ready(void) {
+    if (!(dma[CHANNEL_SCC].csr&DMA_ENABLE) ||
+        !(dma[CHANNEL_SCC].next<dma[CHANNEL_SCC].limit)) {
+        Log_Printf(LOG_DEBUG, "[DMA] Channel SCC: Not ready!");
+        return false;
+    } else {
+        return true;
+    }
 }
 
 
