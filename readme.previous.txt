@@ -131,7 +131,7 @@ not yet emulated. Status of the individual components is as follows:
   MO drive        good
   Floppy drive    good
   Ethernet        good
-  Serial          dummy
+  Serial          partial
   Printer         good
   Sound           good
   Keyboard        good
@@ -275,6 +275,7 @@ Previous v2.4 (unreleased):
   > Improves sound volume adjustment and low-pass filter.
   > Improves mouse movement handling.
   > Improves DMA emulation accuracy.
+  > Improves SCC emulation to pass diagnostic tests.
   > Improves accuracy of system control and status registers.
   > Improves reliability of dual magneto-optical disk drive setups.
   > Fixes bug that caused slow disk access when running Mac OS.

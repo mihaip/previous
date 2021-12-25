@@ -35,6 +35,7 @@ const char CycInt_fileid[] = "Previous cycInt.c : " __DATE__ " " __TIME__;
 #include "snd.h"
 #include "printer.h"
 #include "kms.h"
+#include "scc.h"
 #include "configuration.h"
 #include "main.h"
 #include "nd_sdl.hpp"
@@ -66,6 +67,7 @@ static void (* const pIntHandlerFunctions[MAX_INTERRUPTS])(void) =
     SND_Out_Handler,
     SND_In_Handler,
     Printer_IO_Handler,
+    SCC_IO_Handler,
     Main_EventHandlerInterrupt,
     nd_vbl_handler,
     nd_video_vbl_handler,

@@ -10,4 +10,6 @@ void SCC_DataB_Write(void);
 void SCC_Clock_Read(void);
 void SCC_Clock_Write(void);
 
-void SCC_Reset(int mode);
+void SCC_Reset(void);
+
+void SCC_IO_Handler(void);

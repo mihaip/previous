@@ -5,7 +5,7 @@
  
  Serial Communication Controller (AMD AM8530H) Emulation.
  
- Incomplete. Only for passing power-on test.
+ Incomplete.
  
  */
 
@@ -257,55 +257,163 @@ Uint8 scc_register_pointer = 0;
 #define RTXC_HZ 4000000
 
 
+/* Interrupts */
+void scc_check_interrupt(void) {
+    if (scc[0].rreg[R_INTBITS]&(RR3_A_IP|RR3_B_IP)) {
+        set_interrupt(INT_SCC, SET_INT);
+    } else {
+        set_interrupt(INT_SCC, RELEASE_INT);
+    }
+}
+
+void scc_set_interrupt(Uint8 intr) {
+    scc[0].rreg[R_INTBITS] |= intr;
+    scc_check_interrupt();
+}
+
+void scc_release_interrupt(Uint8 intr) {
+    scc[0].rreg[R_INTBITS] &= ~intr;
+    scc_check_interrupt();
+}
+
+
+/* Reset functions */
+static void scc_channel_reset(int ch) {
+    Log_Printf(LOG_WARN, "[SCC] Reset channel %c\n", ch?'B':'A');
+    
+    scc[ch].wreg[0] = 0x00;
+    scc[ch].wreg[1] &= ~0xDB;
+    scc[ch].wreg[3] &= ~0x01;
+    scc[ch].wreg[4] |= 0x04;
+    scc[ch].wreg[5] &= ~0x9E;
+    scc[0].wreg[9] &= ~0x20;
+    scc[1].wreg[9] &= ~0x20;
+    scc[ch].wreg[10] &= ~0xCF;
+    scc[ch].wreg[14] = (scc[ch].wreg[14]&~0x3C)|0x20;
+    scc[ch].wreg[15] = 0xF8;
+    
+    scc[ch].rreg[0] = (scc[ch].rreg[0]&~0xC7)|0x44;
+    scc[ch].rreg[1] = 0x06;
+    scc[ch].rreg[3] = 0x00;
+    scc[ch].rreg[10] = 0x00;
+    
+    set_interrupt(INT_SCC, RELEASE_INT);
+}
+
+static void scc_hard_reset(void) {
+    scc_channel_reset(0);
+    scc_channel_reset(1);
+    
+    scc[0].wreg[9] = (scc[0].wreg[9]&~0xFC)|0xC0;
+    scc[1].wreg[9] = (scc[1].wreg[9]&~0xFC)|0xC0;
+    scc[0].wreg[10] = 0x00;
+    scc[1].wreg[10] = 0x00;
+    scc[0].wreg[11] = 0x08;
+    scc[1].wreg[11] = 0x08;
+    scc[0].wreg[14] = (scc[0].wreg[14]&~0x3F)|0x20;
+    scc[1].wreg[14] = (scc[1].wreg[14]&~0x3F)|0x20;
+
+    set_interrupt(INT_SCC, RELEASE_INT);
+}
+
+
 /* Receive and send data */
 void scc_receive(int ch, Uint8 val) {
+    Log_Printf(LOG_SCC_IO_LEVEL,"[SCC] Channel %c: Receiving %02X\n", ch?'B':'A', val);
+
     scc[ch].data = val;
     scc[ch].rreg[R_STATUS] |= RR0_RXAVAIL;
+    
+    scc_set_interrupt(ch?RR3_B_RXIP:RR3_A_RXIP);
 }
 
 void scc_send(int ch, Uint8 val) {
+    Log_Printf(LOG_SCC_IO_LEVEL,"[SCC] Channel %c: Sending %02X\n", ch?'B':'A', val);
+
     if (scc[ch].wreg[W_MISC]&WR14_LOOPBACK) {
         scc_receive(ch, val);
     } else {
         // send to real world
     }
-    scc[ch].rreg[R_STATUS] |= RR0_TXEMPTY;
+    
+    scc_set_interrupt(ch?RR3_B_TXIP:RR3_A_TXIP);
+}
+
+void scc_send_dma(int ch, Uint8 val) {
+    Log_Printf(LOG_SCC_IO_LEVEL,"[SCC] Channel %c: Sending %02X via DMA\n", ch?'B':'A', val);
+    
+    if (scc[ch].wreg[W_MISC]&WR14_LOOPBACK) {
+        scc_receive(ch, val);
+    } else {
+        // send to real world
+    }
+}
+
+
+/* Read and write data */
+bool  scc_pio         = false;
+Uint8 scc_pio_data    = 0;
+int   scc_pio_channel = 0;
+
+void SCC_IO_Handler(void) {
+    int i;
+    
+    CycInt_AcknowledgeInterrupt();
+    
+    if (scc_pio) {
+        scc_pio = false;
+        scc_send(scc_pio_channel, scc_pio_data);
+    } else { // DMA
+        for (i = 0; i < 2; i++) {
+            if (scc[i].wreg[W_MODE]&WR1_REQENABLE) {
+                if (scc[i].wreg[W_MODE]&WR1_REQFUNC) {
+                    if (dma_scc_ready() && !(scc[i].rreg[R_STATUS]&RR0_RXAVAIL)) {
+                        scc_send_dma(i, dma_scc_read_memory());
+                    }
+                }
+                CycInt_AddRelativeInterruptCycles(50, INTERRUPT_SCC_IO);
+            }
+        }
+    }
 }
 
 Uint8 scc_data_read(int ch) {
-    Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Data read %02X\n",
-               ch?'B':'A',scc[ch].data);
+    Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Data read %02X\n", ch?'B':'A',scc[ch].data);
     
     scc[ch].rreg[R_STATUS] &= ~RR0_RXAVAIL;
+    scc_release_interrupt(ch?RR3_B_RXIP:RR3_A_RXIP);
     
     return scc[ch].data;
 }
 
 void scc_data_write(int ch, Uint8 val) {
-    Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Data write %02X\n",
-               ch?'B':'A',val);
+    Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Data write %02X\n", ch?'B':'A',val);
     
-    scc_send(ch, val);
+    scc_pio = true;
+    scc_pio_data = val;
+    scc_pio_channel = ch;
+    CycInt_AddRelativeInterruptCycles(50, INTERRUPT_SCC_IO);
 }
 
 
 /* Internal register functions */
 void scc_write_mode(int ch, Uint8 val) {
-    if ((val&(WR1_REQFUNC|WR1_REQENABLE))==(WR1_REQFUNC|WR1_REQENABLE)) {
-        scc_send(ch, dma_scc_read_memory());
+    if (val&WR1_REQENABLE) {
+        scc_pio = false;
+        CycInt_AddRelativeInterruptCycles(50, INTERRUPT_SCC_IO);
     }
 }
 
 void scc_write_masterint(Uint8 val) {
     switch (val&WR9_RESETHARD) {
         case WR9_RESETA:
-            SCC_Reset(0);
+            scc_channel_reset(0);
             break;
         case WR9_RESETB:
-            SCC_Reset(1);
+            scc_channel_reset(1);
             break;
         case WR9_RESETHARD:
-            SCC_Reset(2);
+            scc_hard_reset();
             break;
             
         default:
@@ -313,7 +421,16 @@ void scc_write_masterint(Uint8 val) {
     }
 }
 
-void scc_write_init(ch, val) {}
+void scc_write_init(ch, val) {
+    switch (val&0x38) {
+        case WR0_RESETTXPEND:
+            scc_release_interrupt(ch?RR3_B_TXIP:RR3_A_TXIP);
+            break;
+            
+        default:
+            break;
+    }
+}
 
 
 /* Internal register access */
@@ -408,7 +525,7 @@ void scc_clock_write(Uint8 val) {
     if (ConfigureParams.System.bTurbo) {
         if ((scc[0].clock&0x80) && !(val&0x80)) {
             Log_Printf(LOG_SCC_REG_LEVEL, "[SCC] System clock: Reset\n");
-            SCC_Reset(2);
+            scc_hard_reset();
         }
         switch ((val>>4)&3) {
             case 0: Log_Printf(LOG_SCC_LEVEL, "[SCC] System clock: 3.684 MHz\n"); break;
@@ -455,43 +572,9 @@ void scc_clock_write(Uint8 val) {
     scc[0].clock = val;
 }
 
-/* Reset functions */
-static void scc_channel_reset(int ch, bool hard) {
-    
-    Log_Printf(LOG_WARN, "[SCC] Reset channel %c\n", ch?'B':'A');
-    
-    scc[ch].wreg[0] = 0x00;
-    scc[ch].wreg[1] &= ~0xDB;
-    scc[ch].wreg[3] &= ~0x01;
-    scc[ch].wreg[4] |= 0x04;
-    scc[ch].wreg[5] &= ~0x9E;
-    scc[0].wreg[9] &= ~0x20;
-    scc[1].wreg[9] &= ~0x20;
-    scc[ch].wreg[10] &= ~0x9F;
-    scc[ch].wreg[14] = (scc[ch].wreg[14]&~0x3C)|0x20;
-    scc[ch].wreg[15] = 0xF8;
-    
-    scc[ch].rreg[0] = (scc[ch].rreg[0]&~0xC7)|0x44;
-    scc[ch].rreg[1] = 0x06;
-    scc[ch].rreg[3] = 0x00;
-    scc[ch].rreg[10] = 0x00;
-    
-    if (hard) {
-        scc[0].wreg[9] = (scc[0].wreg[9]&~0xFC)|0xC0;
-        scc[1].wreg[9] = (scc[1].wreg[9]&~0xFC)|0xC0;
-        scc[ch].wreg[10] = 0x00;
-        scc[ch].wreg[11] = 0x08;
-        scc[ch].wreg[14] = (scc[ch].wreg[14]&~0x3F)|0x20;
-    }
-}
-
-void SCC_Reset(int ch) {
-    if(ch==0 || ch==1) { // channel reset
-        scc_channel_reset(ch, false);
-    } else { // hard reset
-        scc_channel_reset(0, true);
-        scc_channel_reset(1, true);
-    }
+void SCC_Reset(void) {
+    scc_hard_reset();
+    scc[0].clock = 0;
 }
 
 

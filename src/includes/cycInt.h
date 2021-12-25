@@ -32,6 +32,7 @@ typedef enum
   INTERRUPT_SND_OUT,
   INTERRUPT_SND_IN,
   INTERRUPT_LP_IO,
+  INTERRUPT_SCC_IO,
   INTERRUPT_EVENT_LOOP,
   INTERRUPT_ND_VBL,
   INTERRUPT_ND_VIDEO_VBL,
@@ -49,7 +50,7 @@ enum {
 
 typedef struct
 {
-    int     type;   /* Type of time (CPU Cycles, microseconds) or NONE for inactive */
+    int    type;   /* Type of time (CPU Cycles, microseconds) or NONE for inactive */
     Sint64 time;   /* number of CPU cycles to go until interupt or absolute microsecond timeout until interrupt */
     void (*pFunction)(void);
 } INTERRUPTHANDLER;
