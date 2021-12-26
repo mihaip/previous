@@ -259,7 +259,7 @@ Uint8 scc_register_pointer = 0;
 
 /* Interrupts */
 void scc_check_interrupt(void) {
-    if (scc[0].rreg[R_INTBITS]&(RR3_A_IP|RR3_B_IP)) {
+    if ((scc[0].rreg[R_INTBITS]&(RR3_A_IP|RR3_B_IP)) && (scc[0].wreg[W_MASTERINT]&WR9_MIE)) {
         set_interrupt(INT_SCC, SET_INT);
     } else {
         set_interrupt(INT_SCC, RELEASE_INT);
@@ -402,9 +402,23 @@ void scc_write_mode(int ch, Uint8 val) {
         scc_pio = false;
         CycInt_AddRelativeInterruptCycles(50, INTERRUPT_SCC_IO);
     }
+    /* FIXME: check if this is correct */
+    if (!(val&WR1_TXIE)) {
+        scc[0].rreg[R_INTBITS] &= ~(ch?RR3_B_TXIP:RR3_A_TXIP);
+    }
+    if (!(val&(WR1_RXALLIE|WR1_RXFIRSTIE))) {
+        scc[0].rreg[R_INTBITS] &= ~(ch?RR3_B_RXIP:RR3_A_RXIP);
+    }
+    if (!(val&WR1_EXTIE)) {
+        scc[0].rreg[R_INTBITS] &= ~(ch?RR3_B_STATIP:RR3_A_STATIP);
+    }
+    scc_check_interrupt();
 }
 
 void scc_write_masterint(Uint8 val) {
+    scc[0].wreg[W_MASTERINT] = val;
+    scc_register_pointer     = 0;
+    
     switch (val&WR9_RESETHARD) {
         case WR9_RESETA:
             scc_channel_reset(0);
@@ -419,6 +433,8 @@ void scc_write_masterint(Uint8 val) {
         default:
             break;
     }
+    
+    scc_check_interrupt();
 }
 
 void scc_write_init(ch, val) {
@@ -489,7 +505,7 @@ void scc_control_write(int ch, Uint8 val) {
                 break;
             case W_MASTERINT:
                 scc_write_masterint(val);
-                break;
+                return;
             case W_TRANSBUF:
                 scc_data_write(ch, val);
                 break;
