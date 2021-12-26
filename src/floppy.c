@@ -30,7 +30,7 @@ struct {
     Uint8 fifo[16]; /* Data FIFO (rw) */
     Uint8 din;      /* Digital Input Register (wo) */
     Uint8 ccr;      /* Configuration Control Register (ro) */
-    Uint8 ctrl;     /* External Control (rw) */
+    Uint8 csr;      /* External Control (rw) */
     
     Uint8 st[4];    /* Internal Status Registers */
     Uint8 pcn;      /* Cylinder Number */
@@ -88,15 +88,15 @@ struct {
 #define DOR_RESET_N     0x04
 #define DOR_SEL_MSK     0x03
 
-#define STAT_RQM        0x80
-#define STAT_DIO        0x40    /* read = 1 */
-#define STAT_NONDMA     0x20
-#define STAT_CMDBSY     0x10
-#define STAT_DRV3BSY    0x08
-#define STAT_DRV2BSY    0x04
-#define STAT_DRV1BSY    0x02
-#define STAT_DRV0BSY    0x01
-#define STAT_BSY_MASK   0x0F
+#define MSR_RQM         0x80
+#define MSR_DIO         0x40    /* read = 1 */
+#define MSR_NONDMA      0x20
+#define MSR_CMDBSY      0x10
+#define MSR_DRV3BSY     0x08
+#define MSR_DRV2BSY     0x04
+#define MSR_DRV1BSY     0x02
+#define MSR_DRV0BSY     0x01
+#define MSR_BSY_MASK    0x0F
 
 #define DSR_RESET       0x80
 #define DSR_PDOWN       0x40
@@ -123,6 +123,8 @@ void floppy_fifo_write(Uint8 val);
 Uint8 floppy_dor_read(void);
 void floppy_dor_write(Uint8 val);
 Uint8 floppy_sra_read(void);
+void floppy_ctrl_write(Uint8 val);
+Uint8 floppy_stat_read(void);
 
 
 void FLP_StatA_Read(void) { // 0x02014100
@@ -145,7 +147,7 @@ void FLP_DataOut_Write(void) {
     Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] Data out write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
-void FLP_Status_Read(void) { // 0x02014104
+void FLP_MainStatus_Read(void) { // 0x02014104
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = flp.msr;
     Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] Main status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
@@ -182,30 +184,16 @@ void FLP_Configuration_Write(void) {
     Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] Configuration write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
-void FLP_Control_Read(void) { // 0x02014108
-    Uint8 val;
-    if (ConfigureParams.System.nMachineType==NEXT_CUBE030)
-        val=flp.ctrl&~CTRL_DRV_ID;
-    else
-        val=flp.ctrl;
-    
-    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = val;
+void FLP_Status_Read(void) { // 0x02014108
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = floppy_stat_read();
     Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] Control read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
-void FLP_Select_Write(void) {
-    Uint8 val;
-    val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+void FLP_Control_Write(void) {
+    Uint8 val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
     Log_Printf(LOG_DEBUG,"[Floppy] Select write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
-
-    if (ConfigureParams.System.nMachineType!=NEXT_CUBE030) {
-        set_floppy_select(val&CTRL_82077,false);
-    }
     
-    if (val&CTRL_EJECT) {
-        Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] Ejecting floppy disk");
-        Floppy_Eject(-1);
-    }
+    floppy_ctrl_write(val);
 }
 
 void set_floppy_select(Uint8 sel, bool osp) {
@@ -268,9 +256,11 @@ void floppy_reset(bool hard) {
     
     flp.sra &= ~(SRA_INT|SRA_STEP|SRA_HDSEL|SRA_DIR);
     flp.srb &= ~(SRB_R_TOGGLE|SRB_W_TOGGLE);
-    flp.msr |= STAT_RQM;
-    flp.msr &= ~STAT_DIO;
-	
+    flp.msr |= MSR_RQM;
+    flp.msr &= ~MSR_DIO;
+    
+    set_interrupt(INT_PHONE, RELEASE_INT);
+    
     if (hard) {
         flp_io_state = FLP_STATE_DONE;
         flp.dor &= ~DOR_RESET_N;
@@ -279,9 +269,11 @@ void floppy_reset(bool hard) {
         flp.st[0]=flp.st[1]=flp.st[2]=flp.st[3]=0;
         flp.pcn=0;
     } else {
-        /* Single poll interrupt after reset (delay = 250 ms) */
+#if 0   /* Causes problems with diagnostic test */
+        /* Single poll interrupt after reset (delay = 250 us) */
         flp_io_state = FLP_STATE_INTERRUPT;
-        CycInt_AddRelativeInterruptUs(250*1000, 0, INTERRUPT_FLP_IO);
+        CycInt_AddRelativeInterruptUs(250, 0, INTERRUPT_FLP_IO);
+#endif
     }
 }
 
@@ -334,12 +326,12 @@ static void floppy_interrupt(void) {
     
     if (result_size>0) {
         /* Go to result phase */
-        flp.msr |= (STAT_RQM|STAT_DIO);
+        flp.msr |= (MSR_RQM|MSR_DIO);
     } else {
-        flp.msr |= STAT_RQM;
+        flp.msr |= MSR_RQM;
     }
     
-    flp.msr &= ~(STAT_BSY_MASK);
+    flp.msr &= ~(MSR_BSY_MASK);
     flp.sra |= SRA_INT;
     set_interrupt(INT_PHONE, SET_INT);
 }
@@ -367,6 +359,11 @@ static Uint32 physical_to_logical_sector(Uint8 c, Uint8 h, Uint8 s, int drive) {
         flp.st[0] |= IC_ABNORMAL;
         flp.st[1] |= ST1_EN;
     }
+    if (c>=NUM_CYLINDERS) {
+        Log_Printf(LOG_WARN, "[Floppy] Geometry error: cyclinder (%i) beyond limit (%i)!",c,NUM_CYLINDERS-1);
+        flp.st[0] |= IC_ABNORMAL;
+        flp.st[1] |= ST1_ND;
+    }
     
     return (((c*TRACKS_PER_CYL)+h)*spt)+s-1;
 }
@@ -388,9 +385,6 @@ static void check_protection(int drive) {
 }
 
 static void floppy_seek_track(Uint8 c, Uint8 h, int drive) {
-    if (c>(NUM_CYLINDERS-1)) /* CHECK: does this cause an error? */
-        c=(NUM_CYLINDERS-1);
-    
     flp.st[0] |= ST0_SE;
     
     flpdrv[drive].seekoffset = (flpdrv[drive].cyl < c) ? (c - flpdrv[drive].cyl) : (flpdrv[drive].cyl - c);
@@ -643,7 +637,7 @@ static void floppy_read_id(void) {
 
 static void floppy_recalibrate(void) {
     int drive = cmd_data[0]&0x03;
-    Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Command: Drive = %i",drive);
+    Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Recalibrate");
 
     if (flpdrv[drive].connected) {
         flp.msr |= (1<<drive); /* drive busy */
@@ -672,10 +666,12 @@ static void floppy_seek(Uint8 relative) {
         Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Relative seek: Head %i: %i cylinders",head,0);
         abort();
     } else {
-        Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Seek: Head %i to cylinder %i",head,flpdrv[drive].cyl);
         flp.st[0] = IC_NORMAL;
 
         floppy_seek_track(cmd_data[1], head, drive);
+        
+        Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Seek: Head %i to cylinder %i",head,flpdrv[drive].cyl);
+
         if (!(flp.st[0]&IC_ABNORMAL)) {
             flp.pcn = flpdrv[drive].cyl;
         }
@@ -690,7 +686,7 @@ static void floppy_interrupt_status(void) {
     set_interrupt(INT_PHONE, RELEASE_INT);
     flp.sra &= ~SRA_INT;
     /* Go to result phase */
-    flp.msr |= (STAT_RQM|STAT_DIO);
+    flp.msr |= (MSR_RQM|MSR_DIO);
     /* Return data */
     flp.fifo[0] = flp.st[0];
     flp.fifo[1] = flp.pcn;
@@ -705,7 +701,7 @@ static void floppy_specify(void) {
     } else {
         Log_Printf(LOG_WARN, "[Floppy] Specify: DMA mode");
     }
-    flp.msr |= STAT_RQM;
+    flp.msr |= MSR_RQM;
 }
 
 static void floppy_configure(void) {
@@ -723,12 +719,12 @@ static void floppy_configure(void) {
     if (cmd_data[2]) {
         abort();
     }
-    flp.msr |= STAT_RQM;
+    flp.msr |= MSR_RQM;
 }
 
 static void floppy_perpendicular(void) {
     Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Perpendicular: %02X",cmd_data[0]);
-    flp.msr |= STAT_RQM;
+    flp.msr |= MSR_RQM;
 }
 
 static void floppy_unimplemented(void) {
@@ -840,17 +836,17 @@ static void floppy_execute_cmd(void) {
 
 void floppy_fifo_write(Uint8 val) {
     
-    flp.msr &= ~STAT_RQM;
+    flp.msr &= ~MSR_RQM;
     
     if (!cmd_phase) {
         cmd_phase = true;
         command = val;
         cmd_limit = cmd_size = cmd_data_size[val&CMD_OPCODE_MSK];
-        flp.msr |= STAT_RQM;
+        flp.msr |= MSR_RQM;
     } else if (cmd_size>0) {
         cmd_data[cmd_limit-cmd_size]=val;
         cmd_size--;
-        flp.msr |= STAT_RQM;
+        flp.msr |= MSR_RQM;
     }
     
     if (cmd_size==0) {
@@ -875,8 +871,8 @@ Uint8 floppy_fifo_read(void) {
     }
     
     if (result_size==0) {
-        flp.msr |= STAT_RQM;
-        flp.msr &= ~STAT_DIO;
+        flp.msr |= MSR_RQM;
+        flp.msr &= ~MSR_DIO;
         /* FIXME: does this really belong here? */
         set_interrupt(INT_PHONE, RELEASE_INT);
         flp.sra &= ~SRA_INT;
@@ -895,28 +891,21 @@ void floppy_dor_write(Uint8 val) {
     flp.dor |= flp.sel;
     
     
-    if (!(val&DOR_RESET_N)) {
+    if (val&DOR_RESET_N) {
+        Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] Clear reset state.");
+        flp.dor |= DOR_RESET_N;
+    } else {
         flp.dor &= ~DOR_RESET_N;
         floppy_reset(false);
-    } else {
-        flp.dor |= DOR_RESET_N;
-        Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] Clear reset state.");
     }
     if (flpdrv[flp.sel].connected) {
-        flp.ctrl &= ~CTRL_DRV_ID;
-
         if (val&(0x10<<flp.sel)) { /* motor enable */
             Log_Printf(LOG_FLP_CMD_LEVEL,"[Floppy] Starting motor of drive %i.",flp.sel);
-            flp.ctrl &= ~MEDIA_ID_MSK;
-            flp.ctrl |= get_media_id(flp.sel);
             flpdrv[flp.sel].spinning = true;
         } else {
             Log_Printf(LOG_FLP_CMD_LEVEL,"[Floppy] Stopping motor of drive %i.",flp.sel);
-            flp.ctrl &= ~MEDIA_ID_MSK;          /* CHECK: really delete ID? */
             flpdrv[flp.sel].spinning = false;
         }
-    } else {
-        flp.ctrl |= CTRL_DRV_ID;
     }
 }
 
@@ -937,6 +926,28 @@ Uint8 floppy_sra_read(void) {
         val|=SRA_WP_N;
     }
     return val;
+}
+
+void floppy_ctrl_write(Uint8 val) {
+    if (ConfigureParams.System.nMachineType!=NEXT_CUBE030) {
+        set_floppy_select(val&CTRL_82077,false);
+    }
+    
+    if (val&CTRL_EJECT) {
+        Log_Printf(LOG_FLP_REG_LEVEL,"[Floppy] Ejecting floppy disk");
+        Floppy_Eject(-1);
+    }
+}
+
+Uint8 floppy_stat_read(void) {
+    flp.csr &= ~(CTRL_DRV_ID|CTRL_MEDIA_ID0|CTRL_MEDIA_ID1);
+    
+    if (flpdrv[flp.sel].connected) {
+        flp.csr |= get_media_id(flp.sel);
+    } else if (ConfigureParams.System.nMachineType != NEXT_CUBE030) {
+        flp.csr |= CTRL_DRV_ID;
+    }
+    return flp.csr;
 }
 
 

@@ -2,14 +2,14 @@ void FLP_StatA_Read(void);
 void FLP_StatB_Read(void);
 void FLP_DataOut_Read(void);
 void FLP_DataOut_Write(void);
-void FLP_Status_Read(void);
+void FLP_MainStatus_Read(void);
 void FLP_DataRate_Write(void);
 void FLP_FIFO_Read(void);
 void FLP_FIFO_Write(void);
 void FLP_DataIn_Read(void);
 void FLP_Configuration_Write(void);
-void FLP_Control_Read(void);
-void FLP_Select_Write(void);
+void FLP_Status_Read(void);
+void FLP_Control_Write(void);
 
 void FLP_IO_Handler(void);
 
