@@ -83,8 +83,9 @@ static void set_attrs(const string& path, const FileAttrs& fstat) {
 
     if(FileAttrs::valid16(fstat.mode)) {
         newAttrs.mode &= S_IFMT;
-        newAttrs.mode |= fstat.mode & (S_IRWXU|S_IRWXG|S_IRWXO);
-        nfsd_fts[0]->vfsChmod(path, fstat.mode);
+        newAttrs.mode |= fstat.mode & (S_IRWXU | S_IRWXG | S_IRWXO);
+        nfsd_fts[0]->vfsChmod(path, newAttrs.mode);
+        newAttrs.mode |= fstat.mode;
     }
     if(FileAttrs::valid16(fstat.uid))
         newAttrs.uid = fstat.uid;
@@ -293,7 +294,7 @@ int CNFS2Prog::ProcedureCREATE(void) {
 	if(!(GetFullPath(path)))
 		return PRC_OK;
     Log("CREATE %s", path.c_str());
-
+    
     FileAttrs fstat(read_stat(m_in));
     if(nfsd_fts[0]->vfsAccess(path, F_OK)) {
         if(!(FileAttrs::valid16(fstat.uid))) fstat.uid = nfsd_fts[0]->vfsGetUID(path, false);
@@ -537,12 +538,14 @@ bool CNFS2Prog::WriteFileAttributes(const string& path) {
 		return false;
 
     uint32_t type = NFNON;
-    if     (S_ISREG(fstat.st_mode)) type = NFREG;
-    else if(S_ISDIR(fstat.st_mode)) type = NFDIR;
-    else if(S_ISBLK(fstat.st_mode)) type = NFBLK;
-    else if(S_ISCHR(fstat.st_mode)) type = NFCHR;
-    else if(S_ISLNK(fstat.st_mode)) type = NFLNK;
-            
+    if     (S_ISREG (fstat.st_mode)) type = NFREG;
+    else if(S_ISDIR (fstat.st_mode)) type = NFDIR;
+    else if(S_ISBLK (fstat.st_mode)) type = NFBLK;
+    else if(S_ISCHR (fstat.st_mode)) type = NFCHR;
+    else if(S_ISLNK (fstat.st_mode)) type = NFLNK;
+    else if(S_ISSOCK(fstat.st_mode)) type = NFSOCK;
+    else if(S_ISFIFO(fstat.st_mode)) type = NFFIFO;
+    
 	m_out->Write(type);  //type
 	m_out->Write(fstat.st_mode);  //mode
 	m_out->Write(fstat.st_nlink);  //nlink

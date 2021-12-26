@@ -512,7 +512,7 @@ sosendto(so, m)
 	DEBUG_ARG("so = %lx", (long)so);
 	DEBUG_ARG("m = %lx", (long)m);
 	
-        addr.sin_family = AF_INET;
+    addr.sin_family = AF_INET;
 	if ((so->so_faddr.s_addr & htonl(0xffffff00)) == special_addr.s_addr) {
 	  /* It's an alias */
 	  switch(ntohl(so->so_faddr.s_addr) & 0xff) {

@@ -252,7 +252,7 @@ static void process_inodes_recr(UFS& ufs, map<uint32_t, string>& inode2path, set
 
         bool doPrint(true);
         bool forcePrint(false);
-                        
+                                
         if(!(ignore_name(dirEnt.d_name)) || dirEntPath == "/") {
             if(ft && ft->vfsAccess(dirEntPath, F_OK) == 0) {
                 struct stat fstat;
@@ -430,7 +430,7 @@ extern "C" int main(int argc, const char * argv[]) {
         ifstream imf(imageFile.string(), ios::binary | ios::in);
         
         if(!(imf)) {
-            cout << "Can't read '" << imageFile << "'." << endl;
+            cout << "Can't read '" << imageFile << "' (" << strerror(errno) <<")." << endl;
             return 1;
         }
         
