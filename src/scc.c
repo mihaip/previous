@@ -324,7 +324,9 @@ void scc_receive(int ch, Uint8 val) {
     scc[ch].data = val;
     scc[ch].rreg[R_STATUS] |= RR0_RXAVAIL;
     
-    scc_set_interrupt(ch?RR3_B_RXIP:RR3_A_RXIP);
+    if (scc[ch].wreg[W_MODE]&(WR1_RXALLIE|WR1_RXFIRSTIE)) {
+        scc_set_interrupt(ch?RR3_B_RXIP:RR3_A_RXIP);
+    }
 }
 
 void scc_send(int ch, Uint8 val) {
@@ -336,7 +338,9 @@ void scc_send(int ch, Uint8 val) {
         // send to real world
     }
     
-    scc_set_interrupt(ch?RR3_B_TXIP:RR3_A_TXIP);
+    if (scc[ch].wreg[W_MODE]&WR1_TXIE) {
+        scc_set_interrupt(ch?RR3_B_TXIP:RR3_A_TXIP);
+    }
 }
 
 void scc_send_dma(int ch, Uint8 val) {
