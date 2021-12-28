@@ -259,10 +259,11 @@ void floppy_reset(bool hard) {
     flp.msr |= MSR_RQM;
     flp.msr &= ~MSR_DIO;
     
+    flp_io_state = FLP_STATE_DONE;
+
     set_interrupt(INT_PHONE, RELEASE_INT);
     
     if (hard) {
-        flp_io_state = FLP_STATE_DONE;
         flp.dor &= ~DOR_RESET_N;
         flp.srb &= ~(SRB_MOTEN_MASK|SRB_DRVSEL0_N);
         flp.din &= ~DIR_HIDENS_N;

@@ -277,7 +277,7 @@ Previous v2.4 (unreleased):
   > Improves sound volume adjustment and low-pass filter.
   > Improves mouse movement handling.
   > Improves DMA emulation accuracy.
-  > Improves SCC emulation to pass diagnostic tests.
+  > Improves SCC and Floppy drive emulation to pass diagnostic tests.
   > Improves accuracy of system control and status registers.
   > Improves reliability of dual magneto-optical disk drive setups.
   > Fixes bug that caused slow disk access when running Mac OS.
