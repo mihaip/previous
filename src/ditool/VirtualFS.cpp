@@ -8,10 +8,14 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/time.h>
-#include <sys/xattr.h>
 
 #include "VirtualFS.h"
 #include "compat.h"
+#include "config.h"
+
+#if HAVE_SYS_XATTR_H
+#include <sys/xattr.h>
+#endif
 
 using namespace std;
 
@@ -287,8 +291,8 @@ bool FileAttrs::valid16(uint32_t statval) {return (statval & 0x0000FFFF) != 0x00
 VirtualFS::VirtualFS(const HostPath& basePath, const VFSPath& basePathAlias)
 : basePathAlias(basePathAlias)
 , basePath(basePath)
-, m_defaultUID(-2) // -2 = traditionally user nobody
-, m_defaultGID(-2)
+, m_defaultUID(20) // user:  me
+, m_defaultGID(20) // group: other
 {
 }
 
@@ -379,16 +383,29 @@ void VirtualFS::setFileAttrs(const VFSPath& absoluteVFSpath, const FileAttrs& fs
             
     string   serialized = fstat.serialize();
     HostPath hostPath   = toHostPath(absoluteVFSpath);
+#if HAVE_SYS_XATTR_H
+#if HAVE_LXETXATTR
+    if(::lsetxattr(hostPath.c_str(), NFSD_ATTRS.c_str(), serialized.c_str(), serialized.length(), 0) != 0)
+#else
     if(::setxattr(hostPath.c_str(), NFSD_ATTRS.c_str(), serialized.c_str(), serialized.length(), 0, XATTR_NOFOLLOW) != 0)
+#endif
         printf("setxattr(%s) failed\n", hostPath.c_str());
+#endif
 }
 
 FileAttrs VirtualFS::getFileAttrs(const VFSPath& absoluteVFSpath) {
     char buffer[128];
     HostPath hostPath = toHostPath(absoluteVFSpath);
+#if HAVE_SYS_XATTR_H
+#if HAVE_LXETXATTR
+    if(::lgetxattr(hostPath.c_str(), NFSD_ATTRS.c_str(), buffer, sizeof(buffer), 0) == 0)
+#else
     if(::getxattr(hostPath.c_str(), NFSD_ATTRS.c_str(), buffer, sizeof(buffer), 0, XATTR_NOFOLLOW) > 0)
+#endif
         return FileAttrs(buffer);
-    else {
+    else
+#endif
+    {
         struct stat fstat;
         ::lstat(hostPath.c_str(), &fstat);
         fstat.st_uid = vfsGetUID(absoluteVFSpath.parent_path(), true);

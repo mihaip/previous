@@ -24,6 +24,9 @@
 /* Define to 1 if you have the <sys/types.h> header file. */
 #cmakedefine HAVE_SYS_TYPES_H 1
 
+/* Define to 1 if you have the <sys/xattr.h> header file. */
+#cmakedefine HAVE_SYS_XATTR_H 1
+
 /* Define to 1 if you have the <tchar.h> header file. */
 #cmakedefine HAVE_TCHAR_H 1
 
@@ -53,6 +56,9 @@
 
 /* Define to 1 if you have the 'strdup' function */
 #cmakedefine HAVE_STRDUP 1
+
+/* Define to 1 if you have the 'lsetxattr' and 'lgetxattr' functions */
+#cmakedefine HAVE_LXETXATTR 1
 
 /* Define to 1 if you have the member 'st_atimespec.tv_nsec' in struct 'stat' */
 #cmakedefine HAVE_STRUCT_STAT_ST_ATIMESPEC 1
