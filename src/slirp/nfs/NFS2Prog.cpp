@@ -85,6 +85,9 @@ static void set_attrs(const string& path, const FileAttrs& fstat) {
         newAttrs.mode &= S_IFMT;
         newAttrs.mode |= fstat.mode & (S_IRWXU | S_IRWXG | S_IRWXO);
         nfsd_fts[0]->vfsChmod(path, newAttrs.mode);
+        if(fstat.mode & S_IFMT) {
+            newAttrs.mode &= ~S_IFMT;
+        }
         newAttrs.mode |= fstat.mode;
     }
     if(FileAttrs::valid16(fstat.uid))
@@ -296,11 +299,21 @@ int CNFS2Prog::ProcedureCREATE(void) {
     Log("CREATE %s", path.c_str());
     
     FileAttrs fstat(read_stat(m_in));
-    if(nfsd_fts[0]->vfsAccess(path, F_OK)) {
-        if(!(FileAttrs::valid16(fstat.uid))) fstat.uid = nfsd_fts[0]->vfsGetUID(path, false);
-        if(!(FileAttrs::valid16(fstat.gid))) fstat.gid = nfsd_fts[0]->vfsGetGID(path, true);
+    
+    if(!(FileAttrs::valid16(fstat.uid))) fstat.uid = nfsd_fts[0]->vfsGetUID(path, false);
+    if(!(FileAttrs::valid16(fstat.gid))) fstat.gid = nfsd_fts[0]->vfsGetGID(path, true);
+    
+    if(nfsd_fts[0]->vfsAccess(path, F_OK) == 0) {
+        if(!(FileAttrs::valid32(fstat.size)) || fstat.size) {
+            set_attrs(path, fstat);
+            m_out->Write(NFS_OK);
+            write_handle(m_out, nfsd_fts[0]->getFileHandle(path));
+            WriteFileAttributes(path);
+            
+            return PRC_OK;
+        }
     }
-     // touch
+    // file does not exist or must be truncated (fstat.size == 0),
     VFSFile file(*nfsd_fts[0], path, "wb");
     if(file.isOpen()) {
         set_attrs(path, fstat);
