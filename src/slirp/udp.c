@@ -146,33 +146,9 @@ udp_input(m, iphlen)
     int dport = ntohs(uh->uh_dport);
 
     if(nfsd_match_addr(ntohl(save_ip.ip_dst.s_addr))) {
-        switch(dport) {
-            case PORT_PORTMAP:
-                // map port & address for portmap
-                uh->uh_dport = htons(nfsd_ports.udp.portmap);
-                ip->ip_dst   = loopback_addr;
-                break;
-            case PORT_NFS:
-                // map port & address for NFS
-                uh->uh_dport = htons(nfsd_ports.udp.nfs);
-                ip->ip_dst   = loopback_addr;
-                break;
-            default:
-                // map port & address for mountd
-                if(dport == nfsd_ports.udp.mount)
-                    ip->ip_dst   = loopback_addr;
-                break;
-        }
-    } else if(nfsd_vdns_match(m, ntohl(save_ip.ip_dst.s_addr), dport)) {
-        switch(dport) {
-            case PORT_DNS:
-                // map port & address for virtual DNS
-                uh->uh_dport = htons(nfsd_ports.udp.dns);
-                ip->ip_dst   = loopback_addr;
-                break;
-            default:
-                break;
-        }
+        nfsd_udp_map_to_local_port(&ip->ip_dst.s_addr, &uh->uh_dport);
+    } else if(vdns_match(m, ntohl(save_ip.ip_dst.s_addr), dport)) {
+        vdns_udp_map_to_local_port(&ip->ip_dst.s_addr, &uh->uh_dport);
     }
     
     switch(dport) {
@@ -352,20 +328,8 @@ int udp_output(struct socket *so, struct mbuf *m,
             saddr.sin_addr.s_addr = alias_addr.s_addr;
     }
     
-    if(so->so_faddr.s_addr == loopback_addr.s_addr) {
-        if(ntohs(so->so_fport) == nfsd_ports.udp.portmap) {
-            saddr.sin_port        = htons(PORT_PORTMAP);
-            saddr.sin_addr.s_addr = special_addr.s_addr | htonl(CTL_NFSD);
-        } else if(ntohs(so->so_fport) == nfsd_ports.udp.nfs) {
-            saddr.sin_port        = htons(PORT_NFS);
-            saddr.sin_addr.s_addr = special_addr.s_addr | htonl(CTL_NFSD);
-        } else if(ntohs(so->so_fport) == nfsd_ports.udp.mount) {
-            saddr.sin_addr.s_addr = special_addr.s_addr | htonl(CTL_NFSD);
-        } else if(ntohs(so->so_fport) == nfsd_ports.udp.dns) {
-            saddr.sin_port        = htons(PORT_DNS);
-            saddr.sin_addr.s_addr = special_addr.s_addr | htonl(CTL_DNS);
-        }
-    }
+    if(so->so_faddr.s_addr == loopback_addr.s_addr)
+        udp_map_from_local_port(ntohs(so->so_fport), &saddr.sin_addr.s_addr, &saddr.sin_port);
     
     daddr.sin_addr = so->so_laddr;
     daddr.sin_port = so->so_lport;

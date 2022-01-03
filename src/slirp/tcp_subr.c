@@ -399,7 +399,7 @@ int tcp_fconnect(struct socket *so)
       case CTL_DNS:
         addr.sin_addr = dns_addr;
         break;
-    case CTL_ALIAS:
+      case CTL_ALIAS:
       default:
         addr.sin_addr = loopback_addr;
         break;
@@ -409,14 +409,7 @@ int tcp_fconnect(struct socket *so)
       
       addr.sin_port = so->so_fport;
       if(nfsd_match_addr(ntohl(so->so_faddr.s_addr))) {
-          switch(ntohs(so->so_fport)) {
-              case PORT_PORTMAP:
-                  addr.sin_port = htons(nfsd_ports.tcp.portmap);
-                  break;
-              case PORT_NFS:
-                  addr.sin_port = htons(nfsd_ports.tcp.nfs);
-                  break;
-          }
+          nfsd_tcp_map_to_local_port(ntohs(so->so_fport), &addr.sin_addr.s_addr, &addr.sin_port);
       }
 
 	char addrstr[INET_ADDRSTRLEN];

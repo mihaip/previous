@@ -9,6 +9,7 @@
 #include <cstring>
 #include "UFS.h"
 #include "fsdir.h"
+#include "VirtualFS.h"
 
 using namespace std;
 
@@ -75,7 +76,7 @@ int UFS::fillCacheWithBlock(uint32_t blockNum) {
     return cacheIndex;
 }
 
-int32_t UFS::bmap(icommon& inode, uint32_t fBlk) {
+int32_t UFS::bmap(const icommon& inode, uint32_t fBlk) {
     uint32_t iPtrCnt = fsBSize >> 2;
     if(fBlk >= NDADDR) {
         int lvl1CacheIndex = -1;
@@ -105,7 +106,57 @@ int32_t UFS::bmap(icommon& inode, uint32_t fBlk) {
     else return fsv(inode.ic_db[fBlk]);
 }
 
-int UFS::readFile(icommon& inode, uint32_t start, uint32_t len, uint8_t* data) {
+string UFS::readlink(const icommon& inode) {
+    if(inode.ic_Mun.ic_Msymlink[0])
+        return inode.ic_Mun.ic_Msymlink;
+    else {
+        size_t size = fsv(inode.ic_size);
+        char   buffer[size+1];
+        readFile(inode, 0, static_cast<uint32_t>(size), reinterpret_cast<uint8_t*>(buffer));
+        buffer[size] = '\0';
+        return buffer;
+    }
+}
+
+bool UFS::findInode(icommon& inode, const string& path, bool followSymlink) {
+    vector<string> segments = PathCommon::split("/", path);
+    uint32_t ino(ROOTINO);
+    for(int seg = 0; seg < segments.size(); seg++) {
+        vector<direct> files = list(ino);
+        if(files.empty()) return false;
+        for(size_t file = 0; file < files.size(); file++) {
+            if(files[file].d_name == segments[seg]) {
+                ino = fsv(files[file].d_ino);
+                readInode(inode, ino);
+                if((fsv(inode.ic_mode) & IFMT) == IFLNK) {
+                    string link = readlink(inode);
+                    if(followSymlink) {
+                        vector<string> linkSegs = PathCommon::split("/", link);
+                        if(link[0] != '/') {
+                            segments.erase(segments.begin() + seg);
+                            segments.insert(segments.begin() + seg, linkSegs.begin(), linkSegs.end());
+                        } else {
+                            linkSegs.insert(linkSegs.end(), segments.begin() + seg, segments.end());
+                            segments = linkSegs;
+                        }
+                        seg = -1;
+                        ino = ROOTINO;
+                    }
+                    else
+                        return seg == segments.size() - 1;
+                }
+                break;
+            }
+        }
+    }
+    return true;
+}
+
+uint32_t UFS::fileSize(const icommon& inode) {
+    return fsv(inode.ic_size);
+}
+
+int UFS::readFile(const icommon& inode, uint32_t start, uint32_t len, uint8_t* data) {
     uint32_t fBlk;
     int32_t  dBlk;
     uint32_t sOff;

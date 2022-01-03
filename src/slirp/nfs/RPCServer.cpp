@@ -5,7 +5,8 @@
 
 #include "compat.h"
 
-#define MIN_PROG_NUM 100000
+using namespace std;
+
 enum
 {
 	CALL = 0,
@@ -47,109 +48,110 @@ typedef struct
 } RPC_HEADER;
 
 CRPCServer::CRPCServer() : m_hMutex(host_mutex_create()) {
-	for(int i = 0; i < PROG_NUM; i++)
-		m_pProgTable[i] = NULL;
 }
 
 CRPCServer::~CRPCServer() {
 	host_mutex_destroy(m_hMutex);
 }
 
-void CRPCServer::Set(int nProg, CRPCProg *pRPCProg)
-{
-	m_pProgTable[nProg - MIN_PROG_NUM] = pRPCProg;  //set program handler
+void CRPCServer::set(int nProg, CRPCProg *pRPCProg) {
+	m_pProgTable[nProg].push_back(pRPCProg);  //set program handler
 }
 
-void CRPCServer::SetLogOn(bool bLogOn)
-{
-	int i;
-
-	for (i = 0; i < PROG_NUM; i++)
-		if (m_pProgTable[i] != NULL)
-			m_pProgTable[i]->SetLogOn(bLogOn);
+void CRPCServer::setLogOn(bool bLogOn) {
+    for (std::map<int, std::vector<CRPCProg*> >::iterator it = m_pProgTable.begin(); it != m_pProgTable.end(); it++)
+        for(size_t i = 0; i < it->second.size(); i++)
+            it->second[i]->setLogOn(bLogOn);
 }
 
-void CRPCServer::SocketReceived(CSocket *pSocket) {
+void CRPCServer::socketReceived(CSocket *pSocket, uint32_t header) {
     NFSDLock lock(m_hMutex);
 
-    XDRInput* pInStream = pSocket->GetInputStream();
-	while (pInStream->GetSize() > 0) {
-		int nResult = Process(pSocket->GetType(), pInStream, pSocket->GetOutputStream(), pSocket->GetRemoteAddress());  //process input data
-		pSocket->Send();  //send response
-		if (nResult != PRC_OK || pSocket->GetType() == SOCK_DGRAM)
+    XDRInput* pInStream = pSocket->getInputStream();
+	while (pInStream->hasData()) {
+		int nResult = process(pSocket->getType(), pSocket->getServerPort(), pInStream, pSocket->getOutputStream(), header, pSocket->getRemoteAddress());  //process input data
+		pSocket->send();  //send response
+		if (nResult != PRC_OK || pSocket->getType() == SOCK_DGRAM)
 			break;
 	}
 }
 
-int CRPCServer::Process(int sockType, XDRInput* pInStream, XDROutput* pOutStream, const char* pRemoteAddr) {
+int CRPCServer::process(int sockType, int port, XDRInput* pInStream, XDROutput* pOutStream, uint32_t headerIn, const char* pRemoteAddr) {
 	RPC_HEADER header;
-	int nPos, nSize;
+    size_t headerPos;
 	ProcessParam param;
 	int nResult;
 
 	nResult = PRC_OK;
-	if (sockType == SOCK_STREAM)
-		pInStream->Read(&header.header);
-	pInStream->Read(&header.XID);
-	pInStream->Read(&header.msg);
-	pInStream->Read(&header.rpcvers);  //rpc version
-	pInStream->Read(&header.prog);  //program
-	pInStream->Read(&header.vers);  //program version
-	pInStream->Read(&header.proc);  //procedure
-	pInStream->Read(&header.cred.flavor);
-	pInStream->Read(&header.cred.length);
-	pInStream->Skip(header.cred.length);
-	pInStream->Read(&header.verf.flavor);  //vefifier
-	if (pInStream->Read(&header.verf.length) < sizeof(header.verf.length))
+    header.header = headerIn;
+	pInStream->read(&header.XID);
+	pInStream->read(&header.msg);
+	pInStream->read(&header.rpcvers);  //rpc version
+	pInStream->read(&header.prog);  //program
+	pInStream->read(&header.vers);  //program version
+	pInStream->read(&header.proc);  //procedure
+	pInStream->read(&header.cred.flavor);
+	pInStream->read(&header.cred.length);
+	pInStream->skip(header.cred.length);
+	pInStream->read(&header.verf.flavor);  //vefifier
+	if (pInStream->read(&header.verf.length) < sizeof(header.verf.length))
 		nResult = PRC_FAIL;
-	if (pInStream->Skip(header.verf.length) < header.verf.length)
+	if (pInStream->skip(header.verf.length) < header.verf.length)
 		nResult = PRC_FAIL;
 
 	if (sockType == SOCK_STREAM)
 	{
-		nPos = pOutStream->GetPosition();  //remember current position
-		pOutStream->Write(header.header);  //this value will be updated later
+		headerPos = pOutStream->getPosition();  //remember current position
+		pOutStream->write(header.header);  //this value will be updated later
 	}
-	pOutStream->Write(header.XID);
-	pOutStream->Write(REPLY);
-	pOutStream->Write(MSG_ACCEPTED);
-	pOutStream->Write(header.verf.flavor);
-	pOutStream->Write(header.verf.length);
+	pOutStream->write(header.XID);
+	pOutStream->write(REPLY);
+	pOutStream->write(MSG_ACCEPTED);
+	pOutStream->write(header.verf.flavor);
+	pOutStream->write(header.verf.length);
 	if (nResult == PRC_FAIL)  //input data is truncated
-		pOutStream->Write(GARBAGE_ARGS);
-	else if (header.prog < MIN_PROG_NUM || header.prog >= MIN_PROG_NUM + PROG_NUM)  //program is unavailable
-		pOutStream->Write(PROG_UNAVAIL);
-	else if (m_pProgTable[header.prog - MIN_PROG_NUM] == NULL)  //program is unavailable
-		pOutStream->Write(PROG_UNAVAIL);
+		pOutStream->write(GARBAGE_ARGS);
+	else if (m_pProgTable.find(header.prog) == m_pProgTable.end() || m_pProgTable[header.prog].empty())  //program is unavailable
+		pOutStream->write(PROG_UNAVAIL);
 	else
 	{
-		pOutStream->Write(SUCCESS);  //this value may be modified later if process failed
+		pOutStream->write(SUCCESS);  //this value may be modified later if process failed
 		param.version    = header.vers;
 		param.proc       = header.proc;
 		param.remoteAddr = pRemoteAddr;
         param.sockType   = sockType;
         
-        m_pProgTable[header.prog - MIN_PROG_NUM]->Setup(pInStream, pOutStream, &param);
-		nResult = m_pProgTable[header.prog - MIN_PROG_NUM]->Process();
+        CRPCProg* prog = m_pProgTable[header.prog][0];
+        for(int i = 0; i < m_pProgTable[header.prog].size(); i++) {
+            if (sockType == SOCK_STREAM) {
+                if(m_pProgTable[header.prog][i]->getPortTCP() == port)
+                    prog = m_pProgTable[header.prog][i];
+            } else {
+                if(m_pProgTable[header.prog][i]->getPortUDP() == port)
+                    prog = m_pProgTable[header.prog][i];
+            }
+        }
+        prog->setup(pInStream, pOutStream, &param);
+		nResult = prog->process();
 
 		if (nResult == PRC_NOTIMP)  //procedure is not implemented
 		{
-			pOutStream->Seek(-4, SEEK_CUR);
-			pOutStream->Write(PROC_UNAVAIL);
+			pOutStream->seek(-4, SEEK_CUR);
+			pOutStream->write(PROC_UNAVAIL);
 		}
 		else if (nResult == PRC_FAIL)  //input data is truncated
 		{
-			pOutStream->Seek(-4, SEEK_CUR);
-			pOutStream->Write(GARBAGE_ARGS);
+			pOutStream->seek(-4, SEEK_CUR);
+			pOutStream->write(GARBAGE_ARGS);
 		}
 	}
 
 	if (sockType == SOCK_STREAM)
 	{
-		nSize = pOutStream->GetPosition();  //remember current position
-		pOutStream->Seek(nPos, SEEK_SET);  //seek to the position of head
-		header.header = 0x80000000 + nSize - nPos - 4;  //size of output data
-		pOutStream->Write(header.header);  //update header
+		size_t endPos = pOutStream->getPosition();  //remember current position
+		pOutStream->seek(headerPos, SEEK_SET);  //seek to the position of head
+		header.header = 0x80000000 + (endPos - (headerPos + 4));  //size of output data
+		pOutStream->write(header.header);  //update header
 	}
 	return nResult;
 }

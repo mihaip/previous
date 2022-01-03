@@ -19,91 +19,79 @@ enum
     MNTERR_INVAL = 22
 };
 
-CMountProg::CMountProg() : CRPCProg(PROG_MOUNT, 3, "mountd"), m_nMountNum(0) {
-	m_exportPath[0] = '\0';
-	memset(m_clientAddr, 0, sizeof(m_clientAddr));
+CMountProg::CMountProg() : CRPCProg(PROG_MOUNT, 3, "mountd") {
     #define RPC_PROG_CLASS CMountProg
-    SetProc(1, MNT);
-    SetProc(3, UMNT);
-    SetProc(5, EXPORT);
+    SET_PROC(1, MNT);
+    SET_PROC(3, UMNT);
+    SET_PROC(5, EXPORT);
 }
 
 CMountProg::~CMountProg() {
-	for (int i = 0; i < MOUNT_NUM_MAX; i++) delete[] m_clientAddr[i];
 }
 
-int CMountProg::ProcedureMNT(void) {
+int CMountProg::procedureMNT(void) {
     XDRString path;
-    int i, addr_len;
 
-    m_in->Read(path);
-    Log("MNT from %s for '%s'\n", m_param->remoteAddr, path.Get());
+    m_in->read(path);
+    log("MNT from %s for '%s'\n", m_param->remoteAddr, path.c_str());
     
-    uint64_t handle = nfsd_fts[0]->getFileHandle(path.Get());
+    uint64_t handle = nfsd_fts[0]->getFileHandle(path.c_str());
     if(handle) {
-        m_out->Write(MNT_OK); //OK
+        m_out->write(MNT_OK); //OK
         
         uint64_t data[8] = {handle, 0, 0, 0, 0, 0, 0, 0};
         
         if (m_param->version == 1) {
-            m_out->Write(data, FHSIZE);
+            m_out->write(data, FHSIZE);
         } else {
-            m_out->Write(FHSIZE_NFS3);
-            m_out->Write(data, FHSIZE_NFS3);
-            m_out->Write(0);  //flavor
+            m_out->write(FHSIZE_NFS3);
+            m_out->write(data, FHSIZE_NFS3);
+            m_out->write(0);  //flavor
         }
         
-        ++m_nMountNum;
-        addr_len = strlen(m_param->remoteAddr);
-        
-        for (i = 0; i < MOUNT_NUM_MAX; i++) {
-            if (m_clientAddr[i] == NULL) { //search an empty space
-                m_clientAddr[i] = new char[addr_len + 1];
-                strncpy(m_clientAddr[i], m_param->remoteAddr, addr_len + 1);  //remember the client address
-                break;
-            }
-        }
+        m_mounts[m_param->remoteAddr].push_back(path);
     } else {
-        m_out->Write(MNTERR_ACCESS);  //permission denied
+        m_out->write(MNTERR_ACCESS);  //permission denied
     }
     
     return PRC_OK;
 }
 
-int CMountProg::ProcedureUMNT(void) {
+int CMountProg::procedureUMNT(void) {
     XDRString path;
-    m_in->Read(path);
-    Log("UNMT from %s for '%s'", m_param->remoteAddr, path.Get());
-    
-    for (int i = 0; i < MOUNT_NUM_MAX; i++) {
-        if (m_clientAddr[i] != NULL) {
-            if (strcmp(m_param->remoteAddr, m_clientAddr[i]) == 0) { //address match
-                delete[] m_clientAddr[i];  //remove this address
-                m_clientAddr[i] = NULL;
-                --m_nMountNum;
-                break;
-            }
+    m_in->read(path);
+    log("UNMT from %s for '%s'", m_param->remoteAddr, path.c_str());
+
+    bool found = false;
+    string          umtPath(path);
+    vector<string>& paths = m_mounts[m_param->remoteAddr];
+    for(size_t i = 0; i < paths.size(); i++) {
+        if(paths[i] == umtPath) {
+            found = true;
+            paths.erase(paths.begin() + i);
+            break;
         }
     }
+    m_out->write(found ? MNT_OK : MNTERR_NOTDIR);
     
     return PRC_OK;
 }
 
-int CMountProg::ProcedureEXPORT(void) {
-    Log("EXPORT");
+int CMountProg::procedureEXPORT(void) {
+    log("EXPORT");
     
     VFSPath path = nfsd_fts[0]->getBasePathAlias();
     // dirpath
-    m_out->Write(1);
-    m_out->Write(MAXPATHLEN, path.c_str());
+    m_out->write(1);
+    m_out->write(MAXPATHLEN, path.c_str());
     // groups
-    m_out->Write(1);
-    m_out->Write(1);
-    m_out->Write((void*)"*...", 4);
-    m_out->Write(0);
+    m_out->write(1);
+    m_out->write(1);
+    m_out->write((void*)"*...", 4);
+    m_out->write(0);
     
-    m_out->Write(0);
-    m_out->Write(0);
+    m_out->write(0);
+    m_out->write(0);
     
     return PRC_OK;
 }

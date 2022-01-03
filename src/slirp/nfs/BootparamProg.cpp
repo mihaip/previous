@@ -23,8 +23,8 @@ using namespace std;
 
 CBootparamProg::CBootparamProg() : CRPCProg(PROG_BOOTPARAM, 1, "bootparamd") {
     #define RPC_PROG_CLASS CBootparamProg
-    SetProc(1, WHOAMI);
-    SetProc(2, GETFILE);
+    SET_PROC(1, WHOAMI);
+    SET_PROC(2, GETFILE);
 }
 
 CBootparamProg::~CBootparamProg() {}
@@ -32,23 +32,23 @@ CBootparamProg::~CBootparamProg() {}
 const int IP_ADDR_TYPE    = 1;
 
 static void WriteInAddr(XDROutput* out, uint32_t inAddr) {
-    out->Write(IP_ADDR_TYPE);
-    out->Write(0xFF&(inAddr >> 24));
-    out->Write(0xFF&(inAddr >> 16));
-    out->Write(0xFF&(inAddr >> 8));
-    out->Write(0xFF&(inAddr));
+    out->write(IP_ADDR_TYPE);
+    out->write(0xFF&(inAddr >> 24));
+    out->write(0xFF&(inAddr >> 16));
+    out->write(0xFF&(inAddr >> 8));
+    out->write(0xFF&(inAddr));
 }
 
 extern "C" struct in_addr special_addr;
 
-int CBootparamProg::ProcedureWHOAMI(void) {
+int CBootparamProg::procedureWHOAMI(void) {
     uint32_t address_type;
     uint32_t address;
     
-    m_in->Read(&address_type);
+    m_in->read(&address_type);
     switch (address_type) {
         case IP_ADDR_TYPE:
-            m_in->Read(&address);
+            m_in->read(&address);
             break;
         default:
             return PRC_FAIL;
@@ -57,29 +57,29 @@ int CBootparamProg::ProcedureWHOAMI(void) {
     strcpy(hostname, NAME_HOST);
     char domain[_SC_HOST_NAME_MAX];
     strcpy(domain, NAME_DOMAIN);
-    m_out->Write(_SC_HOST_NAME_MAX,  hostname);
-    m_out->Write(_SC_HOST_NAME_MAX,  &domain[domain[0] == '.' ? 1 : 0]);
+    m_out->write(_SC_HOST_NAME_MAX,  hostname);
+    m_out->write(_SC_HOST_NAME_MAX,  &domain[domain[0] == '.' ? 1 : 0]);
     WriteInAddr(m_out, ntohl(special_addr.s_addr) | CTL_GATEWAY);
     return PRC_OK;
 }
 
-int CBootparamProg::ProcedureGETFILE(void) {
+int CBootparamProg::procedureGETFILE(void) {
     XDRString client;
     XDRString key;
-    m_in->Read(client);
-    m_in->Read(key);
+    m_in->read(client);
+    m_in->read(key);
     VFSPath path = nfsd_fts[0]->getBasePathAlias();
-    if(strcmp("root", key.Get())) {
-        path /= VFSPath(key.Get());
+    if(strcmp("root", key.c_str())) {
+        path /= VFSPath(key.c_str());
     }
 
     if(path.length()) {
-        m_out->Write(_SC_HOST_NAME_MAX, NAME_NFSD);
+        m_out->write(_SC_HOST_NAME_MAX, NAME_NFSD);
         WriteInAddr(m_out, ntohl(special_addr.s_addr) | CTL_NFSD);
-        m_out->Write(PATH_MAX, path.c_str());
+        m_out->write(PATH_MAX, path.c_str());
         return PRC_OK;
     } else {
-        Log("Unknown key: %s", key.Get());
+        log("Unknown key: %s", key.c_str());
         return PRC_FAIL;
     }
 }

@@ -86,15 +86,17 @@ const double FACT_MB = 1 << 20;
 class Partition;
 
 class DiskImage {
-    std::ifstream& imf;
+    std::ifstream          imf;
 public:
     struct disk_label      dl;
     std::vector<Partition> parts;
     uint64_t               sectorSize;
     const std::string      path;
-    
-    DiskImage(const std::string& path, std::ifstream& imf);
+    std::string            error;
+
+    DiskImage(const std::string& path);
     ~DiskImage(void);
+    bool valid(void);
     
     std::ios_base::iostate read(std::streampos offset, std::streamsize size, void* data);
 };

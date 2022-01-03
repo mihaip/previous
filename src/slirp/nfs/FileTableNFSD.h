@@ -14,26 +14,19 @@
 
 class FileTableNFSD : public VirtualFS {
     mutex_t*                        mutex;
-    
-    std::map<std::string, uint32_t> blockDevices;
-    std::map<std::string, uint32_t> characterDevices;
     std::map<uint64_t, std::string> handle2path;
-    
-    bool        isBlockDevice(const std::string& fname);
-    bool        isCharDevice (const std::string& fname);
-    bool        isDevice     (const VFSPath& absoluteVFSpath, std::string& fname);
 public:
     FileTableNFSD(const HostPath& basePath, const VFSPath& basePathAlias);
     virtual ~FileTableNFSD(void);
     
     virtual int         stat            (const VFSPath& absoluteVFSpath, struct stat& stat);
-    virtual void        move            (const VFSPath& absoluteVFSpathFrom, const VFSPath& absoluteVFSpathTo);
-    virtual void        remove          (const VFSPath& absoluteVFSpath);
+    virtual void        move            (uint64_t fileHandleFrom, const VFSPath& absoluteVFSpathTo);
+    virtual void        remove          (uint64_t fileHandle);
     virtual uint64_t    getFileHandle   (const VFSPath& absoluteVFSpath);
     virtual void        setFileAttrs    (const VFSPath& absoluteVFSpath, const FileAttrs& fstat);
     virtual FileAttrs   getFileAttrs    (const VFSPath& absoluteVFSpath);
     
-    bool        getCanonicalPath(uint64_t handle, std::string& result);
+    bool                getCanonicalPath(uint64_t handle, std::string& result);
 };
 
 #endif /* FileTableNFSD_hpp */

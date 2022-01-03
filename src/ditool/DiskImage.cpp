@@ -37,7 +37,13 @@ uint16_t fsv(uint16_t v) { return ntohs(v); }
 int16_t  fsv(int16_t v)  { return ntohs(v); }
 int32_t  fsv(int32_t v)  { return ntohl(v); }
 
-DiskImage::DiskImage(const string& path, ifstream& imf) : imf(imf), path(path) {
+DiskImage::DiskImage(const string& path) : imf(path, ios::binary | ios::in), path(path) {
+    
+    if(!(imf)) {
+        error = strerror(errno);
+        return;
+    }
+
     read(0, sizeof(dl), &dl);
     if(
         strncmp(dl.dl_version, "NeXT", 4) &&
@@ -68,8 +74,10 @@ ios_base::iostate DiskImage::read(streampos offset, streamsize size, void* data)
     return result;
 }
 
-DiskImage::~DiskImage(void) {
-    
+DiskImage::~DiskImage() {}
+
+bool DiskImage::valid() {
+    return error.empty();
 }
 
 ostream& operator<< (ostream& os, const DiskImage& im) {

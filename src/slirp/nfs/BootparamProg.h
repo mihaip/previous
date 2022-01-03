@@ -14,8 +14,8 @@
 class CBootparamProg : public CRPCProg
 {
     int Null(void);
-    int ProcedureWHOAMI(void);
-    int ProcedureGETFILE(void);
+    int procedureWHOAMI(void);
+    int procedureGETFILE(void);
 public:
     CBootparamProg();
     virtual ~CBootparamProg();

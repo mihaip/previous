@@ -81,8 +81,10 @@ public:
     HostPath   operator / (const HostPath& path) const;
 };
 
+const  uint32_t NFSMODE_STICKY = 00001000;    /* sticky bit */
+
 class FileAttrs {
-public:
+public:    
     uint32_t mode;
     uint32_t uid;
     uint32_t gid;
@@ -117,8 +119,8 @@ public:
     virtual VFSPath   getBasePathAlias(void);
     void              setDefaultUID_GID(uint32_t uid, uint32_t gid);
     virtual int       stat            (const VFSPath& absoluteVFSpath, struct stat& stat);
-    virtual void      move            (const VFSPath& absoluteVFSpathFrom, const VFSPath& absoluteVFSpathTo);
-    virtual void      remove          (const VFSPath& absoluteVFSpath);
+    virtual void      move            (uint64_t fileHandleFrom, const VFSPath& absoluteVFSpathTo) = 0;
+    virtual void      remove          (uint64_t fileHandle) = 0;
     virtual uint64_t  getFileHandle   (const VFSPath& absoluteVFSpath);
     virtual void      setFileAttrs    (const VFSPath& absoluteVFSpath, const FileAttrs& fstat);
     virtual FileAttrs getFileAttrs    (const VFSPath& path);

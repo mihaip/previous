@@ -14,12 +14,11 @@
 #include "SocketListener.h"
 #include "VDNS.h"
 #include "FileTableNFSD.h"
+#include "NetInfoBindProg.h"
 
 static bool         g_bLogOn = true;
 static CPortmapProg g_PortmapProg;
 static CRPCServer   g_RPCServer;
-
-nfsd_NAT nfsd_ports = {{0,0,0,0},{0,0,0,0}};
 
 static std::vector<UDPServerSocket*> SERVER_UDP;
 static std::vector<TCPServerSocket*> SERVER_TCP;
@@ -28,20 +27,20 @@ FileTableNFSD* nfsd_fts[] = {NULL}; // to be extended for multiple exports
 
 static bool initialized = false;
 
-static void add_program(CRPCProg *pRPCProg, uint16_t port = 0) {
+void add_rpc_program(CRPCProg *pRPCProg, uint16_t port = 0) {
     UDPServerSocket* udp = new UDPServerSocket(&g_RPCServer);
     TCPServerSocket* tcp = new TCPServerSocket(&g_RPCServer);
     
-    g_RPCServer.Set(pRPCProg->GetProgNum(), pRPCProg);
+    g_RPCServer.set(pRPCProg->getProgNum(), pRPCProg);
 
-    if (tcp->Open(pRPCProg->GetProgNum(), port) && udp->Open(pRPCProg->GetProgNum(), port)) {
-        printf("[NFSD] %s started\n", pRPCProg->GetName());
-        pRPCProg->Init(tcp->GetPort(), udp->GetPort());
+    if (tcp->open(pRPCProg->getProgNum(), port) && udp->open(pRPCProg->getProgNum(), port)) {
+        printf("[NFSD] %s started\n", pRPCProg->getName().c_str());
+        pRPCProg->init(tcp->getPort(), udp->getPort());
         g_PortmapProg.Add(pRPCProg);
         SERVER_TCP.push_back(tcp);
         SERVER_UDP.push_back(udp);
     } else {
-        printf("[NFSD] %s start failed.\n", pRPCProg->GetName());
+        printf("[NFSD] %s start failed.\n", pRPCProg->getName().c_str());
     }
 }
 
@@ -62,28 +61,6 @@ extern "C" int nfsd_read(const char* path, size_t fileOffset, void* dst, size_t 
             return file.read(fileOffset, dst, count);
     }
     return -1;
-}
-
-static bool getUID_GID(const char* userName, int* uid, int* gid) {
-    // try to get uid/gid of user "me" from /etc/passwd and use it as the NFS default user
-    size_t buffer_size = 1024*1024;
-    char* buffer = (char*)malloc(buffer_size);
-    int count = nfsd_read("/etc/passwd", 0, buffer, buffer_size);
-    if(count > 0) {
-        buffer[count] = '\0';
-        char* line = strtok(buffer, "\n");
-        while(line) {
-            char user[256];
-            char passwd[1024];
-            if(sscanf(line, "%[^:]::%d:%d", user, uid, gid) < 3)
-                sscanf(line, "%[^:]:%[^:]:%d:%d", user, passwd, uid, gid);
-            if(strcmp(userName, user) == 0)
-                return true;
-            line  = strtok(NULL, "\n");
-        }
-    }
-    free(buffer);
-    return false;
 }
 
 extern "C" void nfsd_start(void) {
@@ -111,23 +88,25 @@ extern "C" void nfsd_start(void) {
     printf("[NFSD] starting local NFS daemon on '%s', exporting '%s'\n", nfsd_hostname, ConfigureParams.Ethernet.szNFSroot);
     printAbout();
     
-    static CNFSProg       NFSProg;
-    static CMountProg     MountProg;
-    static CBootparamProg BootparamProg;
-
-    int uid;
-    int gid;
-    if(getUID_GID("me", &uid, &gid))
-       NFSProg.SetUserID(uid, gid);
+    static CNFSProg         sNFSProg;
+    static CMountProg       sMountProg;
+    static CBootparamProg   sBootparamProg;
+    static CNetInfoBindProg sNetInfoBindProg;
     
-    g_RPCServer.SetLogOn(g_bLogOn);
+    g_RPCServer.setLogOn(g_bLogOn);
 
-    add_program(&g_PortmapProg, PORT_PORTMAP);
-    add_program(&NFSProg,       PORT_NFS);
-    add_program(&MountProg);
-    add_program(&BootparamProg);
+    add_rpc_program(&g_PortmapProg,  PORT_PORTMAP);
+    add_rpc_program(&sNFSProg,       PORT_NFS);
+    add_rpc_program(&sMountProg);
+    add_rpc_program(&sBootparamProg);
+    add_rpc_program(&sNetInfoBindProg);
+
+    std::vector<NetInfoNode*> users = sNetInfoBindProg.m_Network.mRoot.find("name", "users");
+    for(size_t i = 0; i < users.size(); i++)
+        if(users[i]->getPropValue("name") == "me")
+            sNFSProg.setUserID(::atoi(users[i]->getPropValue("uid").c_str()), ::atoi(users[i]->getPropValue("gid").c_str()));
     
-    static VDNS vdns;
+    static VDNS vdns(&sNetInfoBindProg);
     
     initialized = true;
 }
@@ -136,4 +115,34 @@ extern "C" int nfsd_match_addr(uint32_t addr) {
     return (addr == (ntohl(special_addr.s_addr) | CTL_NFSD)) ||
            (addr == (ntohl(special_addr.s_addr) | ~(uint32_t)CTL_NET_MASK)) ||
            (addr == (ntohl(special_addr.s_addr) | ~(uint32_t)CTL_CLASS_MASK(CTL_NET))); // NS kernel seems to broadcast on 10.255.255.255
+}
+
+extern "C" void nfsd_udp_map_to_local_port(uint32_t* ipNBO, uint16_t* dportNBO) {
+    uint16_t dport = ntohs(*dportNBO);
+    uint16_t port  = UDPServerSocket::toLocalPort(dport);
+    if(port) {
+        *dportNBO = htons(port);
+        *ipNBO    = loopback_addr.s_addr;
+    }
+}
+
+extern "C" void nfsd_tcp_map_to_local_port(uint16_t port, uint32_t* saddrNBO, uint16_t* sin_portNBO) {
+    uint16_t localPort = TCPServerSocket::toLocalPort(port);
+    if(localPort)
+        *sin_portNBO = htons(localPort);
+}
+
+extern "C" void udp_map_from_local_port(uint16_t port, uint32_t* saddrNBO, uint16_t* sin_portNBO) {
+    uint16_t localPort = UDPServerSocket::fromLocalPort(port);
+    if(localPort) {
+        *sin_portNBO = htons(localPort);
+        switch(localPort) {
+            case PORT_DNS:
+                *saddrNBO = special_addr.s_addr | htonl(CTL_DNS);
+                break;
+            default:
+                *saddrNBO = special_addr.s_addr | htonl(CTL_NFSD);
+                break;
+        }
+    }
 }

@@ -17,6 +17,7 @@
 #include "UDPServerSocket.h"
 #include "host.h"
 #include "mbuf.h"
+#include "NetInfoBindProg.h"
 
 typedef enum {
     REC_A     = 1,  // Host address
@@ -41,23 +42,23 @@ typedef struct {
 
 class VDNS : public ISocketListener {
     static std::vector<vdns_record> sDB;
-    static vdns_record              errNonSuchName;
+    static vdns_record              errNoSuchName;
     mutex_t*                        mMutex;
     UDPServerSocket*                mUDP;
     
-    void AddRecord(uint32_t addr, const char* name = NULL);
+    void addRecord(uint32_t addr, const std::string& name);
 public:
-    VDNS(void);
+    VDNS(CNetInfoBindProg* netInfoBind);
     ~VDNS(void);
     
-    static vdns_record* Query(uint8_t* data, size_t size);
-    void   SocketReceived(CSocket* pSocket);
+    static vdns_record* query(uint8_t* data, size_t size);
+    void   socketReceived(CSocket* pSocket, uint32_t header);
 };
 
-extern "C" int nfsd_vdns_match(struct mbuf *m, uint32_t addr, int dport);
+extern "C" int vdns_match(struct mbuf *m, uint32_t addr, int dport);
 #else
-int nfsd_vdns_match(struct mbuf *m, uint32_t addr, int dport);
-
+    int  vdns_match(struct mbuf *m, uint32_t addr, int dport);
+    void vdns_udp_map_to_local_port(uint32_t* ipNBO, uint16_t* dportNBO);
 #endif /* __cplusplus */
 
 #endif /* VDNS_h */

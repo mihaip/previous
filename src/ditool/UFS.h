@@ -29,7 +29,7 @@ class UFS {
     uint8_t*         blockCache[BCACHE_SIZE+1];
     uint32_t         cacheBlockNo[BCACHE_SIZE+1];
     
-    int32_t          bmap(icommon& inode, uint32_t fBlk);
+    int32_t          bmap(const icommon& inode, uint32_t fBlk);
     int              fillCacheWithBlock(uint32_t blkNo);
     int              readBlock(uint32_t dBlk);
 public:
@@ -40,7 +40,10 @@ public:
     
     std::string         mountPoint(void) const;
     int                 readInode(icommon& inode, uint32_t ino);
-    int                 readFile(icommon& inode, uint32_t start, uint32_t len, uint8_t* dst);
+    uint32_t            fileSize(const icommon& inode);
+    int                 readFile(const icommon& inode, uint32_t start, uint32_t len, uint8_t* dst);
+    bool                findInode(icommon& inode, const std::string& path, bool followSymlink);
+    std::string         readlink(const icommon& inode);
     std::vector<direct> list(uint32_t ino);
 };
 

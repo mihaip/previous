@@ -140,18 +140,18 @@ icmp_input(m, hlen)
       /* Send the packet */
       addr.sin_family = AF_INET;
       if ((so->so_faddr.s_addr & htonl(0xffffff00)) == special_addr.s_addr) {
-	/* It's an alias */
-	switch(ntohl(so->so_faddr.s_addr) & 0xff) {
-	case CTL_DNS:
-      addr.sin_addr = nfsd_vdns_match(m, ntohl(so->so_faddr.s_addr), ntohs(so->so_fport)) ? loopback_addr : dns_addr;
-	  break;
-    case CTL_ALIAS:
-	default:
-	  addr.sin_addr = loopback_addr;
-	  break;
-	}
+        /* It's an alias */
+        switch(ntohl(so->so_faddr.s_addr) & 0xff) {
+        case CTL_DNS:
+          addr.sin_addr = vdns_match(m, ntohl(so->so_faddr.s_addr), ntohs(so->so_fport)) ? loopback_addr : dns_addr;
+          break;
+        case CTL_ALIAS:
+        default:
+          addr.sin_addr = loopback_addr;
+          break;
+        }
       } else {
-	addr.sin_addr = so->so_faddr;
+          addr.sin_addr = so->so_faddr;
       }
       addr.sin_port = so->so_fport;
       if(sendto(so->s, icmp_ping_msg, strlen(icmp_ping_msg), 0,

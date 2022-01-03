@@ -687,5 +687,5 @@ int slirp_add_exec(int do_pty, const char *args, int addr_low_byte,
 
 void slirp_rip_broadcast(void)
 {
-    rip_broadcast();
+   // rip_broadcast();
 }

@@ -5,77 +5,75 @@
 #include "nfsd.h"
 #include "XDRStream.h"
 
-#define MIN_PROG_NUM 100000
-
 CPortmapProg::CPortmapProg() : CRPCProg(PROG_PORTMAP, 2, "portmapd") {
-    memset(m_nProgTable, 0, PORT_NUM * sizeof(CRPCProg*));
     #define RPC_PROG_CLASS CPortmapProg
-    SetProc(3, GETPORT);
-    SetProc(4, DUMP);
-    SetProc(5, CALLIT);
+    SET_PROC(3, GETPORT);
+    SET_PROC(4, DUMP);
+    SET_PROC(5, CALLIT);
 }
 
 CPortmapProg::~CPortmapProg() {}
 
 void CPortmapProg::Add(CRPCProg* prog) {
-    m_nProgTable[prog->GetProgNum() - MIN_PROG_NUM] = prog;
+    m_nProgTable[prog->getProgNum()] = prog;
 }
 
 const CRPCProg* CPortmapProg::GetProg(int prog) {
-    const CRPCProg* result = prog >= MIN_PROG_NUM && prog < MIN_PROG_NUM + PORT_NUM ? m_nProgTable[prog - MIN_PROG_NUM] : NULL;
-    if(!(result))
-        Log("no program %d", prog);
-    return result;
+    if(m_nProgTable.find(prog) == m_nProgTable.end()) {
+        log("no program %d", prog);
+        return nullptr;
+    }
+    return m_nProgTable[prog];
 }
 
-int CPortmapProg::ProcedureGETPORT(void) {
+int CPortmapProg::procedureGETPORT(void) {
     uint32_t prog;
     uint32_t vers;
     uint32_t proto;
     uint32_t port;
 
-    m_in->Read(&prog);
-    m_in->Read(&vers);
-    m_in->Read(&proto);
-    m_in->Read(&port);
+    m_in->read(&prog);
+    m_in->read(&vers);
+    m_in->read(&proto);
+    m_in->read(&port);
     
     const CRPCProg* cprog = GetProg(prog);
     if(!(cprog)) return PRC_FAIL;
     
     switch(proto) {
         case IPPROTO_TCP:
-            Log("GETPORT TCP %d %d", prog, cprog->GetPortTCP());
-            m_out->Write(cprog->GetPortTCP());
+            log("GETPORT TCP %d %d", prog, cprog->getPortTCP());
+            m_out->write(cprog->getPortTCP());
             return PRC_OK;
         case IPPROTO_UDP:
-            Log("GETPORT UDP %d %d", prog, cprog->GetPortUDP());
-            m_out->Write(cprog->GetPortUDP());
+            log("GETPORT UDP %d %d", prog, cprog->getPortUDP());
+            m_out->write(cprog->getPortUDP());
             return PRC_OK;
         default:
             return PRC_FAIL;
     }
 }
 
-int CPortmapProg::ProcedureDUMP(void) {
-    for(int i = 0; i < PORT_NUM; i++)
-        if(m_nProgTable[i]) Write(m_nProgTable[i]);
+int CPortmapProg::procedureDUMP(void) {
+    for (std::map<int, CRPCProg*>::iterator it = m_nProgTable.begin(); it != m_nProgTable.end(); it++)
+        Write(it->second);
     
-    m_out->Write(0);
+    m_out->write(0);
     
     return PRC_OK;
 }
 
-int CPortmapProg::ProcedureCALLIT(void) {
+int CPortmapProg::procedureCALLIT(void) {
     uint32_t prog;
     uint32_t vers;
     uint32_t proc;
 
-    m_in->Read(&prog);
-    m_in->Read(&vers);
-    m_in->Read(&proc);
+    m_in->read(&prog);
+    m_in->read(&vers);
+    m_in->read(&proc);
     
     XDROpaque in;
-    m_in->Read(in);
+    m_in->read(in);
     
     CRPCProg* cprog = (CRPCProg*)GetProg(prog);
     if(!(cprog)) return PRC_FAIL;
@@ -88,26 +86,26 @@ int CPortmapProg::ProcedureCALLIT(void) {
     XDRInput  din(in);
     XDROutput dout;
     
-    cprog->Setup(&din, &dout, &param);
-    int result = cprog->Process();
+    cprog->setup(&din, &dout, &param);
+    int result = cprog->process();
     
-    m_out->Write(m_param->sockType == SOCK_STREAM ? cprog->GetPortTCP() : cprog->GetPortUDP());
-    XDROpaque out(XDROpaque(dout.GetBuffer(), dout.GetSize()));
-    m_out->Write(out);
+    m_out->write(m_param->sockType == SOCK_STREAM ? cprog->getPortTCP() : cprog->getPortUDP());
+    XDROpaque out(XDROpaque(dout.data(), dout.size()));
+    m_out->write(out);
     return result;
 }
  
 
 void CPortmapProg::Write(const CRPCProg* prog) {
-    m_out->Write(1);
-    m_out->Write(prog->GetProgNum());
-    m_out->Write(prog->GetVersion());
-    m_out->Write(IPPROTO_TCP);
-    m_out->Write(prog->GetPortTCP());
+    m_out->write(1);
+    m_out->write(prog->getProgNum());
+    m_out->write(prog->getVersion());
+    m_out->write(IPPROTO_TCP);
+    m_out->write(prog->getPortTCP());
     
-    m_out->Write(1);
-    m_out->Write(prog->GetProgNum());
-    m_out->Write(prog->GetVersion());
-    m_out->Write(IPPROTO_UDP);
-    m_out->Write(prog->GetPortUDP());
+    m_out->write(1);
+    m_out->write(prog->getProgNum());
+    m_out->write(prog->getVersion());
+    m_out->write(IPPROTO_UDP);
+    m_out->write(prog->getPortUDP());
 }
