@@ -326,8 +326,8 @@ int VirtualFS::stat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
         mode |= attrs.mode & (S_IWUSR | S_IRUSR | S_ISVTX); // copy user R/W permissions and directory restrcted delete from attributes
         if(S_ISREG(fstat.st_mode) && fstat.st_size == 0 && (attrs.mode & S_IFMT)) {
             // mode heursitics: if file is empty we map it to the various special formats (CHAR, BLOCK, FIFO, etc.) from stored attributes
-            mode &= ~(S_IFMT | NFSMODE_STICKY);                // clear format
-            mode |= (attrs.mode & (S_IFMT | NFSMODE_STICKY)); // copy format from attributes
+            mode &= ~S_IFMT;               // clear format
+            mode |= (attrs.mode & S_IFMT); // copy format from attributes
         }
         fstat.st_mode = mode;
     }

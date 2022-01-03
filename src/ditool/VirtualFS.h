@@ -81,8 +81,6 @@ public:
     HostPath   operator / (const HostPath& path) const;
 };
 
-const  uint32_t NFSMODE_STICKY = 00001000;    /* sticky bit */
-
 class FileAttrs {
 public:    
     uint32_t mode;

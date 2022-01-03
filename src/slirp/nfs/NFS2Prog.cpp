@@ -564,7 +564,7 @@ bool CNFS2Prog::writeFileAttributes(const string& path) {
     else if(S_ISFIFO(fstat.st_mode)) type = NFFIFO;
 
 	m_out->write(type);  //type
-	m_out->write(fstat.st_mode & (0xFFFF | NFSMODE_STICKY));  //mode
+	m_out->write(fstat.st_mode & 0xFFFF);  //mode
 	m_out->write(fstat.st_nlink);  //nlink
 	m_out->write(fstat.st_uid);  //uid
 	m_out->write(fstat.st_gid);  //gid

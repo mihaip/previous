@@ -781,10 +781,24 @@ void Ethernet_Reset(bool hard) {
 
 #define LOG_EN_DATA    0
 #define LOG_EN_ANALYZE 0
+#define LOG_EN_FILE    ""
 
 void print_packet(Uint8 *buf, int size, int out) {
 #if LOG_EN_DATA
     int i, offset = 0;
+    
+    if (LOG_EN_FILE[0]) {
+        static FILE* EnLogFile = NULL;
+        if (!(EnLogFile))
+            EnLogFile = fopen(LOG_EN_FILE, "w");
+        if (EnLogFile) {
+            fprintf(EnLogFile, "\n\n000000 ");
+            for (i = 0; i < size; i++)
+                fprintf(EnLogFile, "%02x ", buf[i]);
+            fflush(EnLogFile);
+        }
+        return;
+    }
     
     if (out) {
         printf("<<        Outgoing packet (%d byte)        >>\n", size);
