@@ -1,4 +1,6 @@
 #include <string>
+#include <cstring>
+#include <memory>
 #include <sstream>
 #include <assert.h>
 #include <stdio.h>
@@ -15,6 +17,14 @@
 
 #if HAVE_SYS_XATTR_H
 #include <sys/xattr.h>
+#endif
+
+#if !HAVE_STRUCT_STAT_ST_ATIMESPEC
+#define st_atimespec st_atim
+#endif
+
+#if !HAVE_STRUCT_STAT_ST_MTIMESPEC
+#define st_mtimespec st_mtim
 #endif
 
 using namespace std;
@@ -391,7 +401,7 @@ FileAttrs VirtualFS::getFileAttrs(const VFSPath& absoluteVFSpath) {
     HostPath hostPath = toHostPath(absoluteVFSpath);
 #if HAVE_SYS_XATTR_H
 #if HAVE_LXETXATTR
-    if(::lgetxattr(hostPath.c_str(), NFSD_ATTRS.c_str(), buffer, sizeof(buffer), 0) == 0)
+    if(::lgetxattr(hostPath.c_str(), NFSD_ATTRS.c_str(), buffer, sizeof(buffer)) == 0)
 #else
     if(::getxattr(hostPath.c_str(), NFSD_ATTRS.c_str(), buffer, sizeof(buffer), 0, XATTR_NOFOLLOW) > 0)
 #endif

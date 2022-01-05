@@ -57,11 +57,19 @@ Note that some hardware is only supported by later operating system versions:
   NeXTdimension Graphics Board:                NeXTstep 2.1 and later
   NeXTcube and NeXTstation (68040 Turbo):      NeXTstep 2.2 and later
 
+Previous includes an internal NFS and NetInfo server for advanced interaction 
+with the host system.
 
-Previous comes with a command line utility called "ditool" (disk image tool). 
-You can get informations about its features and how to use it by calling it with 
-the -h option (ditool -h). Be careful using the -clean option, because it will 
-delete all files from the specified directory without asking.
+Previous comes with a command line utility called "ditool" (disk image tool). It
+can be used to extract raw disk image files into a directory on the host system. 
+You can get further informations about ditool's features and how to use it by 
+calling it with the -h option (ditool -h). Be careful using the -clean option, 
+because it will delete all files from the specified directory without asking.
+
+Previous is able to netboot from a directory containing an extracted bootable 
+installation of NeXTstep. The netboot feature requires a case sensitive file 
+system and extended file attributes (sys/xattr.h) being available on the host 
+system.
 
 
  3) Compiling and installing
@@ -70,7 +78,7 @@ delete all files from the specified directory without asking.
 For using Previous, you need to have installed the following libraries:
 
 Required:
-  > The SDL2 library v2.0.5 or later (http://www.libsdl.org)
+  > The SDL2 library v2.0.18 or later (http://www.libsdl.org)
   > The zlib compression library (http://www.gzip.org/zlib/)
 
 Optional:

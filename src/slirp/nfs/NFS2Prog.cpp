@@ -13,6 +13,14 @@
 #include "FileTableNFSD.h"
 #include "nfsd.h"
 
+#if !HAVE_STRUCT_STAT_ST_ATIMESPEC
+#define st_atimespec st_atim
+#endif
+
+#if !HAVE_STRUCT_STAT_ST_MTIMESPEC
+#define st_mtimespec st_mtim
+#endif
+
 using namespace std;
 
 enum {
@@ -130,20 +138,10 @@ static struct stat read_stat(XDRInput* xin) {
     result.st_uid               = uid;
     result.st_gid               = gid;
     result.st_size              = size;
-#if HAVE_STRUCT_STAT_ST_ATIMESPEC
     result.st_atimespec.tv_sec  = atime_sec;
     result.st_atimespec.tv_nsec = atime_usec * 1000;
-#else
-    result.st_atim.tv_sec       = atime_sec;
-    result.st_atim.tv_nsec      = atime_usec * 1000;
-#endif
-#if HAVE_STRUCT_STAT_ST_MTIMESPEC
     result.st_mtimespec.tv_sec  = mtime_sec;
     result.st_mtimespec.tv_nsec = mtime_usec * 1000;
-#else
-    result.st_mtim.tv_sec       = mtime_sec;
-    result.st_mtim.tv_nsec      = mtime_usec * 1000;
-#endif
     result.st_rdev              = FATTR_INVALID;
     return result;
 }
@@ -574,23 +572,11 @@ bool CNFS2Prog::writeFileAttributes(const string& path) {
 	m_out->write(static_cast<uint32_t>(fstat.st_blocks));  //blocks
 	m_out->write(fstat.st_dev);  //fsid
     m_out->write(nfsd_fts[0]->fileId(fstat.st_ino));
-#if HAVE_STRUCT_STAT_ST_ATIMESPEC
 	m_out->write(static_cast<uint32_t>(fstat.st_atimespec.tv_sec));  //atime
 	m_out->write(static_cast<uint32_t>(fstat.st_atimespec.tv_nsec / 1000));  //atime
-#else
-	m_out->Write(static_cast<uint32_t>(fstat.st_atim.tv_sec));  //atime
-	m_out->Write(static_cast<uint32_t>(fstat.st_atim.tv_nsec / 1000));  //atime
-#endif
-#if HAVE_STRUCT_STAT_ST_MTIMESPEC
 	m_out->write(static_cast<uint32_t>(fstat.st_mtimespec.tv_sec));  //mtime
 	m_out->write(static_cast<uint32_t>(fstat.st_mtimespec.tv_nsec / 1000));  //mtime
 	m_out->write(static_cast<uint32_t>(fstat.st_mtimespec.tv_sec));  //ctime -- ignored, we use mtime instead
 	m_out->write(static_cast<uint32_t>(fstat.st_mtimespec.tv_nsec / 1000));  //ctime
-#else
-	m_out->write(static_cast<uint32_t>(fstat.st_mtim.tv_sec));  //mtime
-	m_out->write(static_cast<uint32_t>(fstat.st_mtim.tv_nsec / 1000));  //mtime
-	m_out->write(static_cast<uint32_t>(fstat.st_mtim.tv_sec));  //ctime -- ignored, we use mtime instead
-	m_out->write(static_cast<uint32_t>(fstat.st_mtim.tv_nsec / 1000));  //ctime
-#endif
 	return true;
 }

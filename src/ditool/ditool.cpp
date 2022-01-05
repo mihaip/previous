@@ -4,16 +4,27 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <cstring>
+#include <algorithm>
 
 #include <stdio.h>
 #include <unistd.h>
 #include <ftw.h>
 
+#include "config.h"
 #include "ditool.h"
 #include "fsdir.h"
 #include "UFS.h"
 #include "VirtualFS.h"
 #include "ctl.h"
+
+#if !HAVE_STRUCT_STAT_ST_ATIMESPEC
+#define st_atimespec st_atim
+#endif
+
+#if !HAVE_STRUCT_STAT_ST_MTIMESPEC
+#define st_mtimespec st_mtim
+#endif
 
 using namespace std;
 
