@@ -420,8 +420,10 @@ static bool is_case_insensitive(const HostPath& path) {
 }
 
 extern "C" int main(int argc, const char * argv[]) {
-    if(has_option(argv, argv+argc, "-h") || has_option(argv, argv+argc, "--help"))
+    if(has_option(argv, argv+argc, "-h") || has_option(argv, argv+argc, "--help")) {
         print_help();
+        return 0;
+    }
     
     HostPath    imageFile = to_host_path(get_option(argv, argv + argc, "-im"));
     bool        listParts = has_option(argv, argv+argc,   "-lsp");

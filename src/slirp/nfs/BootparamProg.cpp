@@ -56,7 +56,7 @@ int CBootparamProg::procedureWHOAMI(void) {
     char hostname[_SC_HOST_NAME_MAX];
     strcpy(hostname, NAME_HOST);
     char domain[_SC_HOST_NAME_MAX];
-    strcpy(domain, NAME_DOMAIN);
+    strcpy(domain, ""); // no NIS domain
     m_out->write(_SC_HOST_NAME_MAX,  hostname);
     m_out->write(_SC_HOST_NAME_MAX,  &domain[domain[0] == '.' ? 1 : 0]);
     WriteInAddr(m_out, ntohl(special_addr.s_addr) | CTL_GATEWAY);

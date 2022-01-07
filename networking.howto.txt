@@ -82,12 +82,12 @@ NOWTO: Setup networking on NeXTstep 0.9:
    b  Modify "/etc/hostconfig" with these commands:
          open /etc/hostconfig
       Set the values as follows 
-         HOSTNAME=previous
-         INETADDR=10.0.2.15
+         HOSTNAME=-AUTOMATIC-
+         INETADDR=-AUTOMATIC-
          ROUTER=-ROUTED-
          NETMASTER=-NO-
          YPDOMAIN=-NO-
-         IPNETMASK=255.255.255.0
+         IPNETMASK=-AUTOMATIC-
       and save the changes by selecting Window > Save. If a line does not 
       already exist, just create it.
    c  Modify "/etc/hosts" with these commands:
