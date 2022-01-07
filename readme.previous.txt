@@ -1,6 +1,6 @@
 
 
-                                  Previous 2.3
+                                  Previous 2.4
 
 
 
@@ -277,7 +277,7 @@ Previous v2.3:
   > Fixes bug that caused sporadic power-on test failures and crashes.
   > Fixes bug that prevented Previous from starting with SDL > 2.0.12.
 
-Previous v2.4 (unreleased):
+Previous v2.4:
   > Adds internal NetInfo server for easier networking.
   > Adds support for netbooting from a shared directory.
   > Adds support for switching between single and multiple screen mode.

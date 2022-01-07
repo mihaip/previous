@@ -1,12 +1,12 @@
 NOTE: This procedure is only valid when using SLiRP as network interface. If 
-      using PCAP as network interface, you have to replace your domain and 
-      address and the addresses of nameserver, router, broadcast and netmask 
-      with values valid on your local network. If your router does not support 
-      the Routing Information Protocol version 1 you have to statically 
-      configure the router address. If using PCAP or if you do not intend to use 
-      Previous' internal NFS server for filesharing or netbooting you may also 
-      choose your own hostname. Please note that it has to consist of a maximum 
-      of eight lower case letters.
+      using PCAP as network interface, you have to configure with the values 
+      valid on your local network and instead of auto-configuration set most 
+      values manually. If your router does not support the Routing Information 
+      Protocol version 1 you have to statically configure the router address. If 
+      using PCAP or if you do not intend to use Previous' internal NFS server 
+      for filesharing or netbooting you may also choose your own hostname. 
+      Please note that it has to consist of a maximum of eight lower case 
+      letters.
 
 
 NOWTO: Setup networking on NeXTstep 1.0 and later:
@@ -16,7 +16,7 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
    the single user mode console just type "exit" to continue booting.
 
 2. Open Terminal (you find it in /NextApps directory) and use these commands to 
-   copy the files that need to be modified to your home directory (/me):
+   copy the files that need to be modified to your home directory "/me":
       touch /me/resolv.conf
       cp /etc/hosts /me
 
@@ -33,22 +33,21 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
       su
       cp /me/resolv.conf /etc
       cp /me/hosts /etc
-      niload hosts / < /etc/hosts
 
 6. Open NetManager (you find it in /NextAdmin directory), go to "Local..." and 
    configure with these values:
-   a  For "Network Type" select  "Non-NetInfo Network"
+   a  For "Network Type" select "NetInfo Network"
    b  For "Yellow Pages Domain Name" select "None"
-   c  Set "Hostname" to "previous"
-   d  Set "Address" to "10.0.2.15"
-   e  Set "Router" to "10.0.2.2"
-   f  Set "Broadcast Address" to "10.0.2.255"
-   g  Set "Netmask" to "255.255.255.0"
+   c  For "Hostname" select "Autoconfigure"
+   d  For "Address" select "Autoconfigure"
+   e  For "Router" select "Dynamic"
+   f  For "Broadcast Address" select "Default"
+   g  For "Netmask" select "Default"
    h  Hit "OK" and confirm all messages. It will reboot. Done.
 
 NOTE: On NeXTstep 3.0 and later NetManager is called HostManager, "Network Type" 
-      is called "NetInfo Binding" and "Non-NetInfo Network" is called "Use local 
-      domain only".
+      is called "NetInfo Binding" and "NetInfo Network" is called "Bind to 
+      network NetInfo server".
       On NeXTstep 2.0 and later "Yellow Pages Domain Name" is called "NIS Domain 
       Name".
 
@@ -147,3 +146,20 @@ NOTE: The /etc/rc.boot script configures the network with this command:
          if [ -f /etc/route ]; then
             (/etc/route add default 10.0.2.2 1) >/dev/console
          fi
+
+
+HOWTO: Reset network configuration:
+
+1. If you have a system that does not seem to be configured properly and you 
+   can't fix it by using the above instructions you can try resetting system 
+   configurations. Note that all configurations including passwords will be
+   reset.
+
+2. Boot into ROM Monitor and use the following command to boot into single user
+   mode (replace "bsd" with "bod" for Optical Disk):
+      bsd -s
+
+3. During the boot process you will be dropped to the single user mode console.
+   Use this command to restore "/private/etc" and continue booting:
+      (cd /usr/template/client/etc; tar cf - .)|(cd /private/etc; tar xpBf -)
+      exit

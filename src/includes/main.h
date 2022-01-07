@@ -10,7 +10,7 @@
 
 
 /* Name and version for window title: */
-#define PROG_NAME "Previous 2.3"
+#define PROG_NAME "Previous 2.4"
 
 /* Messages for window title: */
 #ifdef _WIN32

@@ -1,5 +1,6 @@
 NOTE: This procedure is only valid when using SLiRP as network interface. PCAP 
-      cannot be used for netbooting. 
+      cannot be used for netbooting. Netboot is only available on host systems 
+      that support extended file attributes via sys/xattr.h.
 
       Images need to be extracted to case sensitive filesystems. It is not 
       possible to extract images of magneto-optical disks using ditool. It is 
@@ -37,14 +38,6 @@ NOWTO: Setup netboot under NeXTstep 1.0 and later:
 
 2. You can now netboot by setting "NFS shared directory" in the "Network" 
    options to nfsdir and "Boot device" from "Boot" options to "Ethernet".
-
-3. During the boot process you will be asked to press 'c' to continue without 
-   parent NetInfo server. Just do so. If you want to get rid of this message 
-   appearing on every boot, open NetManager (you find it in /NextAdmin 
-   directory), go to "Local..." and set "Network Type" to "Non-NetInfo Network".
-   Note that on NeXTstep 3.0 and later "NetManager" is called "HostManager", 
-   "Network Type" is called "NetInfo Binding" and "Non-NetInfo" is called 
-   "Use local domain only".
 
 
 NOWTO: Setup netboot under NeXTstep 0.9:
