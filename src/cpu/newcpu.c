@@ -992,9 +992,6 @@ static void set_x_funcs (void)
 				x_get_ibyte = NULL;
 				x_next_iword = next_iword_mmu030c_state;
 				x_next_ilong = next_ilong_mmu030c_state;
-				x_do_cycles = do_cycles;
-				x_do_cycles_pre = do_cycles;
-				x_do_cycles_post = do_cycles_post;
 			} else if (currprefs.cpu_compatible) {
 				x_prefetch = get_iword_mmu030c_state;
 				x_get_ilong = get_ilong_mmu030c_state;
@@ -1002,9 +999,6 @@ static void set_x_funcs (void)
 				x_get_ibyte = NULL;
 				x_next_iword = next_iword_mmu030c_state;
 				x_next_ilong = next_ilong_mmu030c_state;
-				x_do_cycles = do_cycles;
-				x_do_cycles_pre = do_cycles;
-				x_do_cycles_post = do_cycles_post;
 			} else {
 				x_prefetch = get_iword_mmu030;
 				x_get_ilong = get_ilong_mmu030;
@@ -1028,15 +1022,10 @@ static void set_x_funcs (void)
 				x_get_byte = get_byte_dc030;
 			}
 		}
-		if (currprefs.cpu_cycle_exact) {
-			x_do_cycles = do_cycles_ce020;
-			x_do_cycles_pre = do_cycles_ce020;
-			x_do_cycles_post = do_cycles_ce020_post;
-		} else {
-			x_do_cycles = do_cycles;
-			x_do_cycles_pre = do_cycles;
-			x_do_cycles_post = do_cycles_post;
-		}
+		x_do_cycles = do_cycles;
+		x_do_cycles_pre = do_cycles;
+		x_do_cycles_post = do_cycles_post;
+
 //	} else if (currprefs.cpu_model < 68020) {
 		// 68000/010
 //		if (currprefs.cpu_cycle_exact) {
@@ -4706,8 +4695,9 @@ void doint(void)
 		int il = intlev();
 		regs.ipl_pin = il;
 //fprintf ( stderr , "doint2 %d ipl=%x ipl_pin=%x intmask=%x spcflags=%x\n" , m68k_interrupt_delay,regs.ipl, regs.ipl_pin , regs.intmask, regs.spcflags );
-		if (regs.ipl_pin > regs.intmask || regs.ipl_pin == 7)
+		if (regs.ipl_pin > regs.intmask || regs.ipl_pin == 7) {
 			set_special(SPCFLAG_INT);
+		}
 		return;
 	}
 	if (currprefs.cpu_compatible && currprefs.cpu_model < 68020)
@@ -5249,6 +5239,7 @@ static void m68k_run_1_ce (void)
 #endif
 
 				r->instruction_pc = m68k_getpc ();
+
 				(*cpufunctbl[r->opcode])(r->opcode);
 				if (!regs.loop_mode)
 					regs.ird = regs.opcode;
@@ -5697,7 +5688,7 @@ void execute_normal(void)
 		/* Take note: This is the do-it-normal loop */
 		r->opcode = get_jit_opcode();
 
-		special_mem = DISTRUST_CONSISTENT_MEM;
+		special_mem = special_mem_default;
 		pc_hist[blocklen].location = (uae_u16*)r->pc_p;
 
 		(*cpufunctbl[r->opcode])(r->opcode);
@@ -6579,12 +6570,12 @@ fprintf ( stderr , "cache valid %d tag1 %x lws1 %x ctag %x data %x mem=%x\n" , c
 #endif
 
 		cont:
+				regs.ipl = regs.ipl_pin;
 				if (r->spcflags || time_for_interrupt ()) {
 					if (do_specialties (0))
 						exit = true;
 				}
 
-				regs.ipl = regs.ipl_pin;
 #ifdef WINUAE_FOR_HATARI
 				/* Run DSP 56k code if necessary */
 				if (bDspEnabled) {
@@ -6601,11 +6592,11 @@ fprintf ( stderr , "cache valid %d tag1 %x lws1 %x ctag %x data %x mem=%x\n" , c
 			}
 		} CATCH(prb) {
 			bus_error();
+			regs.ipl = regs.ipl_pin;
 			if (r->spcflags || time_for_interrupt()) {
 				if (do_specialties(0))
 					exit = true;
 			}
-			regs.ipl = regs.ipl_pin;
 		} ENDTRY
 	}
 }

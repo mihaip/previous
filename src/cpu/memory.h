@@ -19,11 +19,8 @@
 
 #ifdef JIT
 extern int special_mem;
-#define S_READ 1
-#define S_WRITE 2
-
-uae_u8 *cache_alloc (int);
-void cache_free (uae_u8*);
+extern int special_mem_default;
+extern int jit_n_addr_unsafe;
 #endif
 
 #define call_mem_get_func(func, addr) ((*func)(addr))
