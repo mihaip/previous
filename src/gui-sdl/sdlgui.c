@@ -917,6 +917,7 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 			 case SDL_JOYBALLMOTION:
 			 case SDL_JOYHATMOTION:
 			 case SDL_MOUSEMOTION:
+			 case SDL_KEYMAPCHANGED:
 				break;
 
 			 case SDL_KEYDOWN:                     /* Key pressed */
