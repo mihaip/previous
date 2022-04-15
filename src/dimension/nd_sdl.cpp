@@ -31,6 +31,7 @@ int NDSDL::repainter(void) {
     while(doRepaint) {
         if (SDL_AtomicGet(&blitNDFB)) {
             blitDimension(vram, ndTexture);
+            SDL_RenderClear(ndRenderer);
             SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
             SDL_RenderPresent(ndRenderer);
         } else {
@@ -53,7 +54,7 @@ void NDSDL::init(void) {
         SDL_GetWindowPosition(sdlWindow, &x, &y);
         SDL_GetWindowSize(sdlWindow, &w, &h);
         sprintf(title, "NeXTdimension (Slot %i)", slot);
-        ndWindow = SDL_CreateWindow(title, (x-w)+1, y, 1120, 832, SDL_WINDOW_HIDDEN);
+        ndWindow = SDL_CreateWindow(title, (x-w)+1, y, 1120, 832, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
         
         if (!ndWindow) {
             fprintf(stderr,"[ND] Slot %i: Failed to create window!\n", slot);

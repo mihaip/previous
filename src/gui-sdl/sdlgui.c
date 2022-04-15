@@ -783,6 +783,12 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 				retbutton = SDLGUI_QUIT;
 				break;
 
+			 case SDL_WINDOWEVENT:
+				if(sdlEvent.window.event == SDL_WINDOWEVENT_RESIZED) {
+					Screen_SizeChanged();
+				}
+				break;
+
 			 case SDL_MOUSEBUTTONDOWN:
 				if (sdlEvent.button.button != SDL_BUTTON_LEFT)
 				{

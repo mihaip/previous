@@ -298,6 +298,9 @@ Previous v2.4:
   > Fixes bug that caused error messages during printer startup.
   > Fixes bug that caused black screen instead of options dialog on start.
 
+Previous v2.5 (unreleased):
+  > Adds support for changing window size.
+
 
  7) Running Previous
  -------------------

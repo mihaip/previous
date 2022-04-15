@@ -352,7 +352,7 @@ void Screen_Init(void) {
             if(r.x >= 0 && SDL_GetNumVideoDisplays() == 1) x = r.x + 8;
         }
     }
-    sdlWindow  = SDL_CreateWindow(PROG_NAME, x, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_ALLOW_HIGHDPI);
+    sdlWindow  = SDL_CreateWindow(PROG_NAME, x, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!sdlWindow) {
         fprintf(stderr,"Failed to create window: %s!\n", SDL_GetError());
         exit(-1);
@@ -454,6 +454,17 @@ void Screen_ReturnFromFullScreen(void) {
         SDL_AtomicSet(&blitUI, 1);
     }
 }
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Force things associated with changing screen size
+ */
+void Screen_SizeChanged(void) {
+    
+    /* Make sure screen is painted in case emulation is paused */
+    SDL_AtomicSet(&blitUI, 1);
+}
+
 
 /*-----------------------------------------------------------------------*/
 /**

@@ -338,9 +338,16 @@ void Main_EventHandler(void) {
         }
         switch (event.type) {
             case SDL_WINDOWEVENT:
-                if(event.window.event == SDL_WINDOWEVENT_CLOSE) {
-                    SDL_WaitEventTimeout(&event, 100); // grab SDL_Quit if pending
-                    Main_RequestQuit();
+                switch(event.window.event) {
+                    case SDL_WINDOWEVENT_CLOSE:
+                        SDL_WaitEventTimeout(&event, 100); // grab SDL_Quit if pending
+                        Main_RequestQuit();
+                        break;
+                    case SDL_WINDOWEVENT_RESIZED:
+                        Screen_SizeChanged();
+                        break;
+                    default:
+                        break;
                 }
                 continue;
 
