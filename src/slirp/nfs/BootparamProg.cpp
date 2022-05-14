@@ -13,7 +13,11 @@
 #if HAVE_LIMITS_H
     #include <limits.h>
 #endif
+#ifdef _WIN32
+#include <Winsock2.h>
+#else
 #include <netinet/in.h>
+#endif
 
 #include "nfsd.h"
 #include "BootparamProg.h"

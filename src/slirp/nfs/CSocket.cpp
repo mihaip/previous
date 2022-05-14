@@ -1,4 +1,9 @@
+#ifdef _WIN32
+#include <Winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
+#endif
 
 #include "CSocket.h"
 #include "nfsd.h"
@@ -104,10 +109,18 @@ void CSocket::run(void) {
 	for (;;) {
         uint32_t header = 0;
 		if (m_nType == SOCK_STREAM)
+#ifdef _WIN32
+			nBytes = recv(m_Socket, (char*)m_Input.data(), m_Input.getCapacity(), 0);
+#else
 			nBytes = recv(m_Socket, (void*)m_Input.data(), m_Input.getCapacity(), 0);
+#endif
         else if (m_nType == SOCK_DGRAM) {
             nSize = sizeof(m_RemoteAddr);
+#ifdef _WIN32
+			nBytes = recvfrom(m_Socket, (char*)m_Input.data(), m_Input.getCapacity(), 0, (struct sockaddr *)&m_RemoteAddr, &nSize);
+#else
 			nBytes = recvfrom(m_Socket, (void*)m_Input.data(), m_Input.getCapacity(), 0, (struct sockaddr *)&m_RemoteAddr, &nSize);
+#endif
         }
         if(nBytes == 0) {
             perror("[NFSD] Socket closed");

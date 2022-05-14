@@ -9,7 +9,28 @@
 #include <dirent.h>
 #include <ftw.h>
 #include <sys/stat.h>
+
+#ifdef _WIN32
+#include <stdint.h>
+typedef uint32_t fsblkcnt_t;
+typedef uint32_t fsfilcnt_t;
+struct statvfs
+{
+     unsigned long int f_bsize;
+     unsigned long int f_frsize;
+     fsblkcnt_t f_blocks;
+     fsblkcnt_t f_bfree;
+     fsblkcnt_t f_bavail;
+     fsfilcnt_t f_files;
+     fsfilcnt_t f_ffree;
+     fsfilcnt_t f_favail;
+     unsigned long int f_fsid;
+     unsigned long int f_flag;
+     unsigned long int f_namemax;
+};
+#else
 #include <sys/statvfs.h>
+#endif
 
 #define DEFAULT_PERM 0755
 #define FATTR_INVALID ~0

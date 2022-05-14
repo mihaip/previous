@@ -5,7 +5,9 @@
 #include <ftw.h>
 #include <libgen.h>
 #include <sys/stat.h>
+#ifndef _WIN32
 #include <sys/statvfs.h>
+#endif
 #include <sys/time.h>
 
 #include "config.h"
@@ -13,12 +15,16 @@
 #include "FileTableNFSD.h"
 #include "nfsd.h"
 
+#ifndef _WIN32
+
 #if !HAVE_STRUCT_STAT_ST_ATIMESPEC
 #define st_atimespec st_atim
 #endif
 
 #if !HAVE_STRUCT_STAT_ST_MTIMESPEC
 #define st_mtimespec st_mtim
+#endif
+
 #endif
 
 using namespace std;
@@ -138,11 +144,16 @@ static struct stat read_stat(XDRInput* xin) {
     result.st_uid               = uid;
     result.st_gid               = gid;
     result.st_size              = size;
+#ifdef _WIN32
+    result.st_atime             = atime_sec;
+    result.st_mtime             = mtime_sec;
+#else
     result.st_atimespec.tv_sec  = atime_sec;
     result.st_atimespec.tv_nsec = atime_usec * 1000;
     result.st_mtimespec.tv_sec  = mtime_sec;
     result.st_mtimespec.tv_nsec = mtime_usec * 1000;
     result.st_rdev              = FATTR_INVALID;
+#endif
     return result;
 }
 
@@ -452,11 +463,19 @@ int CNFS2Prog::procedureREADDIR(void) {
 #endif
             if(--skip >= 0) continue;
             
+#ifndef _WIN32
             m_out->write(1);  //value follows
             m_out->write(nfsd_fts[0]->fileId(fileinfo->d_ino));
+#endif
             string dname(fileinfo->d_name, namelen);
             XDRString name(dname);
             log("%d %s %s", cookie, path.c_str(), name.c_str());
+#ifdef _WIN32
+            const VFSPath pth = VFSPath(path) / VFSPath(dname);
+            const uint64_t fileno = nfsd_fts[0]->getFileHandle(pth);
+            m_out->write(1);  //value follows
+            m_out->write(nfsd_fts[0]->fileId(fileno));
+#endif
             m_out->write(name);
             m_out->write(cookie+1);
             cookie++;
@@ -533,10 +552,12 @@ bool CNFS2Prog::checkFile(const string& path) {
 		return false;
 	}
     
+#ifndef _WIN32
     // links always pass (will be resolved on the client side via readlink)
     struct stat fstat;
     if(nfsd_fts[0]->stat(path, fstat) == 0 && (fstat.st_mode & S_IFMT) == S_IFLNK)
         return true;
+#endif
     
     if(nfsd_fts[0]->vfsAccess(path, F_OK)) {
 		m_out->write(NFSERR_NOENT);
@@ -557,6 +578,7 @@ bool CNFS2Prog::writeFileAttributes(const string& path) {
     else if(S_ISDIR (fstat.st_mode)) type = NFDIR;
     else if(S_ISBLK (fstat.st_mode)) type = NFBLK;
     else if(S_ISCHR (fstat.st_mode)) type = NFCHR;
+#ifndef _WIN32
     else if(S_ISLNK (fstat.st_mode)) type = NFLNK;
     else if(S_ISSOCK(fstat.st_mode)) type = NFSOCK;
     else if(S_ISFIFO(fstat.st_mode)) type = NFFIFO;
@@ -578,5 +600,27 @@ bool CNFS2Prog::writeFileAttributes(const string& path) {
 	m_out->write(static_cast<uint32_t>(fstat.st_mtimespec.tv_nsec / 1000));  //mtime
 	m_out->write(static_cast<uint32_t>(fstat.st_mtimespec.tv_sec));  //ctime -- ignored, we use mtime instead
 	m_out->write(static_cast<uint32_t>(fstat.st_mtimespec.tv_nsec / 1000));  //ctime
+#else
+	if (type == NFDIR && fstat.st_size == 0) {
+		fstat.st_size = BLOCK_SIZE;
+	}
+	m_out->write(type);  //type
+	m_out->write(static_cast<uint32_t>(fstat.st_mode & 0xFFFF));  //mode
+	m_out->write(static_cast<uint32_t>(fstat.st_nlink));  //nlink
+	m_out->write(static_cast<uint32_t>(fstat.st_uid));  //uid
+	m_out->write(static_cast<uint32_t>(fstat.st_gid));  //gid
+	m_out->write(static_cast<uint32_t>(fstat.st_size));  //size
+	m_out->write(static_cast<uint32_t>(BLOCK_SIZE));  //blocksize
+	m_out->write(static_cast<uint32_t>(fstat.st_rdev));  //rdev
+	m_out->write(static_cast<uint32_t>((fstat.st_size + BLOCK_SIZE - 1) / BLOCK_SIZE));  //blocks
+	m_out->write(static_cast<uint32_t>(fstat.st_dev));  //fsid
+	m_out->write(nfsd_fts[0]->fileId(nfsd_fts[0]->getFileHandle(path)));
+	m_out->write(static_cast<uint32_t>(fstat.st_atime));  //atime
+	m_out->write(static_cast<uint32_t>(0));  //atime
+	m_out->write(static_cast<uint32_t>(fstat.st_mtime));  //mtime
+	m_out->write(static_cast<uint32_t>(0));  //mtime
+	m_out->write(static_cast<uint32_t>(fstat.st_mtime));  //ctime -- ignored, we use mtime instead
+	m_out->write(static_cast<uint32_t>(0));  //ctime
+#endif
 	return true;
 }

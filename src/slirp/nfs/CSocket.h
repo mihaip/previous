@@ -1,9 +1,13 @@
 #ifndef _CSOCKET_H_
 #define _CSOCKET_H_
 
+#ifdef _WIN32
+#include <Winsock2.h>
+#else
 #include <sys/socket.h>
 #include <sys/errno.h>
 #include <netinet/in.h>
+#endif
 #include <unistd.h>
 
 #include "SocketListener.h"
@@ -43,6 +47,8 @@ private:
     int                m_serverPort;
 };
 
+#ifndef _WIN32
 const int INVALID_SOCKET = -1;
+#endif
 
 #endif

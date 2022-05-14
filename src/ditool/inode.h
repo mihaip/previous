@@ -76,6 +76,10 @@
 
 #include <stdint.h>
 
+#ifdef _WIN32
+typedef int32_t daddr_t;
+#endif
+
 #include "fs.h"
 
 #pragma pack(push, 1)

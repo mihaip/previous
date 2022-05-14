@@ -155,7 +155,7 @@ struct {
     struct {
         Uint8 dma;
         Uint8 printer;
-        Uint8 interface;
+        Uint8 transmit;
         Uint8 cmd;
     } csr;
     
@@ -307,7 +307,7 @@ static void lp_dma_underrun(void) {
 }
 
 static void lp_command_out(Uint8 command, Uint32 data) {
-    if (!(lp.csr.interface&LP_TX_EN)) {
+    if (!(lp.csr.transmit&LP_TX_EN)) {
         return;
     }
 
@@ -483,7 +483,7 @@ void lp_interface_off(void) {
     
     lp.csr.dma = 0;
     lp.csr.printer = 0;
-    lp.csr.interface = 0;
+    lp.csr.transmit = 0;
     lp.csr.cmd = 0;
     lp.command = 0;
     lp.data = 0;
@@ -625,7 +625,7 @@ static void lp_gpo(Uint8 cmd) {
 }
 
 void lp_command_in(Uint8 cmd, Uint32 data) {
-    if (!(lp.csr.interface&LP_TX_EN)) {
+    if (!(lp.csr.transmit&LP_TX_EN)) {
         return;
     }
     if (!(lp.stat&LP_GPI_PWR_RDY)) {
@@ -789,17 +789,17 @@ void LP_CSR1_Write(void) {
 }
 
 void LP_CSR2_Read(void) { // 0x0200F002
-    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = lp.csr.interface;
-    Log_Printf(LOG_LP_REG_LEVEL,"[LP] Interface status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = lp.csr.transmit;
+    Log_Printf(LOG_LP_REG_LEVEL,"[LP] Transmitter status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void LP_CSR2_Write(void) {
-    Uint8 old = lp.csr.interface;
+    Uint8 old = lp.csr.transmit;
     Uint8 val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
-    Log_Printf(LOG_LP_REG_LEVEL,"[LP] Interface control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_LP_REG_LEVEL,"[LP] Transmitter control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
-    lp.csr.interface &= ~(LP_TX_EN|LP_TX_LOOP);
-    lp.csr.interface |= (val&(LP_TX_EN|LP_TX_LOOP));
+    lp.csr.transmit &= ~(LP_TX_EN|LP_TX_LOOP);
+    lp.csr.transmit |= (val&(LP_TX_EN|LP_TX_LOOP));
 
     if ((val&LP_TX_EN) != (old&LP_TX_EN)) {
         if (val&LP_TX_EN) {
@@ -836,7 +836,7 @@ void LP_Data_Write(void) {
     Uint32 val = IoMem_ReadLong(IoAccessCurrentAddress&IO_SEG_MASK);
     Log_Printf(LOG_LP_REG_LEVEL,"[LP] Data write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, val, m68k_getpc());
     
-    if (lp.csr.interface&LP_TX_LOOP) {
+    if (lp.csr.transmit&LP_TX_LOOP) {
         lp_command_out(lp.command, val);
     } else {
         lp_command_in(lp.command, val);

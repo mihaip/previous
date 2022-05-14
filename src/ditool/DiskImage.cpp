@@ -11,7 +11,7 @@
 #include <cstring>
 
 /* Pull in ntohs()/ntohl()/htons()/htonl() declarations... shotgun approach */
-#if defined(linux)
+#if defined(linux) || defined(__MINGW32__)
     /* netinet/in.h doesn't have proper extern "C" declarations for these... may also apply to other Unices */
     extern "C" uint32_t ntohl(uint32_t);
     extern "C" uint16_t ntohs(uint16_t);

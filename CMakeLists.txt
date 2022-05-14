@@ -91,7 +91,9 @@ execute_process(COMMAND pkg-config --cflags-only-other sdl2
 		OUTPUT_VARIABLE DETECTED_SDL_CFLAGS
 		ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 if(DETECTED_SDL_CFLAGS)
+	if(NOT WIN32)
 	add_definitions(${DETECTED_SDL_CFLAGS})
+	endif(NOT WIN32)
 	# message(STATUS "Additional CFLAGS of SDL: ${DETECTED_SDL_CFLAGS}")
 endif(DETECTED_SDL_CFLAGS)
 
@@ -204,3 +206,4 @@ configure_file(${CMAKE_SOURCE_DIR}/cmake/config-cmake.h
 		${CMAKE_BINARY_DIR}/config.h)
 
 add_subdirectory(src)
+

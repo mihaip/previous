@@ -241,8 +241,6 @@ static int repainter(void* unused) {
     
     Statusbar_Init(sdlscrn);
     
-    Main_SetMouseGrab(bGrabMouse);
-
     /* Configure some SDL stuff: */
     SDL_ShowCursor(SDL_DISABLE);
     
@@ -374,6 +372,8 @@ void Screen_Init(void) {
     initLatch     = SDL_CreateSemaphore(0);
     repaintThread = SDL_CreateThread(repainter, "[Previous] screen repaint", NULL);
     SDL_SemWait(initLatch);
+    
+    Main_SetMouseGrab(bGrabMouse);
     
     if (ConfigureParams.Screen.bFullScreen) {
         Screen_EnterFullScreen();

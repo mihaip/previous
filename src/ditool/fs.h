@@ -32,6 +32,10 @@
   #include <sys/types.h>
 #endif
 
+#ifdef _WIN32
+typedef uint8_t u_char;
+#endif
+
 /*
  * Copyright (c) 1982, 1986 Regents of the University of California.
  * All rights reserved.  The Berkeley software License Agreement

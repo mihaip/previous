@@ -19,12 +19,22 @@
 #include <sys/xattr.h>
 #endif
 
+#ifdef _WIN32
+#include <Windows.h>
+#include <fileapi.h>
+#include <errhandlingapi.h>
+#include <shellapi.h>
+
+#else
+
 #if !HAVE_STRUCT_STAT_ST_ATIMESPEC
 #define st_atimespec st_atim
 #endif
 
 #if !HAVE_STRUCT_STAT_ST_MTIMESPEC
 #define st_mtimespec st_mtim
+#endif
+
 #endif
 
 using namespace std;
@@ -48,10 +58,17 @@ FileAttrs::FileAttrs(const struct stat& stat)
 , uid       (stat.st_uid)
 , gid       (stat.st_gid)
 , size      (static_cast<uint32_t>(stat.st_size))
+#ifdef _WIN32
+, atime_sec (static_cast<uint32_t>(stat.st_atime))
+, atime_usec(static_cast<uint32_t>(0))
+, mtime_sec (static_cast<uint32_t>(stat.st_mtime))
+, mtime_usec(static_cast<uint32_t>(0))
+#else
 , atime_sec (static_cast<uint32_t>(stat.st_atimespec.tv_sec))
 , atime_usec(static_cast<uint32_t>(stat.st_atimespec.tv_nsec / 1000))
 , mtime_sec (static_cast<uint32_t>(stat.st_mtimespec.tv_sec))
 , mtime_usec(static_cast<uint32_t>(stat.st_mtimespec.tv_nsec / 1000))
+#endif
 , rdev      (stat.st_rdev)
 {}
 
@@ -252,7 +269,7 @@ VFSPath VFSPath::relative(const VFSPath& path, const VFSPath& basePath) {
 
 bool HostPath::is_absolute() const {
 #ifdef _WIN32
-    return !(path.size() > 1) && path[1] == ':' && ::toupper(paht[0]) >= 'A' && && ::toupper(paht[0]) <= 'Z' ;
+    return !(path.size() > 1) && path[1] == ':' && toupper(path[0]) >= 'A' && toupper(path[0]) <= 'Z' ;
 #else
     return !(path.empty()) && path[0] == '/';
 #endif
@@ -332,8 +349,13 @@ int VirtualFS::stat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
     
     if(FileAttrs::valid16(attrs.mode)) {
         uint32_t mode = fstat.st_mode; // copy format & permissions from actual file in the file system
+#ifdef _WIN32
+        mode &= ~(S_IWUSR  | S_IRUSR);
+        mode |= attrs.mode & (S_IWUSR | S_IRUSR); // copy user R/W permissions and directory restrcted delete from attributes
+#else
         mode &= ~(S_IWUSR  | S_IRUSR | S_ISVTX);
         mode |= attrs.mode & (S_IWUSR | S_IRUSR | S_ISVTX); // copy user R/W permissions and directory restrcted delete from attributes
+#endif
         if(S_ISREG(fstat.st_mode) && fstat.st_size == 0 && (attrs.mode & S_IFMT)) {
             // mode heursitics: if file is empty we map it to the various special formats (CHAR, BLOCK, FIFO, etc.) from stored attributes
             mode &= ~S_IFMT;               // clear format
@@ -351,8 +373,19 @@ int VirtualFS::stat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
 static uint64_t rotl(uint64_t x, uint64_t n) {return (x<<n) | (x>>(64LL-n));}
 
 int VirtualFS::remove(const char* fpath, const struct stat* /*sb*/, int /*typeflag*/, struct FTW* /*ftwbuf*/) {
+#ifndef _WIN32
     fchmodat(AT_FDCWD, fpath, ACCESSPERMS, AT_SYMLINK_NOFOLLOW);
     ::remove(fpath);
+#else
+    string zzPath = string(fpath) + '\0';
+    SHFILEOPSTRUCT file_op = {NULL, FO_DELETE, zzPath.c_str(), "",
+        FOF_NOCONFIRMATION | FOF_NOERRORUI | FOF_SILENT,
+        false, 0, ""};
+    int ret = SHFileOperation(&file_op);
+    if (ret) {
+        return EINVAL;
+    }
+#endif
     return 0;
 }
 
@@ -369,7 +402,21 @@ uint64_t VirtualFS::getFileHandle(const VFSPath& absoluteVFSPath) {
     uint64_t result(0);
     struct stat fstat;
     if(vfsStat(path, fstat) == 0) {
+#ifndef _WIN32
         result = make_file_handle(fstat);
+#else
+        HostPath hostPath = toHostPath(path);
+        HANDLE fhandle = CreateFileA(hostPath.c_str(),
+                GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING,
+                FILE_FLAG_BACKUP_SEMANTICS, NULL);
+        if (fhandle) {
+            BY_HANDLE_FILE_INFORMATION finfo;
+            if (GetFileInformationByHandle(fhandle, &finfo)) {
+                result = (static_cast<uint64_t>(finfo.nFileIndexHigh) << 32) | static_cast<uint64_t>(finfo.nFileIndexLow);
+            }
+            CloseHandle(fhandle);
+        }
+#endif
     } else {
         printf("No file handle for %s\n", absoluteVFSPath.c_str());
     }
@@ -410,7 +457,11 @@ FileAttrs VirtualFS::getFileAttrs(const VFSPath& absoluteVFSpath) {
 #endif
     {
         struct stat fstat;
+#ifdef _WIN32
+        ::stat(hostPath.c_str(), &fstat);
+#else
         ::lstat(hostPath.c_str(), &fstat);
+#endif
         fstat.st_uid = vfsGetUID(absoluteVFSpath.parent_path(), true);
         fstat.st_gid = vfsGetGID(absoluteVFSpath.parent_path(), true);
         return FileAttrs(fstat);
@@ -445,10 +496,17 @@ VFSFile::~VFSFile(void) {
     if(restoreStat) {
         ft.vfsChmod(path, fstat.st_mode);
         struct timeval times[2];
+#ifdef _WIN32
+        times[0].tv_sec  = fstat.st_atime;
+        times[0].tv_usec = 0;
+        times[1].tv_sec  = fstat.st_mtime;
+        times[1].tv_usec = 0;
+#else
         times[0].tv_sec  = fstat.st_atimespec.tv_sec;
         times[0].tv_usec = static_cast<int32_t>(fstat.st_atimespec.tv_nsec / 1000);
         times[1].tv_sec  = fstat.st_mtimespec.tv_sec;
         times[1].tv_usec = static_cast<int32_t>(fstat.st_mtimespec.tv_nsec / 1000);
+#endif
         ft.vfsUtimes(path, times);
     }
     if(file) fclose(file);
@@ -483,7 +541,11 @@ static int get_error(int result) {
 }
 
 int VirtualFS::vfsChmod(const VFSPath& absoluteVFSpath, mode_t mode) {
+#ifdef _WIN32
+    return 0; // not supported
+#else
     return get_error(::fchmodat(AT_FDCWD, toHostPath(absoluteVFSpath).c_str(), mode | S_IWUSR  | S_IRUSR, AT_SYMLINK_NOFOLLOW));
+#endif
 }
 
 uint32_t VirtualFS::vfsGetUID(const VFSPath& absoluteVFSpath, bool useParent) {
@@ -528,6 +590,10 @@ int VirtualFS::vfsRename(const VFSPath& absoluteVFSpathFrom, const VFSPath& abso
 int VirtualFS::vfsReadlink(const VFSPath& absoluteVFSpath, VFSPath& result) {
     HostPath path = toHostPath(absoluteVFSpath);
     
+#ifdef _WIN32
+    return EACCES; // not supported
+#else
+
     struct stat sb;
     ssize_t nbytes, bufsiz;
     
@@ -556,18 +622,28 @@ int VirtualFS::vfsReadlink(const VFSPath& absoluteVFSpath, VFSPath& result) {
     result = string(buf);
     
     return 0;
+#endif
 }
 
 int VirtualFS::vfsLink(const VFSPath& absoluteVFSpathFrom, const VFSPath& absoluteVFSpathTo, bool soft) {
+#ifdef _WIN32
+    return EACCES; // not supported
+#else
+
     std::string from = soft ? absoluteVFSpathFrom.string() : toHostPath(absoluteVFSpathFrom).string();
     std::string to   = toHostPath(absoluteVFSpathTo).string();
     
     if(soft) return get_error(::symlink(from.c_str(), to.c_str()));
     else     return get_error(::link   (from.c_str(), to.c_str()));
+#endif
 }
 
 int VirtualFS::vfsMkdir(const VFSPath& absoluteVFSpath, mode_t mode) {
+#ifdef _WIN32
+    return get_error(::mkdir(toHostPath(absoluteVFSpath).c_str()));
+#else
     return get_error(::mkdir(toHostPath(absoluteVFSpath).c_str(), mode));
+#endif
 }
 
 int VirtualFS::vfsNftw(const VFSPath& absoluteVFSpath, int (*fn)(const char *, const struct stat *ptr, int flag, struct FTW *), int depth, int flags) {
@@ -575,13 +651,37 @@ int VirtualFS::vfsNftw(const VFSPath& absoluteVFSpath, int (*fn)(const char *, c
 }
 
 int VirtualFS::vfsStatvfs(const VFSPath& absoluteVFSpath, struct statvfs& fsstat) {
+#ifndef _WIN32
     return get_error(::statvfs(toHostPath(absoluteVFSpath).c_str(), &fsstat));
+#else
+    DWORD sectorsPerCluster, bytesPerSector, freeClusters, totalClusters;
+    BOOL res = GetDiskFreeSpaceA(toHostPath(absoluteVFSpath).c_str(), &sectorsPerCluster,
+                                 &bytesPerSector, &freeClusters, &totalClusters);
+    if (!res) {
+        return GetLastError();
+    }
+    static const int BLOCK_SIZE = sectorsPerCluster * bytesPerSector;
+    fsstat.f_bsize = BLOCK_SIZE;
+    fsstat.f_frsize = BLOCK_SIZE;
+    fsstat.f_blocks = totalClusters;
+    fsstat.f_bfree = freeClusters;
+    fsstat.f_bavail = freeClusters;
+    return 0;
+#endif
 }
 
 int VirtualFS::vfsStat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
+#ifdef _WIN32
+    return get_error(::stat(toHostPath(absoluteVFSpath).c_str(), &fstat));
+#else
     return get_error(::lstat(toHostPath(absoluteVFSpath).c_str(), &fstat));
+#endif
 }
 
 int VirtualFS::vfsUtimes(const VFSPath& absoluteVFSpath, const struct timeval times[2]) {
+#ifdef _WIN32
+    return 0; // not supported
+#else
     return get_error(::lutimes(toHostPath(absoluteVFSpath).c_str(), times));
+#endif
 }

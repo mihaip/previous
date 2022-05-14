@@ -5,7 +5,11 @@
  * terms and conditions of the copyright.
  */
 
+#ifdef _WIN32
+#include <Winsock2.h>
+#else
 #include <netinet/in.h>
+#endif
 #include "sbuf.h"
 
 /* MINE */
@@ -15,6 +19,13 @@
 
 #define SO_EXPIRE 240000
 #define SO_EXPIREFAST 10000
+
+#ifdef _WIN32
+#include <stdint.h>
+typedef uint8_t u_int8_t;
+typedef uint16_t u_int16_t;
+typedef uint32_t u_int32_t;
+#endif
 
 /*
  * Our socket structure

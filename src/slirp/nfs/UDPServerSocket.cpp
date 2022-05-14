@@ -1,4 +1,6 @@
+#ifndef _WIN32
 #include <sys/socket.h>
+#endif
 #include <assert.h>
 
 #include "UDPServerSocket.h"
@@ -21,8 +23,13 @@ bool UDPServerSocket::open(int progNum, uint16_t nPort) {
     
     socklen_t size = 64 * 1024;
     socklen_t len  = sizeof(size);
+#ifdef _WIN32
+    setsockopt(m_Socket, SOL_SOCKET, SO_SNDBUF, (const char*)&size, len);
+    setsockopt(m_Socket, SOL_SOCKET, SO_RCVBUF, (const char*)&size, len);
+#else
     setsockopt(m_Socket, SOL_SOCKET, SO_SNDBUF, &size, len);
     setsockopt(m_Socket, SOL_SOCKET, SO_RCVBUF, &size, len);
+#endif
     memset(&localAddr, 0, sizeof(localAddr));
     localAddr.sin_family = AF_INET;
     localAddr.sin_port = htons(nPort ? UDPServerSocket::toLocalPort(nPort) : nPort);

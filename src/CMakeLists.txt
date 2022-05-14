@@ -14,12 +14,13 @@ if(ENABLE_OSX_BUNDLE)
 endif(ENABLE_OSX_BUNDLE)
 
 
-# When building for Windows, define specific sources for gui and ressources
+# When building for Windows, define specific sources for gui and resources
 # and set the subsytem of the resulting .exe to "windows GUI" instead of "console"
 if(WIN32)
 	set(GUIWIN_SOURCES gui-win/opencon.c)
     set(GUIWIN_RES gui-win/previous-winicon.rc)
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
+	#set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
+	add_definitions(-DSDL_MAIN_HANDLED)
 endif(WIN32)
 
 include_directories(${CMAKE_BINARY_DIR} includes debug softfloat cpu
@@ -76,7 +77,7 @@ elseif(WIN32)
 	ENABLE_LANGUAGE(RC)
 	set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -Ocoff -o <OBJECT> <SOURCE>")
 	set_source_files_properties(${GUIWIN_RES} PROPERTIES LANGUAGE RC)
-	add_executable(Previous ${GUIWIN_RES} ${SOURCES} ${GUIWIN_SOURCES})
+	add_executable(Previous WIN32 ${GUIWIN_RES} ${SOURCES} ${GUIWIN_SOURCES})
 
 # Other targets, use default sources
 else()

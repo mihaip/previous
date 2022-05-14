@@ -8,6 +8,10 @@
 extern "C" {
 #endif
 
+#if defined (_WIN32) && defined (scr1)
+#undef scr1
+#endif
+        
 /* NeXT system registers emulation */
 
 /* Interrupts */

@@ -124,7 +124,6 @@ static int get_dns_addr(struct in_addr *pdns_addr)
 static void slirp_cleanup(void)
 {
     WSACleanup();
-    nfsd_cleanup();
 }
 #endif
 

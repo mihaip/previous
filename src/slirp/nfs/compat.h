@@ -22,9 +22,11 @@ public:
     ~NFSDLock()                             {host_mutex_unlock(mutex);}
 };
 
+#ifndef _WIN32
 char*   strcpy_s (char* dst,  size_t  maxLen, const char* src);
 char*   strncpy_s(char* dst,  size_t  maxLen, const char* src, size_t len);
 int     strcat_s (char* dest, size_t maxLen, const char* src);
 char*   strcat_s (char* s1, const char* s2);
+#endif
 
 #endif /* compat_h */

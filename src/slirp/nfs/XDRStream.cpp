@@ -1,7 +1,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#ifdef _WIN32
+#include <Winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
 #include <iostream>
 
 #include "XDRStream.h"
@@ -187,14 +191,14 @@ void XDROutput::write(const XDROpaque& opaque) {
 
 void XDROutput::write(const XDRString& string) {
     write(static_cast<const XDROpaque&>(string));
+#if DBG
+    cout << "write(\"" << string << "\")" << endl;
+#endif
 }
 
 void XDROutput::write(const std::string& string) {
     XDRString str(string);
     write(str);
-#if DBG
-    cout << "write(\"" << string << "\")" << endl;
-#endif
 }
 
 void XDROutput::write(uint32_t val) {

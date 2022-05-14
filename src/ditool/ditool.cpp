@@ -18,12 +18,16 @@
 #include "VirtualFS.h"
 #include "ctl.h"
 
+#ifndef _WIN32
+
 #if !HAVE_STRUCT_STAT_ST_ATIMESPEC
 #define st_atimespec st_atim
 #endif
 
 #if !HAVE_STRUCT_STAT_ST_MTIMESPEC
 #define st_mtimespec st_mtim
+#endif
+
 #endif
 
 using namespace std;
@@ -72,10 +76,15 @@ static void copy_attrs(struct stat& fstat, icommon& inode, uint32_t rdev) {
     fstat.st_uid               = fsv(inode.ic_uid);
     fstat.st_gid               = fsv(inode.ic_gid);
     fstat.st_size              = fsv(inode.ic_size);
+#ifdef _WIN32
+    fstat.st_atime  = fsv(inode.ic_atime.tv_sec);
+    fstat.st_mtime  = fsv(inode.ic_mtime.tv_sec);
+#else
     fstat.st_atimespec.tv_sec  = fsv(inode.ic_atime.tv_sec);
     fstat.st_atimespec.tv_nsec = fsv(inode.ic_atime.tv_usec) * 1000;
     fstat.st_mtimespec.tv_sec  = fsv(inode.ic_mtime.tv_sec);
     fstat.st_mtimespec.tv_nsec = fsv(inode.ic_mtime.tv_usec) * 1000;
+#endif
     fstat.st_rdev              = rdev;
 }
 
@@ -187,10 +196,15 @@ static void verify_attr_recr(UFS& ufs, set<string>& skip, uint32_t ino, const st
             if(fstat.st_atimespec.tv_nsec != fsv(inode.ic_atime.tv_usec) * 1000)
                 cout << "atime_nsec mismatch " << dirEntPath << " diff:" << (fstat.st_atimespec.tv_nsec - (fsv(inode.ic_atime.tv_usec) * 1000)) << endl;
              */
+#ifdef _WIN32
+            if(fstat.st_mtime != fsv(inode.ic_mtime.tv_sec))
+                cout << "mtime_sec mismatch diff: " << (fstat.st_mtime - fsv(inode.ic_mtime.tv_sec)) << " " << dirEntPath << endl;
+#else
             if(fstat.st_mtimespec.tv_sec != fsv(inode.ic_mtime.tv_sec))
                 cout << "mtime_sec mismatch diff: " << (fstat.st_mtimespec.tv_sec - fsv(inode.ic_mtime.tv_sec)) << " " << dirEntPath << endl;
             if(fstat.st_mtimespec.tv_nsec != fsv(inode.ic_mtime.tv_usec) * 1000)
                 cout << "mtime_nsec mismatch diff: " << (fstat.st_mtimespec.tv_nsec - (fsv(inode.ic_mtime.tv_usec)) * 1000) << " " << dirEntPath << endl;
+#endif
         }
         if((uint32_t)fstat.st_rdev != rdev)
             cout << "rdev mismatch (act/exp) " << fstat.st_rdev << " != " << rdev << " " << dirEntPath << endl;
@@ -264,6 +278,7 @@ static void process_inodes_recr(UFS& ufs, map<uint32_t, string>& inode2path, set
                         continue;
                     }
                 }
+#ifndef _WIN32
                 if(S_ISLNK(fstat.st_mode)) {
                     VFSPath link;
                     ft->vfsReadlink(dirEntPath, link);
@@ -275,7 +290,9 @@ static void process_inodes_recr(UFS& ufs, map<uint32_t, string>& inode2path, set
                         tmp += link.string();
                         skip.insert(tmp);
                     }
-                } else if(dirEntPath != "/") {
+                } else
+#endif
+                if(dirEntPath != "/") {
                     cout << "WARNING: file '" << dirEntPath << "' (" << ft->toHostPath(dirEntPath) << ") already exists, skipping." << endl;
                     skip.insert(dirEntPath);
                     continue;
@@ -459,7 +476,11 @@ extern "C" int main(int argc, const char * argv[]) {
                     cout << "         case sensitive file system for your NFS directory." << endl;
                 }
                 if(clean) clean_dir(outPath);
+#ifdef _WIN32
+                ::mkdir(outPath.c_str());
+#else
                 ::mkdir(outPath.c_str(), DEFAULT_PERM);
+#endif
                 if(::access(outPath.c_str(), F_OK | R_OK | W_OK) < 0) {
                     cout << "Can't access '" << outPath << "'" << endl;
                     return 1;

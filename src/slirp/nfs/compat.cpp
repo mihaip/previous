@@ -7,6 +7,8 @@
 
 #include "compat.h"
 
+#ifndef _WIN32
+
 char* strcpy_s(char * dst, size_t maxLen, const char * src) {
     return strncpy(dst, src, maxLen);
 }
@@ -23,3 +25,5 @@ int strcat_s(char* s1, size_t maxLen, const char* s2) {
     strncat(s1, s2, maxLen);
     return 0;
 }
+
+#endif

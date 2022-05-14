@@ -14,7 +14,12 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+
+#ifdef _WIN32
+#include <Winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
 
 using namespace std;
 
@@ -91,7 +96,11 @@ VDNS::VDNS(CNetInfoBindProg* netInfoBind)
             name += domain;
         string ip   = machines[i]->getPropValues(machines[i]->mProps, "ip_address")[0];
         in_addr addr;
+#ifdef _WIN32
+        inet_pton(AF_INET, ip.c_str(), &addr);
+#else
         inet_aton(ip.c_str(), &addr);
+#endif
         addRecord(ntohl(addr.s_addr), name);
     }
     addRecord(0x7F000001, "localhost");

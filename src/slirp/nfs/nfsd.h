@@ -7,6 +7,13 @@
 
 #include "RPCProg.h"
 
+#ifdef _WIN32
+#define _SC_HOST_NAME_MAX 64
+#include <Winsock2.h>
+#include <ws2tcpip.h>
+#endif
+
+
 #define PORT_DNS      53
 #define PORT_PORTMAP  111
 #define PORT_NFS      2049

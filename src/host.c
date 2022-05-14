@@ -3,6 +3,7 @@
 #if HAVE_NANOSLEEP
 #ifdef __MINGW32__
 #include <unistd.h>
+#define timegm _mkgmtime
 #else
 #include <sys/time.h>
 #endif

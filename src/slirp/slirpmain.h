@@ -11,6 +11,10 @@
 
 #define TOWRITEMAX 512
 
+#ifdef _WIN32
+typedef uint32_t u_int32_t;
+#endif
+
 extern struct timeval tt;
 extern int link_up;
 extern int slirp_socket;
