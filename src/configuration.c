@@ -557,6 +557,9 @@ void Configuration_Apply(bool bReset) {
     
     /* Make sure twisted pair ethernet is disabled on 68030 Cube */
     Configuration_CheckEthernetSettings();
+    
+    /* Make sure we start with statusbar enabled (required for proper screen init) */
+    ConfigureParams.Screen.bShowStatusbar = true;
 	
 	/* Clean file and directory names */    
     File_MakeAbsoluteName(ConfigureParams.Rom.szRom030FileName);

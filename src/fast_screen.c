@@ -323,7 +323,7 @@ void Screen_Init(void) {
     /* Set initial window resolution */
     width  = NeXT_SCRN_WIDTH;
     height = NeXT_SCRN_HEIGHT;    
-    bInFullScreen = ConfigureParams.Screen.bFullScreen;
+    bInFullScreen = false;
     nScreenZoomX  = 1;
     nScreenZoomY  = 1;
 
@@ -374,6 +374,10 @@ void Screen_Init(void) {
     initLatch     = SDL_CreateSemaphore(0);
     repaintThread = SDL_CreateThread(repainter, "[Previous] screen repaint", NULL);
     SDL_SemWait(initLatch);
+    
+    if (ConfigureParams.Screen.bFullScreen) {
+        Screen_EnterFullScreen();
+    }
 }
 
 void nd_sdl_destroy(void);
