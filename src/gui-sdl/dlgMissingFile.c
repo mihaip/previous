@@ -8,6 +8,7 @@ const char DlgMissingFile_fileid[] = "Hatari dlgMissingFile.c : " __DATE__ " " _
 
 #include "main.h"
 #include "configuration.h"
+#include "screen.h"
 #include "dialog.h"
 #include "sdlgui.h"
 #include "file.h"
@@ -208,5 +209,6 @@ void DlgMissing_Disk(const char* type, int num, char *imgname, bool *inserted, b
     while (but != DLGMISDSK_SELECT && but != DLGMISDSK_REMOVE &&
            but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
     
+    SDL_UpdateRect(sdlscrn, 0, 0, 0, 0);
     SDL_ShowCursor(bOldMouseVisibility);
 }

@@ -31,6 +31,7 @@ void Screen_EnterFullScreen(void);
 void Screen_ReturnFromFullScreen(void);
 void Screen_SizeChanged(void);
 void Screen_ModeChanged(void);
+void Screen_StatusbarChanged(void);
 bool Update_StatusBar(void);
 void SDL_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects);
 void SDL_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h);

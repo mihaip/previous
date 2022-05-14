@@ -21,13 +21,13 @@ const char DlgKeyboard_fileid[] = "Previous dlgKeyboard.c : " __DATE__ " " __TIM
 #define DLGKEY_SCANCODE  4
 #define DLGKEY_SYMBOLIC  5
 #define DLGKEY_SWAP      8
-#define DLGKEY_EXIT      20
+#define DLGKEY_EXIT      21
 
 
 /* The keyboard dialog: */
 static SGOBJ keyboarddlg[] =
 {
-	{ SGBOX, 0, 0, 0,0, 47,28, NULL },
+	{ SGBOX, 0, 0, 0,0, 47,29, NULL },
 	{ SGTEXT, 0, 0, 15,1, 16,1, "Keyboard options" },
     
     { SGBOX, 0, 0, 2,3, 21,7, NULL },
@@ -39,19 +39,20 @@ static SGOBJ keyboarddlg[] =
     { SGTEXT, 0, 0, 26,4, 12,1, "Key options:" },
     { SGCHECKBOX, 0, 0, 26,6, 18,1, "Swap cmd and alt" },
     
-    { SGBOX, 0, 0, 2,11, 43,12, NULL },
+    { SGBOX, 0, 0, 2,11, 43,13, NULL },
     { SGTEXT, 0, 0, 4,12, 10,1, "Shortcuts:" },
-    { SGTEXT, 0, 0, 17,12, 10,1, "ctrl-alt-X (Fn)" },
-    { SGTEXT, 0, 0, 6,14, 17,1, "Show main menu     -O (F12)" },
-    { SGTEXT, 0, 0, 6,15, 17,1, "Pause              -P" },
-    { SGTEXT, 0, 0, 6,16, 17,1, "Cold reset         -C" },
-    { SGTEXT, 0, 0, 6,17, 17,1, "Lock/unlock mouse  -M" },
-    { SGTEXT, 0, 0, 6,18, 17,1, "Screen toggle      -N" },
-    { SGTEXT, 0, 0, 6,19, 17,1, "Fullscreen on/off  -F" },
-    { SGTEXT, 0, 0, 6,20, 17,1, "Sound on/off       -S" },
-    { SGTEXT, 0, 0, 6,21, 17,1, "Quit               -Q" },
+    { SGTEXT, 0, 0, 18,12, 10,1, "ctrl-alt-X (Fn)" },
+    { SGTEXT, 0, 0, 6,14, 17,1, "Show main menu      -O (F12)" },
+    { SGTEXT, 0, 0, 6,15, 17,1, "Pause               -P" },
+    { SGTEXT, 0, 0, 6,16, 17,1, "Cold reset          -C" },
+    { SGTEXT, 0, 0, 6,17, 17,1, "Lock/unlock mouse   -M" },
+    { SGTEXT, 0, 0, 6,18, 17,1, "Screen toggle       -N" },
+    { SGTEXT, 0, 0, 6,19, 17,1, "Fullscreen on/off   -F" },
+    { SGTEXT, 0, 0, 6,20, 17,1, "Show/hide statusbar -B" },
+    { SGTEXT, 0, 0, 6,21, 17,1, "Sound on/off        -S" },
+    { SGTEXT, 0, 0, 6,22, 17,1, "Quit                -Q" },
     
-    { SGBUTTON, SG_DEFAULT, 0, 13,25, 21,1, "Back to main menu" },
+    { SGBUTTON, SG_DEFAULT, 0, 13,26, 21,1, "Back to main menu" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 

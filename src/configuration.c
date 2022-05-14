@@ -100,6 +100,7 @@ static const struct Config_Tag configs_ShortCutWithMod[] =
     { "keyDebuggerI860",Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG_I860] },
 	{ "keyQuit",        Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_QUIT] },
 	{ "keyDimension",   Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_DIMENSION] },
+	{ "keyStatusbar",   Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR] },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -118,6 +119,7 @@ static const struct Config_Tag configs_ShortCutWithoutMod[] =
     { "keyDebuggerI860",Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_DEBUG_I860] },
 	{ "keyQuit",        Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_QUIT] },
 	{ "keyDimension",   Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_DIMENSION] },
+	{ "keyStatusbar",   Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_STATUSBAR] },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -427,6 +429,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_SOUND]         = SDLK_s;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_QUIT]          = SDLK_q;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_DIMENSION]     = SDLK_n;
+	ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR]     = SDLK_b;
 
 	/* Set defaults for Memory */
 	memset(ConfigureParams.Memory.nMemoryBankSize, 16, 
@@ -444,7 +447,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
     ConfigureParams.Screen.nMonitorNum = 0;
 	ConfigureParams.Screen.bShowStatusbar = true;
-	ConfigureParams.Screen.bShowDriveLed = true;
+	ConfigureParams.Screen.bShowDriveLed = false;
 
 	/* Set defaults for Sound */
     ConfigureParams.Sound.bEnableMicrophone = true;

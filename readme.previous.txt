@@ -300,6 +300,7 @@ Previous v2.4:
 
 Previous v2.5 (unreleased):
   > Adds support for changing window size.
+  > Adds keyboard shortcut to hide statusbar.
 
 
  7) Running Previous

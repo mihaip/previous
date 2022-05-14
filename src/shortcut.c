@@ -151,6 +151,17 @@ static void ShortCut_Dimension(void)
 	Statusbar_UpdateInfo();
 }
 
+/**
+ * Shorcut to show/hide statusbar
+ */
+static void ShortCut_StatusBar(void)
+{
+    ConfigureParams.Screen.bShowStatusbar = !ConfigureParams.Screen.bShowStatusbar;
+    ConfigureParams.Screen.bShowDriveLed  = false; /* for now unused in Previous */
+    
+    Screen_StatusbarChanged();
+}
+
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -193,6 +204,9 @@ void ShortCut_ActKey(void)
 		break;
 	 case SHORTCUT_DIMENSION:
 		ShortCut_Dimension();
+		break;
+	 case SHORTCUT_STATUSBAR:
+		ShortCut_StatusBar();
 		break;
 	 case SHORTCUT_KEYS:
 	 case SHORTCUT_NONE:
