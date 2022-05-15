@@ -512,16 +512,19 @@ void Screen_StatusbarChanged(void) {
         return;
     }
     
-    /* Does not work in fullscreen mode */
-    Screen_ReturnFromFullScreen();
-    
     /* Get new heigt for our window */
     height = NeXT_SCRN_HEIGHT + Statusbar_SetHeight(NeXT_SCRN_WIDTH, NeXT_SCRN_HEIGHT);
     
-    SDL_RenderGetScale(sdlRenderer, &scale, &scale);
-    SDL_SetWindowSize(sdlWindow, width*scale, height*scale);
-    SDL_RenderSetLogicalSize(sdlRenderer, width, height);
-    SDL_RenderSetScale(sdlRenderer, scale, scale);
+    if (bInFullScreen) {
+        scale = (float)saveWindowBounds.w / NeXT_SCRN_WIDTH;
+        saveWindowBounds.h = height * scale;
+        SDL_RenderSetLogicalSize(sdlRenderer, width, height);
+    } else {
+        SDL_RenderGetScale(sdlRenderer, &scale, &scale);
+        SDL_SetWindowSize(sdlWindow, width*scale, height*scale);
+        SDL_RenderSetLogicalSize(sdlRenderer, width, height);
+        SDL_RenderSetScale(sdlRenderer, scale, scale);
+    }
     
     Screen_SizeChanged();
 }
