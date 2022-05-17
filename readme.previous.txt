@@ -159,6 +159,8 @@ input devices.
 Issues in Previous:
   > Un-emulated hardware may cause problems when attempted to being used.
   > NeXTdimension emulation does not work on hosts with big endian byte order.
+  > NeXTdimension sometimes causes display errors when moving windows between 
+    multiple screens.
   > DSP sound has timing related issues. playscore under NeXTstep 0.9 sometimes 
     produces bad audio in variable speed mode. ScorePlayer under NeXTstep 2.x 
     produces distorted sound in normal CPU mode.
@@ -301,6 +303,7 @@ Previous v2.4:
 Previous v2.5 (unreleased):
   > Adds support for changing window size.
   > Adds keyboard shortcut to hide statusbar.
+  > Fixes bug that caused sporadic failures of the NeXTdimension board.
 
 
  7) Running Previous

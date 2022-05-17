@@ -184,7 +184,11 @@ void i860_cpu_device::handle_trap(UINT32 savepc) {
         }
     }
     else if (m_flow & TRAP_IN_DELAY_SLOT) {
-        m_cregs[CR_FIR] = savepc + 4;
+        if ((m_dim == DIM_FULL) || (m_flow & DIM_OP)) {
+            m_cregs[CR_FIR] = savepc + 8;
+        } else {
+            m_cregs[CR_FIR] = savepc + 4;
+        }
     }
     else
         m_cregs[CR_FIR] = savepc;
