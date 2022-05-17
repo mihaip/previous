@@ -35,6 +35,9 @@
 
 #define m_freem m_free
 
+#ifdef _WIN32
+#define caddr_t char*
+#endif
 
 #define MINCSIZE 4096	/* Amount to increase mbuf if too small */
 
