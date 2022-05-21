@@ -118,6 +118,8 @@ Previous with:
 If all works fine, you should get the executable "Previous" in the src/ sub-
 directory of the build tree. 
 
+For more detailed building instructions read the file building.previous.txt.
+
 
  4) Status
  ---------

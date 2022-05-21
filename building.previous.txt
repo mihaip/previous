@@ -1,0 +1,138 @@
+ Compiling Previous on macOS
+ ---------------------------
+
+Previous can be compiled on any UNIX-like operating system including macOS. 
+These instructions also apply to building on Linux except that a different 
+package manager will be used. macOS comes with some packages pre-installed. On 
+other platforms you might need to also install libpcap, readline and zlib.
+
+1. Install macports:
+   Follow the instructions on https://www.macports.org/ to download and install 
+   the macports package manager. If not already installed this includes to also 
+   install Xcode developer tools.
+
+2. Installing required packages:
+   Download the latest runtime binary of SDL2 from https://www.libsdl.org/ and 
+   copy SDL2.framework to /Library/Frameworks.
+
+   From the command line use the command "port install <package_name>" to 
+   install the following packages:
+      cmake
+      libpng+universal
+
+3. Compiling Previous:
+   From the command line change the directory to the location of Previous' 
+   source tree and run these commands:
+      mkdir build
+      cd build
+      cmake ..
+
+4. Installing Previous:
+   Copy Previous.app from build/src to any target directory. It should now be 
+   possible to start and use Previous.app.
+
+
+ Building a distributable application bundle on macOS
+ ----------------------------------------------------
+
+These are special instructions on how to build an application bundle that can 
+be distributed and run on any macOS version >= deployment target. If you want 
+to build a distributable package skip step 3 from the above instructions and 
+replace with these steps:
+
+1. From the command line go to Previous' source directory and build an Xcode 
+   project using this command from the command line:
+      cmake -G Xcode .
+
+2. Change project settings and build:
+   Open the Xcode project and perform these steps:
+   a  Select Projects > Previous (not Targets) and go to Build Settings
+   b  Set "Architectures" to "64-bit Intel and ARM"
+   c  Set "Build Active Architecture Only" to "No"
+   d  Set "macOS Deployment Target" to the lowest available version
+   e  Select Product > Scheme > Previous
+   f  Select Product > Scheme > Edit Scheme ... and set "Build Configuration" 
+      to "Release"
+   g  Select Product > Build
+
+
+3. Add the SDL2 framework to the application bundle:
+   The application bundle Previous.app is located in the src directory of the 
+   source tree. Go inside the application bundle and go to the Contents folder.
+   Create a folder named "Frameworks" and copy SDL2.framework into it.
+
+4. Add libpng to the application bundle:
+   Create a folder named "SharedSupport" and copy libpng16.16.dylib into it. 
+   (You find libpng16.16.dylib in /opt/local/lib directory.)
+
+5. Change internal linking of Previous:
+   Using Terminal go to the Contents directory inside the application bundle and
+   run these commands from the command line:
+      cd MacOS
+      install_name_tool -change @rpath/SDL2.framework/Versions/A/SDL2 @executable_path/../Frameworks/SDL2.framework/Versions/A/SDL2 Previous
+      install_name_tool -change /opt/local/lib/libpng16.16.dylib @executable_path/../SharedSupport/libpng16.16.dylib Previous
+      install_name_tool -change /opt/local/lib/libz.1.dylib /usr/lib/libz.1.dylib Previous
+      install_name_tool -change /usr/lib/libedit.3.dylib /usr/lib/libedit.2.dylib Previous
+      cd ../SharedSupport
+      install_name_tool -id @executable_path/../SharedSupport/libpng16.16.dylib libpng16.16.dylib
+      install_name_tool -change /opt/local/lib/libz.1.dylib /usr/lib/libz.1.dylib libpng16.16.dylib
+
+6. Make a package for distribution:
+   Create a folder named "Previous <version>" and copy Previous.app into it. 
+   Copy the following files to the same folder:
+      gpl.txt
+      readme.previous.txt
+      networking.howto.txt
+      filesharing.howto.txt
+      netboot.howto.txt
+
+   Archive the folder using the Compress option from the Finder context menu.
+
+
+ Compiling Previous on Windows
+ -----------------------------
+
+Previous can be compiled on Windows using the MinGW64 compiler on the MSYS2 
+platform. The code won't compile with Visual Studio (MSVC) because it relies on 
+POSIX functions that are not supported by MSVC.
+
+1. Install MSYS2 64-bit:
+   Follow the instructions on https://www.msys2.org/ to download and install the 
+   MinGW compiler.
+
+2. Installing required packages:
+   Open the MinGW command prompt from the Start menu (MSYS2 MinGW x64) and 
+   install the following packages using the command: "pacman -S <package_name>":
+      mingw-w64-x86_64-SDL2
+      mingw-w64-x86_64-readline
+      mingw-w64-x86_64-zlib
+      mingw-w64-x86_64-libpng
+      mingw-w64-x86_64-libpcap
+      mingw-w64-x86_64-cmake
+      mingw-w64-x86_64-ninja   (optional, but recommended)
+
+3. Compiling Previous:
+   On the MSYS2 MinGW x64 prompt change the directory to the location of 
+   Previous' source tree and run these commands:
+      mkdir build
+      cd build
+      cmake ..
+      cmake --build . && strip src/Previous.exe
+
+4. Installing Previous:
+   Copy Previous.exe from build/src to any target directory and copy the files 
+   listed below from <MSYS2_installation_dir>/mingw64/bin to the same location 
+   as Previous.exe:
+      libcrypto-1_1-x64.dll
+      libgcc_s_seh-1.dll
+      libpcap.dll
+      libpng16-16.dll
+      libreadline8.dll
+      libssl-1_1-x64.dll
+      libstdc++-6.dll
+      libtermcap-0.dll
+      libwinpthread-1.dll
+      SDL2.dll
+      zlib1.dll
+
+   It should now be possible to start and use Previous.exe.

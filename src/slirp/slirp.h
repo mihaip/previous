@@ -22,7 +22,6 @@ typedef uint16_t u_int16_t;
 typedef uint32_t u_int32_t;
 typedef uint64_t u_int64_t;
 typedef char *caddr_t;
-#define caddr_t char*
 typedef int socklen_t;
 typedef unsigned long ioctlsockopt_t;
 
