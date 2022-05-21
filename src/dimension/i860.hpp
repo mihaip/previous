@@ -203,6 +203,9 @@ enum {
     EXT_INTR           = 0x20000000,
     /* A f-op with DIM bit set encountered. */
     DIM_OP             = 0x40000000,
+    /* This flag indicates that f-op was skipped because the KNF bit
+     in the PSR was set. */
+    FP_OP_SKIPPED      = 0x80000000,
 };
 
 enum {
@@ -286,6 +289,10 @@ enum {
 /* PSR: DIM flag (PSR[14]):  set/get.  */
 #define GET_PSR_DIM()  ((m_cregs[CR_PSR] >> 14) & 1)
 #define SET_PSR_DIM(val)  (m_cregs[CR_PSR] = (m_cregs[CR_PSR] & ~(1 << 14)) | (((val) & 1) << 14))
+
+/* PSR: KNF flag (PSR[15]):  set/get.  */
+#define GET_PSR_KNF()  ((m_cregs[CR_PSR] >> 15) & 1)
+#define SET_PSR_KNF(val)  (m_cregs[CR_PSR] = (m_cregs[CR_PSR] & ~(1 << 15)) | (((val) & 1) << 15))
 
 /* PSR: LCC (PSR[3]):  set/get.  */
 #define GET_PSR_LCC()  ((m_cregs[CR_PSR] >> 3) & 1)
@@ -487,6 +494,9 @@ private:
     /* Program counter (1 x 32-bits).  Reset starts at pc=0xffffff00.  */
     UINT32 m_pc;
 
+    /* Program counter at start of delay slot */
+    UINT32 m_delay_slot_pc;
+    
 	/* Integer registers (32 x 32-bits).  */
 	UINT32  m_iregs[32];
     
@@ -502,7 +512,6 @@ private:
     int  m_dim;
     bool m_dim_cc;
     bool m_dim_cc_valid;
-    int  m_save_dim;
     int  m_save_flow;
     bool m_save_cc;
     bool m_save_cc_valid;

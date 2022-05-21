@@ -47,15 +47,30 @@
  *
  */
 
-#define DELAY_SLOT_PC() ((m_dim == DIM_FULL) ? 12 : 8)
-#define DELAY_SLOT() do{\
-    m_pc += 4; \
+#define DELAY_SLOT_PC() (m_dim ? 12 : 8)
+#define DELAY_SLOT() do{ \
+    switch (m_dim) {\
+        case DIM_NONE:\
+            if(m_flow & DIM_OP)\
+                m_dim = DIM_TEMP;\
+            break;\
+        case DIM_TEMP:\
+            m_dim = m_flow & DIM_OP ? DIM_FULL : DIM_NONE;\
+            break;\
+        case DIM_FULL:\
+            if(!(m_flow & DIM_OP))\
+                m_dim = DIM_TEMP;\
+            break;\
+    }\
+    m_pc += 4;\
+    m_delay_slot_pc = m_pc;\
     UINT32 insn = ifetch(orig_pc+4);\
-    decode_exec(insn); \
-    if((m_dim == DIM_FULL) || (m_flow & DIM_OP)) {\
-        m_pc += 4; \
-        decode_exec(ifetch(orig_pc+8)); \
-    } \
+    decode_exec(insn);\
+    if(m_dim) {\
+        m_pc += 4;\
+        insn = ifetch(orig_pc+8);\
+        decode_exec(insn);\
+    }\
     m_pc = orig_pc;}while(0)
 
 int i860_cpu_device::delay_slots(UINT32 insn) {
@@ -2920,7 +2935,7 @@ void i860_cpu_device::insn_frcp (UINT32 insn)
         if (FLOAT64_IS_ZERO(v))
 		{
 			/* Generate source-exception trap if fsrc2 is 0.  */
-			if (0 /* && GET_FSR_FTE () */)
+			if (GET_FSR_FTE ())
 			{
 				SET_PSR_FT (1);
 				SET_FSR_SE (1);
@@ -2949,7 +2964,7 @@ void i860_cpu_device::insn_frcp (UINT32 insn)
 		if (FLOAT32_IS_ZERO(v))
 		{
 			/* Generate source-exception trap if fsrc2 is 0.  */
-			if (0 /* GET_FSR_FTE () */)
+			if (GET_FSR_FTE ())
 			{
 				SET_PSR_FT (1);
 				SET_FSR_SE (1);
@@ -3007,7 +3022,7 @@ void i860_cpu_device::insn_frsqr (UINT32 insn)
 		if (FLOAT64_IS_ZERO(v) || FLOAT64_IS_NEG(v))
 		{
 			/* Generate source-exception trap if fsrc2 is 0 or negative.  */
-			if (0 /* GET_FSR_FTE () */)
+			if (GET_FSR_FTE ())
 			{
 				SET_PSR_FT (1);
 				SET_FSR_SE (1);
@@ -3034,7 +3049,7 @@ void i860_cpu_device::insn_frsqr (UINT32 insn)
 		if (FLOAT32_IS_ZERO(v) || FLOAT32_IS_NEG(v))
 		{
 			/* Generate source-exception trap if fsrc2 is 0 or negative.  */
-			if (0 /* GET_FSR_FTE () */)
+			if (GET_FSR_FTE ())
 			{
 				SET_PSR_FT (1);
 				SET_FSR_SE (1);
