@@ -81,14 +81,33 @@ struct disk_label {
 
 #pragma pack(pop)
 
-const double FACT_MB = 1 << 20;
 
 class Partition;
 
+#define BLOCKSZ    1024
+#define MO_BLOCKSZ 1296
+#define MO_BLOCK0  (53*16*MO_BLOCKSZ)
+
+#define BM_UNTESTED 0
+#define BM_BAD      1
+#define BM_WRITTEN  2
+#define BM_ERASED   3
+
 class DiskImage {
     std::ifstream          imf;
+    int64_t                diskOffset;
+    int64_t                blockSize;
+    bool                   rawOptical;
 public:
     struct disk_label      dl;
+    uint32_t               bm[16*BLOCKSZ];
+    int64_t                bm_off;
+    int64_t                bm_size;
+    uint32_t               bbt[3*BLOCKSZ];
+    int64_t                bbt_off;
+    int64_t                bbt_size;
+    int32_t                spa;
+    int16_t                apag;
     std::vector<Partition> parts;
     uint64_t               sectorSize;
     const std::string      path;

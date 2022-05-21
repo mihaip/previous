@@ -28,7 +28,6 @@ public:
     DiskImage*               im;
     const struct disk_label* dl;
     struct disk_partition&   part;
-    uint32_t                 fsOff;
     
     Partition(void);
     Partition(int partNo, size_t partIdx, DiskImage* im, const struct disk_label* dl, struct disk_partition& part);
