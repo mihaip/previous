@@ -80,6 +80,11 @@ DiskImage::DiskImage(const string& path)
         } else {
             spa = fsv(dl.dl_dt.d_nsectors) >> 1;
         }
+        if (spa < 1) {
+            cout << "Bad number of sectors per alternate" << endl;
+            spa = 1;
+        }
+
         apag = fsv(dl.dl_dt.d_ag_alts) / spa;
         if (apag < 1) {
             cout << "Bad number of alternates per alternate group" << endl;
