@@ -508,7 +508,8 @@ private:
 	/* Control registers (6 x 32-bits).  */
 	UINT32 m_cregs[6];
 
-    /* Dual instruction mode flags */
+    /* Dual instruction mode */
+    inline void dim_switch(void);
     int  m_dim;
     bool m_dim_cc;
     bool m_dim_cc_valid;

@@ -217,19 +217,21 @@ void i860_cpu_device::handle_trap(UINT32 savepc) {
 }
 
 void i860_cpu_device::ret_from_trap() {
-    m_flow          |= m_save_flow & ~DIM_OP;
+    m_flow = m_save_flow;
 
     if (GET_PSR_DIM()) {
+        m_dim = DIM_FULL;
         if (GET_PSR_DS()) {
-            m_dim = DIM_TEMP;
+            m_flow &= ~DIM_OP;
         } else {
-            m_dim = DIM_FULL;
+            m_flow |= DIM_OP;
         }
     } else {
+        m_dim = DIM_NONE;
         if (GET_PSR_DS()) {
             m_flow |= DIM_OP;
         } else {
-            m_dim = DIM_NONE;
+            m_flow &= ~DIM_OP;
         }
     }
 
@@ -238,14 +240,32 @@ void i860_cpu_device::ret_from_trap() {
     m_dim_cc_valid   = m_save_cc_valid;
 }
 
+inline void i860_cpu_device::dim_switch() {
+    switch (m_dim) {
+        case DIM_NONE:
+            if(m_flow & DIM_OP)
+                m_dim = DIM_TEMP;
+            break;
+        case DIM_TEMP:
+            m_dim = m_flow & DIM_OP ? DIM_FULL : DIM_NONE;
+            break;
+        case DIM_FULL:
+            if(!(m_flow & DIM_OP))
+                m_dim = DIM_TEMP;
+            break;
+    }
+    m_flow &= ~DIM_OP;
+}
+
 void i860_cpu_device::run_cycle() {
     CLEAR_FLOW();
     m_dim_cc_valid = false;
-    m_flow        &= ~DIM_OP;
     UINT32 savepc  = m_pc;
     UINT64 insn64  = ifetch64(m_pc);
     
     if(!(m_pc & 4)) {
+        // When on 64-bit boundary, check if instruction needs to be executed in DIM.
+        dim_switch();
         
 #if ENABLE_DEBUGGER
         if(m_single_stepping) debugger(0,0);
@@ -265,9 +285,9 @@ void i860_cpu_device::run_cycle() {
 
         if (PENDING_TRAP()) {
             handle_trap(savepc);
-            goto done;
+            return;
         } else if(GET_PC_UPDATED()) {
-            goto done;
+            return;
         } else {
             // If the PC wasn't updated by a control flow instruction, just bump to next sequential instruction.
             m_pc   += 4;
@@ -306,7 +326,7 @@ void i860_cpu_device::run_cycle() {
             handle_trap(savepc);
             // If core instruction did trap in DIM, do not reset KNF.
             if (m_dim)
-                goto done;
+                return;
         } else if (!(GET_PC_UPDATED())) {
             // If the PC wasn't updated by a control flow instruction, just bump to next sequential instruction.
             m_pc += 4;
@@ -316,21 +336,6 @@ void i860_cpu_device::run_cycle() {
     if (m_flow & FP_OP_SKIPPED) {
         m_flow &= ~FP_OP_SKIPPED;
         SET_PSR_KNF(0);
-    }
-    
-done:
-    switch (m_dim) {
-        case DIM_NONE:
-            if(m_flow & DIM_OP)
-                m_dim = DIM_TEMP;
-            break;
-        case DIM_TEMP:
-            m_dim = m_flow & DIM_OP ? DIM_FULL : DIM_NONE;
-            break;
-        case DIM_FULL:
-            if(!(m_flow & DIM_OP))
-                m_dim = DIM_TEMP;
-            break;
     }
 }
 

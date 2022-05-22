@@ -48,20 +48,8 @@
  */
 
 #define DELAY_SLOT_PC() (m_dim ? 12 : 8)
-#define DELAY_SLOT() do{ \
-    switch (m_dim) {\
-        case DIM_NONE:\
-            if(m_flow & DIM_OP)\
-                m_dim = DIM_TEMP;\
-            break;\
-        case DIM_TEMP:\
-            m_dim = m_flow & DIM_OP ? DIM_FULL : DIM_NONE;\
-            break;\
-        case DIM_FULL:\
-            if(!(m_flow & DIM_OP))\
-                m_dim = DIM_TEMP;\
-            break;\
-    }\
+#define DELAY_SLOT() do{\
+    dim_switch();\
     m_pc += 4;\
     m_delay_slot_pc = m_pc;\
     UINT32 insn = ifetch(orig_pc+4);\
