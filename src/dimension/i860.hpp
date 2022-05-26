@@ -513,9 +513,6 @@ private:
     int  m_dim;
     bool m_dim_cc;
     bool m_dim_cc_valid;
-    int  m_save_flow;
-    bool m_save_cc;
-    bool m_save_cc_valid;
     
 	/* Special registers (4 x 64-bits).  */
 	union

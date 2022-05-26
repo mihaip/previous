@@ -206,10 +206,6 @@ void i860_cpu_device::handle_trap(UINT32 savepc) {
     else
         SET_PSR_DS (0);
 
-    m_save_flow     = m_flow & DIM_OP;
-    m_save_cc       = m_dim_cc;
-    m_save_cc_valid = m_dim_cc_valid;
-    
     m_dim_cc        = false;
     m_dim_cc_valid  = false;
     
@@ -217,8 +213,6 @@ void i860_cpu_device::handle_trap(UINT32 savepc) {
 }
 
 void i860_cpu_device::ret_from_trap() {
-    m_flow = m_save_flow;
-
     if (GET_PSR_DIM()) {
         m_dim = DIM_FULL;
         if (GET_PSR_DS()) {
@@ -235,9 +229,7 @@ void i860_cpu_device::ret_from_trap() {
         }
     }
 
-    m_flow          &= ~FIR_GETS_TRAP;
-    m_dim_cc         = m_save_cc;
-    m_dim_cc_valid   = m_save_cc_valid;
+    m_flow &= ~FIR_GETS_TRAP;
 }
 
 inline void i860_cpu_device::dim_switch() {
@@ -285,9 +277,9 @@ void i860_cpu_device::run_cycle() {
 
         if (PENDING_TRAP()) {
             handle_trap(savepc);
-            return;
+            goto done;
         } else if(GET_PC_UPDATED()) {
-            return;
+            goto done;
         } else {
             // If the PC wasn't updated by a control flow instruction, just bump to next sequential instruction.
             m_pc   += 4;
@@ -303,7 +295,7 @@ void i860_cpu_device::run_cycle() {
         if(m_single_stepping && !(m_dim)) debugger(0,0);
 #endif
 
-        UINT32 insnHigh= insn64 >> 32;
+        UINT32 insnHigh = insn64 >> 32;
         
         if ((insnHigh & INSN_MASK) == INSN_FP && GET_PSR_KNF() && !(m_flow & FP_OP_SKIPPED))
             SET_PSR_KNF(0);
@@ -333,6 +325,7 @@ void i860_cpu_device::run_cycle() {
         }
     }
     
+done:
     if (m_flow & FP_OP_SKIPPED) {
         m_flow &= ~FP_OP_SKIPPED;
         SET_PSR_KNF(0);

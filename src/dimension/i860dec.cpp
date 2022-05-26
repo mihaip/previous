@@ -49,11 +49,20 @@
 
 #define DELAY_SLOT_PC() (m_dim ? 12 : 8)
 #define DELAY_SLOT() do{\
+    m_dim_cc_valid = false;\
     dim_switch();\
     m_pc += 4;\
     m_delay_slot_pc = m_pc;\
     UINT32 insn = ifetch(orig_pc+4);\
-    decode_exec(insn);\
+    if(insn == INSN_FNOP_DIM) {\
+        if(m_dim) m_flow |=  DIM_OP;\
+        else      m_flow &= ~DIM_OP;\
+    } else if((insn & INSN_MASK_DIM) == INSN_FP_DIM)\
+        m_flow |= DIM_OP;\
+    if ((insn & INSN_MASK) == INSN_FP && GET_PSR_KNF() && !(m_flow & FP_OP_SKIPPED))\
+        m_flow |= FP_OP_SKIPPED;\
+    else\
+        decode_exec(insn);\
     if(m_dim) {\
         m_pc += 4;\
         insn = ifetch(orig_pc+8);\
