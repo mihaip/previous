@@ -78,8 +78,14 @@ int i860_cpu_device::delay_slots(UINT32 insn) {
     return 0;
 }
 
-void i860_cpu_device::intr() {
-    m_flow |= EXT_INTR;
+/* This is the external interface for indicating an external interrupt
+ to the i860.  */
+void i860_cpu_device::raise_intr() {
+    SET_EPSR_INT (1);
+}
+
+void i860_cpu_device::lower_intr() {
+    SET_EPSR_INT (0);
 }
 
 /* This is the external interface for indicating an external interrupt
@@ -89,11 +95,10 @@ void i860_cpu_device::gen_interrupt()
 	/* If interrupts are enabled, then set PSR.IN and prepare for trap.
 	   Otherwise, the external interrupt is ignored.  We also set
 	   bit EPSR.INT (which tracks the INT pin).  */
-	if (GET_PSR_IM ()) {
+	if (GET_EPSR_INT () && GET_PSR_IM ()) {
 		SET_PSR_IN (1);
 		m_flow |= TRAP_WAS_EXTERNAL;
 	}
-    SET_EPSR_INT (1);
 
     Log_Printf(TRACE_EXT_INT, "[i860] i860_gen_interrupt: External interrupt received %s", GET_PSR_IM() ? "[PSR.IN set, preparing to trap]" : "[ignored (interrupts disabled)]");
 #if ENABLE_PERF_COUNTERS
@@ -101,12 +106,6 @@ void i860_cpu_device::gen_interrupt()
 #endif
 }
 
-
-/* This is the external interface for indicating an external interrupt
- to the i860.  */
-void i860_cpu_device::clr_interrupt() {
-    SET_EPSR_INT (0);
-}
 
 void i860_cpu_device::invalidate_icache() {
     memset(m_icache_vaddr, 0xff, sizeof(UINT32) * (1<<I860_ICACHE_SZ));

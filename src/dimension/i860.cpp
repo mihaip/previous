@@ -179,6 +179,8 @@ void i860_cpu_device::handle_trap(UINT32 savepc) {
     if(m_flow & TRAP_WAS_EXTERNAL) {
         if (GET_PC_UPDATED()) {
             m_cregs[CR_FIR] = m_pc;
+        } else if(m_dim) {
+            m_cregs[CR_FIR] = savepc + 8;
         } else {
             m_cregs[CR_FIR] = savepc + 4;
         }
@@ -301,18 +303,9 @@ void i860_cpu_device::run_cycle() {
             SET_PSR_KNF(0);
         else
             decode_exec(insnHigh);
-
-        // only check for external interrupts
-        // - on high-word (speedup)
-        // - not DIM (safety :-)
-        // - when no other traps are pending
-        if(!(m_dim) && !(PENDING_TRAP())) {
-            if(m_flow & EXT_INTR) {
-                m_flow &= ~EXT_INTR;
-                gen_interrupt();
-            } else
-                clr_interrupt();
-        }
+        
+        // Only check for external interrupts on high-word (speedup)
+        gen_interrupt();
         
         if (PENDING_TRAP()) {
             handle_trap(savepc);
@@ -576,8 +569,10 @@ bool i860_cpu_device::handle_msgs(int msg) {
     
     if(msg & MSG_I860_RESET)
         reset();
-    else if(msg & MSG_INTR)
-        intr();
+    else if(msg & MSG_RAISE_INTR)
+        raise_intr();
+    else if(msg & MSG_LOWER_INTR)
+        lower_intr();
     if(msg & MSG_DBG_BREAK)
         debugger('d', "BREAK at pc=%08X", m_pc);
     return true;

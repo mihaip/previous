@@ -44,6 +44,7 @@
 #define CSR0_VIOVBL_INT     0x00000400
 #define CSR0_VIOBLANK       0x00000800 /* ro */
 #define CSR0_i860_CACHE_EN  0x00001000
+#define CSR0_ALL_INT        (CSR0_i860_INT|CSR0_BE_INT|CSR0_VBL_INT|CSR0_VIOVBL_INT)
 
 #define CSR1_CPU_INT        0x00000001
 
@@ -199,6 +200,13 @@ static const char* decodeBits(const char** bits, uae_u32 val) {
     return buffer;
 }
 
+void MC::check_interrupt(void) {
+    if (csr0 & (csr0<<1) & CSR0_ALL_INT)
+        nd->send_msg(MSG_RAISE_INTR);
+    else
+        nd->send_msg(MSG_LOWER_INTR);
+}
+
 // static const char* MC_RD_FORMAT   = "[ND] Memory controller %s read %08X at %08X";
 // static const char* MC_RD_FORMAT_S = "[ND] Memory controller %s read (%s) at %08X";
 
@@ -284,22 +292,17 @@ void MC::write(Uint32 addr, Uint32 val) {
     switch (addr&0x3FFF) {
         case 0x0000:
             Log_Printf(ND_LOG_IO_WR, MC_WR_FORMAT_S,"csr0", decodeBits(ND_CSR0_BITS, val), addr);
-            if(val & CSR0_i860PIN_RESET) {
-                nd->send_msg(MSG_I860_RESET);
-                val &= ~CSR0_i860PIN_RESET;
-            }
-            if ((val & CSR0_i860_INT) && (val & CSR0_i860_IMASK))
-                nd->send_msg(MSG_INTR);
-
-            if((val & CSR0_BE_INT) && (val & CSR0_BE_IMASK))
-                nd->send_msg(MSG_INTR);
-
             csr0 = val;
+            if(csr0 & CSR0_i860PIN_RESET) {
+                nd->send_msg(MSG_I860_RESET);
+                csr0 &= ~CSR0_i860PIN_RESET;
+            }
+            check_interrupt();
             break;
         case 0x0010:
             Log_Printf(ND_LOG_IO_WR, MC_WR_FORMAT_S,"csr1", decodeBits(ND_CSR1_BITS, val),addr);
             csr1 = val;
-			if (csr1&CSR1_CPU_INT) {
+			if (csr1 & CSR1_CPU_INT) {
 				nd->nbic.set_intstatus(true);
 			} else {
                 nd->nbic.set_intstatus(false);
@@ -504,9 +507,6 @@ void NextDimension::set_blank_state(int src, bool state) {
         case ND_DISPLAY:
             if(state) {
                 mc.csr0 |= CSR0_VBL_INT | CSR0_VBLANK;
-                if (mc.csr0 & CSR0_VBL_IMASK) {
-                    send_msg(MSG_INTR);
-                }
             } else {
                 mc.csr0 &= ~CSR0_VBLANK;
             }
@@ -514,14 +514,12 @@ void NextDimension::set_blank_state(int src, bool state) {
         case ND_VIDEO:
             if(state) {
                 mc.csr0 |= CSR0_VIOVBL_INT | CSR0_VIOBLANK;
-                if (mc.csr0 & CSR0_VIOVBL_IMASK) {
-                    send_msg(MSG_INTR);
-                }
             } else {
                 mc.csr0 &= ~CSR0_VIOBLANK;
             }
             break;
     }
+    mc.check_interrupt();
 }
 
 static const char* nd_dump_path = "nd_memory.bin";

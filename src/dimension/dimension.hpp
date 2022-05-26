@@ -66,6 +66,7 @@ public:
     
     MC(NextDimension* nd);
     void init(void);
+    void check_interrupt(void);
     Uint32 read(Uint32 addr);
     void   write(Uint32 addr, Uint32 val);
 };

@@ -199,13 +199,11 @@ enum {
      it is 0 to get the ld.c address.  This is set to 1 only when a
      non-reset trap occurs.  */
     FIR_GETS_TRAP      = 0x10000000,
-    /* An external interrupt occured. */
-    EXT_INTR           = 0x20000000,
+    /* This flag indicates that an f-op was skipped because the KNF bit
+     in the PSR was set. */
+    FP_OP_SKIPPED      = 0x20000000,
     /* A f-op with DIM bit set encountered. */
     DIM_OP             = 0x40000000,
-    /* This flag indicates that f-op was skipped because the KNF bit
-     in the PSR was set. */
-    FP_OP_SKIPPED      = 0x80000000,
 };
 
 enum {
@@ -213,9 +211,10 @@ enum {
     MSG_I860_RESET     = 0x01,
     MSG_I860_KILL      = 0x02,
     MSG_DBG_BREAK      = 0x04,
-    MSG_INTR           = 0x08,
-    MSG_DISPLAY_BLANK  = 0x10,
-    MSG_VIDEO_BLANK    = 0x20,
+    MSG_RAISE_INTR     = 0x08,
+    MSG_LOWER_INTR     = 0x10,
+    MSG_DISPLAY_BLANK  = 0x20,
+    MSG_VIDEO_BLANK    = 0x40,
 };
 
 /* dual mode instruction state */
@@ -721,13 +720,14 @@ private:
     int    memtest(bool be);
     void   dbg_check_wr(UINT32 addr, int size, UINT8* data);
     
-    /* This is theinterface for asserting an external interrupt to the i860.  */
     void gen_interrupt();
-    /* This is the interface for clearing an external interrupt of the i860.  */
-    void clr_interrupt();
+    
     /* This is the interface for reseting the i860.  */
     void reset();
-    void intr();
+    /* This is the interface for asserting an external interrupt to the i860.  */
+    void raise_intr();
+    /* This is the interface for clearing an external interrupt of the i860.  */
+    void lower_intr();
 
 	typedef void (i860_cpu_device::*insn_func)(UINT32);
 	static const insn_func decode_tbl[64];
