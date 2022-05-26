@@ -176,18 +176,8 @@ void i860_cpu_device::handle_trap(UINT32 savepc) {
     /* If we need to trap, change PC to trap address.
      Also set supervisor mode, copy U and IM to their
      previous versions, clear IM.  */
-    if(m_flow & TRAP_WAS_EXTERNAL) {
-        if (GET_PC_UPDATED()) {
-            m_cregs[CR_FIR] = m_pc;
-        } else if(m_dim) {
-            m_cregs[CR_FIR] = savepc + 8;
-        } else {
-            m_cregs[CR_FIR] = savepc + 4;
-        }
-    }
-    else if (m_flow & TRAP_IN_DELAY_SLOT) {
+    if (m_flow & TRAP_IN_DELAY_SLOT)
         m_cregs[CR_FIR] = m_delay_slot_pc;
-    }
     else
         m_cregs[CR_FIR] = savepc;
     
@@ -258,9 +248,6 @@ void i860_cpu_device::run_cycle() {
     UINT64 insn64  = ifetch64(m_pc);
     
     if(!(m_pc & 4)) {
-        // When on 64-bit boundary, check if instruction needs to be executed in DIM.
-        dim_switch();
-        
 #if ENABLE_DEBUGGER
         if(m_single_stepping) debugger(0,0);
 #endif
@@ -300,18 +287,15 @@ void i860_cpu_device::run_cycle() {
         UINT32 insnHigh = insn64 >> 32;
         
         if ((insnHigh & INSN_MASK) == INSN_FP && GET_PSR_KNF() && !(m_flow & FP_OP_SKIPPED))
-            SET_PSR_KNF(0);
+            m_flow |= FP_OP_SKIPPED;
         else
             decode_exec(insnHigh);
-        
-        // Only check for external interrupts on high-word (speedup)
-        gen_interrupt();
         
         if (PENDING_TRAP()) {
             handle_trap(savepc);
             // If core instruction did trap in DIM, do not reset KNF.
             if (m_dim)
-                return;
+                m_flow &= ~FP_OP_SKIPPED;
         } else if (!(GET_PC_UPDATED())) {
             // If the PC wasn't updated by a control flow instruction, just bump to next sequential instruction.
             m_pc += 4;
@@ -323,6 +307,15 @@ done:
         m_flow &= ~FP_OP_SKIPPED;
         SET_PSR_KNF(0);
     }
+    
+    // If at 64-bit boundary, switch DIM for next instruction.
+    if (!(m_pc & 4))
+        dim_switch();
+    
+    // Check for external interrupts and trap if an interrupt is pending.
+    gen_interrupt();
+    if (m_flow & TRAP_WAS_EXTERNAL)
+        handle_trap(m_pc);
 }
 
 int i860_cpu_device::memtest(bool be) {

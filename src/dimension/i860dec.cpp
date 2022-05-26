@@ -59,7 +59,11 @@
         else      m_flow &= ~DIM_OP;\
     } else if((insn & INSN_MASK_DIM) == INSN_FP_DIM)\
         m_flow |= DIM_OP;\
-    if ((insn & INSN_MASK) == INSN_FP && GET_PSR_KNF() && !(m_flow & FP_OP_SKIPPED))\
+    if (m_flow & FP_OP_SKIPPED) {\
+        m_flow &= ~FP_OP_SKIPPED;\
+        SET_PSR_KNF(0);\
+    }\
+    if ((insn & INSN_MASK) == INSN_FP && GET_PSR_KNF())\
         m_flow |= FP_OP_SKIPPED;\
     else\
         decode_exec(insn);\
@@ -88,13 +92,11 @@ void i860_cpu_device::lower_intr() {
     SET_EPSR_INT (0);
 }
 
-/* This is the external interface for indicating an external interrupt
-   to the i860.  */
+/* This handles external interrupts.  */
 void i860_cpu_device::gen_interrupt()
 {
-	/* If interrupts are enabled, then set PSR.IN and prepare for trap.
-	   Otherwise, the external interrupt is ignored.  We also set
-	   bit EPSR.INT (which tracks the INT pin).  */
+	/* If interrupts are enabled through PSR.IM and EPSR.INT (which tracks 
+	   the INT pin) is high, then set PSR.IN and prepare for trap. */
 	if (GET_EPSR_INT () && GET_PSR_IM ()) {
 		SET_PSR_IN (1);
 		m_flow |= TRAP_WAS_EXTERNAL;
