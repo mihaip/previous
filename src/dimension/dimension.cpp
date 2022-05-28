@@ -168,10 +168,16 @@ void NextDimension::slot_bput(Uint32 addr, Uint8 b) {
 }
 
 void NextDimension::send_msg(int msg) {
-    int value;
+    int old_value, new_value;
     do {
-        value = m_port.value;
-    } while (!host_atomic_cas(&m_port, value, (value | msg)));
+        old_value = m_port.value;
+        new_value = old_value | msg;
+        switch (msg) {
+            case MSG_LOWER_INTR: new_value &= ~MSG_RAISE_INTR; break;
+            case MSG_RAISE_INTR: new_value &= ~MSG_LOWER_INTR; break;
+            default: break;
+        }
+    } while (!host_atomic_cas(&m_port, old_value, new_value));
 }
 
 /* NeXTdimension board memory access (i860) */

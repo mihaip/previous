@@ -62,8 +62,7 @@
     if (m_flow & FP_OP_SKIPPED) {\
         m_flow &= ~FP_OP_SKIPPED;\
         SET_PSR_KNF(0);\
-    }\
-    if ((insn & INSN_MASK) == INSN_FP && GET_PSR_KNF())\
+    } else if ((insn & INSN_MASK) == INSN_FP && GET_PSR_KNF())\
         m_flow |= FP_OP_SKIPPED;\
     else\
         decode_exec(insn);\
@@ -234,8 +233,6 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 	UINT32 pfa1           = 0;
 	UINT32 pfa2           = 0;
 	UINT32 ret            = 0;
-	UINT32 ttpde          = 0;
-	UINT32 ttpte          = 0;
 
 	assert (GET_DIRBASE_ATE ());
 
@@ -281,7 +278,12 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 		return 0;
 	}
 
-	/* FIXME: How exactly to handle A check/update?.  */
+	/* Update A bit.  */
+	if (!(pg_dir_entry & 0x20)) {
+		NextDimension::i860_rd32_le(nd, pg_dir_entry_a, &pg_dir_entry);
+		pg_dir_entry |= 0x20;
+		NextDimension::i860_wr32_le(nd, pg_dir_entry_a, &pg_dir_entry);
+	}
 
 	/* Get page table entry at PFA1:PAGE:00.  */
 	pfa1 = pg_dir_entry & I860_PAGE_FRAME_MASK;
@@ -327,10 +329,11 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 	}
 
 	/* Update A bit and check D bit.  */
-	ttpde = pg_dir_entry | 0x20;
-	ttpte = pg_tbl_entry | 0x20;
-    NextDimension::i860_wr32_le(nd, pg_dir_entry_a, &ttpde);
-    NextDimension::i860_wr32_le(nd, pg_tbl_entry_a, &ttpte);
+	if (!(pg_tbl_entry & 0x20)) {
+		NextDimension::i860_rd32_le(nd, pg_tbl_entry_a, &pg_tbl_entry);
+		pg_tbl_entry |= 0x20;
+		NextDimension::i860_wr32_le(nd, pg_tbl_entry_a, &pg_tbl_entry);
+	}
 
 	if (is_write && is_dataref && (pg_tbl_entry & 0x40) == 0)
 	{
