@@ -380,14 +380,13 @@ const UINT32 INSN_FP_DIM   = INSN_FP   | INSN_DIM;
 const UINT32 INSN_MASK     = 0xFC000000;
 const UINT32 INSN_MASK_DIM = INSN_MASK | INSN_DIM;
 
-const size_t I860_ICACHE_SZ       = 9; // in powers of two lines (2^9 = 512; 512 x 2 words = 4 kbytes)
+const size_t I860_ICACHE_SZ       = 9;  // in powers of two lines (2^9 = 512; 512 x 2 words = 4 kbytes)
 const size_t I860_ICACHE_MASK     = (1<<I860_ICACHE_SZ)-1;
-const size_t I860_TLB_SZ          = 11; // in powers of two
-const size_t I860_TLB_MASK        = (1<<I860_TLB_SZ)-1;
+const size_t I860_TLB_SETS        = 4;  // in powers of two (2^4 = 16 sets)
+const size_t I860_TLB_WAYS        = 2;  // in powers of two (2^2 =  4 ways)
 const size_t I860_PAGE_SZ         = 12; // in powers of two
 const size_t I860_PAGE_OFF_MASK   = (1<<I860_PAGE_SZ)-1;
 const size_t I860_PAGE_FRAME_MASK = ~I860_PAGE_OFF_MASK;
-const size_t I860_TLB_FLAGS       = I860_PAGE_OFF_MASK;
 
 /* Control register numbers.  */
 enum {
@@ -589,8 +588,9 @@ private:
     UINT32 m_icache_vaddr[1<<I860_ICACHE_SZ];
     
     /* Translation look-aside buffer */
-    UINT32 m_tlb_vaddr[1<<I860_TLB_SZ];
-    UINT32 m_tlb_paddr[1<<I860_TLB_SZ];
+    UINT32 m_tlb_vaddr[1<<I860_TLB_WAYS][1<<I860_TLB_SETS];
+    UINT32 m_tlb_paddr[1<<I860_TLB_WAYS][1<<I860_TLB_SETS];
+    UINT32 m_way;
     
 	/*
 	 * Halt state. Can be set externally
@@ -714,7 +714,7 @@ private:
 	void   dbg_memdump (UINT32 addr, int len);
 	int    delay_slots(UINT32 insn);
 	UINT32 get_address_translation(UINT32 vaddr, int is_dataref, int is_write);
-    inline UINT32 get_address_translation(UINT32 vaddr, UINT32 voffset, UINT32 tlbidx, int is_dataref, int is_write);
+	inline UINT32 get_address_translation(UINT32 vaddr, UINT32 voffset, UINT32 set, int is_dataref, int is_write);
 	FLOAT32  get_fval_from_optype_s (UINT32 insn, int optype);
 	FLOAT64 get_fval_from_optype_d (UINT32 insn, int optype);
     int    memtest(bool be);

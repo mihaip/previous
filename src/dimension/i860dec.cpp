@@ -116,7 +116,8 @@ void i860_cpu_device::invalidate_icache() {
 }
 
 void i860_cpu_device::invalidate_tlb() {
-    memset(m_tlb_vaddr, 0xff, sizeof(UINT32) * (1<<I860_TLB_SZ));
+    m_way = 0;
+    memset(m_tlb_vaddr, 0, sizeof(m_tlb_vaddr));
 #if ENABLE_PERF_COUNTERS
     m_tlb_inval++;
 #endif
@@ -196,29 +197,81 @@ inline UINT64 i860_cpu_device::ifetch64(const UINT32 pc) {
  (SC) added TLB support. Read access updates even entries, Write access updates odd entries.
  TLB lookup checks both entries. R/W separation is for DPS copy loops.
  */
+
+#define PTE_P       0x01
+#define PTE_W       0x02
+#define PTE_U       0x04
+#define PTE_WT      0x08
+#define PTE_CD      0x10
+#define PTE_A       0x20
+#define PTE_D       0x40
+
+#define TLB_TAG_MASK    0xFFFF0000
+#define TLB_SET_MASK    0x0000F000
+#define TLB_PAGE_MASK   0xFFFFF000
+#define TLB_OFF_MASK    0x00000FFF
+#define TLB_FLAG_MASK   0x0000005F
+
 inline UINT32 i860_cpu_device::get_address_translation (UINT32 vaddr, int is_dataref, int is_write)
 {
-    UINT32 voffset        = vaddr & I860_PAGE_OFF_MASK;
-    UINT32 tlbidx         = ((vaddr << 1) | is_write) & I860_TLB_MASK;
-    
-    if(m_tlb_vaddr[tlbidx] == (vaddr & I860_PAGE_FRAME_MASK)) {
+    UINT32 tag     = 0;
+    UINT32 flags   = 0;
+    UINT32 set     = (vaddr & TLB_SET_MASK) >> 12;
+    UINT32 vpage   = vaddr & TLB_TAG_MASK;
+    UINT32 voffset = vaddr & TLB_OFF_MASK;
+
+    for (int i = 0; i < 4; i++) {
+        tag   = m_tlb_vaddr[m_way][set] & TLB_TAG_MASK;
+        flags = m_tlb_vaddr[m_way][set] & TLB_FLAG_MASK;
+        
+        if (tag == vpage) {
+            /* Check for page fault conditions */
+            if ((flags & PTE_P) == 0) {
+                if (is_dataref)
+                    SET_PSR_DAT (1);
+                else
+                    SET_PSR_IAT (1);
+                m_flow |= TRAP_NORMAL;
+                
+                /* Dummy return.  */
+                return 0;
+            }
+            if ((flags & PTE_W) == 0 && is_write && (GET_PSR_U () || GET_EPSR_WP ())) {
+                SET_PSR_DAT (1);
+                m_flow |= TRAP_NORMAL;
+                /* Dummy return.  */
+                return 0;
+            }
+            if ((flags & PTE_U) == 0 && GET_PSR_U ()) {
+                if (is_dataref)
+                    SET_PSR_DAT (1);
+                else
+                    SET_PSR_IAT (1);
+                m_flow |= TRAP_NORMAL;
+                /* Dummy return.  */
+                return 0;
+            }
+            if ((flags & PTE_D) == 0 && is_write) {
+                SET_PSR_DAT (1);
+                m_flow |= TRAP_NORMAL;
+                /* Dummy return.  */
+                return 0;
+            }
+            
 #if ENABLE_PERF_COUNTERS
-        m_tlb_hit++;
+            m_tlb_hit++;
 #endif
-        return (m_tlb_paddr[tlbidx] & I860_PAGE_FRAME_MASK) + voffset;
+            
+            return (m_tlb_paddr[m_way][set] & TLB_PAGE_MASK) + voffset;
+        }
+        
+        m_way = (m_way + 1) & 3;
     }
 
-    if(m_tlb_vaddr[tlbidx ^ 1] == (vaddr & I860_PAGE_FRAME_MASK)) {
-#if ENABLE_PERF_COUNTERS
-        m_tlb_hit++;
-#endif
-        return (m_tlb_paddr[tlbidx ^ 1] & I860_PAGE_FRAME_MASK) + voffset;
-    }
-    
-    return get_address_translation(vaddr, voffset, tlbidx, is_dataref, is_write);
+    return get_address_translation(vaddr, voffset, set, is_dataref, is_write);
 }
 
-UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UINT32 tlbidx, int is_dataref, int is_write) {
+UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UINT32 set, int is_dataref, int is_write) {
 #if ENABLE_PERF_COUNTERS
     m_tlb_miss++;
 #endif
@@ -230,6 +283,7 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 	UINT32 pg_dir_entry   = 0;
 	UINT32 pg_tbl_entry_a = 0;
 	UINT32 pg_tbl_entry   = 0;
+	UINT32 flags          = 0;
 	UINT32 pfa1           = 0;
 	UINT32 pfa2           = 0;
 	UINT32 ret            = 0;
@@ -241,7 +295,7 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
     NextDimension::i860_rd32_le(nd, pg_dir_entry_a, &pg_dir_entry);
 
 	/* Check for non-present PDE.  */
-	if (!(pg_dir_entry & 1))
+	if (!(pg_dir_entry & PTE_P))
 	{
 		/* PDE is not present, generate DAT or IAT.  */
 		if (is_dataref)
@@ -256,7 +310,7 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 
 	/* PDE Check for write protection violations.  */
 	if (is_write && is_dataref
-		&& !(pg_dir_entry & 2)                  /* W = 0.  */
+		&& !(pg_dir_entry & PTE_W)             /* W = 0.  */
 		&& (GET_PSR_U () || GET_EPSR_WP ()))   /* PSR_U = 1 or EPSR_WP = 1.  */
 	{
 		SET_PSR_DAT (1);
@@ -267,7 +321,7 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 
 	/* PDE Check for user-mode access to supervisor pages.  */
 	if (GET_PSR_U ()
-		&& !(pg_dir_entry & 4))                 /* U = 0.  */
+		&& !(pg_dir_entry & PTE_U))            /* U = 0.  */
 	{
 		if (is_dataref)
 			SET_PSR_DAT (1);
@@ -279,9 +333,9 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 	}
 
 	/* Update A bit.  */
-	if (!(pg_dir_entry & 0x20)) {
+	if (!(pg_dir_entry & PTE_A)) {
 		NextDimension::i860_rd32_le(nd, pg_dir_entry_a, &pg_dir_entry);
-		pg_dir_entry |= 0x20;
+		pg_dir_entry |= PTE_A;
 		NextDimension::i860_wr32_le(nd, pg_dir_entry_a, &pg_dir_entry);
 	}
 
@@ -291,7 +345,7 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
     NextDimension::i860_rd32_le(nd, pg_tbl_entry_a, &pg_tbl_entry);
 
 	/* Check for non-present PTE.  */
-	if (!(pg_tbl_entry & 1))
+	if (!(pg_tbl_entry & PTE_P))
 	{
 		/* PTE is not present, generate DAT or IAT.  */
 		if (is_dataref)
@@ -306,7 +360,7 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 
 	/* PTE Check for write protection violations.  */
 	if (is_write && is_dataref
-		&& !(pg_tbl_entry & 2)                  /* W = 0.  */
+		&& !(pg_tbl_entry & PTE_W)             /* W = 0.  */
 		&& (GET_PSR_U () || GET_EPSR_WP ()))   /* PSR_U = 1 or EPSR_WP = 1.  */
 	{
 		SET_PSR_DAT (1);
@@ -317,7 +371,7 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 
 	/* PTE Check for user-mode access to supervisor pages.  */
 	if (GET_PSR_U ()
-		&& !(pg_tbl_entry & 4))                 /* U = 0.  */
+		&& !(pg_tbl_entry & PTE_U))            /* U = 0.  */
 	{
 		if (is_dataref)
 			SET_PSR_DAT (1);
@@ -329,13 +383,13 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 	}
 
 	/* Update A bit and check D bit.  */
-	if (!(pg_tbl_entry & 0x20)) {
+	if (!(pg_tbl_entry & PTE_A)) {
 		NextDimension::i860_rd32_le(nd, pg_tbl_entry_a, &pg_tbl_entry);
-		pg_tbl_entry |= 0x20;
+		pg_tbl_entry |= PTE_A;
 		NextDimension::i860_wr32_le(nd, pg_tbl_entry_a, &pg_tbl_entry);
 	}
 
-	if (is_write && is_dataref && (pg_tbl_entry & 0x40) == 0)
+	if (is_write && is_dataref && (pg_tbl_entry & PTE_D) == 0)
 	{
 		/* Log_Printf(LOG_WARN, "[i860] DAT trap on write without dirty bit v%08X/p%08X\n",
 		   vaddr, (pg_tbl_entry & ~0xfff)|voffset); */
@@ -345,11 +399,16 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 		return 0;
 	}
 
-	pfa2 = (pg_tbl_entry & I860_PAGE_FRAME_MASK);
-    
-    m_tlb_vaddr[tlbidx] = vaddr & I860_PAGE_FRAME_MASK;
-    m_tlb_paddr[tlbidx] = pfa2;
-    
+	pfa2   = (pg_tbl_entry & TLB_PAGE_MASK);
+
+	m_way  = (voffset >> 7) & 3; /* pseudo-random */
+
+	flags  = pg_dir_entry & pg_tbl_entry & (PTE_P | PTE_U | PTE_W);
+	flags |= pg_tbl_entry & (PTE_WT | PTE_CD | PTE_D);
+
+	m_tlb_vaddr[m_way][set] = (vaddr & TLB_TAG_MASK) | (flags & TLB_FLAG_MASK);
+	m_tlb_paddr[m_way][set] = pfa2;
+
 	ret = pfa2 | voffset;
 
 	Log_Printf(TRACE_ADDR_TRANSLATION, "[i860] get_address_translation: virt(%08X) -> phys(%08X)\n", vaddr, ret);

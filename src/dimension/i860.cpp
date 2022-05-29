@@ -447,6 +447,7 @@ void i860_cpu_device::init(void) {
     m_console_idx       = 0;
     m_break_on_next_msg = false;
     m_dim               = DIM_NONE;
+    m_way               = 0;
     m_traceback_idx     = 0;
     memset(m_fregs, 0, sizeof(m_fregs));
     
