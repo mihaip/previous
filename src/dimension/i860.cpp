@@ -171,7 +171,7 @@ void i860_cpu_device::handle_trap(UINT32 savepc) {
         debugger('d', trap_info());
     
     if(m_dim)
-        Log_Printf(LOG_WARN, "[i860] Trap while DIM %s pc=%08X m_flow=%08X", trap_info(), savepc, m_flow);
+        Log_Printf(LOG_DEBUG, "[i860] Trap while DIM %s pc=%08X m_flow=%08X", trap_info(), savepc, m_flow);
 
     /* If we need to trap, change PC to trap address.
      Also set supervisor mode, copy U and IM to their
@@ -600,10 +600,11 @@ const char* i860_cpu_device::reports(Uint64 realTime, Uint64 hostTime) {
         m_report[0] = 0;
     } else {
         if(dVT == 0) dVT = 0.0001;
-        sprintf(m_report, "i860:{MIPS=%.1f icache_hit=%lld%% tlb_hit=%lld%% icach_inval/s=%.0f tlb_inval/s=%.0f intr/s=%0.f}",
+        sprintf(m_report, "i860:{MIPS=%.1f icache_hit=%lld%% tlb_hit=%lld%% tlb_search=%lld%% icach_inval/s=%.0f tlb_inval/s=%.0f intr/s=%0.f}",
                                (float) (m_insn_decoded / (dVT*1000*1000)),
                                m_icache_hit+m_icache_miss == 0 ? 0LL : (100LL * m_icache_hit) / (m_icache_hit+m_icache_miss) ,
                                m_tlb_hit+m_tlb_miss       == 0 ? 0LL : (100LL * m_tlb_hit)    / (m_tlb_hit+m_tlb_miss),
+                               m_tlb_hit+m_tlb_miss       == 0 ? 0LL : (100LL * m_tlb_search) / (m_tlb_hit+m_tlb_miss),
                                (float) (m_icache_inval)/dVT,
                                (float) (m_tlb_inval)/dVT,
                                (float) (m_intrs)/dVT
@@ -614,6 +615,7 @@ const char* i860_cpu_device::reports(Uint64 realTime, Uint64 hostTime) {
         m_icache_miss   = 0;
         m_icache_inval  = 0;
         m_tlb_hit       = 0;
+        m_tlb_search    = 0;
         m_tlb_miss      = 0;
         m_tlb_inval     = 0;
         m_intrs         = 0;

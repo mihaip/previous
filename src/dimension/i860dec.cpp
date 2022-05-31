@@ -40,10 +40,6 @@
  * - There is some amount of code duplication (e.g., see the
  *   various insn_* routines for the branches and FP routines) that
  *   could be eliminated.
- * - The host's floating point types are used to emulate the i860's
- *   floating point.  Should probably be made machine independent by
- *   using an IEEE FP emulation library.  On the other hand, most machines
- *   today also use IEEE FP.
  *
  */
 
@@ -196,6 +192,8 @@ inline UINT64 i860_cpu_device::ifetch64(const UINT32 pc) {
  
  (SC) added TLB support. Read access updates even entries, Write access updates odd entries.
  TLB lookup checks both entries. R/W separation is for DPS copy loops.
+ (AG) Modified TLB to match real hardware. 
+ FIXME: Take into account cache related bits and bus locking.
  */
 
 #define PTE_P       0x01
@@ -255,9 +253,13 @@ inline UINT32 i860_cpu_device::get_address_translation (UINT32 vaddr, int is_dat
             m_tlb_hit++;
 #endif
             
-            return (m_tlb_paddr[m_way][vset] & TLB_PAGE_MASK) + voffset;
+            return (m_tlb_paddr[m_way][vset] & TLB_PAGE_MASK) | voffset;
         }
         
+#if ENABLE_PERF_COUNTERS
+        m_tlb_search++;
+#endif
+
         m_way = (m_way + 1) & TLB_WAY_MASK;
     }
     
@@ -268,7 +270,8 @@ inline UINT32 i860_cpu_device::get_address_translation (UINT32 vaddr, int is_dat
     return get_address_translation(vaddr, voffset, vset, is_dataref, is_write);
 }
 
-UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UINT32 set, int is_dataref, int is_write) {
+UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UINT32 vset, int is_dataref, int is_write)
+{
 	UINT32 vpage          = (vaddr >> I860_PAGE_SZ) & 0x3ff;
 	UINT32 vdir           = (vaddr >> 22) & 0x3ff;
 	UINT32 dtb            = (m_cregs[CR_DIRBASE]) & I860_PAGE_FRAME_MASK;
@@ -385,13 +388,13 @@ UINT32 i860_cpu_device::get_address_translation(UINT32 vaddr, UINT32 voffset, UI
 
 	pfa2   = (pg_tbl_entry & TLB_PAGE_MASK);
 
-	m_way  = (m_way + set) & TLB_WAY_MASK; /* pseudo-random */
+	m_way  = (m_way + vset) & TLB_WAY_MASK; /* pseudo-random */
 
 	flags  = pg_dir_entry & pg_tbl_entry & (PTE_P | PTE_U | PTE_W);
 	flags |= pg_tbl_entry & (PTE_WT | PTE_CD | PTE_D);
 
-	m_tlb_vaddr[m_way][set] = (vaddr & TLB_TAG_MASK) | (flags & TLB_FLAG_MASK);
-	m_tlb_paddr[m_way][set] = pfa2;
+	m_tlb_vaddr[m_way][vset] = (vaddr & TLB_TAG_MASK) | (flags & TLB_FLAG_MASK);
+	m_tlb_paddr[m_way][vset] = pfa2;
 
 	ret = pfa2 | voffset;
 

@@ -474,6 +474,7 @@ private:
     UINT64 m_icache_miss;
     UINT64 m_icache_inval;
     UINT64 m_tlb_hit;
+    UINT64 m_tlb_search;
     UINT64 m_tlb_miss;
     UINT64 m_tlb_inval;
     UINT64 m_intrs;
