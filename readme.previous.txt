@@ -1,6 +1,6 @@
 
 
-                                  Previous 2.4
+                                  Previous 2.5
 
 
 
@@ -300,7 +300,7 @@ Previous v2.4:
   > Fixes bug that caused error messages during printer startup.
   > Fixes bug that caused black screen instead of options dialog on start.
 
-Previous v2.5 (unreleased):
+Previous v2.5:
   > Adds support for changing window size.
   > Adds keyboard shortcut to hide statusbar.
   > Fixes bug that caused sporadic failures of the NeXTdimension board.
