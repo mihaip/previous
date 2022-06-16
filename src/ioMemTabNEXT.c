@@ -200,13 +200,13 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x0200c802, SIZE_BYTE, SCR1_Read2, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x0200c803, SIZE_BYTE, SCR1_Read3, IoMem_WriteWithoutInterceptionButTrace },
 	
-	/* System Control Register 2 (slot-relative) */
+	/* System Control Register 2 */
 	{ 0x0200d000, SIZE_BYTE, SCR2_Read0, SCR2_Write0 },
 	{ 0x0200d001, SIZE_BYTE, SCR2_Read1, SCR2_Write1 },
 	{ 0x0200d002, SIZE_BYTE, SCR2_Read2, SCR2_Write2 },
 	{ 0x0200d003, SIZE_BYTE, SCR2_Read3, SCR2_Write3 },
 	
-	/* System Control Register 2 (absolute) */
+	/* System Control Register 2 (alias) */
 	{ 0x0200d700, SIZE_BYTE, SCR2_Read0, SCR2_Write0 },
 	{ 0x0200d701, SIZE_BYTE, SCR2_Read1, SCR2_Write1 },
 	{ 0x0200d702, SIZE_BYTE, SCR2_Read2, SCR2_Write2 },

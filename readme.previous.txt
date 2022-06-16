@@ -306,6 +306,9 @@ Previous v2.5:
   > Fixes bug that caused sporadic failures of the NeXTdimension board.
   > Fixes bug that caused display errors when using NeXTdimension board.
 
+Previous v2.6 (unreleased):
+  > Improves system control and status register access for booting Plan 9.
+
 
  7) Running Previous
  -------------------
