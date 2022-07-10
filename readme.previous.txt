@@ -329,8 +329,8 @@ Previous was written by Andreas Grabher, Simon Schubiger and Gilles Fetis.
 Many thanks go to the members of the NeXT International Forums for their help. 
 Special thanks go to Gavin Thomas Nicol, Piotr Twarecki, Toni Wilen, Michael 
 Bosshard, Thomas Huth, Olivier Galibert, Jason Eckhardt, Jason Stevens, Daniel 
-L'Hommedieu, Tomaz Slivnik, Vaughan Kaufman, Peter Leonard, Brent Spillner and
-Frank Wegmann!
+L'Hommedieu, Tomaz Slivnik, Vaughan Kaufman, Peter Leonard, Brent Spillner, 
+Frank Wegmann and Grzegorz Szwoch!
 
 This emulator would not exist without their help.
 
