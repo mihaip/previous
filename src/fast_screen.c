@@ -25,8 +25,10 @@ const char Screen_fileid[] = "Previous fast_screen.c : " __DATE__ " " __TIME__;
 #include "video.h"
 
 SDL_Window*   sdlWindow;
-SDL_Surface*  sdlscrn = NULL;   /* The SDL screen surface */
-int nScreenZoomX, nScreenZoomY; /* Zooming factors, used for scaling mouse motions */
+SDL_Surface*  sdlscrn = NULL;        /* The SDL screen surface */
+int           nRendererWidth;        /* Width of renderer in physical pixels */
+int           nRendererHeight;       /* Height of renderer in physical pixels */
+float         dpiFacor;              /* Factor to convert physical pixels to logical pixels on high-dpi displays */
 
 /* extern for shortcuts */
 volatile bool bGrabMouse    = false; /* Grab the mouse cursor in the window */
@@ -241,9 +243,6 @@ static int repainter(void* unused) {
     
     Statusbar_Init(sdlscrn);
     
-    /* Configure some SDL stuff: */
-    SDL_ShowCursor(SDL_DISABLE);
-    
     /* Setup lookup tables */
     SDL_PixelFormat* pformat = SDL_AllocFormat(format);
     /* initialize BW lookup table */
@@ -322,8 +321,6 @@ void Screen_Init(void) {
     width  = NeXT_SCRN_WIDTH;
     height = NeXT_SCRN_HEIGHT;    
     bInFullScreen = false;
-    nScreenZoomX  = 1;
-    nScreenZoomY  = 1;
 
     /* Statusbar */
     Statusbar_SetHeight(width, height);
@@ -368,11 +365,21 @@ void Screen_Init(void) {
         fprintf(stderr,"Failed to create renderer: %s!\n", SDL_GetError());
         exit(-1);
     }
+    
+    SDL_GetRendererOutputSize(sdlRenderer, &nRendererWidth, &nRendererHeight);
+    if (nRendererWidth>0) {
+        dpiFacor = (float)width / nRendererWidth;
+    } else {
+        fprintf(stderr,"Failed to calculate DPI factor\n");
+        dpiFacor = 1.0;
+    }
 
     initLatch     = SDL_CreateSemaphore(0);
     repaintThread = SDL_CreateThread(repainter, "[Previous] screen repaint", NULL);
     SDL_SemWait(initLatch);
     
+    /* Configure some SDL stuff: */
+    SDL_ShowCursor(SDL_DISABLE);
     Main_SetMouseGrab(bGrabMouse);
     
     if (ConfigureParams.Screen.bFullScreen) {
@@ -521,7 +528,7 @@ void Screen_StatusbarChanged(void) {
         SDL_RenderSetLogicalSize(sdlRenderer, width, height);
     } else {
         SDL_RenderGetScale(sdlRenderer, &scale, &scale);
-        SDL_SetWindowSize(sdlWindow, width*scale, height*scale);
+        SDL_SetWindowSize(sdlWindow, width*scale*dpiFacor, height*scale*dpiFacor);
         SDL_RenderSetLogicalSize(sdlRenderer, width, height);
         SDL_RenderSetScale(sdlRenderer, scale, scale);
     }
