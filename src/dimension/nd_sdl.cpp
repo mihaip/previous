@@ -40,7 +40,6 @@ int NDSDL::repainter(void) {
     }
 
     SDL_DestroyTexture(ndTexture);
-    SDL_DestroyRenderer(ndRenderer);
 
     return 0;
 }
@@ -53,7 +52,7 @@ void NDSDL::init(void) {
         SDL_GetWindowPosition(sdlWindow, &x, &y);
         SDL_GetWindowSize(sdlWindow, &w, &h);
         sprintf(title, "NeXTdimension (Slot %i)", slot);
-        ndWindow = SDL_CreateWindow(title, (x-w)+1, y, 1120, 832, SDL_WINDOW_HIDDEN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+        ndWindow = SDL_CreateWindow(title, (x-w)+1, y, 1120, 832, SDL_WINDOW_HIDDEN | SDL_WINDOW_ALLOW_HIGHDPI);
         
         if (!ndWindow) {
             fprintf(stderr,"[ND] Slot %i: Failed to create window!\n", slot);
@@ -128,19 +127,16 @@ void NDSDL::pause(bool pause) {
     }
 }
 
-void NDSDL::resize(void) {
-    float scale;
-    
-    if (ndWindow && ndRenderer) {
-        SDL_RenderGetScale(ndRenderer, &scale, &scale);
-        SDL_SetWindowSize(ndWindow, 1120*scale*dpiFactor, 832*scale*dpiFactor);
+void NDSDL::resize(float scale) {
+    if (ndWindow) {
+        SDL_SetWindowSize(ndWindow, 1120*scale, 832*scale);
     }
 }
 
-void nd_sdl_resize(void) {
+void nd_sdl_resize(float scale) {
     FOR_EACH_SLOT(slot) {
         IF_NEXT_DIMENSION(slot, nd) {
-            nd->sdl.resize();
+            nd->sdl.resize(scale);
         }
     }
 }
@@ -174,6 +170,7 @@ void NDSDL::destroy(void) {
     doRepaint = false; // stop repaint thread
     int s;
     SDL_WaitThread(repaintThread, &s);
+    SDL_DestroyRenderer(ndRenderer);
     SDL_DestroyWindow(ndWindow);
     uninit();
 }

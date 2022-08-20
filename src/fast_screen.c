@@ -478,13 +478,15 @@ void Screen_ReturnFromFullScreen(void) {
 void Screen_SizeChanged(void) {
     float scale;
     
-    SDL_RenderGetScale(sdlRenderer, &scale, &scale);
-    SDL_SetWindowSize(sdlWindow, width*scale*dpiFactor, height*scale*dpiFactor);
+    if (!bInFullScreen) {
+        SDL_RenderGetScale(sdlRenderer, &scale, &scale);
+        SDL_SetWindowSize(sdlWindow, width*scale*dpiFactor, height*scale*dpiFactor);
+    }
     
     /* Make sure screen is painted in case emulation is paused */
     SDL_AtomicSet(&blitUI, 1);
     
-    nd_sdl_resize();
+    nd_sdl_resize(scale*dpiFactor);
 }
 
 

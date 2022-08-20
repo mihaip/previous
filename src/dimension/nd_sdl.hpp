@@ -28,7 +28,7 @@ public:
     void    init(void);
     void    uninit(void);
     void    pause(bool pause);
-    void    resize(void);
+    void    resize(float scale);
     void    destroy(void);
     void    start_interrupts();
 };
@@ -41,7 +41,7 @@ extern "C" {
     
     void nd_vbl_handler(void);
     void nd_video_vbl_handler(void);
-    void nd_sdl_resize(void);
+    void nd_sdl_resize(float scale);
     void nd_sdl_show(void);
     void nd_sdl_hide(void);
     void nd_sdl_destroy(void);
