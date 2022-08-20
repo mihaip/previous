@@ -308,6 +308,7 @@ Previous v2.5:
 
 Previous v2.6 (unreleased):
   > Improves system control and status register access for booting Plan 9.
+  > Improves window resizing.
   > Fixes bug that caused problems when changing statusbar visibility.
 
 

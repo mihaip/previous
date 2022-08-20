@@ -23,6 +23,7 @@ extern volatile bool bGrabMouse;
 extern volatile bool bInFullScreen;
 extern struct SDL_Window *sdlWindow;
 extern SDL_Surface *sdlscrn;
+extern float dpiFactor;
 
 void Screen_Init(void);
 void Screen_UnInit(void);

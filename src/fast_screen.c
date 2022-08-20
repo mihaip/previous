@@ -28,7 +28,7 @@ SDL_Window*   sdlWindow;
 SDL_Surface*  sdlscrn = NULL;        /* The SDL screen surface */
 int           nRendererWidth;        /* Width of renderer in physical pixels */
 int           nRendererHeight;       /* Height of renderer in physical pixels */
-float         dpiFacor;              /* Factor to convert physical pixels to logical pixels on high-dpi displays */
+float         dpiFactor;             /* Factor to convert physical pixels to logical pixels on high-dpi displays */
 
 /* extern for shortcuts */
 volatile bool bGrabMouse    = false; /* Grab the mouse cursor in the window */
@@ -368,10 +368,10 @@ void Screen_Init(void) {
     
     SDL_GetRendererOutputSize(sdlRenderer, &nRendererWidth, &nRendererHeight);
     if (nRendererWidth>0) {
-        dpiFacor = (float)width / nRendererWidth;
+        dpiFactor = (float)width / nRendererWidth;
     } else {
         fprintf(stderr,"Failed to calculate DPI factor\n");
-        dpiFacor = 1.0;
+        dpiFactor = 1.0;
     }
 
     initLatch     = SDL_CreateSemaphore(0);
@@ -386,8 +386,6 @@ void Screen_Init(void) {
         Screen_EnterFullScreen();
     }
 }
-
-void nd_sdl_destroy(void);
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -478,9 +476,15 @@ void Screen_ReturnFromFullScreen(void) {
  * Force things associated with changing screen size
  */
 void Screen_SizeChanged(void) {
+    float scale;
+    
+    SDL_RenderGetScale(sdlRenderer, &scale, &scale);
+    SDL_SetWindowSize(sdlWindow, width*scale*dpiFactor, height*scale*dpiFactor);
     
     /* Make sure screen is painted in case emulation is paused */
     SDL_AtomicSet(&blitUI, 1);
+    
+    nd_sdl_resize();
 }
 
 
@@ -528,12 +532,13 @@ void Screen_StatusbarChanged(void) {
         SDL_RenderSetLogicalSize(sdlRenderer, width, height);
     } else {
         SDL_RenderGetScale(sdlRenderer, &scale, &scale);
-        SDL_SetWindowSize(sdlWindow, width*scale*dpiFacor, height*scale*dpiFacor);
+        SDL_SetWindowSize(sdlWindow, width*scale*dpiFactor, height*scale*dpiFactor);
         SDL_RenderSetLogicalSize(sdlRenderer, width, height);
         SDL_RenderSetScale(sdlRenderer, scale, scale);
     }
     
-    Screen_SizeChanged();
+    /* Make sure screen is painted in case emulation is paused */
+    SDL_AtomicSet(&blitUI, 1);
 }
 
 

@@ -41,7 +41,6 @@ int NDSDL::repainter(void) {
 
     SDL_DestroyTexture(ndTexture);
     SDL_DestroyRenderer(ndRenderer);
-    SDL_DestroyWindow(ndWindow);
 
     return 0;
 }
@@ -129,6 +128,23 @@ void NDSDL::pause(bool pause) {
     }
 }
 
+void NDSDL::resize(void) {
+    float scale;
+    
+    if (ndWindow && ndRenderer) {
+        SDL_RenderGetScale(ndRenderer, &scale, &scale);
+        SDL_SetWindowSize(ndWindow, 1120*scale*dpiFactor, 832*scale*dpiFactor);
+    }
+}
+
+void nd_sdl_resize(void) {
+    FOR_EACH_SLOT(slot) {
+        IF_NEXT_DIMENSION(slot, nd) {
+            nd->sdl.resize();
+        }
+    }
+}
+
 void nd_sdl_show(void) {
     FOR_EACH_SLOT(slot) {
         IF_NEXT_DIMENSION(slot, nd) {
@@ -158,5 +174,6 @@ void NDSDL::destroy(void) {
     doRepaint = false; // stop repaint thread
     int s;
     SDL_WaitThread(repaintThread, &s);
+    SDL_DestroyWindow(ndWindow);
     uninit();
 }
