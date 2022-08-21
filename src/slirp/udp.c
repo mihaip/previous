@@ -145,11 +145,17 @@ udp_input(m, iphlen)
     
     int dport = ntohs(uh->uh_dport);
 
+    struct in_addr dst_addr = ip->ip_dst; /* Do not use pointers to packed structure. */
+    u_int16_t      dst_port = uh->uh_dport;
+    
     if(nfsd_match_addr(ntohl(save_ip.ip_dst.s_addr))) {
-        nfsd_udp_map_to_local_port(&ip->ip_dst.s_addr, &uh->uh_dport);
+        nfsd_udp_map_to_local_port(&dst_addr.s_addr, &dst_port);
     } else if(vdns_match(m, ntohl(save_ip.ip_dst.s_addr), dport)) {
-        vdns_udp_map_to_local_port(&ip->ip_dst.s_addr, &uh->uh_dport);
+        vdns_udp_map_to_local_port(&dst_addr.s_addr, &dst_port);
     }
+    
+    ip->ip_dst   = dst_addr; /* Copy back to packed structure. */
+    uh->uh_dport = dst_port;
     
     switch(dport) {
         case BOOTP_SERVER:

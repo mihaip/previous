@@ -55,6 +55,7 @@ if(ENABLE_OSX_BUNDLE)
 	set_target_properties(Previous PROPERTIES MACOSX_BUNDLE_INFO_PLIST
 			      ${CMAKE_CURRENT_SOURCE_DIR}/gui-osx/Info-Previous.plist)
 	set(MACOSX_BUNDLE_ICON_FILE Previous.icns)
+	set(MACOSX_BUNDLE_GUI_IDENTIFIER com.sourceforge.previous)
 	# Create Previous.app bundle
 	add_custom_target(osx_bundle_dirs
 			COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/Previous.app/Contents/Resources
