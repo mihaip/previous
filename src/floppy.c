@@ -270,11 +270,9 @@ void floppy_reset(bool hard) {
         flp.st[0]=flp.st[1]=flp.st[2]=flp.st[3]=0;
         flp.pcn=0;
     } else {
-#if 0   /* Causes problems with diagnostic test */
-        /* Single poll interrupt after reset (delay = 250 us) */
+        /* Single poll interrupt after reset */
         flp_io_state = FLP_STATE_INTERRUPT;
-        CycInt_AddRelativeInterruptUs(250, 0, INTERRUPT_FLP_IO);
-#endif
+        CycInt_AddRelativeInterruptUs(1000*1000, 0, INTERRUPT_FLP_IO);
     }
 }
 

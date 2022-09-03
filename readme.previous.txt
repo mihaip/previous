@@ -311,6 +311,9 @@ Previous v2.6:
   > Improves window resizing.
   > Fixes bug that caused problems when changing statusbar visibility.
 
+Previous v2.7 (unreleased):
+  > Fixes bug that caused Daydream to hang on start up.
+
 
  7) Running Previous
  -------------------
