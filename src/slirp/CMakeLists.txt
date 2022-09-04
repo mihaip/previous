@@ -33,3 +33,5 @@ add_library(Slirp
             nfs/RPCProg.cpp nfs/PortmapProg.cpp nfs/MountProg.cpp nfs/NFSProg.cpp nfs/NFS2Prog.cpp nfs/BootparamProg.cpp nfs/NetInfoProg.cpp nfs/NetInfoBindProg.cpp
             nfs/FileTableNFSD.cpp ../ditool/DiskImage.cpp ../ditool/Partition.cpp ../ditool/UFS.cpp ../ditool/VirtualFS.cpp
 			)
+
+target_link_libraries(Slirp PRIVATE SDL2::SDL2)

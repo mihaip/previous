@@ -85,14 +85,14 @@ else()
 	add_executable(Previous ${SOURCES})
 endif(ENABLE_OSX_BUNDLE)
 
-target_link_libraries(Previous Debug GuiSdl UaeCpu DSP Dimension Slirp SoftFloat ${SDL2_LIBRARY})
+target_link_libraries(Previous Debug GuiSdl UaeCpu DSP Dimension Slirp SoftFloat SDL2::SDL2)
 
 if(MATH_FOUND AND NOT APPLE)
 	target_link_libraries(Previous ${MATH_LIBRARY})
 endif()
 
 if(SDL2MAIN_LIBRARY)
-	target_link_libraries(Previous ${SDL2MAIN_LIBRARY})
+	target_link_libraries(Previous SDL2::SDL2main)
 endif(SDL2MAIN_LIBRARY)
 
 if(READLINE_FOUND)

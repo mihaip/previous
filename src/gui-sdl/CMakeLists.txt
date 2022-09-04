@@ -10,3 +10,5 @@ add_library(GuiSdl
     dlgMemoryAdvanced.c dlgMissingFile.c dlgMouse.c dlgOpticalDisk.c 
     dlgPrinter.c dlgRom.c dlgSCSI.c dlgSound.c dlgSystem.c sdlgui.c
 )
+
+target_link_libraries(GuiSdl PRIVATE SDL2::SDL2)
