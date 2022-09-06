@@ -13,15 +13,8 @@
 #define PROG_NAME "Previous 2.6"
 
 /* Messages for window title: */
-#ifdef _WIN32
-#define MOUSE_LOCK_MSG "Mouse is locked. Press right_ctrl-alt-m to release."
-#elif __linux__
-#define MOUSE_LOCK_MSG "Mouse is locked. Press right_ctrl-alt-m to release."
-#elif __APPLE__
-#define MOUSE_LOCK_MSG "Mouse is locked. Press ctrl-alt-m to release."
-#else
-#define MOUSE_LOCK_MSG "Mouse is locked. Press shortcut-m to release."
-#endif
+#define MOUSE_LOCK_MSG "Mouse is locked. Ctrl-click to release."
+
 
 #include "config.h"
 

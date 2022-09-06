@@ -312,6 +312,7 @@ Previous v2.6:
   > Fixes bug that caused problems when changing statusbar visibility.
 
 Previous v2.7 (unreleased):
+  > Changes mouse unlock to work with control-click instead of shortcut-m.
   > Fixes bug that caused Daydream to hang on start up.
 
 

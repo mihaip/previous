@@ -362,9 +362,18 @@ void Main_EventHandler(void) {
                 
             case SDL_MOUSEBUTTONDOWN:
                 if (event.button.button == SDL_BUTTON_LEFT) {
-                    if (ConfigureParams.Mouse.bEnableAutoGrab && !bGrabMouse) {
-						bGrabMouse = true;
-						Main_SetMouseGrab(bGrabMouse);
+                    if (bGrabMouse) {
+                        if (SDL_GetModState() & KMOD_CTRL) {
+                            bGrabMouse = false;
+                            Main_SetMouseGrab(bGrabMouse);
+                            break;
+                        }
+                    } else {
+                        if (ConfigureParams.Mouse.bEnableAutoGrab) {
+                            bGrabMouse = true;
+                            Main_SetMouseGrab(bGrabMouse);
+                            break;
+                        }
                     }
                     
                     Keymap_MouseDown(true);
