@@ -152,7 +152,7 @@ STATIC_INLINE int isinrom (void)
 
 static bool jit_fpu(void)
 {
-	return 0;
+	return false;
 }
 
 static int warned = 100;
@@ -235,7 +235,6 @@ static const struct fpp_cr_entry_undef fpp_cr_undef[] = {
 uae_u32 xhex_nan[]   ={0x7fff0000, 0xffffffff, 0xffffffff};
 
 static bool fpu_mmu_fixup;
-
 
 /* Floating Point Control Register (FPCR)
  *
@@ -1501,7 +1500,7 @@ static bool fault_if_no_packed_support(uae_u16 opcode, uae_u16 extra, uaecptr ea
 // 68040 does not support move to integer format
 static bool fault_if_68040_integer_nonmaskable(uae_u16 opcode, uae_u16 extra, uaecptr ea, bool easet, uaecptr oldpc, fpdata *src)
 {
-	if (currprefs.cpu_model == 68040 && currprefs.fpu_model) {
+	if (currprefs.cpu_model == 68040) {
 		fpsr_make_status();
 		if (regs.fpsr & (FPSR_SNAN | FPSR_OPERR)) {
 			fpsr_check_arithmetic_exception(FPSR_SNAN | FPSR_OPERR, src, opcode, extra, ea, easet, oldpc);
@@ -3631,13 +3630,14 @@ void fpu_clearstatus(void)
 void fpu_modechange(void)
 {
 	uae_u32 temp_ext[8][3];
+//fprintf ( stderr , "fpu_modechange old %d new %d\n" , currprefs.fpu_mode , changed_prefs.fpu_mode );
 
 	set_cpu_caches(true);
 	for (int i = 0; i < 8; i++) {
 		fpp_from_exten_fmovem(&regs.fp[i], &temp_ext[i][0], &temp_ext[i][1], &temp_ext[i][2]);
 	}
-	
-	fp_init_softfloat(currprefs.fpu_model);
+
+    fp_init_softfloat(currprefs.fpu_model);
 
 	get_features();
 	for (int i = 0; i < 8; i++) {
@@ -3665,8 +3665,12 @@ static void fpu_test(void)
 
 void fpu_reset (void)
 {
+#ifndef CPU_TESTER
     fp_init_softfloat(currprefs.fpu_model);
-    use_long_double = false;
+#else
+	fp_init_softfloat(currprefs.fpu_model);
+	use_long_double = false;
+#endif
 
 	regs.fpu_exp_state = 0;
 	regs.fp_unimp_pend = 0;
@@ -3756,7 +3760,7 @@ uae_u8 *restore_fpu (uae_u8 *src)
 	return src;
 }
 
-uae_u8 *save_fpu (int *len, uae_u8 *dstptr)
+uae_u8 *save_fpu(size_t *len, uae_u8 *dstptr)
 {
 	uae_u32 w1, w2, w3, v;
 	uae_u8 *dstbak, *dst;

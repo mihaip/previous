@@ -31,6 +31,7 @@ extern bool ismoves030, islrmw030;
 #define MMU030_STATEFLAG1_FMOVEM 0x2000
 #define MMU030_STATEFLAG1_MOVEM1 0x4000
 #define MMU030_STATEFLAG1_MOVEM2 0x8000
+
 #define MMU030_STATEFLAG1_DISP0 0x0001
 #define MMU030_STATEFLAG1_DISP1 0x0002
 
@@ -572,7 +573,6 @@ STATIC_INLINE void put_byte_mmu030 (uaecptr addr, uae_u32 v)
 {
     uae_mmu030_put_byte (addr, v);
 }
-
 STATIC_INLINE void put_word_mmu030 (uaecptr addr, uae_u32 v)
 {
     uae_mmu030_put_word (addr, v);

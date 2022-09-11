@@ -31,14 +31,14 @@
 /* If the CPU can access unaligned memory, use these accelerated functions: */
 #if CPU_CAN_ACCESS_UNALIGNED
 
-static inline uae_u32 do_get_mem_long(const void *a)
+static inline uae_u32 do_get_mem_long(void *a)
 {
-	return SDL_SwapBE32(*(const uae_u32 *)a);
+	return SDL_SwapBE32(*(uae_u32 *)a);
 }
 
-static inline uae_u16 do_get_mem_word(const void *a)
+static inline uae_u16 do_get_mem_word(void *a)
 {
-	return SDL_SwapBE16(*(const uae_u16 *)a);
+	return SDL_SwapBE16(*(uae_u16 *)a);
 }
 
 

@@ -105,6 +105,7 @@ struct mnemolookup lookuptab[] = {
 	{ i_CAS2, _T("CAS2"), NULL, 1 },
 	{ i_MULL, _T("MULL"), NULL, 0 },
 	{ i_DIVL, _T("DIVL"), NULL, 0 },
+
 	{ i_BFTST, _T("BFTST"), NULL, 0 },
 	{ i_BFEXTU, _T("BFEXTU"), NULL, 0 },
 	{ i_BFCHG, _T("BFCHG"), NULL, 0 },
@@ -113,6 +114,7 @@ struct mnemolookup lookuptab[] = {
 	{ i_BFFFO, _T("BFFFO"), NULL, 0 },
 	{ i_BFSET, _T("BFSET"), NULL, 0 },
 	{ i_BFINS, _T("BFINS"), NULL, 0 },
+
 	{ i_PACK, _T("PACK"), NULL, 0 },
 	{ i_UNPK, _T("UNPK"), NULL, 0 },
 	{ i_TAS, _T("TAS"), NULL, 1 },
@@ -121,6 +123,7 @@ struct mnemolookup lookuptab[] = {
 	{ i_RTM, _T("RTM"), NULL, 0 },
 	{ i_TRAPcc, _T("TRAPcc"), NULL, 0 },
 	{ i_MOVES, _T("MOVES"), NULL, 1 },
+
 	{ i_FPP, _T("FPP"), NULL, 0 },
 	{ i_FDBcc, _T("FDBcc"), NULL, 0 },
 	{ i_FScc, _T("FScc"), NULL, 0 },
@@ -719,8 +722,8 @@ out2:
 #endif
 endofline:
 		/* now, we have a match */
-		if (table68k[opc].mnemo != i_ILLG)
-			;//write_log (_T("Double match: %x: %s\n"), opc, opcstr);
+		//if (table68k[opc].mnemo != i_ILLG)
+		//	write_log (_T("Double match: %x: %s\n"), opc, opcstr);
 		if (find == -1) {
 			for (find = 0;; find++) {
 				if (_tcscmp (mnemonic, lookuptab[find].name) == 0) {

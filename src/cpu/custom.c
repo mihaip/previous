@@ -33,12 +33,12 @@
 /* declared in newcpu.c */
 extern struct regstruct mmu_backup_regs;
 /* declared in events.h */
-uae_u32 currcycle;
+evt_t currcycle;
 /* declared in savestate.h */
 int savestate_state = 0;
 TCHAR *savestate_fname;
 /* declared in custom.h */
-unsigned long int hsync_counter = 0, vsync_counter = 0;
+uae_u32 hsync_counter = 0, vsync_counter = 0;
 #endif
 
 
@@ -51,15 +51,16 @@ static uae_u32 extra_cycle;
 #ifndef WINUAE_FOR_HATARI
 static void sync_cycles(void)
 {
-        uae_u32 c;
-        uae_u32 extra;
-
-        c = get_cycles();
-        extra = c & (CYCLE_UNIT - 1);
-        if (extra) {
-                extra = CYCLE_UNIT - extra;
-                do_cycles(extra);
-        }
+	if (extra_cycle) {
+		do_cycles(extra_cycle);
+		extra_cycle = 0;
+	}
+	evt_t c = get_cycles();
+	int extra = c & (CYCLE_UNIT - 1);
+	if (extra) {
+		extra = CYCLE_UNIT - extra;
+		do_cycles(extra);
+	}
 }
 #endif
 
@@ -401,7 +402,7 @@ void do_cycles_ce (uae_u32 cycles)
 /* [NP] Unlike Amiga, for Hatari in 68000 CE mode, we don't need to update other components */
 /* on every sub cycle, so we can do all cycles in one single call to speed up */
 /* emulation (this gains approx 7%) */
-void do_cycles_ce (uae_u32 cycles)
+void do_cycles_ce (int cycles)
 {
 	cycles += extra_cycle;
 	extra_cycle = cycles & ( CYCLE_UNIT-1 );
@@ -411,7 +412,7 @@ void do_cycles_ce (uae_u32 cycles)
 
 #ifdef WINUAE_FOR_HATARI
 /* Same as do_cycles_ce() with cycle exact blitter support */
-void do_cycles_ce_hatari_blitter (uae_u32 cycles)
+void do_cycles_ce_hatari_blitter (int cycles)
 {
 	cycles += extra_cycle;
 	while (cycles >= CYCLE_UNIT) {
@@ -434,15 +435,16 @@ void do_cycles_ce_hatari_blitter (uae_u32 cycles)
 #endif
 
 
-void do_cycles_ce020 (uae_u32 cycles)
+void do_cycles_ce020 (int cycles)
 {
-	uae_u32 c;
-	uae_u32 extra;
+	int c;
+	evt_t cc;
+	int extra;
 
 	if (!cycles)
 		return;
-	c = get_cycles ();
-	extra = c & (CYCLE_UNIT - 1);
+	cc = get_cycles ();
+	extra = cc & (CYCLE_UNIT - 1);
 //fprintf ( stderr , "do_cycles_ce020 %d %d %d\n" , cycles , c , extra );
 	if (extra) {
 		extra = CYCLE_UNIT - extra;
@@ -542,11 +544,12 @@ void fixup_cpu (struct uae_prefs *p)
 			p->fpu_model = 68060;
 		break;
 	}
+
 	if (p->cpu_model < 68030 && p->mmu_model) {
-		error_log (_T("MMU emulation requires 68030/040/060."));
+		error_log (_T("MMU emulation requires 68030/040/060 and it is not JIT compatible."));
 		p->mmu_model = 0;
 	}
-	
+
 #ifndef WINUAE_FOR_HATARI
 	/* [NP] In Hatari, don't change m68k_speed in CE mode */
 	if (p->cpu_cycle_exact && p->m68k_speed < 0)
