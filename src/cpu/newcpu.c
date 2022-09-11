@@ -3725,7 +3725,7 @@ static void do_interrupt (int nr)
 		if (!currprefs.cpu_compatible || currprefs.cpu_model == 68060)
 			break;
 		if (m68k_interrupt_delay)
-			nr = regs.ipl;
+			nr = get_ipl();
 		else
 			nr = intlev();
 		if (nr <= 0 || regs.intmask >= nr)
