@@ -1041,7 +1041,7 @@ static void set_x_funcs (void)
 			x_do_cycles_pre = do_cycles;
 			x_do_cycles_post = do_cycles_post;
 		}
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	} else if (currprefs.cpu_model < 68020) {
 		// 68000/010
 		if (currprefs.cpu_cycle_exact) {
@@ -1349,7 +1349,7 @@ static void set_x_funcs (void)
 		x_do_cycles = do_cycles_ce020;
 		x_do_cycles_pre = do_cycles_ce020;
 		x_do_cycles_post = do_cycles_ce020_post;
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	}
 	x2_prefetch = x_prefetch;
 	x2_get_ilong = x_get_ilong;
@@ -1947,7 +1947,7 @@ static void build_cpufunctbl (void)
 	}
 
 	/* hack fpu to 68000/68010 mode */
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	if (currprefs.fpu_model && currprefs.cpu_model < 68020) {
 		tbl = op_smalltbl_3;
 		for (i = 0; tbl[i].handler_ff != NULL; i++) {
@@ -1960,7 +1960,7 @@ static void build_cpufunctbl (void)
 			}
 		}
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 
 	opcnt = 0;
 	for (opcode = 0; opcode < 65536; opcode++) {
@@ -2057,7 +2057,7 @@ static void build_cpufunctbl (void)
 	/* TODO ? Force address_space_24=0 for 68040 ? */
 #endif
 	m68k_interrupt_delay = false;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	if (currprefs.cpu_cycle_exact) {
 		if (tbl == op_smalltbl_14 || tbl == op_smalltbl_13 || tbl == op_smalltbl_21 || tbl == op_smalltbl_23)
 			m68k_interrupt_delay = true;
@@ -2066,7 +2066,7 @@ static void build_cpufunctbl (void)
 			m68k_interrupt_delay = true;
 		}
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 
 	if (currprefs.cpu_cycle_exact) {
 		if (currprefs.cpu_model == 68000)
@@ -2584,7 +2584,7 @@ static void exception_check_trace (int nr)
 
 static void exception_debug (int nr)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	if (unlikely(ExceptionDebugMask & EXCEPT_NOHANDLER) && STMemory_ReadLong(regs.vbr + 4*nr) == 0) {
 		fprintf(stderr,"Uninitialized exception handler #%i!\n", nr);
 		DebugUI(REASON_CPU_EXCEPTION);
@@ -2751,7 +2751,7 @@ Interrupt:
 ...
 
 */
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 static int iack_cycle(int nr)
 {
 	int vector;
@@ -2874,7 +2874,7 @@ static int iack_cycle(int nr)
 #endif
 	return vector;
 }
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 
 static void Exception_ce000 (int nr)
 {
@@ -2907,7 +2907,7 @@ static void Exception_ce000 (int nr)
 	if (start)
 		x_do_cycles (start * cpucycleunit);
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	LOG_TRACE(TRACE_CPU_EXCEPTION, "cpu exception %d currpc %x buspc %x newpc %x fault_e3 %x op_e3 %x addr_e3 %x SR %x\n",
 		nr, currpc, regs.instruction_pc, STMemory_ReadLong (regs.vbr + 4*nr), last_fault_for_exception_3, last_op_for_exception_3, last_addr_for_exception_3, regs.sr);
 #endif
@@ -2928,14 +2928,15 @@ static void Exception_ce000 (int nr)
 #ifndef WINUAE_FOR_HATARI
 		write_log (_T("Exception %d (%08x %x) at %x -> %x!\n"),
 			nr, last_op_for_exception_3, last_addr_for_exception_3, currpc, get_long_debug (4 * nr));
-#endif
-#if 0
+#else
+#ifndef WINUAE_FOR_PREVIOUS
 		if (nr != 2 || M68000_IsVerboseBusError(currpc, last_fault_for_exception_3))
 			Log_Printf(LOG_WARN, "%s Error %s at address $%x, PC=$%x addr_e3=%x op_e3=%x\n",
 			           nr == 2 ? "Bus" : "Address",
 			           last_writeaccess_for_exception_3 ? "writing" : "reading",
 			           last_fault_for_exception_3, currpc,
 			           last_addr_for_exception_3 , last_op_for_exception_3);
+#endif // WINUAE_FOR_PREVIOUS
 #endif
 		if (currprefs.cpu_model == 68000) {
 			// 68000 bus/address error
@@ -2990,10 +2991,10 @@ static void Exception_ce000 (int nr)
 		}
 		exception_in_exception = 1;
 		x_put_word (m68k_areg (regs, 7) + 4, currpc); // write low address
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		if (interrupt)
 			vector_nr = iack_cycle(nr);
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 		x_put_word (m68k_areg (regs, 7) + 0, regs.sr); // write SR
 		x_put_word (m68k_areg (regs, 7) + 2, currpc >> 16); // write high address
 		x_put_word (m68k_areg (regs, 7) + 6, (frame_id << 12) | (vector_nr * 4));
@@ -3006,10 +3007,10 @@ static void Exception_ce000 (int nr)
 		exception_in_exception = 1;
 		x_put_word (m68k_areg (regs, 7) + 4, currpc); // write low address
 //fprintf ( stderr , "ex iack1 %d %ld\n" , nr , currcycle );
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		if (interrupt)
 			vector_nr = iack_cycle(nr);
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 //fprintf ( stderr , "ex iack2 %d %ld\n" , nr , currcycle );
 		x_put_word (m68k_areg (regs, 7) + 0, regs.sr); // write SR
 		x_put_word (m68k_areg (regs, 7) + 2, currpc >> 16); // write high address
@@ -3069,7 +3070,7 @@ kludge_me_do:
 	}
 	regs.ird = regs.ir;
 	x_do_cycles (2 * cpucycleunit);
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	/* [NP] IPL should be updated just before the last x_get_word for irc */
 	/* (4 cycles before end of exception), so we need to add 2 cycles now */
 	/* to be aligned on 4 cycles (else the 2 cycles will be added in x_get_word */
@@ -3100,7 +3101,7 @@ kludge_me_do:
 	exception_check_trace (nr);
 
 //fprintf ( stderr , "ex out %d %ld\n" , nr , currcycle );
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	/* Add all cycles needed for the exception */
 	M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
 	currcycle = 0;
@@ -3116,12 +3117,12 @@ static void Exception_mmu030 (int nr, uaecptr oldpc)
 
 	interrupt = nr >= 24 && nr < 24 + 8;
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	if (interrupt)
 		nr = iack_cycle(nr);
 #endif
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	LOG_TRACE(TRACE_CPU_EXCEPTION, "cpu exception %d currpc %x buspc %x newpc %x fault_e3 %x op_e3 %x addr_e3 %x SR %x\n",
 		nr, currpc, regs.instruction_pc, STMemory_ReadLong (regs.vbr + 4*nr), last_fault_for_exception_3, last_op_for_exception_3, last_addr_for_exception_3, regs.sr);
 #endif
@@ -3196,12 +3197,12 @@ static void Exception_mmu (int nr, uaecptr oldpc)
 	// operations don't allocate new cachelines
 	cache_default_data |= CACHE_DISABLE_ALLOCATE;
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	if (interrupt)
 		nr = iack_cycle(nr);
 #endif
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	LOG_TRACE(TRACE_CPU_EXCEPTION, "cpu exception %d currpc %x buspc %x newpc %x fault_e3 %x op_e3 %x addr_e3 %x SR %x\n",
 		nr, currpc, regs.instruction_pc, STMemory_ReadLong (regs.vbr + 4*nr), last_fault_for_exception_3, last_op_for_exception_3, last_addr_for_exception_3, regs.sr);
 #endif
@@ -3264,7 +3265,7 @@ static void Exception_mmu (int nr, uaecptr oldpc)
 
 static void add_approximate_exception_cycles(int nr)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	int cycles;
 
 	if (currprefs.cpu_model == 68000) {
@@ -3339,7 +3340,7 @@ static void add_approximate_exception_cycles(int nr)
 #endif
 	cycles = adjust_cycles(cycles * CYCLE_UNIT / 2);
 	x_do_cycles(cycles);
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 }
 
 static void Exception_normal (int nr)
@@ -3364,10 +3365,10 @@ static void Exception_normal (int nr)
 	}
 #else
 	g1 = generates_group1_exception(regs.ir);
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	if (interrupt)
 		vector_nr = iack_cycle(nr);
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 #endif
 
 	exception_debug (nr);
@@ -3414,7 +3415,7 @@ static void Exception_normal (int nr)
 	if (currprefs.cpu_model > 68000) {
 		uae_u32 oldpc = regs.instruction_pc;
 		nextpc = exception_pc (nr);
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		LOG_TRACE(TRACE_CPU_EXCEPTION, "cpu exception %d vector %x currpc %x buspc %x newpc %x fault_e3 %x op_e3 %x addr_e3 %x SR %x\n",
 			nr, 4*vector_nr , currpc, regs.instruction_pc, STMemory_ReadLong (regs.vbr + 4*vector_nr), last_fault_for_exception_3, last_op_for_exception_3, last_addr_for_exception_3, regs.sr);
 #endif
@@ -3527,14 +3528,15 @@ static void Exception_normal (int nr)
 			}
 #ifndef WINUAE_FOR_HATARI
 			write_log (_T("Exception %d (%x) at %x -> %x!\n"), nr, regs.instruction_pc, currpc, get_long_debug (regs.vbr + 4 * vector_nr));
-#endif
-#if 0
+#else
+#ifndef WINUAE_FOR_PREVIOUS
 			if (nr != 2 || M68000_IsVerboseBusError(currpc, last_fault_for_exception_3))
 				Log_Printf(LOG_WARN, "%s Error %s at address $%x, PC=$%x addr_e3=%x op_e3=%x\n",
 				           nr == 2 ? "Bus" : "Address",
 				           last_writeaccess_for_exception_3 ? "writing" : "reading",
 				           last_fault_for_exception_3, currpc,
 				           last_addr_for_exception_3, last_op_for_exception_3);
+#endif // WINUAE_FOR_PREVIOUS
 #endif
 		} else if (regs.m && interrupt) { /* M + Interrupt */
 			m68k_areg (regs, 7) -= 2;
@@ -3557,7 +3559,7 @@ static void Exception_normal (int nr)
 		}
  	} else {
 		nextpc = m68k_getpc ();
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		LOG_TRACE(TRACE_CPU_EXCEPTION, "cpu exception %d vector %x currpc %x buspc %x newpc %x fault_e3 %x op_e3 %x addr_e3 %x SR %x\n",
 			nr, 4*vector_nr , currpc, regs.instruction_pc, STMemory_ReadLong (regs.vbr + 4*vector_nr), last_fault_for_exception_3, last_op_for_exception_3, last_addr_for_exception_3, regs.sr);
 #endif
@@ -3570,14 +3572,15 @@ static void Exception_normal (int nr)
 			Exception_build_68000_address_error_stack_frame(mode, last_op_for_exception_3, last_fault_for_exception_3, last_addr_for_exception_3);
 #ifndef WINUAE_FOR_HATARI
 			write_log (_T("Exception %d (%x) at %x -> %x!\n"), nr, last_fault_for_exception_3, currpc, get_long_debug (regs.vbr + 4 * vector_nr));
-#endif
-#if 0
+#else
+#ifndef WINUAE_FOR_PREVIOUS
 			if (nr != 2 || M68000_IsVerboseBusError(currpc, last_fault_for_exception_3))
 				Log_Printf(LOG_WARN, "%s Error %s at address $%x, PC=$%x addr_e3=%x op_e3=%x\n",
 				           nr == 2 ? "Bus" : "Address",
 				           last_writeaccess_for_exception_3 ? "writing" : "reading",
 				           last_fault_for_exception_3, currpc,
 				           last_addr_for_exception_3, last_op_for_exception_3);
+#endif // WINUAE_FOR_PREVIOUS
 #endif
 			goto kludge_me_do;
 		}
@@ -3639,7 +3642,7 @@ kludge_me_do:
 	add_approximate_exception_cycles(nr);
 	m68k_setpc (newpc);
 	cache_default_data &= ~CACHE_DISABLE_ALLOCATE;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	/* Update IPL / interrupts state, in case a new interrupt happened during this exception */
 // 	while ( ( PendingInterruptCount <= 0 ) && ( PendingInterruptFunction ) )
 // 		CALL_VAR(PendingInterruptFunction);
@@ -3674,7 +3677,7 @@ static void ExceptionX (int nr, uaecptr address, uaecptr oldpc)
 		regs.instruction_pc_user_exception = pc;
 	}
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	/* Handle Hatari GEM and BIOS traps */
 	if (nr == 0x22) {
 		/* Intercept VDI & AES exceptions (Trap #2) */
@@ -4805,7 +4808,7 @@ void intlev_load(void)
 
 void doint(void)
 {
-#if 0 // Previous: for now this is done inside the run-loops
+#ifndef WINUAE_FOR_PREVIOUS // Previous: for now this is done inside the run-loops
 #ifdef WITH_PPC
 	if (ppc_state) {
 		if (!ppc_interrupt(intlev()))
@@ -4833,7 +4836,7 @@ void doint(void)
 		set_special (SPCFLAG_INT);
 	else
 		set_special (SPCFLAG_DOINT);
-#endif // Previous
+#endif // WINUAE_FOR_PREVIOUS
 }
 
 
@@ -4851,13 +4854,13 @@ static bool do_specialties_interrupt (int Pending)
          return true;
     }
 #endif
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
     /* Check for MFP ints (level 6) */
     if (regs.spcflags & SPCFLAG_MFP) {
        if (MFP_ProcessIRQ_All() == true)
          return true;					/* MFP exception was generated, no higher interrupt can happen */
     }
-#endif
+#endif // WINUAE_FOR_PREVIOUS
     /* No MFP int, check for VBL/HBL ints (levels 4/2) */
     if (regs.spcflags & (SPCFLAG_INT | SPCFLAG_DOINT)) {
 	int intr = intlev ();
@@ -4896,10 +4899,11 @@ static void debug_cpu_stop(void)
 #endif
 }
 
-static int ndCycles = 0;
 // give other MPUs (DSP, i860) some time to run on m68k thread
 static inline void run_other_MPUs(void)
 {
+	static int ndCycles = 0;
+
 	ndCycles += cpu_cycles;
 	// bundle some 68k cycles for MPUs
 	
@@ -4932,7 +4936,7 @@ static int do_specialties (int cycles)
 	if (regs.spcflags & SPCFLAG_TRACE)
 		do_trace();
 
-#if 0 // Previous: for now this is done inside the run-loops
+#ifndef WINUAE_FOR_PREVIOUS // Previous: for now this is done inside the run-loops
 //fprintf ( stderr , "dospec1 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , regs.spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
 	if (m68k_interrupt_delay) {
 		if (time_for_interrupt()) {
@@ -4961,7 +4965,7 @@ static int do_specialties (int cycles)
 		set_special(SPCFLAG_INT);
 	}
 //fprintf ( stderr , "dospec3 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , regs.spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
-#endif // Previous
+#endif // WINUAE_FOR_PREVIOUS
 
 #ifdef WINUAE_FOR_HATARI
 	if (regs.spcflags & SPCFLAG_DEBUGGER)
@@ -4969,7 +4973,9 @@ static int do_specialties (int cycles)
 #endif
 
 	if (regs.spcflags & SPCFLAG_BRK) {
+#ifndef WINUAE_FOR_PREVIOUS
 		unset_special(SPCFLAG_BRK);
+#endif // WINUAE_FOR_PREVIOUS
 #ifdef DEBUGGER
 		if (debugging) {
 			debug();
@@ -5103,7 +5109,7 @@ static void m68k_run_1 (void)
 
 				count_instr (r->opcode);
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 				{
@@ -5142,7 +5148,7 @@ static void m68k_run_1 (void)
 				do_cycles(cpu_cycles);
 				regs.instruction_cnt++;
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				/* Also add some extra cycles to simulate some wait state */
 				/* TODO  [NP] do this in all m68k_run_xx() */
 				M68000_AddCyclesWithPairing(cpu_cycles * 2 / CYCLE_UNIT + WaitStateCycles);
@@ -5166,7 +5172,7 @@ static void m68k_run_1 (void)
 				}
 				regs.ipl[0] = regs.ipl_pin;
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				if ( savestate_state == STATE_SAVE )
 					save_state ( NULL , NULL );
 #endif
@@ -5203,7 +5209,7 @@ static void m68k_run_1_ce (void)
 	bool first = true;
 	bool exit = false;
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	Log_Printf(LOG_DEBUG, "m68k_run_1_ce\n");
 	CpuRunCycleExact = true;
 #endif
@@ -5246,7 +5252,7 @@ static void m68k_run_1_ce (void)
 			while (!exit) {
 				r->opcode = r->ir;
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 				{
@@ -5312,7 +5318,7 @@ static void m68k_run_1_ce (void)
 					regs.ird = regs.opcode;
 				regs.instruction_cnt++;
 				wait_memory_cycles();			// TODO NP : ici, ou plus bas ?
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr, "cyc_1ce %d\n" , currcycle );
 				/* Flush all CE cycles so far to update PendingInterruptCount */
 				M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
@@ -5343,7 +5349,7 @@ cont:
 						exit = true;
 				}
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				if ( savestate_state == STATE_SAVE )
 					save_state ( NULL , NULL );
 #endif
@@ -5990,7 +5996,7 @@ static void m68k_run_mmu060 (void)
 		check_debugger();
 		TRY (prb) {
 			for (;;) {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 				{
@@ -6016,7 +6022,7 @@ static void m68k_run_mmu060 (void)
 
 				cpu_cycles = adjust_cycles (cpu_cycles);
 				regs.instruction_cnt++;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				M68000_AddCycles(cpu_cycles * 2 / CYCLE_UNIT);
 
 				if ( WaitStateCycles ) {
@@ -6032,21 +6038,20 @@ static void m68k_run_mmu060 (void)
 					MFP_UpdateIRQ_All ( 0 );
 #endif
 				if (regs.spcflags) {
-					if (do_specialties (cpu_cycles)) {
+					if (do_specialties(cpu_cycles)) {
 						STOPTRY;
 						return;
 					}
 				}
-#ifdef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
 				/* Run DSP 56k code if necessary */
 				if (bDspEnabled) {
 					DSP_Run(2 * cpu_cycles * 2 / CYCLE_UNIT);
 //					DSP_Run ( DSP_CPU_FREQ_RATIO * ( CyclesGlobalClockCounter - DSP_CyclesGlobalClockCounter ) );
 				}
-#if 0
+
 				if ( savestate_state == STATE_SAVE )
 					save_state ( NULL , NULL );
-#endif
 #endif
 			}
 		} CATCH (prb) {
@@ -6298,7 +6303,7 @@ static void m68k_run_3ce (void)
 	bool exit = false;
 	int extracycles = 0;
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	Log_Printf(LOG_DEBUG, "m68k_run_3ce\n");
 	CpuRunCycleExact = true;
 #endif
@@ -6307,7 +6312,7 @@ static void m68k_run_3ce (void)
 		check_debugger();
 		TRY(prb) {
 			while (!exit) {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 				{
@@ -6332,7 +6337,7 @@ static void m68k_run_3ce (void)
 
 				(*cpufunctbl[r->opcode])(r->opcode);
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr, "cyc_3ce %ld\n" , currcycle );
 				/* Flush all CE cycles so far to update PendingInterruptCount */
 				M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
@@ -6367,7 +6372,7 @@ static void m68k_run_3ce (void)
 #endif
 				}
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				/* Run DSP 56k code if necessary */
 				if (bDspEnabled) {
 					DSP_Run( dsp_cycles );
@@ -6404,7 +6409,7 @@ static void m68k_run_3p(void)
 		check_debugger();
 		TRY(prb) {
 			while (!exit) {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 				{
@@ -6433,8 +6438,8 @@ static void m68k_run_3p(void)
 				cycles = adjust_cycles(cpu_cycles);
 				regs.instruction_cnt++;
 				do_cycles(cycles);
-#endif
-#if 0
+#else
+#ifndef WINUAE_FOR_PREVIOUS
 				cycles = cpu_cycles = CYCLE_UNIT / 2;
 				M68000_AddCycles_CE(cycles * 2 / CYCLE_UNIT);
 
@@ -6456,6 +6461,7 @@ static void m68k_run_3p(void)
 				CycInt_Process_stop(regs.spcflags & SPCFLAG_STOP );
 				if ( MFP_UpdateNeeded == true )
 					MFP_UpdateIRQ_All ( 0 );
+#endif // WINUAE_FOR_PREVIOUS
 #endif
 
 				if (r->spcflags) {
@@ -6463,7 +6469,7 @@ static void m68k_run_3p(void)
 						exit = true;
 				}
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				/* Run DSP 56k code if necessary */
 				if (bDspEnabled) {
 					DSP_Run( dsp_cycles );
@@ -6493,7 +6499,7 @@ static void m68k_run_2ce (void)
 	bool exit = false;
 	bool first = true;
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	Log_Printf(LOG_DEBUG, "m68k_run_2ce\n");
 	CpuRunCycleExact = true;
 #endif
@@ -6541,7 +6547,7 @@ static void m68k_run_2ce (void)
 #if 0
 				static int prevopcode;
 #endif
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 				{
@@ -6635,7 +6641,7 @@ fprintf ( stderr , "cache valid %d tag1 %x lws1 %x ctag %x data %x mem=%x\n" , c
 				wait_memory_cycles();
 				regs.instruction_cnt++;
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr, "cyc_2ce %d\n" , currcycle );
 				/* Flush all CE cycles so far to update PendingInterruptCount */
 				M68000_AddCycles_CE ( currcycle * 2 / CYCLE_UNIT );
@@ -6661,7 +6667,7 @@ fprintf ( stderr , "cache valid %d tag1 %x lws1 %x ctag %x data %x mem=%x\n" , c
 						exit = true;
 				}
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				/* Run DSP 56k code if necessary */
 				if (bDspEnabled) {
 //fprintf ( stderr, "dsp cyc_2ce %d\n" , currcycle );
@@ -6740,7 +6746,7 @@ static void m68k_run_2p (void)
 			}
 
 			while (!exit) {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 				{
@@ -6826,7 +6832,7 @@ static void m68k_run_2p (void)
 					x_do_cycles(cpu_cycles);
 
 cont:
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr , "waits %d %d %ld\n" , cpu_cycles*2/CYCLE_UNIT , WaitStateCycles , CyclesGlobalClockCounter );
 				M68000_AddCycles(cpu_cycles * 2 / CYCLE_UNIT);
 
@@ -6858,7 +6864,7 @@ cont:
 				}
 				ipl_fetch_now();
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				/* Run DSP 56k code if necessary */
 				if (bDspEnabled) {
 //if ( DSP_CPU_FREQ_RATIO * ( (CyclesGlobalClockCounter - DSP_CyclesGlobalClockCounter) << nCpuFreqShift )  - 2 * cpu_cycles * 2 / CYCLE_UNIT >= 8 )
@@ -6937,7 +6943,7 @@ static void m68k_run_2_000(void)
 		check_debugger();
 		TRY(prb) {
 			while (!exit) {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 				{
@@ -6961,7 +6967,7 @@ static void m68k_run_2_000(void)
 				cpu_cycles = (*cpufunctbl[r->opcode])(r->opcode) & 0xffff;
 				cpu_cycles = adjust_cycles (cpu_cycles);
 				do_cycles(cpu_cycles);
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr , "cyc_2 %d\n" , cpu_cycles );
 				M68000_AddCyclesWithPairing(cpu_cycles * 2 / CYCLE_UNIT);
 
@@ -6988,7 +6994,7 @@ static void m68k_run_2_000(void)
 						exit = true;
 				}
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				/* Run DSP 56k code if necessary */
 				if (bDspEnabled) {
 					DSP_Run(2 * cpu_cycles * 2 / CYCLE_UNIT);
@@ -7029,7 +7035,7 @@ static void m68k_run_2_020(void)
 		check_debugger();
 		TRY(prb) {
 			while (!exit) {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 				{
@@ -7052,7 +7058,7 @@ static void m68k_run_2_020(void)
 				cpu_cycles = (*cpufunctbl[r->opcode])(r->opcode) >> 16;
 				cpu_cycles = adjust_cycles(cpu_cycles);
 				do_cycles(cpu_cycles);
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr , "cyc_2 %d\n" , cpu_cycles );
 				M68000_AddCyclesWithPairing(cpu_cycles * 2 / CYCLE_UNIT);
 
@@ -7079,7 +7085,7 @@ static void m68k_run_2_020(void)
 						exit = true;
 				}
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				/* Run DSP 56k code if necessary */
 				if (bDspEnabled) {
 					DSP_Run(2 * cpu_cycles * 2 / CYCLE_UNIT);
@@ -7244,12 +7250,12 @@ void m68k_go (int may_quit)
 #endif
 			custom_reset (cpu_hardreset != 0, cpu_keyboardreset);
 			m68k_reset2 (cpu_hardreset != 0);
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 			if (cpu_hardreset) {
 				memory_clear ();
 				write_log (_T("hardreset, memory cleared\n"));
 			}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 			cpu_hardreset = false;
 #ifdef SAVESTATE
 			/* We may have been restoring state, but we're done now.  */
@@ -7354,7 +7360,7 @@ void m68k_go (int may_quit)
 		}
 #endif
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		if (!regs.halted) {
 			// check that PC points to something that looks like memory.
 			uaecptr pc = m68k_getpc();
@@ -7367,7 +7373,7 @@ void m68k_go (int may_quit)
 				cpu_halt(CPU_HALT_INVALID_START_ADDRESS);
 			}
 		}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 		if (regs.halted) {
 			cpu_halt (regs.halted);
 			if (regs.halted < 0) {
@@ -7376,7 +7382,7 @@ void m68k_go (int may_quit)
 			}
 		}
 
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		/* Apply patches for gemdos HD if needed (we need to do it after */
 		/* cpu tables for all opcodes were rebuilt in build_cpufunctbl() ) */
 		M68000_PatchCpuTables();
@@ -8535,7 +8541,7 @@ void exception2_fetch(uae_u32 opcode, int offset, int pcoffset)
 
 bool cpureset (void)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
     /* RESET hasn't increased PC yet, 1 word offset */
 	uaecptr pc;
 #ifndef WINUAE_FOR_HATARI
@@ -8595,7 +8601,7 @@ bool cpureset (void)
 	write_log (_T("CPU Reset PC=%x (%s), invalid memory\n"), pc, ab->name);
 	customreset ();			/* From hatari-glue.c */
 #endif
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return false;
 }
 
@@ -8838,7 +8844,7 @@ static void fill_icache020 (uae_u32 addr, bool opcode)
 		regs.cacheholdingaddr020 = addr;
 		regs.cacheholdingdata020 = c->data;
 		regs.cacheholdingdata_valid = true;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		CpuInstruction.I_Cache_hit++;
 #endif
 		return;
@@ -8870,7 +8876,7 @@ static void fill_icache020 (uae_u32 addr, bool opcode)
 	regs.cacheholdingaddr020 = addr;
 	regs.cacheholdingdata020 = data;
 	regs.cacheholdingdata_valid = true;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	CpuInstruction.I_Cache_miss++;
 #endif
 }
@@ -9044,7 +9050,7 @@ uae_u32 get_word_020_prefetch (int o)
 uae_u32 mem_access_delay_long_read_ce020 (uaecptr addr)
 {
 	uae_u32 v = 0;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr , "long read ce020 %lu %lu\n" , currcycle / cpucycleunit , currcycle );
 	start_020_cycle();
 	switch (ce_banktype[addr >> 16])
@@ -9079,14 +9085,14 @@ uae_u32 mem_access_delay_long_read_ce020 (uaecptr addr)
 //fprintf ( stderr , "long read2 ce020 %lu %lu\n" , currcycle / cpucycleunit , currcycle );
 	end_020_cycle();
 //fprintf ( stderr , "long read3 ce020 %lu %lu\n" , currcycle / cpucycleunit , currcycle );
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return v;
 }
 
 uae_u32 mem_access_delay_longi_read_ce020 (uaecptr addr)
 {
 	uae_u32 v = 0;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -9116,14 +9122,14 @@ uae_u32 mem_access_delay_longi_read_ce020 (uaecptr addr)
 		v = get_longi (addr);
 		break;
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return v;
 }
 
 uae_u32 mem_access_delay_wordi_read_ce020 (uaecptr addr)
 {
 	uae_u32 v = 0;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	start_020_cycle();
 	switch (ce_banktype[addr >> 16])
 	{
@@ -9149,14 +9155,14 @@ uae_u32 mem_access_delay_wordi_read_ce020 (uaecptr addr)
 		break;
 	}
 	end_020_cycle();
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return v;
 }
 
 uae_u32 mem_access_delay_word_read_ce020 (uaecptr addr)
 {
 	uae_u32 v = 0;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	start_020_cycle();
 	switch (ce_banktype[addr >> 16])
 	{
@@ -9182,14 +9188,14 @@ uae_u32 mem_access_delay_word_read_ce020 (uaecptr addr)
 		break;
 	}
 	end_020_cycle();
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return v;
 }
 
 uae_u32 mem_access_delay_byte_read_ce020 (uaecptr addr)
 {
 	uae_u32 v = 0;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	start_020_cycle();
 	switch (ce_banktype[addr >> 16])
 	{
@@ -9207,13 +9213,13 @@ uae_u32 mem_access_delay_byte_read_ce020 (uaecptr addr)
 		break;
 	}
 	end_020_cycle();
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return v;
 }
 
 void mem_access_delay_byte_write_ce020 (uaecptr addr, uae_u32 v)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	start_020_cycle();
 	switch (ce_banktype[addr >> 16])
 	{
@@ -9231,12 +9237,12 @@ void mem_access_delay_byte_write_ce020 (uaecptr addr, uae_u32 v)
 	break;
 	}
 	end_020_cycle();
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 }
 
 void mem_access_delay_word_write_ce020 (uaecptr addr, uae_u32 v)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	start_020_cycle();
 	switch (ce_banktype[addr >> 16])
 	{
@@ -9262,12 +9268,12 @@ void mem_access_delay_word_write_ce020 (uaecptr addr, uae_u32 v)
 	break;
 	}
 	end_020_cycle();
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 }
 
 void mem_access_delay_long_write_ce020 (uaecptr addr, uae_u32 v)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	start_020_cycle();
 	switch (ce_banktype[addr >> 16])
 	{
@@ -9299,7 +9305,7 @@ void mem_access_delay_long_write_ce020 (uaecptr addr, uae_u32 v)
 		break;
 	}
 	end_020_cycle();
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 }
 
 
@@ -9395,7 +9401,7 @@ static void fill_icache030(uae_u32 addr)
 		regs.cacheholdingaddr020 = addr;
 		regs.cacheholdingdata020 = c->data[lws];
 //fprintf ( stderr , "fill ica %x -> hit %x %x\n" , addr , regs.cacheholdingdata020 , regs.cacr );
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		CpuInstruction.I_Cache_hit++;
 #endif
 		return;
@@ -9464,7 +9470,7 @@ static void fill_icache030(uae_u32 addr)
 	regs.cacheholdingaddr020 = addr;
 	regs.cacheholdingdata020 = data;
 //fprintf ( stderr , "fill ica %x -> miss %x\n" , addr , regs.cacheholdingdata020 );
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	CpuInstruction.I_Cache_miss++;
 #endif
 }
@@ -9765,13 +9771,13 @@ static bool read_dcache030_2(uaecptr addr, uae_u32 size, uae_u32 *valp)
 		validate_dcache030();
 #endif
 //fprintf ( stderr , "read cache %x %x %d tag1 %x lws1 %x tag2 %x lws2 %x ref %x\n", addr, v1, size, tag1, lws1, tag2, lws2 , get_long (0x1f81ec) );
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		CpuInstruction.D_Cache_miss++;
 #endif
 	} else {
 		// Cache hit, inhibited caching do not prevent read hits.
 		v1 = c1->data[lws1];
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		CpuInstruction.D_Cache_hit++;
 #endif
 	}
@@ -9802,12 +9808,12 @@ static bool read_dcache030_2(uaecptr addr, uae_u32 size, uae_u32 *valp)
 		validate_dcache030();
 #endif
 //fprintf ( stderr , "read cache %x %x %d tag1 %x lws1 %x tag2 %x lws2 %x\n", addr, v1, size, tag1, lws1, tag2, lws2 );
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		CpuInstruction.D_Cache_miss++;
 #endif
 	} else {
 		v2 = c2->data[lws2];
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		CpuInstruction.D_Cache_hit++;
 #endif
 	}
@@ -10084,7 +10090,7 @@ uae_u32 fill_icache040(uae_u32 addr)
 				if ((lws & 1) != icachehalfline) {
 					icachehalfline ^= 1;
 					icachelinecnt++;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 				CpuInstruction.I_Cache_hit++;
 #endif
 				}
@@ -10123,7 +10129,7 @@ uae_u32 fill_icache040(uae_u32 addr)
 			icachehalfline ^= 1;
 			icachelinecnt++;
 		}
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 		CpuInstruction.I_Cache_miss++;
 #endif
 		return c->data[line][lws];
@@ -10149,7 +10155,7 @@ STATIC_INLINE void do_cycles_c040_mem (int clocks, uae_u32 val)
 uae_u32 mem_access_delay_longi_read_c040 (uaecptr addr)
 {
 	uae_u32 v = 0;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -10175,13 +10181,13 @@ uae_u32 mem_access_delay_longi_read_c040 (uaecptr addr)
 		v = get_longi (addr);
 		break;
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return v;
 }
 uae_u32 mem_access_delay_long_read_c040 (uaecptr addr)
 {
 	uae_u32 v = 0;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -10207,14 +10213,14 @@ uae_u32 mem_access_delay_long_read_c040 (uaecptr addr)
 		v = get_long (addr);
 		break;
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return v;
 }
 
 uae_u32 mem_access_delay_word_read_c040 (uaecptr addr)
 {
 	uae_u32 v = 0;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -10237,14 +10243,14 @@ uae_u32 mem_access_delay_word_read_c040 (uaecptr addr)
 		 v = get_word (addr);
 		break;
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return v;
 }
 
 uae_u32 mem_access_delay_byte_read_c040 (uaecptr addr)
 {
 	uae_u32 v = 0;
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -10262,13 +10268,13 @@ uae_u32 mem_access_delay_byte_read_c040 (uaecptr addr)
 		v = get_byte (addr);
 		break;
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	return v;
 }
 
 void mem_access_delay_byte_write_c040 (uaecptr addr, uae_u32 v)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -10286,12 +10292,12 @@ void mem_access_delay_byte_write_c040 (uaecptr addr, uae_u32 v)
 		put_byte (addr, v);
 	break;
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 }
 
 void mem_access_delay_word_write_c040 (uaecptr addr, uae_u32 v)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -10317,12 +10323,12 @@ void mem_access_delay_word_write_c040 (uaecptr addr, uae_u32 v)
 		put_word (addr, v);
 	break;
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 }
 
 void mem_access_delay_long_write_c040 (uaecptr addr, uae_u32 v)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	switch (ce_banktype[addr >> 16])
 	{
 	case CE_MEMBANK_CHIP16:
@@ -10348,7 +10354,7 @@ void mem_access_delay_long_write_c040 (uaecptr addr, uae_u32 v)
 		put_long (addr, v);
 		break;
 	}
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 }
 
 static uae_u32 dcache040_get_data(uaecptr addr, struct cache040 *c, int line, int size)
@@ -10963,10 +10969,10 @@ void fill_prefetch_030(void)
 
 void fill_prefetch (void)
 {
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 	if (currprefs.cachesize)
 		return;
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	if (!currprefs.cpu_compatible)
 		return;
 	reset_pipeline_state();

@@ -6,6 +6,10 @@
 /* when compiling Hatari */
 #define WINUAE_FOR_HATARI
 
+/* This define disables compilation of Atari specific code in the cpu core. */
+/* This only works when also defining WINUAE_FOR_HATARI */
+#define WINUAE_FOR_PREVIOUS
+
 
 #ifndef WINUAE_FOR_HATARI
 #pragma warning (disable : 4761)
