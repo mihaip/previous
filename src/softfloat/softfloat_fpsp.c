@@ -1594,18 +1594,21 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 	aSign = extractFloatx80Sign(a);
 	
 	if (aExp == 0x7FFF) {
-		if ((uint64_t) (aSig<<1)) {
+		if ((uint64_t)(aSig << 1)) {
 			*c = propagateFloatx80NaNOneArg(a, status);
 			return *c;
+			
 		}
 		float_raise(float_flag_invalid, status);
 		*c = floatx80_default_nan(status);
 		return *c;
+		
 	}
 	
 	if (aExp == 0 && aSig == 0) {
 		*c = packFloatx80(0, one_exp, one_sig);
 		return packFloatx80(aSign, 0, 0);
+		
 	}
 	
 	SET_PREC;
@@ -1626,8 +1629,9 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 				fp0 = floatx80_add(fp0, twopi2, status);
 				fp1 = floatx80_sub(fp1, fp0, status);
 				fp1 = floatx80_add(fp1, twopi2, status);
+				
 			}
-		loop:
+			loop:
 			xSign = extractFloatx80Sign(fp0);
 			xExp = extractFloatx80Exp(fp0);
 			xExp -= 0x3FFF;
@@ -1641,10 +1645,10 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 			invtwopi = packFloatx80(0, 0x3FFE - l, LIT64(0xA2F9836E4E44152A)); // INVTWOPI
 			twopi1 = packFloatx80(0, 0x3FFF + l, LIT64(0xC90FDAA200000000));
 			twopi2 = packFloatx80(0, 0x3FDD + l, LIT64(0x85A308D300000000));
-			
+
 			twoto63 = 0x5F000000;
 			twoto63 |= xSign ? 0x80000000 : 0x00000000; // SIGN(INARG)*2^63 IN SGL
-			
+
 			fp2 = floatx80_mul(fp0, invtwopi, status);
 			fp2 = floatx80_add(fp2, float32_to_floatx80(twoto63, status), status); // THE FRACTIONAL PART OF FP2 IS ROUNDED
 			fp2 = floatx80_sub(fp2, float32_to_floatx80(twoto63, status), status); // FP2 is N
@@ -1679,6 +1683,7 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 			float_raise(float_flag_inexact, status);
 			
 			return a;
+		
 		}
 	} else {
 		fp1 = floatx80_mul(fp0, float64_to_floatx80(LIT64(0x3FE45F306DC9C883), status), status); // X*2/PI
@@ -1689,7 +1694,7 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 		fp0 = floatx80_sub(fp0, pi_tbl[i], status); // X-Y1
 		fp0 = floatx80_sub(fp0, float32_to_floatx80(pi_tbl2[i], status), status); // FP0 IS R = (X-Y1)-Y2
 		
-	sccont:
+		sccont:
 		n &= 3; // k = N mod 4
 		if (n & 1) {
 			// NODD
@@ -1721,7 +1726,7 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 			sSign ^= j1;
 			posneg1 = 0x3F800000;
 			posneg1 |= j1 ? 0x80000000 : 0;
-
+			
 			fp1 = floatx80_add(fp1, float64_to_floatx80(LIT64(0x3EC71DE3A5341531), status), status); // A4+S(A5+S(A6+SA7))
 			fp2 = floatx80_add(fp2, float64_to_floatx80(LIT64(0xBE927E4FB79D9FCF), status), status); // B5+S(B6+S(B7+SB8))
 			fp1 = floatx80_mul(fp1, fp0, status); // S(A4+...)
@@ -1742,7 +1747,7 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 			fp2 = floatx80_add(fp2, fp4, status); // B2+S(B3+...)
 			fp1 = floatx80_mul(fp1, fp0, status); // S(A1+...)
 			fp0 = floatx80_mul(fp0, fp2, status); // S(B2+...)
-
+			
 			r = packFloatx80(rSign, rExp, rSig);
 			fp1 = floatx80_mul(fp1, r, status); // R'S(A1+...)
 			fp0 = floatx80_add(fp0, float32_to_floatx80(0xBF000000, status), status); // B1+S(B2...)
@@ -1753,7 +1758,7 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 			RESET_PREC;
 			
 			*c = floatx80_add(fp1, r, status); // COS(X)
-
+			
 			a = floatx80_add(fp0, float32_to_floatx80(posneg1, status), status); // SIN(X)
 			
 			float_raise(float_flag_inexact, status);
@@ -1762,7 +1767,7 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 		} else {
 			// NEVEN
 			j1 = n >> 1; // j1 = k/2
-
+			
 			rSign = extractFloatx80Sign(fp0); // R
 			rExp = extractFloatx80Exp(fp0);
 			rSig = extractFloatx80Frac(fp0);
@@ -1820,7 +1825,7 @@ floatx80 floatx80_sincos(floatx80 a, floatx80 *c, float_status *status)
 			RESET_PREC;
 			
 			*c = floatx80_add(fp1, float32_to_floatx80(posneg1, status), status); // COS(X)
-
+			
 			a = floatx80_add(fp0, r, status); // SIN(X)
 			
 			float_raise(float_flag_inexact, status);
