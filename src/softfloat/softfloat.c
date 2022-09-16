@@ -2972,7 +2972,7 @@ floatx80 floatx80_rem(floatx80 a, floatx80 b, uint64_t *q, flag *s, float_status
         aSig0 = alternateASig0;
         aSig1 = alternateASig1;
         zSign = !zSign;
-        ++* q;
+        ++*q;
     }
     return
         normalizeRoundAndPackFloatx80(status->floatx80_rounding_precision,

@@ -1,5 +1,3 @@
-#define SOFTFLOAT_68K
-
 /*
  * QEMU float support
  *
@@ -90,6 +88,7 @@ this code that are retained.
 #include <sunmath.h>
 #endif
 
+#define SOFTFLOAT_68K
 #define SOFTFLOAT_I860
 
 /* This 'flag' type must be able to hold at least 0 and 1. It should
