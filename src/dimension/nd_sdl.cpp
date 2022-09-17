@@ -51,8 +51,9 @@ void NDSDL::init(void) {
     if(!ndWindow) {
         SDL_GetWindowPosition(sdlWindow, &x, &y);
         SDL_GetWindowSize(sdlWindow, &w, &h);
+        h = (w * 832) / 1120;
         sprintf(title, "NeXTdimension (Slot %i)", slot);
-        ndWindow = SDL_CreateWindow(title, (x-w)+1, y, 1120, 832, SDL_WINDOW_HIDDEN | SDL_WINDOW_ALLOW_HIGHDPI);
+        ndWindow = SDL_CreateWindow(title, x+14*slot, y+14*slot, w, h, SDL_WINDOW_HIDDEN | SDL_WINDOW_ALLOW_HIGHDPI);
         
         if (!ndWindow) {
             fprintf(stderr,"[ND] Slot %i: Failed to create window!\n", slot);

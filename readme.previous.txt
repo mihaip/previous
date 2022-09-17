@@ -78,7 +78,7 @@ system.
 For using Previous, you need to have installed the following libraries:
 
 Required:
-  > The SDL2 library v2.0.18 or later (http://www.libsdl.org)
+  > The SDL2 library v2.26.0 or later (http://www.libsdl.org)
   > The zlib compression library (http://www.gzip.org/zlib/)
 
 Optional:
@@ -314,6 +314,7 @@ Previous v2.6:
 Previous v2.7 (unreleased):
   > Adds ability to unlock the mouse cursor with control-click.
   > Fixes bug that caused Daydream to hang on start up.
+  > Fixes bug that caused NeXTdimension window to start with wrong size.
 
 
  7) Running Previous
