@@ -495,7 +495,7 @@ void Profile_CpuStop(void)
  * Get DSP cycles & count for given address.
  * Return true if data was available and non-zero, false otherwise.
  */
-bool Profile_DspAddressData(Uint16 addr, Uint32 *count, Uint32 *cycles)
+bool Profile_DspAddressData(Uint16 addr, float *percentage, Uint64 *count, Uint64 *cycles, Uint16 *cycle_diff)
 {
 	if (!dsp_profile.data) {
 		return false;
@@ -795,7 +795,7 @@ char *Profile_Match(const char *text, int state)
 		len = strlen(text);
 	}
 	/* next match */
-	while (i < ARRAYSIZE(names)) {
+	while (i < ARRAY_SIZE(names)) {
 		if (strncasecmp(names[i++], text, len) == 0)
 			return (strdup(names[i-1]));
 	}

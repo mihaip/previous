@@ -251,7 +251,7 @@ static char *DebugInfo_Match(const char *text, int state, bool lock)
 		i = 0;
 	}
 	/* next match */
-	while (i++ < ARRAYSIZE(infotable)) {
+	while (i++ < ARRAY_SIZE(infotable)) {
 		if (!lock && infotable[i-1].lock) {
 			continue;
 		}
@@ -285,7 +285,7 @@ int DebugInfo_Command(int nArgc, char *psArgs[])
 	if (nArgc > 1) {
 		cmd = psArgs[1];		
 		/* which subcommand? */
-		for (i = 0; i < ARRAYSIZE(infotable); i++) {
+		for (i = 0; i < ARRAY_SIZE(infotable); i++) {
 			if (strcmp(cmd, infotable[i].name) == 0) {
 				sub = i;
 				break;
@@ -312,7 +312,7 @@ int DebugInfo_Command(int nArgc, char *psArgs[])
 	if (sub < 0 || !ok) {
 		/* no subcommand or something wrong with value, show info */
 		fprintf(stderr, "%s subcommands are:\n", psArgs[0]);
-		for (i = 0; i < ARRAYSIZE(infotable); i++) {
+		for (i = 0; i < ARRAY_SIZE(infotable); i++) {
 			if (!lock && infotable[i].lock) {
 				continue;
 			}

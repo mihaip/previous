@@ -289,7 +289,7 @@ static char *DebugCpu_MatchRegister(const char *text, int state)
 			return NULL;
 	}
 	/* next match */
-	while (i < ARRAYSIZE(regs)) {
+	while (i < ARRAY_SIZE(regs)) {
 		if (strncasecmp(regs[i++], text, len) == 0)
 			return (strdup(regs[i-1]));
 	}
@@ -687,7 +687,7 @@ int DebugCpu_Init(const dbgcommand_t **table)
 	disasm_addr = 0;
 	
 	*table = cpucommands;
-	return ARRAYSIZE(cpucommands);
+	return ARRAY_SIZE(cpucommands);
 }
 
 /**

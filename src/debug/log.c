@@ -229,7 +229,7 @@ const char* Log_SetTraceOptions (const char *OptionsStr)
 	int Mode;				/* 0=add, 1=del */
 	int MaxOptions;
 
-	MaxOptions = ARRAYSIZE(TraceOptions);
+	MaxOptions = ARRAY_SIZE(TraceOptions);
 	
 	/* special case for "help" : display the list of possible trace levels */
 	if (strcmp (OptionsStr, "help") == 0)
@@ -316,7 +316,7 @@ char *Log_MatchTrace(const char *text, int state)
 		i = 0;
 	}
 	/* next match */
-	while (i < ARRAYSIZE(TraceOptions)) {
+	while (i < ARRAY_SIZE(TraceOptions)) {
 		name = TraceOptions[i++].Name;
 		if (strncasecmp(name, text, len) == 0)
 			return (strdup(name));

@@ -163,17 +163,17 @@ extern Uint32 DSP_RAMSIZE;
 #define DSP_INTER_HOST_TRX_DATA		17
 #define DSP_INTER_HOST_COMMAND		18
 #define DSP_INTER_ILLEGAL			31
-	
+
 #define DSP_INTER_NMI_MASK	0x8000800F
 #define DSP_INTER_IRQA_MASK	0x00000010
 #define DSP_INTER_IRQB_MASK	0x00000020
 #define DSP_INTER_SSI_MASK	0x000003C0
 #define DSP_INTER_SCI_MASK	0x00007C00
 #define DSP_INTER_HOST_MASK	0x00070000
-	
+
 #define DSP_INTER_EDGE_MASK	0x8004C00E
 
-	
+
 #define DSP_PRIORITY_LIST_EXIT 32
 extern const char dsp_inter_priority_list[32];
 extern const char *dsp_interrupt_name[32];
@@ -270,7 +270,7 @@ struct dsp_core_s {
 	Uint16  interrupt_save_pc;		/* save next pc value before interrupt */
 	Uint16  interrupt_IplToRaise;		/* save the IPL level to save in the SR register */
 	Uint16  interrupt_pipeline_count;	/* used to prefetch correctly the 2 inter instructions */
-	
+
 	/* Interruptions new */
 	Uint32 interrupt_status;
 	Uint32 interrupt_enable;

@@ -620,7 +620,7 @@ void dsp_core_reset(void)
 	dsp_core.dsp_host_htx = 0;
 
 	dsp_core.bootstrap_pos = 0;
-	
+
 	/* Registers */
 	for (i=0;i<8;i++) {
 		dsp_core.registers[DSP_REG_M0+i]=0x00ffff;
@@ -679,7 +679,7 @@ void dsp_core_reset(void)
 	dsp56k_init_cpu();
 }
 
-/* 
+/*
 	SSI INTERFACE processing
 */
 
@@ -801,7 +801,7 @@ void dsp_core_ssi_Receive_SC0(void)
 			dsp_set_interrupt(DSP_INTER_SSI_RCV_DATA, 1);
 		else
 			dsp_set_interrupt(DSP_INTER_SSI_RCV_DATA, 1);
-			}
+	}
 	else
 		dsp_core.ssi.RX = 0;
 
@@ -895,7 +895,7 @@ void dsp_core_ssi_Receive_SCK(void)
 			dsp_set_interrupt(DSP_INTER_SSI_TRX_DATA, 1);
 		else
 			dsp_set_interrupt(DSP_INTER_SSI_TRX_DATA, 1);
-		}
+	}
 	else
 		dsp_core.ssi.transmit_value = 0;
 
@@ -941,7 +941,7 @@ void dsp_core_ssi_configure(Uint32 address, Uint32 value)
 			crb_te = dsp_core.periph[DSP_SPACE_X][DSP_SSI_CRB] & (1<<DSP_SSI_CRB_TE);
 			crb_re = dsp_core.periph[DSP_SPACE_X][DSP_SSI_CRB] & (1<<DSP_SSI_CRB_RE);
 			dsp_core.periph[DSP_SPACE_X][DSP_SSI_CRB] = value;
-	
+
 			dsp_core.ssi.crb_src_clock = (value>>DSP_SSI_CRB_SCKD) & 1;
 			dsp_core.ssi.crb_shifter   = (value>>DSP_SSI_CRB_SHFD) & 1;
 			dsp_core.ssi.crb_synchro   = (value>>DSP_SSI_CRB_SYN) & 1;
@@ -965,7 +965,7 @@ void dsp_core_ssi_configure(Uint32 address, Uint32 value)
 }
 
 
-/* 
+/*
 	HOST INTERFACE processing
 */
 
@@ -991,6 +991,7 @@ static void dsp_core_hostport_update_hreq(void)
 		dsp_host_interrupt(0);
 	}
 }
+
 
 /* Host port transfer ? (dsp->host) */
 static void dsp_core_dsp2host(void)
@@ -1027,7 +1028,7 @@ static void dsp_core_host2dsp(void)
 	if (dsp_core.hostport[CPU_HOST_ISR] & (1<<CPU_HOST_ISR_TXDE)) {
 		return;
 	}
-	
+
 	/* HRDF = 1 ==> DSP hasn't read the last value yet */
 	if (dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] & (1<<DSP_HOST_HSR_HRDF)) {
 		return;
@@ -1084,7 +1085,7 @@ Uint8 dsp_core_read_host(int addr)
 		dsp_core.hostport[CPU_HOST_ISR] &= 0xff-(1<<CPU_HOST_ISR_RXDF);
 		dsp_core_dsp2host();
 		dsp_core_hostport_update_hreq();
-		
+
 		LOG_TRACE(TRACE_DSP_HOST_INTERFACE, "Dsp: (DSP->Host): Host RXDF=0\n");
 	}
 	return value;
@@ -1096,10 +1097,8 @@ void dsp_core_write_host(int addr, Uint8 value)
 		case CPU_HOST_ICR:
 			dsp_core.hostport[CPU_HOST_ICR]=value & 0xfb;
 			/* Set HF1 and HF0 accordingly on the host side */
-			dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] &=
-			0xff-((1<<DSP_HOST_HSR_HF1)|(1<<DSP_HOST_HSR_HF0));
-			dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] |=
-			dsp_core.hostport[CPU_HOST_ICR] & ((1<<DSP_HOST_HSR_HF1)|(1<<DSP_HOST_HSR_HF0));
+			dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] &= 0xff-((1<<DSP_HOST_HSR_HF1)|(1<<DSP_HOST_HSR_HF0));
+			dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] |= dsp_core.hostport[CPU_HOST_ICR] & ((1<<DSP_HOST_HSR_HF1)|(1<<DSP_HOST_HSR_HF0));
 			/* Set PIO or DMA mode */
 			dsp_core.dma_mode = (dsp_core.hostport[CPU_HOST_ICR] & ((1<<CPU_HOST_ICR_HM0)|(1<<CPU_HOST_ICR_HM1)))>>5;
 			if (dsp_core.dma_mode==0) {
@@ -1172,7 +1171,7 @@ void dsp_core_write_host(int addr, Uint8 value)
 					(dsp_core.hostport[CPU_HOST_TXH]<<16) |
 					(dsp_core.hostport[CPU_HOST_TXM]<<8) |
 					 dsp_core.hostport[CPU_HOST_TXL];
-				
+
 				LOG_TRACE(TRACE_DSP_STATE, "Dsp: bootstrap p:0x%04x = 0x%06x\n",
 								dsp_core.bootstrap_pos,
 								dsp_core.ramint[DSP_SPACE_P][dsp_core.bootstrap_pos]);

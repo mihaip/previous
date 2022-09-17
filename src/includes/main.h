@@ -43,7 +43,7 @@
 
 #define CALL_VAR(func)  { ((void(*)(void))func)(); }
 
-#define ARRAYSIZE(x) (int)(sizeof(x)/sizeof(x[0]))
+#define ARRAY_SIZE(x) (int)(sizeof(x)/sizeof(x[0]))
 
 /* 68000 operand sizes */
 #define SIZE_BYTE  1
