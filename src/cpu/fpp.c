@@ -3637,7 +3637,8 @@ void fpu_modechange(void)
 		fpp_from_exten_fmovem(&regs.fp[i], &temp_ext[i][0], &temp_ext[i][1], &temp_ext[i][2]);
 	}
 
-    fp_init_softfloat(currprefs.fpu_model);
+	fp_init_softfloat(currprefs.fpu_model);
+	use_long_double = false;
 
 	get_features();
 	for (int i = 0; i < 8; i++) {
@@ -3665,13 +3666,8 @@ static void fpu_test(void)
 
 void fpu_reset (void)
 {
-#ifndef CPU_TESTER
-    fp_init_softfloat(currprefs.fpu_model);
-#else
 	fp_init_softfloat(currprefs.fpu_model);
 	use_long_double = false;
-#endif
-
 	regs.fpu_exp_state = 0;
 	regs.fp_unimp_pend = 0;
 	regs.fp_ea_set = false;
@@ -3691,7 +3687,7 @@ void fpu_reset (void)
 }
 
 #ifndef CPU_TESTER
-#if 0
+#ifndef WINUAE_FOR_PREVIOUS
 uae_u8 *restore_fpu (uae_u8 *src)
 {
 	uae_u32 w1, w2, w3;
@@ -3834,5 +3830,5 @@ uae_u8 *save_fpu(size_t *len, uae_u8 *dstptr)
 	*len = dst - dstbak;
 	return dstbak;
 }
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 #endif

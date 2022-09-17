@@ -684,12 +684,12 @@ static void returntail (bool iswrite)
 static void returncycles(int cycles)
 {
 #ifdef WINUAE_FOR_HATARI
-//	CurrentInstrCycles = cycles;
+	CurrentInstrCycles = cycles;
 #endif
-#if 1 // Hack for Previous
+#ifdef WINUAE_FOR_PREVIOUS
     out ("return %d;\n", adjust_cycles(cycles));
     return;
-#endif
+#endif // WINUAE_FOR_PREVIOUS
 	if (using_nocycles) {
 		out("return 0;\n");
 		return;
@@ -5389,21 +5389,23 @@ static void resetvars (void)
 
 static void gen_opcode (unsigned int opcode)
 {
+#ifdef WINUAE_FOR_PREVIOUS
 	current_opcode = opcode;
+#endif // WINUAE_FOR_PREVIOUS
 	struct instr *curi = table68k + opcode;
 
 	resetvars();
 
-#ifdef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
         /* Hatari : Store the family of the instruction (used to check for pairing on ST,
          * for non-CPU cycles calculation and profiling)
          */
-//        out("OpcodeFamily = %d;\n", curi->mnemo);
+        out("OpcodeFamily = %d;\n", curi->mnemo);
         /* leave some space for patching in the current cycles later */
-//        if (!using_ce020) {
-//                out("CurrentInstrCycles =     \n");
-//                CurrentInstrCycles_pos = strlen(outbuffer) - 5;
-//        }
+        if (!using_ce020) {
+                out("CurrentInstrCycles =     \n");
+                CurrentInstrCycles_pos = strlen(outbuffer) - 5;
+        }
 #endif
 
 	m68k_pc_offset = 2;
@@ -7361,12 +7363,12 @@ static void gen_opcode (unsigned int opcode)
 					addcycles000(2);
 				if (curi->smode == Ad8r || curi->smode == PC8r) {
 					addcycles000(6);
-#ifdef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
 					/* Hatari : JSR in Ad8r and PC8r mode takes 22 cycles, but on ST it takes 24 cycles */
 					/* because of an unaligned memory prefetch in this EA mode */
 					/* We add 2 cycles only in 68000 prefetch mode, 68000 CE mode is handled at the memory access level */
-//					if ( using_prefetch && !using_ce )
-//						addcycles000(2);
+					if ( using_prefetch && !using_ce )
+						addcycles000(2);
 #endif
 					if (cpu_level <= 1 && using_prefetch)
 						out("nextpc += 2;\n");
@@ -7471,12 +7473,12 @@ static void gen_opcode (unsigned int opcode)
 			addcycles000(2);
 		if (curi->smode == Ad8r || curi->smode == PC8r) {
 			addcycles000(6);
-#ifdef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
 			/* Hatari : JMP in Ad8r and PC8r mode takes 22 cycles, but on ST it takes 24 cycles */
 			/* because of an unaligned memory prefetch in this EA mode */
 			/* We add 2 cycles only in 68000 prefetch mode, 68000 CE mode is handled at the memory access level */
-//			if ( using_prefetch && !using_ce )
-//				addcycles000(2);
+			if ( using_prefetch && !using_ce )
+				addcycles000(2);
 #endif
 		}
 		setpc ("srca");
@@ -7713,12 +7715,12 @@ bccl_not68020:
 			curi->dmode, "dstreg", curi->size, "dst", 2, GF_AA);
 		if (curi->smode == Ad8r || curi->smode == PC8r) {
 			addcycles000(2);
-#ifdef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
 			/* Hatari : LEA in Ad8r and PC8r mode takes 12 cycles, but on ST it takes 14 cycles */
 			/* because of an unaligned memory prefetch in this EA mode */
 			/* We add 2 cycles only in 68000 prefetch mode, 68000 CE mode is handled at the memory access level */
-//			if ( using_prefetch && !using_ce )
-//				addcycles000(2);
+			if ( using_prefetch && !using_ce )
+				addcycles000(2);
 #endif
 		}
 		genastore("srca", curi->dmode, "dstreg", curi->size, "dst");
@@ -7734,12 +7736,12 @@ bccl_not68020:
 		genamode(NULL, Apdi, "7", sz_long, "dst", 2, 0, GF_AA | GF_NOEXC3);
 		if (curi->smode == Ad8r || curi->smode == PC8r) {
 			addcycles000(2);
-#ifdef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
 			/* Hatari : PEA in Ad8r and PC8r mode takes 20 cycles, but on ST it takes 22 cycles */
 			/* because of an unaligned memory prefetch in this EA mode */
 			/* We add 2 cycles only in 68000 prefetch mode, 68000 CE mode is handled at the memory access level */
-//			if ( using_prefetch && !using_ce )
-//				addcycles000(2);
+			if ( using_prefetch && !using_ce )
+				addcycles000(2);
 #endif
 		}
 		if (!(curi->smode == absw || curi->smode == absl)) {
@@ -9660,13 +9662,13 @@ static void generate_one_opcode (int rp, const char *extra)
 	opcode_next_clev[rp] = next_cpu_level;
 	opcode_last_postfix[rp] = postfix;
 
-#ifdef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
         /* Hatari only : Now patch in the instruction cycles at the beginning of the function: */
-//	if (!using_ce020) {
-//		char buf_cyc[10];
-//		sprintf ( buf_cyc , "%d;", CurrentInstrCycles );
-//		memcpy ( outbuffer+CurrentInstrCycles_pos , buf_cyc , strlen(buf_cyc) );
-//	}
+	if (!using_ce020) {
+		char buf_cyc[10];
+		sprintf ( buf_cyc , "%d;", CurrentInstrCycles );
+		memcpy ( outbuffer+CurrentInstrCycles_pos , buf_cyc , strlen(buf_cyc) );
+	}
 #endif
 
 	printf("%s", outbuffer);

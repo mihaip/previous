@@ -1,15 +1,10 @@
- /*
-  * UAE - The Un*x Amiga Emulator
-  *
-  * memory management
-  *
-  * Copyright 1995 Bernd Schmidt
-  *
-  * Adaptation to Hatari by Thomas Huth
-  *
-  * This file is distributed under the GNU Public License, version 2 or at
-  * your option any later version. Read the file gpl.txt for details.
-  */
+/*
+* UAE - The Un*x Amiga Emulator
+*
+* memory management
+*
+* Copyright 1995 Bernd Schmidt
+*/
 
 #ifndef UAE_MEMORY_H
 #define UAE_MEMORY_H
@@ -75,7 +70,6 @@ void map_banks(addrbank *bank, int first, int count);
 #define CACHE_ENABLE_ALL (CACHE_ENABLE_BOTH | CACHE_ENABLE_INS_BURST | CACHE_ENABLE_DATA_BURST)
 #define CACHE_DISABLE_ALLOCATE 0x08
 #define CACHE_DISABLE_MMU 0x10
-
 extern uae_u8 ce_banktype[65536], ce_cachable[65536];
 
 #endif /* UAE_MEMORY_H */

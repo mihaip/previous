@@ -296,8 +296,13 @@ static void showea_val(TCHAR *buffer, uae_u16 opcode, uaecptr addr, int size)
 	}
 skip:
 	for (int i = 0; i < size; i++) {
+#ifdef WINUAE_FOR_PREVIOUS
 		TCHAR name[256];
 		if (debugmem_get_symbol(addr + i, name, sizeof(name) / sizeof(TCHAR))) {
+#else
+		const char *name;
+		if ((name = Symbols_GetByCpuAddress(addr + i, SYMTYPE_TEXT))) {
+#endif
 			_stprintf(buffer + _tcslen(buffer), _T(" %s"), name);
 		}
 	}
@@ -2426,23 +2431,23 @@ uae_u32 m68k_disasm_2(TCHAR *buf, int bufsize, uaecptr pc, uae_u16 *bufpc, int b
 				buf = buf_out(buf, &bufsize, disasm_lc_hex(_T(" == $%08X")), seaddr2);
 			}
 		}
-#ifdef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
 		/* outputting only single disassembly line, and there's profile info? */
-//		if (Profile_CpuAddr_HasData(oldpc)) {
-//# define PROFILE_OUTPUT_COLUMN 68
-//# define SPACE_FOR_NEWLINE 3
-//			int count = bufsize - (orig_size - PROFILE_OUTPUT_COLUMN);
-//			if (count > 0) {
-//				snprintf(buf, bufsize, "%*c", count, ' ');
-//				count = _tcslen(buf);
-//				bufsize -= count;
-//				buf += count;
-//			}
-//			Profile_CpuAddr_DataStr(buf, bufsize - SPACE_FOR_NEWLINE, oldpc);
-//			count = _tcslen(buf);
-//			bufsize -= count;
-//			buf += count;
-//		}
+		if (Profile_CpuAddr_HasData(oldpc)) {
+# define PROFILE_OUTPUT_COLUMN 68
+# define SPACE_FOR_NEWLINE 3
+			int count = bufsize - (orig_size - PROFILE_OUTPUT_COLUMN);
+			if (count > 0) {
+				snprintf(buf, bufsize, "%*c", count, ' ');
+				count = _tcslen(buf);
+				bufsize -= count;
+				buf += count;
+			}
+			Profile_CpuAddr_DataStr(buf, bufsize - SPACE_FOR_NEWLINE, oldpc);
+			count = _tcslen(buf);
+			bufsize -= count;
+			buf += count;
+		}
 #endif
 		buf = buf_out (buf, &bufsize, _T("\n"));
 

@@ -22,7 +22,7 @@
 #include "debugui.h"
 #include "debugcpu.h"
 #ifdef WINUAE_FOR_HATARI
-//#include "debug.h"
+#include "debug.h"
 #endif
 
 #define WRITE_LOG_BUF_SIZE 4096
@@ -123,13 +123,15 @@ uae_u32 wait_cpu_cycle_read (uaecptr addr, int mode)
 	x_do_cycles_post(CYCLE_UNIT, v);
 
 #else						/* WINUAE_FOR_HATARI */
+#ifndef WINUAE_FOR_PREVIOUS
 //	fprintf ( stderr , "mem read ce %x %d %lu %lu\n" , addr , mode ,currcycle / cpucycleunit , currcycle );
-//	if ( ( ( CyclesGlobalClockCounter + currcycle*2/CYCLE_UNIT ) & 3 ) == 2 )
-//	{
+	if ( ( ( CyclesGlobalClockCounter + currcycle*2/CYCLE_UNIT ) & 3 ) == 2 )
+	{
 //		fprintf ( stderr , "mem wait read %x %d %lu %lu\n" , addr , mode , currcycle / cpucycleunit , currcycle );
-//		x_do_cycles (2*cpucycleunit);
+		x_do_cycles (2*cpucycleunit);
 //		fprintf ( stderr , "mem wait read after %x %d %lu %lu\n" , addr , mode , currcycle / cpucycleunit , currcycle );
-//	}
+	}
+#endif // WINUAE_FOR_PREVIOUS
 
 	switch(mode)
 	{
@@ -212,18 +214,20 @@ uae_u32 wait_cpu_cycle_read_ce020 (uaecptr addr, int mode)
 
 #else						/* WINUAE_FOR_HATARI */
 
+#ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr , "wait read ce020 glob %lu\n" , CyclesGlobalClockCounter );
 //fprintf ( stderr , "wait read ce020 %lu %lu\n" , currcycle / cpucycleunit , currcycle );
-//	int bus_pos = ( CyclesGlobalClockCounter + currcycle*2/CYCLE_UNIT ) & 3;
-//	if ( ( bus_pos & 2 ) == 2 )
+	int bus_pos = ( CyclesGlobalClockCounter + currcycle*2/CYCLE_UNIT ) & 3;
+	if ( ( bus_pos & 2 ) == 2 )
 //	if ( bus_pos )
-//	{
+	{
 //		fprintf ( stderr , "mem wait read %x %d %lu %lu\n" , addr , mode , currcycle / cpucycleunit , currcycle );
-//		x_do_cycles ((4-bus_pos)*cpucycleunit);
+		x_do_cycles ((4-bus_pos)*cpucycleunit);
 //		fprintf ( stderr , "mem wait read after %x %d %lu %lu\n" , addr , mode , currcycle / cpucycleunit , currcycle );
-//	}
+	}
 
 //fprintf ( stderr , "wait read2 ce020 %lu %lu\n" , currcycle / cpucycleunit , currcycle );
+#endif // WINUAE_FOR_PREVIOUS
 
 	switch (mode) {
 		case -1:
@@ -294,13 +298,15 @@ void wait_cpu_cycle_write (uaecptr addr, int mode, uae_u32 v)
 	x_do_cycles_post(CYCLE_UNIT, v);
 
 #else						/* WINUAE_FOR_HATARI */
+#ifndef WINUAE_FOR_PREVIOUS
 //	fprintf ( stderr , "mem write ce %x %d %lu %lu\n" , addr , mode ,currcycle / cpucycleunit , currcycle );
-//	if ( ( ( CyclesGlobalClockCounter + currcycle*2/CYCLE_UNIT ) & 3 ) == 2 )
-//	{
+	if ( ( ( CyclesGlobalClockCounter + currcycle*2/CYCLE_UNIT ) & 3 ) == 2 )
+	{
 //		fprintf ( stderr , "mem wait write %x %d %lu %lu\n" , addr , mode , currcycle / cpucycleunit , currcycle );
-//		x_do_cycles (2*cpucycleunit);
+		x_do_cycles (2*cpucycleunit);
 //		fprintf ( stderr , "mem wait write after %x %d %lu %lu\n" , addr , mode , currcycle / cpucycleunit , currcycle );
-//	}
+	}
+#endif // WINUAE_FOR_PREVIOUS
 
 	if (mode > -2) {
 		if (mode < 0) {
@@ -356,15 +362,17 @@ void wait_cpu_cycle_write_ce020 (uaecptr addr, int mode, uae_u32 v)
 
 #else						/* WINUAE_FOR_HATARI */
 
+#ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr , "wait read ce020 %lu %lu\n" , currcycle / cpucycleunit , currcycle );
-//	int bus_pos = ( CyclesGlobalClockCounter + currcycle*2/CYCLE_UNIT ) & 3;
-//	if ( ( bus_pos & 2 ) == 2 )
+	int bus_pos = ( CyclesGlobalClockCounter + currcycle*2/CYCLE_UNIT ) & 3;
+	if ( ( bus_pos & 2 ) == 2 )
 //	if ( bus_pos )
-//	{
+	{
 //		fprintf ( stderr , "mem wait read %x %d %lu %lu\n" , addr , mode , currcycle / cpucycleunit , currcycle );
-//		x_do_cycles ((4-bus_pos)*cpucycleunit);
+		x_do_cycles ((4-bus_pos)*cpucycleunit);
 //		fprintf ( stderr , "mem wait read after %x %d %lu %lu\n" , addr , mode , currcycle / cpucycleunit , currcycle );
-//	}
+	}
+#endif // WINUAE_FOR_PREVIOUS
 
 //fprintf ( stderr , "wait read2 ce020 %lu %lu\n" , currcycle / cpucycleunit , currcycle );
 
@@ -424,9 +432,11 @@ void do_cycles_ce_hatari_blitter (int cycles)
 		if (bltstate != BLT_done)
 			decide_blitter (hpos);
 #endif						/* WINUAE_FOR_HATARI */
-//		if ( Blitter_Check_Simultaneous_CPU() == 0 )
-//			do_cycles (1 * CYCLE_UNIT);
-//		Blitter_HOG_CPU_do_cycles_after ( 2 );
+#ifndef WINUAE_FOR_PREVIOUS
+		if ( Blitter_Check_Simultaneous_CPU() == 0 )
+			do_cycles (1 * CYCLE_UNIT);
+		Blitter_HOG_CPU_do_cycles_after ( 2 );
+#endif // WINUAE_FOR_PREVIOUS
 
 		cycles -= CYCLE_UNIT;
 	}

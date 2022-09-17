@@ -381,7 +381,7 @@ uae_u32 get_byte_debug (uaecptr addr)
 		} ENDTRY
 		regs.s = olds;
 	} else {
-#if 1
+#ifdef WINUAE_FOR_PREVIOUS
 		v = get_byte (addr);
 #else
 		v = STMemory_ReadByte ( addr );
@@ -409,7 +409,11 @@ uae_u32 get_word_debug (uaecptr addr)
 		} ENDTRY
 		regs.s = olds;
 	} else {
+#ifdef WINUAE_FOR_PREVIOUS
 		v = get_word (addr);
+#else
+		v = STMemory_ReadWord ( addr );
+#endif
 	}
 	return v;
 }
@@ -433,7 +437,7 @@ uae_u32 get_long_debug (uaecptr addr)
 		} ENDTRY
 		regs.s = olds;
 	} else {
-#if 1
+#ifdef WINUAE_FOR_PREVIOUS
 		v = get_long (addr);
 #else
 		v = STMemory_ReadLong ( addr );
@@ -500,15 +504,17 @@ int debug_safe_addr (uaecptr addr, int size)
 		} ENDTRY
 		regs.s = olds;
 	}
-//	addrbank *ab = &get_mem_bank (addr);
-//	if (!ab)
-//		return 0;
-//	if (ab->flags & ABFLAG_SAFE)
-//		return 1;
-//	if (!ab->check (addr, size))
-//		return 0;
-//	if (ab->flags & (ABFLAG_RAM | ABFLAG_ROM | ABFLAG_ROMIN | ABFLAG_SAFE))
-//		return 1;
+#ifndef WINUAE_FOR_PREVIOUS
+	addrbank *ab = &get_mem_bank (addr);
+	if (!ab)
+		return 0;
+	if (ab->flags & ABFLAG_SAFE)
+		return 1;
+	if (!ab->check (addr, size))
+		return 0;
+	if (ab->flags & (ABFLAG_RAM | ABFLAG_ROM | ABFLAG_ROMIN | ABFLAG_SAFE))
+		return 1;
+#endif // WINUAE_FOR_PREVIOUS
 	return 0;
 }
 

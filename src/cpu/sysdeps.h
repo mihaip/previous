@@ -50,7 +50,10 @@
 #define UAE
 #endif
 
-#if defined(__x86_64__) || defined(_M_AMD64)
+#if defined(__arm__) || defined(_M_ARM) || defined(_M_ARM64) || defined(_M_ARM64EC) || defined(__aarch64__)
+#define CPU_arm 1
+#define ARM_ASSEMBLY 1
+#elif defined(__x86_64__) || defined(_M_AMD64)
 #define CPU_x86_64 1
 #define CPU_64_BIT 1
 #define X86_64_ASSEMBLY 1
@@ -59,8 +62,6 @@
 #define CPU_i386 1
 #define X86_ASSEMBLY 1
 #define SAHF_SETO_PROFITABLE
-#elif defined(__arm__) || defined(_M_ARM) || defined(__aarch64__)
-#define CPU_arm 1
 #elif defined(__powerpc__) || defined(_M_PPC) || defined(__ppc__) || defined(__ppc64__)
 #define CPU_powerpc 1
 #elif defined(__mips__) || defined(mips) || defined(__mips64)
@@ -90,14 +91,14 @@
 #define REGPARAM3 JITCALL
 
 #ifdef WINUAE_FOR_HATARI
-    #include "uae/types.h"
+#include "uae/types.h"
 #elif HAVE_TCHAR_H
-    #include <tchar.h>
+#include <tchar.h>
 #endif
 
 #ifndef __STDC__
 #ifndef _MSC_VER
-    #error "Your compiler does not appear to support ANSI C.  Porting effort is required in src/cpu/sysdeps.h."
+#error "Your compiler does not appear to support ANSI C.  Porting effort is required in src/cpu/sysdeps.h."
 #endif
 #endif
 
@@ -205,23 +206,23 @@ typedef char uae_char;
 typedef struct { uae_u8 RGB[3]; } RGB;
 
 #if SIZEOF_SHORT == 2
-    typedef unsigned short uae_u16;
-    typedef short uae_s16;
+typedef unsigned short uae_u16;
+typedef short uae_s16;
 #elif SIZEOF_INT == 2
-    typedef unsigned int uae_u16;
-    typedef int uae_s16;
+typedef unsigned int uae_u16;
+typedef int uae_s16;
 #else
-    #error "Cannot find a 2-byte type, port src/cpu/sysconfig.h to your architecture"
+#error "Cannot find a 2-byte type, port src/cpu/sysconfig.h to your architecture"
 #endif
 
 #if SIZEOF_INT == 4
-    typedef unsigned int uae_u32;
-    typedef int uae_s32;
+typedef unsigned int uae_u32;
+typedef int uae_s32;
 #elif SIZEOF_LONG == 4
-    typedef unsigned long uae_u32;
-    typedef long uae_s32;
+typedef unsigned long uae_u32;
+typedef long uae_s32;
 #else
-    #error "Cannot find a 4-byte type, port src/cpu/sysconfig.h to your architecture"
+#error "Cannot find a 4-byte type, port src/cpu/sysconfig.h to your architecture"
 #endif
 
 typedef uae_u32 uaecptr;
@@ -255,9 +256,9 @@ uae_atomic atomic_dec(volatile uae_atomic *p);
 uae_u32 atomic_bit_test_and_reset(volatile uae_atomic *p, uae_u32 v);
 
 #ifdef HAVE_STRDUP
-    #define my_strdup _tcsdup
+#define my_strdup _tcsdup
 #else
-    extern TCHAR *my_strdup (const TCHAR*s);
+extern TCHAR *my_strdup (const TCHAR*s);
 #endif
 extern TCHAR *my_strdup_ansi (const char*);
 extern void my_trim (TCHAR*);
@@ -277,6 +278,8 @@ extern TCHAR *utf8u (const char *s);
 extern void unicode_init (void);
 extern void to_lower (TCHAR *s, int len);
 extern void to_upper (TCHAR *s, int len);
+extern int uaestrlen(const char*);
+extern int uaetcslen(const TCHAR*);
 
 #define ENUMDECL typedef enum
 #define ENUMNAME(name) name
