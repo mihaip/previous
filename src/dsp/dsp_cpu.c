@@ -2046,9 +2046,7 @@ static void dsp_undefined(void)
 		/* Add some artificial CPU cycles to avoid being stuck in an infinite loop */
 		dsp_core.instr_cycle += 100;
 
-		/* Rate limit identical messages. Required to make
-		 * "Terrorize your soul" demo run at usable speed
-		 */
+		/* Rate limit identical messages. */
 		dsp_error.count++;
 		if (cur_inst != dsp_error.inst || dsp_core.pc != dsp_error.pc ||
 		    dsp_error.count >= dsp_error.limit) {

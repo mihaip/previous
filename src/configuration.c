@@ -51,6 +51,8 @@ static const struct Config_Tag configs_Debugger[] =
 	{ "nNumberBase", Int_Tag, &ConfigureParams.Debugger.nNumberBase },
 	{ "nDisasmLines", Int_Tag, &ConfigureParams.Debugger.nDisasmLines },
 	{ "nMemdumpLines", Int_Tag, &ConfigureParams.Debugger.nMemdumpLines },
+	{ "nDisasmOptions", Int_Tag, &ConfigureParams.Debugger.nDisasmOptions },
+	{ "bDisasmUAE", Bool_Tag, &ConfigureParams.Debugger.bDisasmUAE },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -357,6 +359,8 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Debugger.nNumberBase = 10;
 	ConfigureParams.Debugger.nDisasmLines = 8;
 	ConfigureParams.Debugger.nMemdumpLines = 8;
+	ConfigureParams.Debugger.nDisasmOptions = 0;
+	ConfigureParams.Debugger.bDisasmUAE = true;
 
     /* Set defaults for Boot options */
     ConfigureParams.Boot.nBootDevice = BOOT_ROM;

@@ -43,6 +43,8 @@ typedef struct
   int nNumberBase;
   int nDisasmLines;
   int nMemdumpLines;
+  int nDisasmOptions;
+  bool bDisasmUAE;
 } CNF_DEBUGGER;
 
 
