@@ -16,10 +16,9 @@
 /  Process       : Interpret information by parameter and read or      /
 /                  write back to the configuration file.               /
 /                                                                      /
-/  Ouput         : updated configuration file or updated structure.    /
+/  Output        : updated configuration file or updated structure.    /
 /                                                                      /
 /  Programmer    : Jeffry J. Brickley                                  /
-/                                                                      /
 /                                                                      /
 /---------------------------------------------------------------------*/
 
@@ -44,17 +43,17 @@
 /    };
 /  Note that the structure must always be terminated by a NULL row as
 /     was the same with GETOPTS.  This however is slightly more
-/     complicated than scaning the command line (but not by much) for
+/     complicated than scanning the command line (but not by much) for
 /     data as there can be more variety in words than letters and an
 /     number of data items limited only by memory.
 /
 /  Like the original code from which this was taken, this is released
-/  to the Public Domain.  I cannot make any guarentees other than these
-/  work for me and I find them usefull.  Feel free to pass these on to
+/  to the Public Domain.  I cannot make any guarantees other than these
+/  work for me and I find them useful.  Feel free to pass these on to
 /  a friend, but please do not charge him....
 /
 /---------------------------------------------------------------------*/
-const char CfgOpts_fileid[] = "Hatari cfgopts.c : " __DATE__ " " __TIME__;
+const char CfgOpts_fileid[] = "Hatari cfgopts.c";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -63,7 +62,73 @@ const char CfgOpts_fileid[] = "Hatari cfgopts.c : " __DATE__ " " __TIME__;
 #include "main.h"
 #include "cfgopts.h"
 #include "str.h"
+#include "keymap.h"
+#include "log.h"
 
+
+static int parse_input_config_entry(const struct Config_Tag *ptr)
+{
+	const char *next;
+	int type = ptr->type;
+
+	/* get actual config value */
+	next = Str_Trim(strtok(NULL, ""));
+	if (next == NULL)
+	{
+		if (type == String_Tag || type == Key_Tag)
+			next = ""; /* field with empty string */
+		else
+			type = Error_Tag;
+	}
+
+	switch (type)      /* check type */
+	{
+	 case Bool_Tag:
+		if (!strcasecmp(next,"FALSE"))
+			*(bool *)ptr->buf = false;
+		else if (!strcasecmp(next,"TRUE"))
+			*(bool *)ptr->buf = true;
+		break;
+
+	 case Char_Tag:
+		sscanf(next, "%c", (char *)ptr->buf);
+		break;
+
+	 case Short_Tag:
+		sscanf(next, "%hd", (short *)ptr->buf);
+		break;
+
+	 case Int_Tag:
+		sscanf(next, "%d", (int *)ptr->buf);
+		break;
+
+	 case Long_Tag:
+		sscanf(next, "%ld", (long *)ptr->buf);
+		break;
+
+	 case Float_Tag:
+		sscanf(next, "%g", (float *)ptr->buf);
+		break;
+
+	 case Double_Tag:
+		sscanf(next, "%lg", (double *)ptr->buf);
+		break;
+
+	 case String_Tag:
+		strcpy((char *)ptr->buf, next);
+		break;
+
+	 case Key_Tag:
+		*(int *)ptr->buf =  Keymap_GetKeyFromName(next);
+		break;
+
+	 case Error_Tag:
+	 default:
+		return -1;
+	}
+
+	return 0;
+}
 
 /**
  * ---------------------------------------------------------------------/
@@ -81,9 +146,9 @@ const char CfgOpts_fileid[] = "Hatari cfgopts.c : " __DATE__ " " __TIME__;
 int input_config(const char *filename, const struct Config_Tag configs[], const char *header)
 {
 	const struct Config_Tag *ptr;
-	int count=0, lineno=0;
+	int count = 0, lineno = 0;
 	FILE *file;
-	char *fptr,*tok,*next;
+	char *fptr,*tok;
 	char line[1024];
 
 	file = fopen(filename,"r");
@@ -95,10 +160,10 @@ int input_config(const char *filename, const struct Config_Tag configs[], const 
 		do
 		{
 			fptr = Str_Trim(fgets(line, sizeof(line), file));  /* get input line */
-            if (fptr == NULL)
-                break;
+			if (fptr == NULL)
+				break;
 		}
-		while (memcmp(fptr,header,strlen(header)));
+		while (strncmp(fptr, header, strlen(header)));
 	}
 
 	if ( !feof(file) )
@@ -108,64 +173,22 @@ int input_config(const char *filename, const struct Config_Tag configs[], const 
 			if (fptr == NULL)
 				continue;
 			lineno++;
-            if (fptr[0] == '#')
-                continue;                       /* skip comments */
-            if (fptr[0] == '[')
-                continue;                       /* skip next header */
-            tok = Str_Trim(strtok(fptr, "="));      /* get first token */
-            if (tok == NULL)
-                continue;
-            next = Str_Trim(strtok(NULL, "="));     /* get actual config information */
-            if (next == NULL)
-                continue;
-            for (ptr = configs; ptr->buf; ++ptr)    /* scan for token */
-            {
-                if (!strcmp(tok, ptr->code))    /* got a match? */
-                {
-                    count++;
-                    switch (ptr->type)      /* check type */
-                    {
-                        case Bool_Tag:
-                            if (!strcasecmp(next,"FALSE"))
-                                *((bool *)(ptr->buf)) = false;
-                            else if (!strcasecmp(next,"TRUE"))
-                                *((bool *)(ptr->buf)) = true;
-                            break;
-
-                        case Char_Tag:
-                            sscanf(next, "%c", (char *)(ptr->buf));
-                            break;
-
-                        case Short_Tag:
-                            sscanf(next, "%hd", (short *)(ptr->buf));
-                            break;
-
-                        case Int_Tag:
-                            sscanf(next, "%d", (int *)(ptr->buf));
-                            break;
-
-                        case Long_Tag:
-                            sscanf(next, "%ld", (long *)(ptr->buf));
-                            break;
-
-                        case Float_Tag:
-                            sscanf(next, "%g", (float *)ptr->buf);
-                            break;
-
-                        case Double_Tag:
-                            sscanf(next, "%lg", (double *)ptr->buf);
-                            break;
-
-                        case String_Tag:
-                            strcpy((char *)ptr->buf, next);
-                            break;
-
-                        case Error_Tag:
-                        default:
-                            count--;
-                            printf("Error in Config file %s on line %d\n", filename, lineno);
-                            break;
-                    }
+			if (fptr[0] == '#')
+				continue;                       /* skip comments */
+			if (fptr[0] == '[')
+				continue;                       /* skip next header */
+			tok = Str_Trim(strtok(fptr, "="));      /* get first token */
+			if (tok == NULL)
+				continue;
+			for (ptr = configs; ptr->buf; ++ptr)    /* scan for token */
+			{
+				if (!strcmp(tok, ptr->code))    /* got a match? */
+				{
+					if (parse_input_config_entry(ptr) == 0)
+						count++;
+					else
+						Log_Printf(LOG_WARN, "Error in Config file %s on line %d\n",
+						       filename, lineno);
 				}
 			}
 		}
@@ -217,9 +240,13 @@ static int write_token(FILE *outfile, const struct Config_Tag *ptr)
 		fprintf(outfile, "%s\n",(char *)ptr->buf);
 		break;
 
+	 case Key_Tag:
+		fprintf(outfile, "%s\n", Keymap_GetKeyName(*(int *)ptr->buf));
+		break;
+
 	 case Error_Tag:
 	 default:
-		fprintf(stderr, "Error in Config structure (Contact author).\n");
+		Log_Printf(LOG_WARN, "Internal error in Config structure (contact developers)\n");
 		return -1;
 	}
 
@@ -268,7 +295,7 @@ static int write_header_tokens(FILE *fp, const struct Config_Tag *ptr, const cha
 int update_config(const char *filename, const struct Config_Tag configs[], const char *header)
 {
 	const struct Config_Tag *ptr;
-	int count=0, retval;
+	int count=0, lineno=0, retval;
 	FILE *cfgfile, *tempfile;
 	char *fptr, *tok;
 	char line[1024];
@@ -312,7 +339,7 @@ int update_config(const char *filename, const struct Config_Tag configs[], const
 				break;
 			fprintf(tempfile, "%s\n", fptr);
 		}
-		while(memcmp(fptr, header, headerlen));
+		while (strncmp(fptr, header, headerlen));
 	}
 
 	if (feof(cfgfile))
@@ -331,28 +358,27 @@ int update_config(const char *filename, const struct Config_Tag configs[], const
 		}
 		if (numtokens)
 		{
-			savedtokenflags = malloc(numtokens * sizeof(char));
-			if (savedtokenflags)
-				memset(savedtokenflags, 0, numtokens * sizeof(char));
+			savedtokenflags = calloc(numtokens, sizeof(char));
 		}
 
 		for(;;)
 		{
 			fptr = Str_Trim(fgets(line, sizeof(line), cfgfile));  /* get input line */
-            /* error or eof? */
+			/* error or eof? */
 			if (fptr == NULL)
 				break;
-            if (fptr[0] == '#')
-  			{
-                fprintf(tempfile, "%s\n", fptr);
-  				continue;                                 /* skip comments */
-  			}
-            if (fptr[0] == '[')
-  			{
-  				break;
-  			}
-            
-            tok = Str_Trim(strtok(fptr, "="));               /* get first token */
+			lineno++;
+			if (fptr[0] == '#')
+			{
+				fprintf(tempfile, "%s\n", fptr);
+				continue;                                 /* skip comments */
+			}
+			if (fptr[0] == '[')
+			{
+				break;
+			}
+
+			tok = Str_Trim(strtok(fptr, "="));               /* get first token */
 			if (tok != NULL)
 			{
 				int i = 0;
@@ -382,7 +408,7 @@ int update_config(const char *filename, const struct Config_Tag configs[], const
 					if (write_token(tempfile, ptr) == 0)
 					{
 						count += 1;
-						fprintf(stderr, "Wrote new token %s -> %s \n", header, ptr->code);
+						Log_Printf(LOG_INFO, "Wrote new token %s -> %s \n", header, ptr->code);
 					}
 				}
 			}

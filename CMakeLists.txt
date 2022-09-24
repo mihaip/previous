@@ -120,6 +120,10 @@ check_function_exists(gettimeofday HAVE_GETTIMEOFDAY)
 check_function_exists(nanosleep HAVE_NANOSLEEP)
 check_function_exists(alphasort HAVE_ALPHASORT)
 check_function_exists(scandir HAVE_SCANDIR)
+check_function_exists(fseeko HAVE_FSEEKO)
+check_function_exists(ftello HAVE_FTELLO)
+check_function_exists(flock HAVE_FLOCK)
+check_function_exists(strlcpy HAVE_LIBC_STRLCPY)
 check_function_exists(strdup HAVE_STRDUP)
 check_function_exists(lsetxattr HAVE_LXETXATTR)
 check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
@@ -206,4 +210,3 @@ configure_file(${CMAKE_SOURCE_DIR}/cmake/config-cmake.h
 		${CMAKE_BINARY_DIR}/config.h)
 
 add_subdirectory(src)
-

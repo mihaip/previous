@@ -5,7 +5,7 @@ set(SOURCES
 	m68000.c main.c mo.c nbic.c NextBus.cpp paths.c printer.c queue.c 
 	ramdac.c reset.c rs.c rtcnvram.c scandir.c scc.c fast_screen.c host.c 
 	scsi.c shortcut.c snd.c statusbar.c str.c sysReg.c tmc.c unzip.c 
-	utils.c video.c zip.c)
+	video.c zip.c)
 
 # When building for OSX, define specific sources for gui and ressources
 if(ENABLE_OSX_BUNDLE)

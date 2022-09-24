@@ -54,6 +54,18 @@
 /* Define to 1 if you have the 'scandir' function. */
 #cmakedefine HAVE_SCANDIR 1
 
+/* Define to 1 if you have the 'fseeko' function. */
+#cmakedefine HAVE_FSEEKO 1
+
+/* Define to 1 if you have the 'ftello' function. */
+#cmakedefine HAVE_FTELLO 1
+
+/* Define to 1 if you have the 'flock' function. */
+#cmakedefine HAVE_FLOCK 1
+
+/* Define to 1 if you have the 'strlcpy' function. */
+#cmakedefine HAVE_LIBC_STRLCPY 1
+
 /* Define to 1 if you have the 'strdup' function */
 #cmakedefine HAVE_STRDUP 1
 

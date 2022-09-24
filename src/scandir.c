@@ -1,12 +1,12 @@
 /*
   Hatari - scandir.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   scandir function for BEOS, SunOS etc..
 */
-const char ScanDir_fileid[] = "Hatari scandir.c : " __DATE__ " " __TIME__;
+const char ScanDir_fileid[] = "Hatari scandir.c";
 
 #include <string.h>
 #include <stdio.h>
@@ -22,16 +22,16 @@ const char ScanDir_fileid[] = "Hatari scandir.c : " __DATE__ " " __TIME__;
 /*-----------------------------------------------------------------------
  * Here come alphasort and scandir for POSIX-like OSes
  *-----------------------------------------------------------------------*/
-#if !defined(WIN32) && !defined(__CEGCC__)
+#if !defined(WIN32)
+
 
 /**
  * Alphabetic order comparison routine.
  */
 #if !HAVE_ALPHASORT
-int alphasort(const void *d1, const void *d2)
+int alphasort(const struct dirent **d1, const struct dirent **d2)
 {
-    return strcmp((*(struct dirent * const *)d1)->d_name,
-                  (*(struct dirent * const *)d2)->d_name);
+	return strcmp((*d1)->d_name, (*d2)->d_name);
 }
 #endif
 
@@ -39,24 +39,24 @@ int alphasort(const void *d1, const void *d2)
 #if !HAVE_SCANDIR
 
 #undef DIRSIZ
-
 #define DIRSIZ(dp)                                          \
 		((sizeof(struct dirent) - sizeof(dp)->d_name) +     \
 		(((dp)->d_reclen + 1 + 3) &~ 3))
 
-#if (defined(__sun) && defined(__SVR4)) || defined(__CEGCC__)
+#if (defined(__sun) && defined(__SVR4))
 # define dirfd(d) ((d)->dd_fd)
 #elif defined(__BEOS__)
 # define dirfd(d) ((d)->fd)
 #endif
 
 
-/*-----------------------------------------------------------------------*/
 /**
  * Scan a directory for all its entries
  * Return -1 on error, number of entries on success
  */
-int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(struct dirent *), int (*dcomp)(const void *, const void *))
+int scandir(const char *dirname, struct dirent ***namelist,
+            int (*sdfilter)(const struct dirent *),
+            int (*dcomp)(const struct dirent **, const struct dirent **))
 {
 	struct dirent *d, *p = NULL, **names = NULL;
 	struct stat stb;
@@ -126,7 +126,8 @@ int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(stru
 	closedir(dirp);
 
 	if (nitems && dcomp != NULL)
-		qsort(names, nitems, sizeof(struct dirent *), dcomp);
+		qsort(names, nitems, sizeof(struct dirent *),
+		      (int (*)(const void *, const void *))dcomp);
 
 	*namelist = names;
 
@@ -146,13 +147,14 @@ error_out:
 }
 #endif	/* !HAVE_SCANDIR */
 
+
 #endif /* !WIN32 */
 
 
 /*-----------------------------------------------------------------------
  * Here come alphasort and scandir for Windows
  *-----------------------------------------------------------------------*/
-#if defined(WIN32) || defined(__CEGCC__)
+#if defined(WIN32) && !defined(DIRENT_H)
 
 #include <windows.h>
 #include <wchar.h>
@@ -161,16 +163,18 @@ error_out:
 /**
  * Alphabetic order comparison routine.
  */
-int alphasort(const void *d1, const void *d2)
+int alphasort(const struct dirent **d1, const struct dirent **d2)
 {
-	return stricmp((*(struct dirent * const *)d1)->d_name, (*(struct dirent * const *)d2)->d_name);
+	return stricmp((*d1)->d_name, (*d2)->d_name);
 }
 
 /*-----------------------------------------------------------------------*/
 /**
  * Scan a directory for all its entries
  */
-int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(struct dirent *), int (*dcomp)(const void *, const void *))
+int scandir(const char *dirname, struct dirent ***namelist,
+            int (*sdfilter)(const struct dirent *),
+            int (*dcomp)(const struct dirent **, const struct dirent **))
 {
 	int len;
 	char *findIn, *d;
@@ -186,7 +190,7 @@ int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(stru
 		return -1;
 
 	strcpy(findIn, dirname);
-	Log_Printf(LOG_DEBUG, "scandir : findIn orign='%s'\n", findIn);
+	Log_Printf(LOG_DEBUG, "scandir : findIn origin='%s'\n", findIn);
 
 	for (d = findIn; *d; d++)
 		if (*d=='/')
@@ -217,16 +221,7 @@ int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(stru
 
 	Log_Printf(LOG_DEBUG, "scandir : findIn processed='%s'\n", findIn);
 
-#if defined(__CEGCC__)
-	void *findInW = NULL;
-	findInW = malloc((len+6)*2);
-	if (!findInW)
-		return -1;
-	mbstowcs(findInW, findIn, len+6);
-	h = FindFirstFileW(findInW, &find);
-#else
 	h = FindFirstFile(findIn, &find);
-#endif
 
 	if (h == INVALID_HANDLE_VALUE)
 	{
@@ -243,11 +238,7 @@ int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(stru
 	do
 	{
 		selectDir=(struct dirent*)malloc(sizeof(struct dirent)+lstrlen(find.cFileName)+1);
-#if defined(__CEGCC__)
-		wcstombs(selectDir->d_name, find.cFileName, lstrlen(find.cFileName)+1);
-#else
 		strcpy(selectDir->d_name, find.cFileName);
-#endif
 		//Log_Printf(LOG_DEBUG, "scandir : findFile='%s'\n", selectDir->d_name);
 		if (!sdfilter || (*sdfilter)(selectDir))
 		{
@@ -256,8 +247,7 @@ int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(stru
 				struct dirent **tempDir = (struct dirent **)calloc(sizeof(struct dirent*), NDir+33);
 				if (NDir)
 					memcpy(tempDir, dir, sizeof(struct dirent*)*NDir);
-				if (dir)
-					free(dir);
+				free(dir);
 				dir = tempDir;
 				NDir += 32;
 			}
@@ -270,11 +260,7 @@ int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(stru
 			free(selectDir);
 		}
 
-#if defined(__CEGCC__)
-		ret = FindNextFileW(h, &find);
-#else
 		ret = FindNextFile(h, &find);
-#endif
 	}
 	while (ret);
 
@@ -289,12 +275,9 @@ int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(stru
 
 	free(findIn);
 
-#if defined(__CEGCC__)
-	free(findInW);
-#endif
-
 	if (dcomp)
-		qsort (dir, nDir, sizeof(*dir),dcomp);
+		qsort(dir, nDir, sizeof(*dir),
+		      (int (*)(const void *, const void *))dcomp);
 
 	*namelist = dir;
 	return nDir;

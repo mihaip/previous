@@ -1,13 +1,14 @@
 /*
   Hatari - file.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   Common file access functions.
 */
-const char File_fileid[] = "Hatari file.c : " __DATE__ " " __TIME__;
+const char File_fileid[] = "Hatari file.c";
 
+#include "main.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -15,21 +16,25 @@ const char File_fileid[] = "Hatari file.c : " __DATE__ " " __TIME__;
 #include <unistd.h>
 #include <assert.h>
 #include <errno.h>
+#if HAVE_LIBZ
 #include <zlib.h>
-
+#endif
 #if defined(WIN32) && !defined(_VCWIN_)
 #include <winsock2.h>
 #endif
 
-#include "main.h"
 #include "dialog.h"
 #include "file.h"
 #include "createBlankImage.h"
 #include "str.h"
 #include "zip.h"
+#include "log.h"
 
-#if defined(WIN32)
-#define ftello ftell
+#ifdef HAVE_FLOCK
+# include <sys/file.h>
+#endif
+#if defined(__APPLE__)
+#include <sys/disk.h>
 #endif
 
 /*-----------------------------------------------------------------------*/
@@ -72,7 +77,7 @@ void File_AddSlashToEndFileName(char *pszFileName)
 
 /*-----------------------------------------------------------------------*/
 /**
- * Does filename extension match? If so, return TRUE
+ * Does filename's extension match? If so, return TRUE
  */
 bool File_DoesFileExtensionMatch(const char *pszFileName, const char *pszExtension)
 {
@@ -83,6 +88,31 @@ bool File_DoesFileExtensionMatch(const char *pszFileName, const char *pszExtensi
 		return true;
 
 	/* No */
+	return false;
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * If filename's extension matches, replace it with a new extension and
+ * copy the result in the new filename.
+ * Return TRUE if OK
+ */
+bool File_ChangeFileExtension(const char *Filename_old, const char *Extension_old , char *Filename_new , const char *Extension_new)
+{
+	if ( strlen ( Filename_old ) >= FILENAME_MAX - strlen ( Extension_new ) )
+		return false;					/* file name is already too long */
+
+	if ( strlen ( Filename_old ) < strlen ( Extension_old ) )
+		return false;
+
+	if ( !strcasecmp ( Filename_old + strlen(Filename_old) - strlen(Extension_old) , Extension_old ) )
+	{
+		strcpy ( Filename_new , Filename_old );
+		strcpy ( Filename_new + strlen ( Filename_new ) - strlen ( Extension_old ) , Extension_new );
+		return true;
+	}
+
 	return false;
 }
 
@@ -153,9 +183,94 @@ bool File_DoesFileNameEndWithSlash(char *pszFileName)
 
 /*-----------------------------------------------------------------------*/
 /**
+ * Read file via zlib into a newly allocated buffer and return the buffer
+ * or NULL for error. If pFileSize is non-NULL, read file size is set to that.
+ */
+#if HAVE_LIBZ
+Uint8 *File_ZlibRead(const char *pszFileName, long *pFileSize)
+{
+	Uint8 *pFile = NULL;
+	gzFile hGzFile;
+	long nFileSize = 0;
+
+	hGzFile = gzopen(pszFileName, "rb");
+	if (hGzFile != NULL)
+	{
+		/* Find size of file: */
+		do
+		{
+			/* Seek through the file until we hit the end... */
+			char tmp[1024];
+			if (gzread(hGzFile, tmp, sizeof(tmp)) < 0)
+			{
+				gzclose(hGzFile);
+				fprintf(stderr, "Failed to read gzip file!\n");
+					return NULL;
+			}
+		}
+		while (!gzeof(hGzFile));
+		nFileSize = gztell(hGzFile);
+		gzrewind(hGzFile);
+
+		/* Read in... */
+		pFile = malloc(nFileSize);
+		if (pFile)
+			nFileSize = gzread(hGzFile, pFile, nFileSize);
+
+		gzclose(hGzFile);
+	}
+
+	if (pFileSize)
+		*pFileSize = nFileSize;
+
+	return pFile;
+}
+#endif
+
+/**
  * Read file from disk into allocated buffer and return the buffer
- * or NULL for error.  If pFileSize is non-NULL, read file size
- * is set to that.
+ * unmodified, or NULL for error.  If pFileSize is non-NULL, read
+ * file size is set to that.
+ */
+Uint8 *File_ReadAsIs(const char *pszFileName, long *pFileSize)
+{
+	Uint8 *pFile = NULL;
+	long FileSize = 0;
+	FILE *hDiskFile;
+
+	/* Open and read normal file */
+	hDiskFile = fopen(pszFileName, "rb");
+	if (hDiskFile != NULL)
+	{
+		/* Find size of file: */
+		if (fseek(hDiskFile, 0, SEEK_END) == 0)
+		{
+			FileSize = ftell(hDiskFile);
+			if (FileSize > 0 && fseek(hDiskFile, 0, SEEK_SET) == 0)
+			{
+				/* Read in... */
+				pFile = malloc(FileSize);
+				if (pFile)
+					FileSize = fread(pFile, 1, FileSize, hDiskFile);
+			}
+		}
+		fclose(hDiskFile);
+	}
+
+	/* Store size of file we read in (or 0 if failed) */
+	if (pFileSize)
+		*pFileSize = FileSize;
+
+	return pFile;        /* Return to where read in/allocated */
+}
+
+/**
+ * Read file from disk into allocated buffer and return the buffer or
+ * NULL for error.  If file is missing, given additional compression
+ * extension are checked too.  If file has one of the supported
+ * compression extension, its contents are uncompressed (in case of
+ * ZIP, first file in it is read).  If pFileSize is non-NULL, read
+ * file size is set to that.
  */
 Uint8 *File_Load(const char *pszFileName, long *pFileSize, const char * const ppszExts[])
 {
@@ -172,54 +287,22 @@ Uint8 *File_Load(const char *pszFileName, long *pFileSize, const char * const pp
 	if (!filepath)
 		filepath = strdup(pszFileName);
 
+#if HAVE_LIBZ
 	/* Is it a gzipped file? */
 	if (File_DoesFileExtensionMatch(filepath, ".gz"))
 	{
-		gzFile hGzFile;
-		/* Open and read gzipped file */
-		hGzFile = gzopen(filepath, "rb");
-		if (hGzFile != NULL)
-		{
-			/* Find size of file: */
-			do
-			{
-				/* Seek through the file until we hit the end... */
-				gzseek(hGzFile, 1024, SEEK_CUR);
-			}
-			while (!gzeof(hGzFile));
-			FileSize = gztell(hGzFile);
-			gzrewind(hGzFile);
-			/* Read in... */
-			pFile = malloc(FileSize);
-			if (pFile)
-				FileSize = gzread(hGzFile, pFile, FileSize);
-
-			gzclose(hGzFile);
-		}
+		pFile = File_ZlibRead(filepath, &FileSize);
 	}
 	else if (File_DoesFileExtensionMatch(filepath, ".zip"))
 	{
 		/* It is a .ZIP file! -> Try to load the first file in the archive */
 		pFile = ZIP_ReadFirstFile(filepath, &FileSize, ppszExts);
 	}
-	else          /* It is a normal file */
+	else
+#endif  /* HAVE_LIBZ */
 	{
-		FILE *hDiskFile;
-		/* Open and read normal file */
-		hDiskFile = fopen(filepath, "rb");
-		if (hDiskFile != NULL)
-		{
-			/* Find size of file: */
-			fseek(hDiskFile, 0, SEEK_END);
-			FileSize = ftell(hDiskFile);
-			fseek(hDiskFile, 0, SEEK_SET);
-			/* Read in... */
-			pFile = malloc(FileSize);
-			if (pFile)
-				FileSize = fread(pFile, 1, FileSize, hDiskFile);
-
-			fclose(hDiskFile);
-		}
+		/* It is a normal file */
+		pFile = File_ReadAsIs(filepath, &FileSize);
 	}
 	free(filepath);
 
@@ -234,6 +317,7 @@ Uint8 *File_Load(const char *pszFileName, long *pFileSize, const char * const pp
 /*-----------------------------------------------------------------------*/
 /**
  * Save file to disk, return FALSE if errors
+ * If built with ZLib support + file name ends with *.gz, compress it first
  */
 bool File_Save(const char *pszFileName, const Uint8 *pAddress, size_t Size, bool bQueryOverwrite)
 {
@@ -247,6 +331,7 @@ bool File_Save(const char *pszFileName, const Uint8 *pAddress, size_t Size, bool
 			return false;
 	}
 
+#if HAVE_LIBZ
 	/* Normal file or gzipped file? */
 	if (File_DoesFileExtensionMatch(pszFileName, ".gz"))
 	{
@@ -263,6 +348,7 @@ bool File_Save(const char *pszFileName, const Uint8 *pAddress, size_t Size, bool
 		}
 	}
 	else
+#endif  /* HAVE_LIBZ */
 	{
 		FILE *hDiskFile;
 		/* Create a normal file: */
@@ -293,9 +379,33 @@ off_t File_Length(const char *pszFileName)
 	hDiskFile = fopen(pszFileName, "rb");
 	if (hDiskFile!=NULL)
 	{
-		fseek(hDiskFile, 0, SEEK_END);
+#if defined(__APPLE__)
+		/* special handling for character/block devices on macOS, where the
+		   seeking method doesn't determine the size */
+		struct stat buf;
+		unsigned long blocksize;
+		unsigned long numblocks;
+		int fd = fileno(hDiskFile);
+
+		if ((fstat(fd, &buf) == 0) &&
+		    (S_ISBLK(buf.st_mode) || S_ISCHR(buf.st_mode)))
+		    /* both S_ISBLK() and S_ISCHR() is needed, because /dev/rdisk?
+		       devices in macOS identify themselves as character devices,
+		       not block devices, meanwhile /dev/disk?, which are a lot
+		       slower and buffered, say they are block devices...
+		       Thanks, Apple!
+		       This hack allows either of them to be used by Hatari. */
+		{
+			if ((ioctl(fd, DKIOCGETBLOCKSIZE, &blocksize) == 0) &&
+			    (ioctl(fd, DKIOCGETBLOCKCOUNT, &numblocks) == 0))
+			{
+				FileSize = blocksize * numblocks;
+				return FileSize;
+			}
+		}
+#endif
+		fseeko(hDiskFile, 0, SEEK_END);
 		FileSize = ftello(hDiskFile);
-		fseek(hDiskFile, 0, SEEK_SET);
 		fclose(hDiskFile);
 		return FileSize;
 	}
@@ -313,7 +423,7 @@ bool File_Exists(const char *filename)
 {
 	struct stat buf;
 	if (stat(filename, &buf) == 0 &&
-	    (buf.st_mode & (S_IRUSR|S_IWUSR)) && !(buf.st_mode & S_IFDIR))
+	    (buf.st_mode & (S_IRUSR|S_IWUSR)) && !S_ISDIR(buf.st_mode))
 	{
 		/* file points to user readable regular file */
 		return true;
@@ -329,7 +439,7 @@ bool File_Exists(const char *filename)
 bool File_DirExists(const char *path)
 {
 	struct stat buf;
-    return (stat(path, &buf) == 0 && S_ISDIR(buf.st_mode));
+	return (stat(path, &buf) == 0 && S_ISDIR(buf.st_mode));
 }
 
 
@@ -349,6 +459,8 @@ bool File_QueryOverwrite(const char *pszFileName)
 		fmt = "File '%s' exists, overwrite?";
 		/* File does exist, are we OK to overwrite? */
 		szString = malloc(strlen(pszFileName) + strlen(fmt) + 1);
+		if ( !szString )
+			return false;
 		sprintf(szString, fmt, pszFileName);
 		fprintf(stderr, "%s\n", szString);
 		ret = DlgAlert_Query(szString);
@@ -374,7 +486,7 @@ char * File_FindPossibleExtFileName(const char *pszFileName, const char * const 
 	if (!szSrcDir)
 	{
 		perror("File_FindPossibleExtFileName");
-		return false;
+		return NULL;
 	}
 	szSrcName = szSrcDir + FILENAME_MAX;
 	szSrcExt = szSrcName + FILENAME_MAX;
@@ -426,7 +538,7 @@ void File_SplitPath(const char *pSrcFileName, char *pDir, char *pName, char *pEx
 	}
 	else
 	{
- 		strcpy(pName, pSrcFileName);
+		strcpy(pName, pSrcFileName);
 		sprintf(pDir, ".%c", PATHSEP);
 	}
 
@@ -469,7 +581,9 @@ char * File_MakePath(const char *pDir, const char *pName, const char *pExt)
 	{
 		filepath[0] = '.';
 		filepath[1] = '\0';
-	} else {
+	}
+	else
+	{
 		strcpy(filepath, pDir);
 	}
 	len = strlen(filepath);
@@ -489,11 +603,43 @@ char * File_MakePath(const char *pDir, const char *pName, const char *pExt)
 	return filepath;
 }
 
+/**
+ * Like File_MakePath(), but puts the string into a pre-allocated buffer
+ * instead of returning a freshly allocated memory buffer.
+ */
+int File_MakePathBuf(char *buf, size_t buflen, const char *pDir,
+                     const char *pName, const char *pExt)
+{
+	char *tmp;
+
+	if (!buflen)
+		return -EINVAL;
+
+	tmp = File_MakePath(pDir, pName, pExt);
+	if (!tmp)
+	{
+		buf[0] = '\0';
+		return -ENOMEM;
+	}
+
+	strncpy(buf, tmp, buflen);
+	free(tmp);
+	if (buf[buflen - 1])
+	{
+		buf[buflen - 1] = '\0';
+		return -E2BIG;
+	}
+
+	return 0;
+}
 
 /*-----------------------------------------------------------------------*/
 /**
  * Shrink a file name to a certain length and insert some dots if we cut
  * something away (useful for showing file names in a dialog).
+ * Note: maxlen is the maximum length of the destination string, _not_
+ * including the final '\0' byte! So the destination buffer has to be
+ * at least one byte bigger than maxlen.
  */
 void File_ShrinkName(char *pDestFileName, const char *pSrcFileName, int maxlen)
 {
@@ -553,10 +699,10 @@ FILE *File_Open(const char *path, const char *mode)
 	/* Open a normal log file */
 	fp = fopen(path, mode);
 	if (!fp)
-        fprintf(stderr, "Can't open file '%s' (wr=%i, rd=%i):\n  %s\n",
-                path, wr, rd, strerror(errno));
-    
-    /* printf("'%s' opened in mode '%s'\n", path, mode, fp); */
+		fprintf(stderr, "Can't open file '%s' (wr=%i, rd=%i):\n  %s\n",
+			path, wr, rd, strerror(errno));
+
+	/* printf("'%s' opened in mode '%s'\n", path, mode, fp); */
 	return fp;
 }
 
@@ -573,6 +719,56 @@ FILE *File_Close(FILE *fp)
 		fclose(fp);
 	}
 	return NULL;
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Internal lock function for File_Lock() / File_UnLock().
+ * Returns true on success, otherwise false.
+ */
+static bool lock_operation(FILE *fp, int cmd)
+{
+#ifndef HAVE_FLOCK
+# define DO_LOCK	0
+# define DO_UNLOCK	0
+	return true;
+#else
+# define DO_LOCK	(LOCK_EX|LOCK_NB)
+# define DO_UNLOCK	(LOCK_UN)
+	/* Advantage of locking is only small bit of extra safety if
+	 * one runs (e.g. accidentally) multiple Hatari instances at
+	 * same time, so replacing it with no-op is no big deal.
+	 *
+	 * NOTE: this uses BSD file locking as it's a bit more usable than POSIX one:
+	 *	http://0pointer.de/blog/projects/locking.html
+	 */
+	int ret, fd = fileno(fp);
+	if (fd < 0)
+		return false;
+	ret = flock(fd, cmd);
+	return (ret >= 0);
+#endif
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Takes advisory, exclusive lock on given file (FILE *).
+ * Returns false if locking fails (e.g. another Hatari
+ * instance has already file open for writing).
+ */
+bool File_Lock(FILE *fp)
+{
+	return lock_operation(fp, DO_LOCK);
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Releases advisory, exclusive lock on given file (FILE *).
+ */
+void File_UnLock(FILE *fp)
+{
+	lock_operation(fp, DO_UNLOCK);
 }
 
 
@@ -676,6 +872,11 @@ void File_MakeAbsoluteName(char *pFileName)
 {
 	char *pTempName;
 	int inpos, outpos;
+
+#if defined (__AMIGAOS4__)
+	/* This function does not work on Amiga OS */
+	return;
+#endif
 
 	inpos = 0;
 	pTempName = malloc(FILENAME_MAX);
@@ -820,17 +1021,29 @@ void File_MakeValidPathName(char *pPathName)
  */
 void File_PathShorten(char *path, int dirs)
 {
-	int i, n = 0;
+	int n = 0;
 	/* ignore last char, it may or may not be '/' */
-	i = strlen(path)-1;
+	int i = strlen(path) - 1;
+#ifdef WIN32
+	int len = i;
+#endif
 	assert(i >= 0);
-	while(i > 0 && n < dirs) {
+	while(i > 0 && n < dirs)
+	{
 		if (path[--i] == PATHSEP)
 			n++;
 	}
-	if (path[i] == PATHSEP) {
+#ifdef WIN32
+	/* if we have only drive with root, don't shorten it more*/
+	if (len == 2 && n == 0 && path[1] == ':' && path[2] == PATHSEP)
+		return;
+#endif
+	if (path[i] == PATHSEP)
+	{
 		path[i+1] = '\0';
-	} else {
+	}
+	else
+	{
 		path[0] = PATHSEP;
 		path[1] = '\0';
 	}
@@ -859,9 +1072,12 @@ void File_HandleDotDirs(char *path)
 	    path[len-1] == '.')
 	{
 		/* go one dir up */
-		if (len == 3) {
+		if (len == 3)
+		{
 			path[1] = 0;		/* already root */
-		} else {
+		}
+		else
+		{
 			char *ptr;
 			path[len-3] = 0;
 			ptr = strrchr(path, PATHSEP);
@@ -870,3 +1086,40 @@ void File_HandleDotDirs(char *path)
 		}
 	}
 }
+
+
+#if defined(WIN32)
+static TCHAR szTempFileName[MAX_PATH];
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Get temporary filename for Windows
+ */
+char* WinTmpFile(void)
+{
+	DWORD dwRetVal = 0;
+	UINT uRetVal   = 0;
+	TCHAR lpTempPathBuffer[MAX_PATH];
+
+	/* Gets the temp path env string (no guarantee it's a valid path) */
+	dwRetVal = GetTempPath(MAX_PATH,		/* length of the buffer */
+	                       lpTempPathBuffer);	/* buffer for path */
+	if (dwRetVal > MAX_PATH || (dwRetVal == 0))
+	{
+		Log_Printf(LOG_ERROR, "GetTempPath failed.\n");
+		return NULL;
+	}
+
+	/* Generates a temporary file name */
+	uRetVal = GetTempFileName(lpTempPathBuffer,	/* directory for tmp files */
+	                          TEXT("PREVIOUS"),	/* temp file name prefix */
+	                          0,			/* create unique name */
+	                          szTempFileName);	/* buffer for name */
+	if (uRetVal == 0)
+	{
+		Log_Printf(LOG_ERROR, "GetTempFileName failed.\n");
+		return NULL;
+	}
+	return (char*)szTempFileName;
+}
+#endif

@@ -583,3 +583,17 @@ void Keymap_MouseUp(bool left)
 {
     kms_mouse_button(left,false);
 }
+
+
+int Keymap_GetKeyFromName(const char *name)
+{
+	return SDL_GetKeyFromName(name);
+}
+
+const char *Keymap_GetKeyName(int keycode)
+{
+	if (!keycode)
+		return "";
+
+	return SDL_GetKeyName(keycode);
+}

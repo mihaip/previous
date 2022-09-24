@@ -16,6 +16,7 @@ typedef enum
   Float_Tag,
   Double_Tag,
   String_Tag,
+  Key_Tag
 } TAG_TYPE;
 
 

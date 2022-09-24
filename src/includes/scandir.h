@@ -1,8 +1,8 @@
 /*
   Hatari - scandir.h
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
 #ifndef HATARI_SCANDIR_H
 #define HATARI_SCANDIR_H
@@ -17,11 +17,13 @@
 #endif
 
 #if !HAVE_ALPHASORT
-int alphasort(const void *d1, const void *d2);
+extern int alphasort(const struct dirent **d1, const struct dirent **d2);
 #endif
 
 #if !HAVE_SCANDIR
-int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(struct dirent *), int (*dcomp)(const void *, const void *));
+extern int scandir(const char *dirname, struct dirent ***namelist,
+                   int (*sdfilter)(const struct dirent *),
+                   int (*comp)(const struct dirent **, const struct dirent **));
 #endif
 
 #endif /* HATARI_SCANDIR_H */
