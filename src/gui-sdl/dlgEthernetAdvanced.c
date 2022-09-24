@@ -1,10 +1,10 @@
 /*
-  Previous - dlgEthernet.c
+  Previous - dlgEthernetAdvanced.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgEthernetAdvanced_fileid[] = "Previous dlgEthernetAdvanced.c : " __DATE__ " " __TIME__;
+const char DlgEthernetAdvanced_fileid[] = "Previous dlgEthernetAdvanced.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -35,7 +35,7 @@ static SGOBJ enetpcapdlg[] =
     { SGBUTTON, SG_DEFAULT, 0, 14,6, 8,1, "Select" },
     { SGBUTTON, 0, 0, 24,6, 8,1, "Next" },
 
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -84,7 +84,7 @@ bool DlgEthernetAdvanced_ConfigurePCAP(void)
             bNone = true;
         }
 
-		but = SDLGui_DoDialog(enetpcapdlg, NULL);
+		but = SDLGui_DoDialog(enetpcapdlg);
 		
 		switch (but) {
             case DLGENETPCAP_SELECT:
@@ -138,7 +138,7 @@ static SGOBJ enetmacdlg[] =
     { SGBUTTON, 0, 0, 15,6, 11,1, "Customize" },
     { SGBUTTON, SG_DEFAULT, 0, 31,6, 11,1, "Default" },
     
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 bool DlgEthernetAdvanced_GetRomMAC(Uint8 *mac)
@@ -199,7 +199,7 @@ void DlgEthernetAdvanced_ConfigureMAC(Uint8 *mac)
     
     do
     {
-        but = SDLGui_DoDialog(enetmacdlg, NULL);
+        but = SDLGui_DoDialog(enetmacdlg);
         
         switch (but) {
                 

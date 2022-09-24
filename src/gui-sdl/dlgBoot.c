@@ -1,10 +1,10 @@
 /*
-  Hatari - dlgRom.c
+  Previous - dlgBoot.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgBoot_fileid[] = "Hatari dlgBoot.c : " __DATE__ " " __TIME__;
+const char DlgBoot_fileid[] = "Hatari dlgBoot.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -59,7 +59,7 @@ static SGOBJ bootdlg[] =
     { SGTEXT, 0, 0, 2,16, 25,1, "For advanced options boot to ROM monitor prompt." },
 
 	{ SGBUTTON, SG_DEFAULT, 0, 15,19, 21,1, "Back to main menu" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -124,7 +124,7 @@ void DlgBoot_Main(void)
     
 	do
 	{
-		but = SDLGui_DoDialog(bootdlg, NULL);
+		but = SDLGui_DoDialog(bootdlg);
 		switch (but)
 		{
             case DLGBOOT_ENABLE_POT:

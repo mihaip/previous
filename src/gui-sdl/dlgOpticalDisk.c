@@ -1,10 +1,10 @@
 /*
-  Hatari - dlgHardDisk.c
+  Previous - dlgOpticalDisk.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgOpticalDisk_fileid[] = "Previous dlgOpticalDisk.c : " __DATE__ " " __TIME__;
+const char DlgOpticalDisk_fileid[] = "Previous dlgOpticalDisk.c";
 
 #include <assert.h>
 #include "main.h"
@@ -78,33 +78,8 @@ static SGOBJ modlg[] =
     { SGBUTTON, SG_DEFAULT, 0, 21,17, 21,1, "Back to main menu" },
 #endif
 
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
-
-
-/**
- * Let user browse given directory, set directory if one selected.
- * return false if none selected, otherwise return true.
- */
-/*static bool DlgDisk_BrowseDir(char *dlgname, char *confname, int maxlen)
-{
-	char *str, *selname;
-
-	selname = SDLGui_FileSelect(confname, NULL, false);
-	if (selname)
-	{
-		strcpy(confname, selname);
-		free(selname);
-
-		str = strrchr(confname, PATHSEP);
-		if (str != NULL)
-			str[1] = 0;
-		File_CleanFileName(confname);
-		File_ShrinkName(dlgname, confname, maxlen);
-		return true;
-	}
-	return false;
-}*/
 
 
 /**
@@ -168,14 +143,14 @@ void DlgOptical_Main(void)
             modlg[MODLG_READONLY1].txt = "";
 #endif
 
-		but = SDLGui_DoDialog(modlg, NULL);
+		but = SDLGui_DoDialog(modlg);
 
 		switch (but)
 		{
             case MODLG_INSERT0:
                 if (!ConfigureParams.MO.drive[0].bDiskInserted) {
-                    if (SDLGui_DiskSelect(dlgname_mo[0], ConfigureParams.MO.drive[0].szImageName,
-                                          modlg[MODLG_DISKNAME0].w, &ConfigureParams.MO.drive[0].bWriteProtected)) {
+                    if (SDLGui_FileConfSelect(dlgname_mo[0], ConfigureParams.MO.drive[0].szImageName,
+                                          modlg[MODLG_DISKNAME0].w, &ConfigureParams.MO.drive[0].bWriteProtected, false)) {
                         ConfigureParams.MO.drive[0].bDiskInserted = true;
                         sprintf(inserteject0, "Eject");
                         if (!ConfigureParams.MO.drive[0].bDriveConnected) {
@@ -215,8 +190,8 @@ void DlgOptical_Main(void)
                             break;
                         }
                     }
-                    if (SDLGui_DiskSelect(dlgname_mo[1], ConfigureParams.MO.drive[1].szImageName,
-                                          modlg[MODLG_DISKNAME1].w, &ConfigureParams.MO.drive[1].bWriteProtected)) {
+                    if (SDLGui_FileConfSelect(dlgname_mo[1], ConfigureParams.MO.drive[1].szImageName,
+                                          modlg[MODLG_DISKNAME1].w, &ConfigureParams.MO.drive[1].bWriteProtected, false)) {
                         if (!ConfigureParams.MO.drive[1].bDriveConnected) {
                             ConfigureParams.MO.drive[1].bDriveConnected = true;
                             modlg[MODLG_CONNECTED1].state |= SG_SELECTED;

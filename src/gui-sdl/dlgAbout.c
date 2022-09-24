@@ -1,12 +1,12 @@
 /*
   Previous - dlgAbout.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   Show information about the program and its license.
 */
-const char DlgAbout_fileid[] = "Previous dlgAbout.c : " __DATE__ " " __TIME__;
+const char DlgAbout_fileid[] = "Previous dlgAbout.c";
 
 #include "main.h"
 #include "dialog.h"
@@ -31,7 +31,7 @@ static SGOBJ aboutdlg[] =
 	{ SGTEXT, 0, 0, 2,15, 52,1, "This program is distributed in the hope that it will" },
 	{ SGTEXT, 0, 0, 2,16, 52,1, "be useful, but WITHOUT ANY WARRANTY.                " },
 	{ SGBUTTON, SG_DEFAULT, 0, 24,19, 8,1, "OK" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -45,5 +45,5 @@ void Dialog_AboutDlg(void)
 	aboutdlg[1].x = (aboutdlg[0].w - strlen(PROG_NAME)) / 2;
 
 	SDLGui_CenterDlg(aboutdlg);
-	SDLGui_DoDialog(aboutdlg, NULL);
+	SDLGui_DoDialog(aboutdlg);
 }

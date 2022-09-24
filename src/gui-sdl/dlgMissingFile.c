@@ -1,10 +1,10 @@
 /*
-  Hatari - dlgMissingFile.c
+  Previous - dlgMissingFile.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgMissingFile_fileid[] = "Hatari dlgMissingFile.c : " __DATE__ " " __TIME__;
+const char DlgMissingFile_fileid[] = "Previous dlgMissingFile.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -41,7 +41,7 @@ static SGOBJ missingromdlg[] =
     { SGBUTTON, SG_DEFAULT, 0, 4,12, 10,1, "Select" },
     { SGBUTTON, 0, 0, 16,12, 10,1, "Remove" },
     { SGBUTTON, 0, 0, 38,12, 10,1, "Quit" },
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -73,7 +73,7 @@ static SGOBJ missingdiskdlg[] =
     { SGBUTTON, SG_DEFAULT, 0, 4,12, 10,1, "Select" },
     { SGBUTTON, 0, 0, 16,12, 10,1, "Remove" },
     { SGBUTTON, 0, 0, 38,12, 10,1, "Quit" },
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -115,14 +115,14 @@ void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *
     /* Draw and process the dialog */
     do
     {
-        but = SDLGui_DoDialog(missingromdlg, NULL);
+        but = SDLGui_DoDialog(missingromdlg);
         switch (but)
         {
                 
             case DLGMISROM_BROWSE:
                 SDLGui_FileConfSelect(dlgname_missingrom, imgname,
                                       missingromdlg[DLGMISROM_NAME].w,
-                                      false);
+                                      NULL, false);
                 break;
             case DLGMISROM_DEFAULT:
                 sprintf(imgname, "%s",defname);
@@ -186,12 +186,12 @@ void DlgMissing_Disk(const char* type, int num, char *imgname, bool *inserted, b
         else
             missingdiskdlg[DLGMISDSK_PROTECT].txt = "";
 
-        but = SDLGui_DoDialog(missingdiskdlg, NULL);
+        but = SDLGui_DoDialog(missingdiskdlg);
         switch (but)
         {
                 
             case DLGMISDSK_BROWSE:
-                SDLGui_DiskSelect(dlgname_missingdisk, imgname, missingdiskdlg[DLGMISDSK_NAME].w, wp);
+                SDLGui_FileConfSelect(dlgname_missingdisk, imgname, missingdiskdlg[DLGMISDSK_NAME].w, wp, false);
                 break;
             case DLGMISDSK_REMOVE:
                 *inserted = false;

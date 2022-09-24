@@ -1,12 +1,10 @@
 /*
   Previous - dlgDimension.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
-
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-
-const char DlgDimension_fileid[] = "Previous dlgDimension.c : " __DATE__ " " __TIME__;
+const char DlgDimension_fileid[] = "Previous dlgDimension.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -55,7 +53,7 @@ static SGOBJ dimensiondlg[] =
     
     { SGBUTTON, SG_DEFAULT, 0, 24,19, 10,1, "Done" },
 
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -107,14 +105,14 @@ void Dialog_DimensionDlg(int n)
  	/* Draw and process the dialog: */
     
     do {
-        but = SDLGui_DoDialog(dimensiondlg, NULL);
+        but = SDLGui_DoDialog(dimensiondlg);
         
         switch (but) {
             case DLGND_BROWSE:
                 SDLGui_FileConfSelect(dlgname_ndrom,
                                       ConfigureParams.Dimension.board[n].szRomFileName,
                                       dimensiondlg[DLGND_NAME].w,
-                                      false);
+                                      NULL, false);
                 break;
                 
             case DLGND_CUSTOMIZE:
@@ -190,7 +188,7 @@ static SGOBJ ndmemdlg[] =
     
     { SGBUTTON, 0, 0, 15,15, 10,1, "Defaults" },
     { SGBUTTON, SG_DEFAULT, 0, 30,15, 10,1, "OK" },
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -211,7 +209,7 @@ void Dialog_NDMemDlg(int *membank) {
     /* Draw and process the dialog: */
     do
     {
-        but = SDLGui_DoDialog(ndmemdlg, NULL);
+        but = SDLGui_DoDialog(ndmemdlg);
 
         switch (but) {
             case DLGNDMEM_DEFAULT:

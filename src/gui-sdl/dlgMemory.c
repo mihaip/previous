@@ -1,10 +1,10 @@
 /*
   Previous - dlgMemory.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgMemory_fileid[] = "Previous dlgMemory.c : " __DATE__ " " __TIME__;
+const char DlgMemory_fileid[] = "Previous dlgMemory.c";
 
 #include "main.h"
 #include "dialog.h"
@@ -78,7 +78,7 @@ static SGOBJ memorydlg[] =
     
     { SGBUTTON, SG_DEFAULT, 0, 10,26, 21,1, "Back to main menu" },
 #endif
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 /* Variable objects */
@@ -147,7 +147,7 @@ bool Dialog_MemDlg(void)
 
 	do
 	{
-		but = SDLGui_DoDialog(memorydlg, NULL);
+		but = SDLGui_DoDialog(memorydlg);
         
 		switch (but)
 		{

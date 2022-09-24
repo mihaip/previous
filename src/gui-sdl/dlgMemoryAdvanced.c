@@ -1,11 +1,10 @@
 /*
   Previous - dlgMemoryAdvanced.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
-
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgMemoryAdvanced_fileid[] = "Hatari dlgMemoryAdvanced.c : " __DATE__ " " __TIME__;
+const char DlgMemoryAdvanced_fileid[] = "Hatari dlgMemoryAdvanced.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -95,7 +94,7 @@ static SGOBJ memoryadvanceddlg[] =
 
     { SGBUTTON, 0, 0, 20,21, 9,1, "Check" },
     { SGBUTTON, SG_DEFAULT, 0, 35,21, 8,1, "OK" },
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -116,7 +115,7 @@ void Dialog_MemAdvancedDlg(int *membank) {
  	/* Draw and process the dialog: */
     do
 	{
-        but = SDLGui_DoDialog(memoryadvanceddlg, NULL);
+        but = SDLGui_DoDialog(memoryadvanceddlg);
         printf("Button: %i\n", but);
         switch (but) {
             case DLGMA_CHECK:

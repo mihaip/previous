@@ -16,7 +16,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License (gpl.txt) for more details.
  */
-const char DlgAlert_fileid[] = "Hatari dlgAlert.c : " __DATE__ " " __TIME__;
+const char DlgAlert_fileid[] = "Hatari dlgAlert.c";
 
 #include <string.h>
 
@@ -24,6 +24,7 @@ const char DlgAlert_fileid[] = "Hatari dlgAlert.c : " __DATE__ " " __TIME__;
 #include "dialog.h"
 #include "screen.h"
 #include "sdlgui.h"
+#include "str.h"
 
 
 #define MAX_LINES 4
@@ -32,8 +33,8 @@ static char dlglines[MAX_LINES][50+1];
 
 #ifdef ALERT_HOOKS 
 	// The alert hook functions
-	int HookedAlertNotice(const char* szMessage);	// Must return true if OK clicked, false otherwise
-	int HookedAlertQuery(const char* szMessage);		// Must return true if OK clicked, false otherwise
+	extern int HookedAlertNotice(const char* szMessage);	// Must return true if OK clicked, false otherwise
+	extern int HookedAlertQuery(const char* szMessage);		// Must return true if OK clicked, false otherwise
 #endif
 
 #define DLGALERT_OK       5
@@ -48,8 +49,8 @@ static SGOBJ alertdlg[] =
 	{ SGTEXT, 0, 0, 1,3, 50,1, dlglines[2] },
 	{ SGTEXT, 0, 0, 1,4, 50,1, dlglines[3] },
 	{ SGBUTTON, SG_DEFAULT, 0, 5,5, 8,1, "OK" },
-	{ SGBUTTON, SG_CANCEL, 0, 24,5, 8,1, "Cancel" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGBUTTON, SG_CANCEL, 0, 24,5, 8,1, NULL },
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -125,7 +126,7 @@ static int DlgAlert_FormatTextToBox(char *text, int max_width, int *text_width)
 static int DlgAlert_ShowDlg(const char *text)
 {
 	static int maxlen = sizeof(dlglines[0])-1;
-	char *t = (char *)malloc(strlen(text)+1);
+	char *t = Str_Alloc(strlen(text));
 	char *orig_t = t;
 	int lines, i, len, offset;
 	bool bOldMouseVisibility;
@@ -159,7 +160,7 @@ static int DlgAlert_ShowDlg(const char *text)
 	bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
 	SDL_ShowCursor(SDL_ENABLE);
 
-	i = SDLGui_DoDialog(alertdlg, NULL);
+	i = SDLGui_DoDialog(alertdlg);
 
 	SDL_UpdateRect(sdlscrn, 0,0, 0,0);
 	SDL_ShowCursor(bOldMouseVisibility);
@@ -175,15 +176,18 @@ static int DlgAlert_ShowDlg(const char *text)
  */
 int DlgAlert_Notice(const char *text)
 {
-#ifdef ALERT_HOOKS 
-	return HookedAlertNotice(text);
+#ifdef ALERT_HOOKS
+	if (!Main_UnPauseEmulation())
+		Main_PauseEmulation(true);
+	if(!bInFullScreen)
+		return HookedAlertNotice(text);
 #endif
 
 	/* Hide "cancel" button: */
 	alertdlg[DLGALERT_CANCEL].type = SGTEXT;
 	alertdlg[DLGALERT_CANCEL].txt = "";
 	alertdlg[DLGALERT_CANCEL].w = 0;
-    alertdlg[DLGALERT_CANCEL].h = 0;
+	alertdlg[DLGALERT_CANCEL].h = 0;
 
 	/* Adjust button position: */
 	alertdlg[DLGALERT_OK].x = (alertdlg[0].w - alertdlg[DLGALERT_OK].w) / 2;
@@ -199,7 +203,8 @@ int DlgAlert_Notice(const char *text)
 int DlgAlert_Query(const char *text)
 {
 #ifdef ALERT_HOOKS
-	return HookedAlertQuery(text);
+	if(!bInFullScreen)
+		return HookedAlertQuery(text);
 #endif
 
 	/* Show "cancel" button: */

@@ -1,12 +1,10 @@
 /*
-  Hatari - dlgMain.c
+  Previous - dlgMain.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
-
-  The main dialog.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgMain_fileid[] = "Hatari dlgMain.c : " __DATE__ " " __TIME__;
+const char DlgMain_fileid[] = "Previous dlgMain.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -58,12 +56,12 @@ static SGOBJ maindlg[] =
 	{ SGBUTTON, 0, 0, 35,10, 13,1, "Printer" },
 	{ SGBUTTON, 0, 0, 7,13, 16,1, "Load config." },
 	{ SGBUTTON, 0, 0, 27,13, 16,1, "Save config." },
-	{ SGCHECKBOX, 0, 0, 3,15, 15,1, "Reset machine" },
-    { SGCHECKBOX, 0, 0, 3,17, 15,1, "Show at startup" },
+	{ SGCHECKBOX, 0, 0, 2,15, 15,1, "Reset machine" },
+    { SGCHECKBOX, 0, 0, 2,17, 17,1, "Show at startup" },
 	{ SGBUTTON, SG_DEFAULT, 0, 21,15, 8,3, "OK" },
 	{ SGBUTTON, 0, 0, 36,15, 10,1, "Quit" },
 	{ SGBUTTON, SG_CANCEL, 0, 36,17, 10,1, "Cancel" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -98,7 +96,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 
 	do
 	{
-		retbut = SDLGui_DoDialog(maindlg, NULL);
+		retbut = SDLGui_DoDialog(maindlg);
 		switch (retbut)
 		{
 		 case MAINDLG_ABOUT:
@@ -141,7 +139,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 			DlgSound_Main();
 			break;
 		 case MAINDLG_LOADCFG:
-			psNewCfg = SDLGui_FileSelect(sConfigFileName, NULL, false);
+			psNewCfg = SDLGui_FileSelect("Choose a file", sConfigFileName, NULL, NULL, false);
 			if (psNewCfg)
 			{
 				strcpy(sConfigFileName, psNewCfg);
@@ -150,7 +148,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 			}
 			break;
 		 case MAINDLG_SAVECFG:
-			psNewCfg = SDLGui_FileSelect(sConfigFileName, NULL, true);
+			psNewCfg = SDLGui_FileSelect("Choose a file", sConfigFileName, NULL, NULL, true);
 			if (psNewCfg)
 			{
 				strcpy(sConfigFileName, psNewCfg);

@@ -1,10 +1,10 @@
 /*
-  Hatari - dlgRom.c
+  Previous - dlgRom.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgRom_fileid[] = "Hatari dlgRom.c : " __DATE__ " " __TIME__;
+const char DlgRom_fileid[] = "Previous dlgRom.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -27,7 +27,6 @@ const char DlgRom_fileid[] = "Hatari dlgRom.c : " __DATE__ " " __TIME__;
 #define DLGROM_ROMTURBO_NAME     16
 
 #define DLGROM_EXIT              18
-
 
 
 /* The ROM dialog: */
@@ -56,7 +55,7 @@ static SGOBJ romdlg[] =
     
 	{ SGTEXT, 0, 0, 2,23, 25,1, "A reset is needed after changing these options." },
 	{ SGBUTTON, SG_DEFAULT, 0, 15,25, 21,1, "Back to main menu" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -85,7 +84,7 @@ void DlgRom_Main(void)
 
 	do
 	{
-		but = SDLGui_DoDialog(romdlg, NULL);
+		but = SDLGui_DoDialog(romdlg);
 		switch (but)
 		{
             case DLGROM_ROM030_DEFAULT:
@@ -99,7 +98,7 @@ void DlgRom_Main(void)
                 SDLGui_FileConfSelect(szDlgRom030Name,
                                       ConfigureParams.Rom.szRom030FileName,
                                       sizeof(szDlgRom030Name)-1,
-                                      false);
+									  NULL, false);
                 break;
                 
             case DLGROM_ROM040_DEFAULT:
@@ -113,7 +112,7 @@ void DlgRom_Main(void)
                 SDLGui_FileConfSelect(szDlgRom040Name,
                                       ConfigureParams.Rom.szRom040FileName,
                                       sizeof(szDlgRom040Name)-1,
-                                      false);
+									  NULL, false);
                 break;
                 
             case DLGROM_ROMTURBO_DEFAULT:
@@ -127,7 +126,7 @@ void DlgRom_Main(void)
                 SDLGui_FileConfSelect(szDlgRomTurboName,
                                       ConfigureParams.Rom.szRomTurboFileName,
                                       sizeof(szDlgRomTurboName)-1,
-                                      false);
+									  NULL, false);
                 break;
 
 		}

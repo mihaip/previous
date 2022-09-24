@@ -1,11 +1,10 @@
 /*
-  Previous - dlgSystem.c
+  Previous - dlgAdvanced.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
-
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgAdvanced_fileid[] = "Hatari dlgAdvanced.c : " __DATE__ " " __TIME__;
+const char DlgAdvanced_fileid[] = "Previous dlgAdvanced.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -105,7 +104,7 @@ static SGOBJ advanceddlg[] =
     { SGRADIOBUT, 0, 0, 44,24, 10,1, "MCCS1850" },
 
     { SGBUTTON, SG_DEFAULT, 0, 20,28, 23,1, "Back to system menu" },
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -360,7 +359,7 @@ void Dialog_AdvancedDlg(void) {
 
     do
 	{
-        but = SDLGui_DoDialog(advanceddlg, NULL);
+        but = SDLGui_DoDialog(advanceddlg);
 
         switch (but) {
             case DLGADV_8MB:
@@ -477,4 +476,3 @@ void Dialog_AdvancedDlg(void) {
     else
         ConfigureParams.System.nRTC = MCCS1850;
 }
-

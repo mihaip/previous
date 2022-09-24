@@ -1,12 +1,10 @@
 /*
   Previous - dlgSystem.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
-
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-
-const char DlgSystem_fileid[] = "Previous dlgSystem.c : " __DATE__ " " __TIME__;
+const char DlgSystem_fileid[] = "Previous dlgSystem.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -84,7 +82,7 @@ static SGOBJ systemdlg[] =
     
     { SGBUTTON, SG_DEFAULT, 0, 18,24, 21,1, "Back to main menu" },
 
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -246,7 +244,7 @@ void Dialog_SystemDlg(void)
 
     do
 	{
-        but = SDLGui_DoDialog(systemdlg, NULL);
+        but = SDLGui_DoDialog(systemdlg);
         switch (but) {
             case DLGSYS_CUBE030:
                 ConfigureParams.System.nMachineType = NEXT_CUBE030;
@@ -329,4 +327,3 @@ void Dialog_SystemDlg(void)
  	ConfigureParams.System.bCompatibleFPU = 1;
  	ConfigureParams.System.bMMU = 1;
 }
-

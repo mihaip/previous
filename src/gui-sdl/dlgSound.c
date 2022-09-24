@@ -1,10 +1,10 @@
 /*
   Previous - dlgSound.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgSound_fileid[] = "Previous dlgSound.c : " __DATE__ " " __TIME__;
+const char DlgSound_fileid[] = "Previous dlgSound.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -29,7 +29,7 @@ static SGOBJ sounddlg[] =
     { SGCHECKBOX, 0, 0, 4,5, 15,1, "Sound enabled" },
     
     { SGBUTTON, SG_DEFAULT, 0, 10,10, 21,1, "Back to main menu" },
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -54,7 +54,7 @@ void DlgSound_Main(void)
     
     do
     {
-        but = SDLGui_DoDialog(sounddlg, NULL);
+        but = SDLGui_DoDialog(sounddlg);
     }
     while (but != DLGSOUND_EXIT && but != SDLGUI_QUIT
            && but != SDLGUI_ERROR && !bQuitProgram);

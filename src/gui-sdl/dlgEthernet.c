@@ -1,10 +1,10 @@
 /*
   Previous - dlgEthernet.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgEthernet_fileid[] = "Previous dlgEthernet.c : " __DATE__ " " __TIME__;
+const char DlgEthernet_fileid[] = "Previous dlgEthernet.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -67,7 +67,7 @@ static SGOBJ enetdlg[] =
     { SGTEXT, 0, 0, 4,23, 22,1, "Note: PCAP requires super user privileges." },
     
     { SGBUTTON, SG_DEFAULT, 0, 15,26, 21,1, "Back to main menu" },
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 #else // !HAVE_PCAP
 #define DLGENET_ENABLE      3
@@ -101,7 +101,7 @@ static SGOBJ enetdlg[] =
     { SGTEXT, 0, 0, 3,16, 47,1, nfs_root_string },
     
     { SGBUTTON, SG_DEFAULT, 0, 16,20, 21,1, "Back to main menu" },
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 #endif
 
@@ -155,7 +155,7 @@ void DlgEthernet_Main(void)
         sprintf(mac_addr_string, "%02x:%02x:%02x:%02x:%02x:%02x",mac_addr[0],
                 mac_addr[1],mac_addr[2],mac_addr[3],mac_addr[4],mac_addr[5]);
 
-		but = SDLGui_DoDialog(enetdlg, NULL);
+		but = SDLGui_DoDialog(enetdlg);
 		
 		switch (but) {
 			case DLGENET_ENABLE:

@@ -1,10 +1,10 @@
 /*
   Previous - dlgSCSI.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgSCSI_fileid[] = "Previous dlgSCSI.c : " __DATE__ " " __TIME__;
+const char DlgSCSI_fileid[] = "Previous dlgSCSI.c";
 
 #include <assert.h>
 #include "main.h"
@@ -102,36 +102,12 @@ static SGOBJ scsidlg[] =
 #endif
 
     { SGBUTTON, SG_DEFAULT, 0, 21,26, 21,1, "Back to main menu" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
 #define SCSIDLG_EJECT_WARNING   "WARNING: Don't eject manually if a guest system is running. Risk of data loss. Eject now?"
 #define SCSIDLG_NODEV_NOTICE    "No image selected for harddisk drive. Ignoring drive."
-
-/**
- * Let user browse given directory, set directory if one selected.
- * return false if none selected, otherwise return true.
- */
-/*static bool DlgDisk_BrowseDir(char *dlgname, char *confname, int maxlen)
-{
-	char *str, *selname;
-
-	selname = SDLGui_FileSelect(confname, NULL, false);
-	if (selname)
-	{
-		strcpy(confname, selname);
-		free(selname);
-
-		str = strrchr(confname, PATHSEP);
-		if (str != NULL)
-			str[1] = 0;
-		File_CleanFileName(confname);
-		File_ShrinkName(dlgname, confname, maxlen);
-		return true;
-	}
-	return false;
-}*/
 
 
 /* Draw device type selector */
@@ -209,7 +185,7 @@ void DlgSCSI_Main(void)
 
 	/* Draw and process the dialog */
 	do {
-		but = SDLGui_DoDialog(scsidlg, NULL);
+		but = SDLGui_DoDialog(scsidlg);
         
         if (but>=SCSIDLG_OFFSET && but<((SCSIDLG_INTERVAL*ESP_MAX_DEVS)+SCSIDLG_OFFSET)) {
             
@@ -234,10 +210,10 @@ void DlgSCSI_Main(void)
                             scsidlg[PUT_BUTTON(GET_TARGET(but),SCSIDLG_NAME)].txt[0] = '\0';
                             SCSI_Eject(GET_TARGET(but));
                         }
-                    } else if (SDLGui_DiskSelect(dlgname_scsi[GET_TARGET(but)],
+                    } else if (SDLGui_FileConfSelect(dlgname_scsi[GET_TARGET(but)],
                                                  ConfigureParams.SCSI.target[GET_TARGET(but)].szImageName,
                                                  scsidlg[PUT_BUTTON(GET_TARGET(but),SCSIDLG_NAME)].w,
-                                                 &ConfigureParams.SCSI.target[GET_TARGET(but)].bWriteProtected)) {
+                                                 &ConfigureParams.SCSI.target[GET_TARGET(but)].bWriteProtected, false)) {
                         ConfigureParams.SCSI.target[GET_TARGET(but)].bDiskInserted = true;
                         if (ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType == DEVTYPE_NONE) {
                             ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType = DEVTYPE_HARDDISK;

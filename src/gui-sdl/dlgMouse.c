@@ -1,10 +1,10 @@
 /*
-  Hatari - dlgRom.c
+  Previous - dlgMouse.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgMouse_fileid[] = "Previous dlgMouse.c : " __DATE__ " " __TIME__;
+const char DlgMouse_fileid[] = "Previous dlgMouse.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -47,7 +47,7 @@ static SGOBJ mousedlg[] =
 	{ SGCHECKBOX, 0, 0, 2,18, 21,1, "Enable auto-locking" },
     
 	{ SGBUTTON, SG_DEFAULT, 0, 12,21, 21,1, "Back to main menu" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 static float read_float_string(char *s, float min, float max, int prec)
@@ -122,7 +122,7 @@ void Dialog_MouseDlg(void)
     
 	do
 	{
-		but = SDLGui_DoDialog(mousedlg, NULL);
+		but = SDLGui_DoDialog(mousedlg);
     }
 	while (but != DLGMOUSE_EXIT && but != SDLGUI_QUIT
 	       && but != SDLGUI_ERROR && !bQuitProgram);

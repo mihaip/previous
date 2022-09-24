@@ -1,10 +1,10 @@
 /*
   Previous - dlgKeyboard.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgKeyboard_fileid[] = "Previous dlgKeyboard.c : " __DATE__ " " __TIME__;
+const char DlgKeyboard_fileid[] = "Previous dlgKeyboard.c";
 
 #include <unistd.h>
 
@@ -53,7 +53,7 @@ static SGOBJ keyboarddlg[] =
     { SGTEXT, 0, 0, 6,22, 17,1, "Quit                -Q" },
     
     { SGBUTTON, SG_DEFAULT, 0, 13,26, 21,1, "Back to main menu" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -99,7 +99,7 @@ void Dialog_KeyboardDlg(void)
 	/* Show the dialog: */
 	do
 	{
-		but = SDLGui_DoDialog(keyboarddlg, NULL);
+		but = SDLGui_DoDialog(keyboarddlg);
 #if ENABLE_LOADED_OPTION
 		if (but == DLGKEY_MAPBROWSE)
 		{

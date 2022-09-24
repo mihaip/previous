@@ -1,12 +1,11 @@
 /*
- Previous - dlgFloppy.c
- 
- This file is distributed under the GNU Public License, version 2 or at
- your option any later version. Read the file gpl.txt for details.
- */
-const char DlgFloppy_fileid[] = "Previous dlgFloppy.c : " __DATE__ " " __TIME__;
+  Previous - dlgFloppy.c
 
-#include <assert.h>
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+const char DlgFloppy_fileid[] = "Previous dlgFloppy.c";
+
 #include "main.h"
 #include "configuration.h"
 #include "dialog.h"
@@ -78,33 +77,8 @@ static SGOBJ flpdlg[] =
     { SGBUTTON, SG_DEFAULT, 0, 21,17, 21,1, "Back to main menu" },
 #endif
     
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
-
-
-/**
- * Let user browse given directory, set directory if one selected.
- * return false if none selected, otherwise return true.
- */
-/*static bool DlgDisk_BrowseDir(char *dlgname, char *confname, int maxlen)
- {
-	char *str, *selname;
- 
-	selname = SDLGui_FileSelect(confname, NULL, false);
-	if (selname)
-	{
- strcpy(confname, selname);
- free(selname);
- 
- str = strrchr(confname, PATHSEP);
- if (str != NULL)
- str[1] = 0;
- File_CleanFileName(confname);
- File_ShrinkName(dlgname, confname, maxlen);
- return true;
-	}
-	return false;
- }*/
 
 
 /**
@@ -168,14 +142,14 @@ void DlgFloppy_Main(void)
             flpdlg[FLPDLG_READONLY1].txt = "";
 #endif
 
-        but = SDLGui_DoDialog(flpdlg, NULL);
+        but = SDLGui_DoDialog(flpdlg);
         
         switch (but)
         {
             case FLPDLG_INSERT0:
                 if (!ConfigureParams.Floppy.drive[0].bDiskInserted) {
-                    if (SDLGui_DiskSelect(dlgname_flp[0], ConfigureParams.Floppy.drive[0].szImageName,
-                                          flpdlg[FLPDLG_DISKNAME0].w, &ConfigureParams.Floppy.drive[0].bWriteProtected)) {
+                    if (SDLGui_FileConfSelect(dlgname_flp[0], ConfigureParams.Floppy.drive[0].szImageName,
+                                          flpdlg[FLPDLG_DISKNAME0].w, &ConfigureParams.Floppy.drive[0].bWriteProtected, false)) {
                         if (Floppy_Insert(0)) {
                             DlgAlert_Notice(FLPDLG_BADSIZE_ERROR);
                             ConfigureParams.Floppy.drive[0].bWriteProtected = false;
@@ -263,4 +237,3 @@ void DlgFloppy_Main(void)
     while (but != FLPDLG_EXIT && but != SDLGUI_QUIT
            && but != SDLGUI_ERROR && !bQuitProgram);
 }
-

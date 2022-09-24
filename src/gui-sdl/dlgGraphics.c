@@ -1,12 +1,10 @@
 /*
   Previous - dlgDimension.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
-
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-
-const char DlgGraphics_fileid[] = "Previous dlgGraphics.c : " __DATE__ " " __TIME__;
+const char DlgGraphics_fileid[] = "Previous dlgGraphics.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -52,7 +50,7 @@ static SGOBJ graphicsdlg[] =
     
     { SGBUTTON, SG_DEFAULT, 0, 17,21, 21,1, "Back to main menu" },
 
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -110,7 +108,7 @@ void Dialog_SlotSelect(int *slot)
     /* Draw and process the dialog: */
     
     do {
-        but = SDLGui_DoDialog(slotdlg, NULL);
+        but = SDLGui_DoDialog(slotdlg);
     }
     while (but != SDLG_SELECT && but != SDLGUI_QUIT
            && but != SDLGUI_ERROR && !bQuitProgram);
@@ -218,7 +216,7 @@ void Dialog_GraphicsDlg(void)
         }
 
         
-        but = SDLGui_DoDialog(graphicsdlg, NULL);
+        but = SDLGui_DoDialog(graphicsdlg);
         
         switch (but) {
             case GDLG_BOARD0:

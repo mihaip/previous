@@ -1,10 +1,10 @@
 /*
-  Prevous - dlgPrinter.c
+  Previous - dlgPrinter.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgPrinter_fileid[] = "Previous dlgPrinter.c : " __DATE__ " " __TIME__;
+const char DlgPrinter_fileid[] = "Previous dlgPrinter.c";
 
 #include "main.h"
 #include "configuration.h"
@@ -54,7 +54,7 @@ static SGOBJ printerdlg[] =
     { SGTEXT, 0, 0, 2,15, 17,1, "for PNG printing." },
 #endif
 	{ SGBUTTON, SG_DEFAULT, 0, 13,19, 21,1, "Back to main menu" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -107,7 +107,7 @@ void DlgPrinter_Main(void)
     
 	do
 	{
-		but = SDLGui_DoDialog(printerdlg, NULL);
+		but = SDLGui_DoDialog(printerdlg);
         
         if (but == DLGPRINT_BROWSE) {
             SDLGui_DirectorySelect(dlgprint_dirname,
