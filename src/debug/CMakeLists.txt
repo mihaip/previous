@@ -7,4 +7,4 @@ add_library(Debug
             68kDisass.c log.c debugui.c breakcond.c debugcpu.c debugInfo.c
             ${DSPDBG_C} evaluate.c profile.c symbols.c 68kDisass.c)
 
-target_link_libraries(Debug PRIVATE SDL2::SDL2)
+target_link_libraries(Debug PRIVATE ${SDL2_LIBRARIES})

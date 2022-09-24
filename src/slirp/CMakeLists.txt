@@ -34,4 +34,4 @@ add_library(Slirp
             nfs/FileTableNFSD.cpp ../ditool/DiskImage.cpp ../ditool/Partition.cpp ../ditool/UFS.cpp ../ditool/VirtualFS.cpp
 			)
 
-target_link_libraries(Slirp PRIVATE SDL2::SDL2)
+target_link_libraries(Slirp PRIVATE ${SDL2_LIBRARIES})

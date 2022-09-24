@@ -24,7 +24,7 @@ if(WIN32)
 endif(WIN32)
 
 include_directories(${CMAKE_BINARY_DIR} includes debug softfloat cpu
-		    dsp dimension slirp ${SDL2_INCLUDE_DIR})
+		    dsp dimension slirp)
 
 if(ZLIB_FOUND)
 	include_directories(${ZLIB_INCLUDE_DIR})
@@ -85,15 +85,11 @@ else()
 	add_executable(Previous ${SOURCES})
 endif(ENABLE_OSX_BUNDLE)
 
-target_link_libraries(Previous Debug GuiSdl UaeCpu DSP Dimension Slirp SoftFloat SDL2::SDL2)
+target_link_libraries(Previous Debug GuiSdl UaeCpu DSP Dimension Slirp SoftFloat ${SDL2_LIBRARIES})
 
 if(MATH_FOUND AND NOT APPLE)
 	target_link_libraries(Previous ${MATH_LIBRARY})
 endif()
-
-if(SDL2MAIN_LIBRARY)
-	target_link_libraries(Previous SDL2::SDL2main)
-endif(SDL2MAIN_LIBRARY)
 
 if(READLINE_FOUND)
 	target_link_libraries(Previous ${READLINE_LIBRARY})
@@ -110,6 +106,10 @@ endif(PNG_FOUND)
 if(PCAP_FOUND)
 	target_link_libraries(Previous ${PCAP_LIBRARY})
 endif(PCAP_FOUND)
+
+if(APPLE AND NOT ENABLE_OSX_BUNDLE)
+	target_link_libraries(Previous "-framework Cocoa")
+endif()
 
 if(WIN32)
 	# Needed for socket() on Windows

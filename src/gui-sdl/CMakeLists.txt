@@ -1,7 +1,13 @@
 
-include_directories(. ../.. ../debug ../includes ${SDL2_INCLUDE_DIR} ${PCAP_INCLUDE_DIR}) 
+include_directories(. ../.. ../debug ../includes)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-write-strings")
+if(PCAP_FOUND)
+    include_directories(${PCAP_INCLUDE_DIR})
+endif(PCAP_FOUND)
+
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-write-strings")
+endif()
 
 add_library(GuiSdl
     dlgAbout.c dlgAdvanced.c dlgAlert.c dlgBoot.c dlgDimension.c
@@ -11,4 +17,4 @@ add_library(GuiSdl
     dlgPrinter.c dlgRom.c dlgSCSI.c dlgSound.c dlgSystem.c sdlgui.c
 )
 
-target_link_libraries(GuiSdl PRIVATE SDL2::SDL2)
+target_link_libraries(GuiSdl PRIVATE ${SDL2_LIBRARIES})
