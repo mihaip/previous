@@ -749,6 +749,7 @@ void SDLGui_DrawDialog(const SGOBJ *dlg)
 	{
 		SDLGui_DrawObj(dlg, i);
 	}
+	SDL_Delay(10); // Previous: Workaround for invisible dialog bug
 	SDL_UpdateRect(pSdlGuiScrn, 0,0,0,0);
 }
 
@@ -1072,6 +1073,7 @@ static int SDLGui_HandleShortcut(SGOBJ *dlg, int key)
  */
 static void SDLGui_ScaleMouseButtonCoordinates(SDL_MouseButtonEvent *bev)
 {
+#if 0 // This causes problems in Previous
 	int win_width, win_height;
 
 	if (bInFullScreen)
@@ -1080,6 +1082,7 @@ static void SDLGui_ScaleMouseButtonCoordinates(SDL_MouseButtonEvent *bev)
 	SDL_GetWindowSize(sdlWindow, &win_width, &win_height);
 	bev->x = bev->x * pSdlGuiScrn->w / win_width;
 	bev->y = bev->y * pSdlGuiScrn->h / win_height;
+#endif
 }
 
 /*-----------------------------------------------------------------------*/
