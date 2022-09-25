@@ -7166,7 +7166,6 @@ bool is_keyboardreset(void)
 void m68k_go (int may_quit)
 {
 	int hardboot = 1;
-	int startup = 1;
 
 #ifdef WITH_THREADED_CPU
 	init_cpu_thread();
@@ -7220,7 +7219,8 @@ void m68k_go (int may_quit)
 
 		if (quit_program > 0 || 1) {
 			cpu_keyboardreset = quit_program == UAE_RESET_KEYBOARD;
-			cpu_hardreset = ((quit_program == UAE_RESET_HARD ? 1 : 0) | hardboot) != 0;
+			cpu_hardreset = ((quit_program == UAE_RESET_HARD ? 1 : 0) || hardboot) != 0;
+			hardboot |= quit_program == UAE_RESET_HARD ? 1 : 0;
 
 			if (quit_program == UAE_QUIT)
 				break;
@@ -7228,7 +7228,6 @@ void m68k_go (int may_quit)
 			hsync_counter = 0;
 			vsync_counter = 0;
 			quit_program = 0;
-			hardboot = 0;
 
 #ifdef SAVESTATE
 			if (savestate_state == STATE_DORESTORE)
@@ -7256,14 +7255,13 @@ void m68k_go (int may_quit)
 				write_log (_T("hardreset, memory cleared\n"));
 			}
 #endif // WINUAE_FOR_PREVIOUS
-			cpu_hardreset = false;
 #ifdef SAVESTATE
 			/* We may have been restoring state, but we're done now.  */
 			if (isrestore ()) {
 #ifndef WINUAE_FOR_HATARI
 				if (debug_dma) {
-					record_dma_reset ();
-					record_dma_reset ();
+					record_dma_reset(0);
+					record_dma_reset(0);
 				}
 #endif
 				restored = savestate_restore_finish ();
@@ -7275,7 +7273,7 @@ void m68k_go (int may_quit)
 				} else if (currprefs.mmu_model >= 68040) {
 					mmu_set_tc (regs.tcr);
 				}
-				startup = 1;
+				hardboot = 1;
 			}
 #endif
 #ifndef WINUAE_FOR_HATARI
@@ -7343,12 +7341,14 @@ void m68k_go (int may_quit)
 
 		set_x_funcs();
 #ifndef WINUAE_FOR_HATARI
-		if (startup) {
+		if (hardboot) {
 			custom_prepare ();
 			mman_set_barriers(false);
 			protect_roms (true);
 		}
-		startup = 0;
+		cpu_hardreset = false;
+		cpu_keyboardreset = false;
+		hardboot = 0;
 		event_wait = true;
 #endif
 		unset_special(SPCFLAG_MODE_CHANGE);
