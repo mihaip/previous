@@ -19,7 +19,7 @@ const char DlgGraphics_fileid[] = "Previous dlgGraphics.c";
 #define GDLG_MONOCHROME     12
 #define GDLG_COLOR          13
 #define GDLG_ALL            14
-#define GDLG_DISPLAY		17
+#define GDLG_DISPLAY        17
 #define GDLG_EXIT           19
 
 static SGOBJ graphicsdlg[] =
@@ -35,12 +35,12 @@ static SGOBJ graphicsdlg[] =
     { SGBUTTON,   0, 0, 22, 8, 10, 1, "Add" },
     { SGTEXT,     0, 0, 4, 10, 16, 1, "Board at slot 6:" },
     { SGBUTTON,   0, 0, 22,10, 10, 1, "Add" },
-	
-	{ SGBOX,      0, 0, 35, 3, 19, 9, NULL },
-	{ SGTEXT,     0, 0, 36, 4, 13, 1, "Show display:" },
+    
+    { SGBOX,      0, 0, 35, 3, 19, 9, NULL },
+    { SGTEXT,     0, 0, 36, 4, 13, 1, "Show display:" },
     { SGRADIOBUT, 0, 0, 37, 6, 12, 1, "Monochrome" },
-	{ SGRADIOBUT, 0, 0, 37, 8,  7, 1, "Color" },
-	{ SGRADIOBUT, 0, 0, 37,10,  5, 1, "All" },
+    { SGRADIOBUT, 0, 0, 37, 8,  7, 1, "Color" },
+    { SGRADIOBUT, 0, 0, 37,10,  5, 1, "All" },
 
     { SGBOX,      0, 0, 2, 13, 52, 3, NULL },
     { SGTEXT,     0, 0, 3, 14, 13, 1, "Main display:" },
@@ -70,7 +70,7 @@ static SGOBJ slotdlg[] =
     
     { SGBUTTON, SG_DEFAULT, 0, 5,10, 10,1, "Select" },
     
-    { -1, 0, 0, 0,0, 0,0, NULL }
+    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -150,17 +150,17 @@ void Dialog_GraphicsDlg(void)
     int but;
     char colordisplay[16];
     char maindisplay[64];
- 
- 	SDLGui_CenterDlg(graphicsdlg);
- 
- 	/* Set up dialog from actual values: */
+
+    SDLGui_CenterDlg(graphicsdlg);
+
+    /* Set up dialog from actual values: */
     
     if (ConfigureParams.Dimension.bMainDisplay) {
         graphicsdlg[GDLG_DISPLAY].state |= SG_SELECTED;
     } else {
         graphicsdlg[GDLG_DISPLAY].state &= ~SG_SELECTED;
     }
-	
+
     graphicsdlg[GDLG_COLOR].state      &= ~SG_SELECTED;
     graphicsdlg[GDLG_MONOCHROME].state &= ~SG_SELECTED;
     graphicsdlg[GDLG_ALL].state        &= ~SG_SELECTED;
@@ -180,7 +180,7 @@ void Dialog_GraphicsDlg(void)
             break;
     }
     
- 	/* Draw and process the dialog: */
+    /* Draw and process the dialog: */
 
     do {
         if (ConfigureParams.Dimension.board[0].bEnabled) {
