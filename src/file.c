@@ -25,7 +25,6 @@ const char File_fileid[] = "Hatari file.c";
 
 #include "dialog.h"
 #include "file.h"
-#include "createBlankImage.h"
 #include "str.h"
 #include "zip.h"
 #include "log.h"
