@@ -7,6 +7,7 @@
  * Ethernet transmit, Ethernet receive, Video, Memory to register, Register to memory
  */
 
+#include "main.h"
 #include "ioMem.h"
 #include "ioMemTables.h"
 #include "m68000.h"
@@ -29,36 +30,36 @@
 #define IO_SEG_MASK	0x1FFFF
 
 
-int get_channel(Uint32 address);
+int get_channel(uint32_t address);
 int get_interrupt_type(int channel);
 void dma_interrupt(int channel);
-void dma_initialize_buffer(int channel, Uint8 offset);
+void dma_initialize_buffer(int channel, uint8_t offset);
 
 
 struct {
-    Uint8 csr;
-    Uint32 saved_next;
-    Uint32 saved_limit;
-    Uint32 saved_start;
-    Uint32 saved_stop;
-    Uint32 next;
-    Uint32 limit;
-    Uint32 start;
-    Uint32 stop;
+    uint8_t  csr;
+    uint32_t saved_next;
+    uint32_t saved_limit;
+    uint32_t saved_start;
+    uint32_t saved_stop;
+    uint32_t next;
+    uint32_t limit;
+    uint32_t start;
+    uint32_t stop;
     
-    Uint8 direction;
+    uint8_t  direction;
 } dma[12];
 
 
 /* DMA internal buffers */
 #define DMA_BURST_SIZE  16
 
-int espdma_buf_size = 0;
-int espdma_buf_limit = 0;
-Uint8 espdma_buf[DMA_BURST_SIZE];
-int modma_buf_size = 0;
-int modma_buf_limit = 0;
-Uint8 modma_buf[DMA_BURST_SIZE];
+int     espdma_buf_size = 0;
+int     espdma_buf_limit = 0;
+uint8_t espdma_buf[DMA_BURST_SIZE];
+int     modma_buf_size = 0;
+int     modma_buf_limit = 0;
+uint8_t modma_buf[DMA_BURST_SIZE];
 
 
 /* Read and write CSR bits for 68030 based NeXT Computer. */
@@ -101,11 +102,11 @@ Uint8 modma_buf[DMA_BURST_SIZE];
 
 
 
-static inline Uint32 dma_getlong(Uint8 *buf, Uint32 pos) {
+static inline uint32_t dma_getlong(uint8_t *buf, uint32_t pos) {
 	return (buf[pos] << 24) | (buf[pos+1] << 16) | (buf[pos+2] << 8) | buf[pos+3];
 }
 
-static inline void dma_putlong(Uint32 val, Uint8 *buf, Uint32 pos) {
+static inline void dma_putlong(uint32_t val, uint8_t *buf, uint32_t pos) {
 	buf[pos] = val >> 24;
 	buf[pos+1] = val >> 16;
 	buf[pos+2] = val >> 8;
@@ -113,7 +114,7 @@ static inline void dma_putlong(Uint32 val, Uint8 *buf, Uint32 pos) {
 }
 
 
-int get_channel(Uint32 address) {
+int get_channel(uint32_t address) {
     int channel = address&IO_SEG_MASK;
 
     switch (channel) {
@@ -170,7 +171,7 @@ void DMA_CSR_Read(void) { // 0x02000010, length of register is byte on 68030 bas
 void DMA_CSR_Write(void) {
     int channel = get_channel(IoAccessCurrentAddress);
     int interrupt = get_interrupt_type(channel);
-    Uint8 writecsr = IoMem[IoAccessCurrentAddress & IO_SEG_MASK]|IoMem[(IoAccessCurrentAddress+1) & IO_SEG_MASK]|IoMem[(IoAccessCurrentAddress+2) & IO_SEG_MASK]|IoMem[(IoAccessCurrentAddress+3) & IO_SEG_MASK];
+    uint8_t writecsr = IoMem[IoAccessCurrentAddress & IO_SEG_MASK]|IoMem[(IoAccessCurrentAddress+1) & IO_SEG_MASK]|IoMem[(IoAccessCurrentAddress+2) & IO_SEG_MASK]|IoMem[(IoAccessCurrentAddress+3) & IO_SEG_MASK];
 
     Log_Printf(LOG_DMA_LEVEL,"DMA CSR write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, writecsr, m68k_getpc());
     
@@ -345,7 +346,7 @@ void DMA_Init_Write(void) {
 
 /* Initialize DMA internal buffer */
 
-void dma_initialize_buffer(int channel, Uint8 offset) {
+void dma_initialize_buffer(int channel, uint8_t offset) {
     if (offset>0) {
         Log_Printf(LOG_WARN, "DMA Initializing buffer with offset %i", offset);
     }
@@ -727,7 +728,7 @@ void dma_sndout_intr(void) {
     }
 }
 
-bool dma_sndin_write_memory(Uint32 val) {
+bool dma_sndin_write_memory(uint32_t val) {
     if (dma[CHANNEL_SOUNDIN].csr&DMA_ENABLE) {
         
         if ((dma[CHANNEL_SOUNDIN].next%4) || (dma[CHANNEL_SOUNDIN].limit%4)) {
@@ -798,7 +799,7 @@ void dma_printer_read_memory(void) {
 #define EN_BOP      0x40000000 /* beginning of packet */
 #define ENADDR(x)   ((x)&~(EN_EOP|EN_BOP))
 
-Uint32 saved_next_turbo = 0;
+uint32_t saved_next_turbo = 0;
 
 static void dma_enet_interrupt(int channel) {
     int interrupt = get_interrupt_type(channel);
@@ -885,7 +886,7 @@ bool dma_enet_read_memory(void) {
 
 /* Memory to Memory */
 
-Uint32 m2m_buffer[DMA_BURST_SIZE];
+uint32_t m2m_buffer[DMA_BURST_SIZE];
 int m2m_buffer_size;
 
 void M2MDMA_IO_Handler(void) {
@@ -960,7 +961,7 @@ void dma_m2m_write_memory(void) {
 /* Channel DSP */
 #define LOG_DMA_DSP_LEVEL	LOG_DEBUG
 
-void dma_dsp_write_memory(Uint8 val) {
+void dma_dsp_write_memory(uint8_t val) {
 	Log_Printf(LOG_DMA_DSP_LEVEL, "[DMA] Channel DSP: Write to memory at $%08x, %i bytes",
 			   dma[CHANNEL_DSP].next,dma[CHANNEL_DSP].limit-dma[CHANNEL_DSP].next);
 	
@@ -986,8 +987,8 @@ void dma_dsp_write_memory(Uint8 val) {
 	}
 }
 
-Uint8 dma_dsp_read_memory(void) {
-	Uint8 val = 0;
+uint8_t dma_dsp_read_memory(void) {
+	uint8_t val = 0;
 	
 	Log_Printf(LOG_DMA_DSP_LEVEL, "[DMA] Channel DSP: Read from memory at $%08x, %i bytes",
 			   dma[CHANNEL_DSP].next,dma[CHANNEL_DSP].limit-dma[CHANNEL_DSP].next);
@@ -1048,8 +1049,8 @@ void dma_video_interrupt(void) {
 
 /* Channel SCC */
 
-Uint8 dma_scc_read_memory(void) {
-    Uint8 val = 0;
+uint8_t dma_scc_read_memory(void) {
+    uint8_t val = 0;
     
     if (dma[CHANNEL_SCC].csr&DMA_ENABLE) {
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCC: Read from memory at $%08x", dma[CHANNEL_SCC].next);
@@ -1115,7 +1116,7 @@ void TDMA_CSR_Read(void) { // 0x02000010, length of register is byte on 68030 ba
 void TDMA_CSR_Write(void) {
 	int channel = get_channel(IoAccessCurrentAddress);
 	int interrupt = get_interrupt_type(channel);
-	Uint32 writecsr = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
+	uint32_t writecsr = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
 
 	Log_Printf(LOG_DMA_LEVEL,"DMA CSR write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, writecsr, m68k_getpc());
 	

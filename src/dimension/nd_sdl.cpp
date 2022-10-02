@@ -10,7 +10,7 @@
 volatile bool NDSDL::ndVBLtoggle;
 volatile bool NDSDL::ndVideoVBLtoggle;
 
-NDSDL::NDSDL(int slot, Uint32* vram) : slot(slot), doRepaint(true), repaintThread(NULL), ndWindow(NULL), ndRenderer(NULL), vram(vram) {}
+NDSDL::NDSDL(int slot, uint32_t* vram) : slot(slot), doRepaint(true), repaintThread(NULL), ndWindow(NULL), ndRenderer(NULL), vram(vram) {}
 
 int NDSDL::repainter(void *_this) {
     return ((NDSDL*)_this)->repainter();

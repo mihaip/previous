@@ -21,27 +21,27 @@ const char Profile_fileid[] = "Hatari profile.c : " __DATE__ " " __TIME__;
 #define MAX_PROFILE_VALUE 0xFFFFFFFF
 
 typedef struct {
-	Uint32 count;	/* how many times this address is used */
-	Uint32 cycles;	/* what address this is (for sorting) */
+	uint32_t count;	/* how many times this address is used */
+	uint32_t cycles;	/* what address this is (for sorting) */
 } profile_item_t;
 
 typedef struct {
 	unsigned long long all_cycles, all_count;
-	Uint32 max_cycles, max_cycles_addr;
-	Uint32 max_count, max_count_addr;
-	Uint32 lowest, highest;	/* active address range within memory area */
-	Uint32 active;          /* number of active addresses */
+	uint32_t max_cycles, max_cycles_addr;
+	uint32_t max_count, max_count_addr;
+	uint32_t lowest, highest;	/* active address range within memory area */
+	uint32_t active;          /* number of active addresses */
 } profile_area_t;
 
 static struct {
 	unsigned long long all_cycles, all_count;
-	Uint32 size;          /* number of allocated profile data items */
+	uint32_t size;          /* number of allocated profile data items */
 	profile_item_t *data; /* profile data items */
 	profile_area_t ram;   /* normal RAM stats */
 	profile_area_t rom;   /* cartridge ROM stats */
 	profile_area_t tos;   /* ROM TOS stats */
-	Uint32 active;        /* number of active data items in all areas */
-	Uint32 *sort_arr;     /* data indexes used for sorting */
+	uint32_t active;        /* number of active data items in all areas */
+	uint32_t *sort_arr;     /* data indexes used for sorting */
 	bool enabled;         /* true when profiling enabled */
 } cpu_profile;
 
@@ -51,7 +51,7 @@ static struct {
 static struct {
 	profile_item_t *data; /* profile data */
 	profile_area_t ram;   /* normal RAM stats */
-	Uint16 *sort_arr;     /* data indexes used for sorting */
+	uint16_t *sort_arr;     /* data indexes used for sorting */
 	bool enabled;         /* true when profiling enabled */
 } dsp_profile;
 
@@ -61,7 +61,7 @@ static struct {
 /**
  * convert Atari memory address to sorting array profile data index.
  */
-static inline Uint32 address2index(Uint32 pc)
+static inline uint32_t address2index(uint32_t pc)
 {
 	if (unlikely(pc & 1)) {
 		fprintf(stderr, "WARNING: odd CPU profile instruction address 0x%x!\n", pc);
@@ -91,9 +91,9 @@ static inline Uint32 address2index(Uint32 pc)
  * Get CPU cycles & count for given address.
  * Return true if data was available and non-zero, false otherwise.
  */
-bool Profile_CpuAddressData(Uint32 addr, Uint32 *count, Uint32 *cycles)
+bool Profile_CpuAddressData(uint32_t addr, uint32_t *count, uint32_t *cycles)
 {
-	Uint32 idx;
+	uint32_t idx;
 	if (!cpu_profile.data) {
 		return false;
 	}
@@ -107,7 +107,7 @@ bool Profile_CpuAddressData(Uint32 addr, Uint32 *count, Uint32 *cycles)
 /**
  * convert sorting array profile data index to Atari memory address.
  */
-static Uint32 index2address(Uint32 idx)
+static uint32_t index2address(uint32_t idx)
 {
     return 0;
 }
@@ -170,8 +170,8 @@ void Profile_CpuShowStats(void)
  */
 static int profile_by_cpu_cycles(const void *p1, const void *p2)
 {
-	Uint32 count1 = cpu_profile.data[*(const Uint32*)p1].cycles;
-	Uint32 count2 = cpu_profile.data[*(const Uint32*)p2].cycles;
+	uint32_t count1 = cpu_profile.data[*(const uint32_t*)p1].cycles;
+	uint32_t count2 = cpu_profile.data[*(const uint32_t*)p2].cycles;
 	if (count1 > count2) {
 		return -1;
 	}
@@ -187,10 +187,10 @@ static int profile_by_cpu_cycles(const void *p1, const void *p2)
 void Profile_CpuShowCycles(unsigned int show)
 {
 	unsigned int active;
-	Uint32 *sort_arr, *end, addr;
+	uint32_t *sort_arr, *end, addr;
 	profile_item_t *data = cpu_profile.data;
 	float percentage;
-	Uint32 count;
+	uint32_t count;
 
 	if (!data) {
 		fprintf(stderr, "ERROR: no CPU profiling data available!\n");
@@ -220,8 +220,8 @@ void Profile_CpuShowCycles(unsigned int show)
  */
 static int profile_by_cpu_count(const void *p1, const void *p2)
 {
-	Uint32 count1 = cpu_profile.data[*(const Uint32*)p1].count;
-	Uint32 count2 = cpu_profile.data[*(const Uint32*)p2].count;
+	uint32_t count1 = cpu_profile.data[*(const uint32_t*)p1].count;
+	uint32_t count2 = cpu_profile.data[*(const uint32_t*)p2].count;
 	if (count1 > count2) {
 		return -1;
 	}
@@ -240,10 +240,10 @@ void Profile_CpuShowCounts(unsigned int show, bool only_symbols)
 {
 	profile_item_t *data = cpu_profile.data;
 	unsigned int symbols, matched, active;
-	Uint32 *sort_arr, *end, addr;
+	uint32_t *sort_arr, *end, addr;
 	const char *name;
 	float percentage;
-	Uint32 count;
+	uint32_t count;
 
 	if (!data) {
 		fprintf(stderr, "ERROR: no CPU profiling data available!\n");
@@ -339,7 +339,7 @@ bool Profile_CpuStart(void)
 void Profile_CpuUpdate(void)
 {
 #if 0
-	Uint32 idx, opcode, cycles;
+	uint32_t idx, opcode, cycles;
 	
 	idx = address2index(M68000_GetPC());
 
@@ -360,9 +360,9 @@ void Profile_CpuUpdate(void)
 /**
  * Helper for collecting profile area statistics.
  */
-static void update_area(Uint32 i, profile_item_t *item, profile_area_t *area)
+static void update_area(uint32_t i, profile_item_t *item, profile_area_t *area)
 {
-	Uint32 cycles, count = item->count;
+	uint32_t cycles, count = item->count;
 	if (!count) {
 		return;
 	}
@@ -397,8 +397,8 @@ void Profile_CpuStop(void)
 {
 	profile_item_t *item;
 	profile_area_t *area;
-	Uint32 *sort_arr;
-	Uint32 i, active;
+	uint32_t *sort_arr;
+	uint32_t i, active;
 
 	if (!cpu_profile.enabled) {
 		return;
@@ -495,7 +495,7 @@ void Profile_CpuStop(void)
  * Get DSP cycles & count for given address.
  * Return true if data was available and non-zero, false otherwise.
  */
-bool Profile_DspAddressData(Uint16 addr, float *percentage, Uint64 *count, Uint64 *cycles, Uint16 *cycle_diff)
+bool Profile_DspAddressData(uint16_t addr, float *percentage, uint64_t *count, uint64_t *cycles, uint16_t *cycle_diff)
 {
 	if (!dsp_profile.data) {
 		return false;
@@ -544,8 +544,8 @@ void Profile_DspShowStats(void)
  */
 static int profile_by_dsp_cycles(const void *p1, const void *p2)
 {
-	Uint32 count1 = dsp_profile.data[*(const Uint16*)p1].cycles;
-	Uint32 count2 = dsp_profile.data[*(const Uint16*)p2].cycles;
+	uint32_t count1 = dsp_profile.data[*(const uint16_t*)p1].cycles;
+	uint32_t count2 = dsp_profile.data[*(const uint16_t*)p2].cycles;
 	if (count1 > count2) {
 		return -1;
 	}
@@ -561,10 +561,10 @@ static int profile_by_dsp_cycles(const void *p1, const void *p2)
 void Profile_DspShowCycles(unsigned int show)
 {
 	unsigned int active;
-	Uint16 *sort_arr, *end, addr;
+	uint16_t *sort_arr, *end, addr;
 	profile_item_t *data = dsp_profile.data;
 	float percentage;
-	Uint32 count;
+	uint32_t count;
 
 	if (!data) {
 		fprintf(stderr, "ERROR: no DSP profiling data available!\n");
@@ -594,8 +594,8 @@ void Profile_DspShowCycles(unsigned int show)
  */
 static int profile_by_dsp_count(const void *p1, const void *p2)
 {
-	Uint32 count1 = dsp_profile.data[*(const Uint16*)p1].count;
-	Uint32 count2 = dsp_profile.data[*(const Uint16*)p2].count;
+	uint32_t count1 = dsp_profile.data[*(const uint16_t*)p1].count;
+	uint32_t count2 = dsp_profile.data[*(const uint16_t*)p2].count;
 	if (count1 > count2) {
 		return -1;
 	}
@@ -614,10 +614,10 @@ void Profile_DspShowCounts(unsigned int show, bool only_symbols)
 {
 	profile_item_t *data = dsp_profile.data;
 	unsigned int symbols, matched, active;
-	Uint16 *sort_arr, *end, addr;
+	uint16_t *sort_arr, *end, addr;
 	const char *name;
 	float percentage;
-	Uint32 count;
+	uint32_t count;
 
 	if (!data) {
 		fprintf(stderr, "ERROR: no DSP profiling data available!\n");
@@ -708,7 +708,7 @@ bool Profile_DspStart(void)
  */
 void Profile_DspUpdate(void)
 {
-//	Uint16 pc, cycles;
+//	uint16_t pc, cycles;
 
 //	pc = DSP_GetPC();
 //	if (likely(dsp_profile.data[pc].count < MAX_PROFILE_VALUE)) {
@@ -730,8 +730,8 @@ void Profile_DspStop(void)
 {
 	profile_item_t *item;
 	profile_area_t *area;
-	Uint16 *sort_arr;
-	Uint32 i;
+	uint16_t *sort_arr;
+	uint32_t i;
 
 	if (!dsp_profile.enabled) {
 		return;

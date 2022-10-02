@@ -210,7 +210,7 @@ void MC::check_interrupt(void) {
 // static const char* MC_RD_FORMAT   = "[ND] Memory controller %s read %08X at %08X";
 // static const char* MC_RD_FORMAT_S = "[ND] Memory controller %s read (%s) at %08X";
 
-Uint32 MC::read(Uint32 addr) {
+uint32_t MC::read(uint32_t addr) {
 	switch (addr&0x3FFF) {
 		case 0x0000:
             Log_Printf(ND_LOG_IO_RD, MC_RD_FORMAT_S,"csr0", decodeBits(ND_CSR0_BITS, csr0),addr);
@@ -288,7 +288,7 @@ Uint32 MC::read(Uint32 addr) {
 // static const char* MC_WR_FORMAT   = "[ND] Memory controller %s write %08X at %08X";
 // static const char* MC_WR_FORMAT_S = "[ND] Memory controller %s write (%s) at %08X";
 
-void MC::write(Uint32 addr, Uint32 val) {
+void MC::write(uint32_t addr, uint32_t val) {
     switch (addr&0x3FFF) {
         case 0x0000:
             Log_Printf(ND_LOG_IO_WR, MC_WR_FORMAT_S,"csr0", decodeBits(ND_CSR0_BITS, val), addr);
@@ -403,9 +403,9 @@ void DP::iicmsg(void) {
     nd->video_dev_write(iic_addr, iic_msgsz-1, iic_msg);
 }
 
-void DP::led(Uint32 v) {
+void DP::led(uint32_t v) {
 #if ND_STEP
-    Uint32 changed_bits = csr^v;
+    uint32_t changed_bits = csr^v;
     if ((changed_bits&0xC) == 0xC) {
         switch (v&0xC) {
             case 0x0: Log_Printf(LOG_NONE, "[ND] Slot %i: board LED: on",  nd->slot); break;
@@ -416,7 +416,7 @@ void DP::led(Uint32 v) {
 #endif
 }
 
-Uint32 DP::lget(Uint32 addr) {
+uint32_t DP::lget(uint32_t addr) {
     switch(addr) {
         case 0x300: case 0x304: case 0x308: case 0x30C:
         case 0x310: case 0x314: case 0x318: case 0x31C:
@@ -451,7 +451,7 @@ Uint32 DP::lget(Uint32 addr) {
     return 0;
 }
 
-void DP::lput(Uint32 addr, Uint32 v) {
+void DP::lput(uint32_t addr, uint32_t v) {
     switch(addr) {
         case 0x300: case 0x304: case 0x308: case 0x30C:
         case 0x310: case 0x314: case 0x318: case 0x31C:
@@ -543,7 +543,7 @@ bool NextDimension::dbg_cmd(const char* buf) {
             size        += ConfigureParams.Dimension.board[ND_NUM(slot)].nMemoryBankSize[3];
             fprintf(stderr, "Writing %" FMT_zu "MB to '%s'...", size, nd_dump_path);
             size <<= 20;
-            fwrite(ram, sizeof(Uint8), size, fp);
+            fwrite(ram, sizeof(uint8_t), size, fp);
             fclose(fp);
             fprintf(stderr, "done.");
             return true;

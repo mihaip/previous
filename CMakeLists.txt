@@ -59,6 +59,7 @@ endif(Readline_FOUND)
 find_package(ZLIB)
 if(ZLIB_FOUND)
 	set(HAVE_LIBZ 1)
+	set(HAVE_ZLIB_H 1)
 endif(ZLIB_FOUND)
 
 find_package(PNG)
@@ -101,6 +102,7 @@ endif(DETECTED_SDL_CFLAGS)
 # Check for optional headers:
 # ###########################
 
+check_include_files(byteswap.h HAVE_BYTESWAP_H)
 check_include_files(strings.h HAVE_STRINGS_H)
 check_include_files(limits.h HAVE_LIMITS_H)
 check_include_files(sys/syslimits.h HAVE_SYS_SYSLIMITS_H)
@@ -114,6 +116,8 @@ check_include_files(netinet/in.h HAVE_NETINET_IN_H)
 # Check for optional functions:
 # #############################
 
+check_function_exists(bswap_16 HAVE_BSWAP_16)
+check_function_exists(bswap_32 HAVE_BSWAP_32)
 check_function_exists(setenv HAVE_SETENV)
 check_function_exists(select HAVE_SELECT)
 check_function_exists(gettimeofday HAVE_GETTIMEOFDAY)
@@ -123,7 +127,6 @@ check_function_exists(scandir HAVE_SCANDIR)
 check_function_exists(fseeko HAVE_FSEEKO)
 check_function_exists(ftello HAVE_FTELLO)
 check_function_exists(flock HAVE_FLOCK)
-check_function_exists(strlcpy HAVE_LIBC_STRLCPY)
 check_function_exists(strdup HAVE_STRDUP)
 check_function_exists(lsetxattr HAVE_LXETXATTR)
 check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)

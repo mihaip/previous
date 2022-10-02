@@ -30,15 +30,15 @@ EthernetBuffer enet_tx_buffer;
 EthernetBuffer enet_rx_buffer;
 
 struct {
-    Uint8 tx_status;
-    Uint8 tx_mask;
-    Uint8 tx_mode;
-    Uint8 rx_status;
-    Uint8 rx_mask;
-    Uint8 rx_mode;
-    Uint8 reset;
+    uint8_t tx_status;
+    uint8_t tx_mask;
+    uint8_t tx_mode;
+    uint8_t rx_status;
+    uint8_t rx_mask;
+    uint8_t rx_mode;
+    uint8_t reset;
     
-    Uint8 mac_addr[6];
+    uint8_t mac_addr[6];
 } enet;
 
 #define TXSTAT_READY        0x80    /* r */
@@ -89,11 +89,11 @@ struct {
 void enet_reset(void);
 
 void (*enet_output)(void);
-void (*enet_input)(Uint8 *pkt, int len);
-void (*enet_start)(Uint8 *mac);
+void (*enet_input)(uint8_t *pkt, int len);
+void (*enet_start)(uint8_t *mac);
 void (*enet_stop)(void);
 
-void print_packet(Uint8 *pkt, int len, int out);
+void print_packet(uint8_t *pkt, int len, int out);
 
 void EN_TX_Status_Read(void) { // 0x02006000
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.tx_status;
@@ -101,7 +101,7 @@ void EN_TX_Status_Read(void) { // 0x02006000
 }
 
 void EN_TX_Status_Write(void) {
-    Uint8 val=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    uint8_t val=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Transmitter status write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 	if (ConfigureParams.System.bTurbo) {
 		enet.tx_status&=~(val&0xBE);
@@ -137,7 +137,7 @@ void EN_RX_Status_Read(void) { // 0x02006002
 }
 
 void EN_RX_Status_Write(void) {
-    Uint8 val=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    uint8_t val=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver status write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     if (ConfigureParams.System.bTurbo) {
         enet.rx_status&=~(val&0xDF);
@@ -265,21 +265,21 @@ void EN_CounterHi_Read(void) { // 0x0200600f
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver mode read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
-static void enet_tx_interrupt(Uint8 intr) {
+static void enet_tx_interrupt(uint8_t intr) {
     enet.tx_status|=intr;
     if (enet.tx_status&enet.tx_mask) {
         set_interrupt(INT_EN_TX, SET_INT);
     }
 }
 
-static void enet_tx_release(Uint8 intr) {
+static void enet_tx_release(uint8_t intr) {
     enet.tx_status&=~intr;
     if ((enet.tx_status&enet.tx_mask)==0) {
         set_interrupt(INT_EN_TX, RELEASE_INT);
     }
 }
 
-static void enet_rx_interrupt(Uint8 intr) {
+static void enet_rx_interrupt(uint8_t intr) {
     enet.rx_status|=intr;
     if (enet.rx_status&enet.rx_mask) {
         set_interrupt(INT_EN_RX, SET_INT);
@@ -323,14 +323,14 @@ static int en_state;
 #define EN_THINWIRE        2
 #define EN_TWISTEDPAIR     3
 
-static bool recv_multicast(Uint8 *packet) {
+static bool recv_multicast(uint8_t *packet) {
     if (packet[0]&0x01)
         return true;
     else
         return false;
 }
 
-static bool recv_local_multicast(Uint8 *packet) {
+static bool recv_local_multicast(uint8_t *packet) {
     if (packet[0]&0x01 &&
         (packet[0]&0xFE) == enet.mac_addr[0] &&
         packet[1] == enet.mac_addr[1] &&
@@ -340,7 +340,7 @@ static bool recv_local_multicast(Uint8 *packet) {
         return false;
 }
 
-static bool recv_me(Uint8 *packet) {
+static bool recv_me(uint8_t *packet) {
     if (packet[0] == enet.mac_addr[0] &&
         packet[1] == enet.mac_addr[1] &&
         packet[2] == enet.mac_addr[2] &&
@@ -352,7 +352,7 @@ static bool recv_me(Uint8 *packet) {
         return false;
 }
 
-static bool recv_me_turbo(Uint8 *packet) {
+static bool recv_me_turbo(uint8_t *packet) {
     if (packet[0] == enet.mac_addr[0] &&
         packet[1] == enet.mac_addr[1] &&
         packet[2] == enet.mac_addr[2] &&
@@ -364,7 +364,7 @@ static bool recv_me_turbo(Uint8 *packet) {
         return false;
 }
 
-static bool recv_broadcast(Uint8 *packet) {
+static bool recv_broadcast(uint8_t *packet) {
     if (packet[0] == 0xFF &&
         packet[1] == 0xFF &&
         packet[2] == 0xFF &&
@@ -376,7 +376,7 @@ static bool recv_broadcast(Uint8 *packet) {
         return false;
 }
 
-static bool enet_packet_for_me(Uint8 *packet) {
+static bool enet_packet_for_me(uint8_t *packet) {
     
     if (ConfigureParams.System.bTurbo) {
         if (enet.rx_mode&RX_ENABLED) {
@@ -409,7 +409,7 @@ static bool enet_packet_for_me(Uint8 *packet) {
     }
 }
 
-void enet_receive(Uint8 *pkt, int len) {
+void enet_receive(uint8_t *pkt, int len) {
     if (enet_packet_for_me(pkt)) {
         print_packet(pkt, len, 0);
         memcpy(enet_rx_buffer.data,pkt,len);
@@ -425,7 +425,7 @@ void enet_receive(Uint8 *pkt, int len) {
     }
 }
 
-void enet_send(Uint8 *pkt, int len) {
+void enet_send(uint8_t *pkt, int len) {
     print_packet(enet_tx_buffer.data, enet_tx_buffer.size, 1);
     if (en_state == EN_LOOPBACK) {
         /* Loop back */
@@ -592,7 +592,7 @@ void EN_Turbo_RX_Status_Read(void) { // 0x02006002
 }
 
 void EN_Turbo_Control_Read(void) { // 0x02006006
-	Uint8 val = enet.reset&EN_RESET;
+	uint8_t val = enet.reset&EN_RESET;
 	if (enet.tx_mode&TXMODE_TPE) {
 		if (!ConfigureParams.Ethernet.bEthernetConnected || !ConfigureParams.Ethernet.bTwistedPair) {
 			val |= ENCTRL_BADTPE;
@@ -783,7 +783,7 @@ void Ethernet_Reset(bool hard) {
 #define LOG_EN_ANALYZE 0
 #define LOG_EN_FILE    ""
 
-void print_packet(Uint8 *buf, int size, int out) {
+void print_packet(uint8_t *buf, int size, int out) {
 #if LOG_EN_DATA
     int i, offset = 0;
     
@@ -806,8 +806,8 @@ void print_packet(Uint8 *buf, int size, int out) {
         printf(">>        Incoming packet (%d byte)        <<\n", size);
     }
 #if LOG_EN_ANALYZE
-    Uint8 protocol, ihl, options = 0;
-    Uint16 type, length, fragment, padding = 0;
+    uint8_t protocol, ihl, options = 0;
+    uint16_t type, length, fragment, padding = 0;
     
     printf("Layer 2 Ethernet frame:\n");
     printf("MAC dst:   %02x:%02x:%02x:%02x:%02x:%02x\n", buf[0],buf[1],buf[2],buf[3],buf[4],buf[5]);

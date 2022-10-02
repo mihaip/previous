@@ -73,15 +73,15 @@
 
 int SCR_ROM_overlay=0;
 
-static Uint32 scr1=0x00000000;
+static uint32_t scr1=0x00000000;
 
-static Uint8 scr2_0=0x00;
-static Uint8 scr2_1=0x00;
-static Uint8 scr2_2=0x00;
-static Uint8 scr2_3=0x00;
+static uint8_t scr2_0=0x00;
+static uint8_t scr2_1=0x00;
+static uint8_t scr2_2=0x00;
+static uint8_t scr2_3=0x00;
 
-Uint32 scrIntStat=0x00000000;
-Uint32 scrIntMask=0x00000000;
+uint32_t scrIntStat=0x00000000;
+uint32_t scrIntMask=0x00000000;
 
 /* System Control Register 1
  *
@@ -140,10 +140,10 @@ Uint32 scrIntMask=0x00000000;
 #define CPU_33MHZ    3
 
 void SCR_Reset(void) {
-    Uint8 system_type = 0;
-    Uint8 board_rev = 0;
-    Uint8 cpu_speed = 0;
-    Uint8 memory_speed = 0;
+    uint8_t system_type = 0;
+    uint8_t board_rev = 0;
+    uint8_t cpu_speed = 0;
+    uint8_t memory_speed = 0;
     
     SCR_ROM_overlay = 0;
     dsp_intr_at_block_end = 0;
@@ -296,7 +296,7 @@ void SCR1_Read3(void)
 
 void SCR2_Write0(void)
 {
-    Uint8 changed_bits=scr2_0;
+    uint8_t changed_bits=scr2_0;
     Log_Printf(LOG_SCR_LEVEL,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress&IO_SEG_MASK],m68k_getpc());
     scr2_0=IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
     changed_bits ^= scr2_0;
@@ -365,7 +365,7 @@ void SCR2_Read1(void)
 
 void SCR2_Write2(void)
 {
-    Uint8 changed_bits=scr2_2;
+    uint8_t changed_bits=scr2_2;
     Log_Printf(LOG_SCR_LEVEL,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress&IO_SEG_MASK],m68k_getpc());
     scr2_2=IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
     changed_bits^=scr2_2;
@@ -398,7 +398,7 @@ void SCR2_Read2(void)
 
 void SCR2_Write3(void)
 {    
-    Uint8 changed_bits=scr2_3;
+    uint8_t changed_bits=scr2_3;
     Log_Printf(LOG_SCR_LEVEL,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
     scr2_3=IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
     changed_bits^=scr2_3;
@@ -446,7 +446,7 @@ void IntRegStatWrite(void) {
     Log_Printf(LOG_WARN, "[INT] Interrupt status register is read-only.");
 }
 
-void set_dsp_interrupt(Uint8 state) {
+void set_dsp_interrupt(uint8_t state) {
     if (scr2_3&SCR2_DSP_INT_EN || ConfigureParams.System.bTurbo) {
         set_interrupt(INT_DSP_L4, state);
     } else {
@@ -454,7 +454,7 @@ void set_dsp_interrupt(Uint8 state) {
     }
 }
 
-void set_interrupt(Uint32 intr, Uint8 state) {
+void set_interrupt(uint32_t intr, uint8_t state) {
     /* The interrupt gets polled by the cpu via intlev()
      * --> see previous-glue.c
      */
@@ -465,7 +465,7 @@ void set_interrupt(Uint32 intr, Uint8 state) {
     }
 }
 
-int scr_get_interrupt_level(Uint32 interrupt) {
+int scr_get_interrupt_level(uint32_t interrupt) {
     if (!interrupt) {
         return 0;
     } else if (interrupt&INT_L7_MASK) {
@@ -518,12 +518,12 @@ void IntRegMaskWrite(void) {
 #define HARDCLOCK_LATCH  0x40
 #define HARDCLOCK_ZERO   0x3F
 
-static Uint8 hardclock_csr=0;
-static Uint8 hardclock1=0;
-static Uint8 hardclock0=0;
+static uint8_t hardclock_csr=0;
+static uint8_t hardclock1=0;
+static uint8_t hardclock0=0;
 static int latch_hardclock=0;
 
-static Uint64 hardClockLastLatch;
+static uint64_t hardClockLastLatch;
 
 void Hardclock_InterruptHandler ( void )
 {
@@ -531,7 +531,7 @@ void Hardclock_InterruptHandler ( void )
     if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
 //      Log_Printf(LOG_WARN,"[INT] throwing hardclock %lld", host_time_us());
         set_interrupt(INT_TIMER,SET_INT);
-        Uint64 now = host_time_us();
+        uint64_t now = host_time_us();
         host_hardclock(latch_hardclock, now - hardClockLastLatch);
         hardClockLastLatch = now;
         CycInt_AddRelativeInterruptUs(latch_hardclock, 0, INTERRUPT_HARDCLOCK);
@@ -582,11 +582,11 @@ void HardclockReadCSR(void) {
 
 /* Event counter register */
 
-static Uint64 sysTimerOffset = 0;
+static uint64_t sysTimerOffset = 0;
 static bool   resetTimer;
 
 void System_Timer_Read(void) {
-    Uint64 now = host_time_us();
+    uint64_t now = host_time_us();
     if(resetTimer) {
         sysTimerOffset = now;
         resetTimer = false;
@@ -605,7 +605,7 @@ void System_Timer_Write(void) {
 #define VID_CMD_ENABLE_INT   0x02
 #define VID_CMD_UNBLANK      0x04
 
-Uint8 col_vid_intr = 0;
+uint8_t col_vid_intr = 0;
 
 void ColorVideo_CMD_Write(void) {
     col_vid_intr=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];

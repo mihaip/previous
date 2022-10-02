@@ -125,7 +125,7 @@ static int DebugUI_SetLogFile(int nArgc, char *psArgs[])
 /**
  * Helper to print given value in all supported number bases
  */
-static void DebugUI_PrintValue(Uint32 value)
+static void DebugUI_PrintValue(uint32_t value)
 {
 	bool one, ones;
 	int bit;
@@ -158,7 +158,7 @@ static void DebugUI_PrintValue(Uint32 value)
 static int DebugUI_Evaluate(int nArgc, char *psArgs[])
 {
 	const char *errstr, *expression = (const char *)psArgs[1];
-	Uint32 result;
+	uint32_t result;
 	int offset;
 
 	if (nArgc < 2)
@@ -202,7 +202,7 @@ static char *DebugUI_EvaluateExpressions(char *input)
     char *end, *start, *initial;
 	const char *errstr;
 	char valuestr[12];
-	Uint32 value;
+	uint32_t value;
 	bool fordsp;
 
 	/* input is split later on, need to save len here */

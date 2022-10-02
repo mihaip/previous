@@ -174,7 +174,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 	if (maindlg[MAINDLG_RESET].state & SG_SELECTED)
 		*bReset = true;
 
-	SDL_UpdateRect(sdlscrn, 0, 0, 0, 0);
+	Screen_UpdateRect(sdlscrn, 0, 0, 0, 0);
 	SDL_ShowCursor(bOldMouseVisibility);
 
 	return (retbut == MAINDLG_OK);

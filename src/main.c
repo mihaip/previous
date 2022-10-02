@@ -52,29 +52,29 @@ static bool bIgnoreNextMouseMotion = false;  /* Next mouse motion will be ignore
 
 volatile int mainPauseEmulation;
 
-typedef const char* (*report_func)(Uint64 realTime, Uint64 hostTime);
+typedef const char* (*report_func)(uint64_t realTime, uint64_t hostTime);
 
 typedef struct {
     const char*       label;
     const report_func report;
 } report_t;
 
-static Uint64 lastRT;
-static Uint64 lastCycles;
-static double speedFactor;
-static char   speedMsg[32];
+static uint64_t lastRT;
+static uint64_t lastCycles;
+static double   speedFactor;
+static char     speedMsg[32];
 
-static void Main_Speed(Uint64 realTime, Uint64 hostTime) {
-    Uint64  dRT  = realTime - lastRT;
-    speedFactor  = (nCyclesMainCounter - lastCycles);
-    speedFactor /= ConfigureParams.System.nCpuFreq;
-    speedFactor /= dRT;
-    lastRT       = realTime;
-    lastCycles   = nCyclesMainCounter;
+static void Main_Speed(uint64_t realTime, uint64_t hostTime) {
+    uint64_t dRT  = realTime - lastRT;
+    speedFactor   = (nCyclesMainCounter - lastCycles);
+    speedFactor  /= ConfigureParams.System.nCpuFreq;
+    speedFactor  /= dRT;
+    lastRT        = realTime;
+    lastCycles    = nCyclesMainCounter;
 }
 
 void Main_SpeedReset(void) {
-    Uint64 realTime, hostTime;
+    uint64_t realTime, hostTime;
     host_time(&realTime, &hostTime);
     lastRT     = realTime;
     lastCycles = nCyclesMainCounter;
@@ -284,8 +284,8 @@ void Main_EventHandler(void) {
     int events;
     
     if(++statusBarUpdate > 400) {
-        Uint64 vt;
-        Uint64 rt;
+        uint64_t vt;
+        uint64_t rt;
         host_time(&rt, &vt);
 #if ENABLE_TESTING
         fprintf(stderr, "[reports]");
@@ -317,7 +317,7 @@ void Main_EventHandler(void) {
         }
         
         if (bEmulationActive) {
-            Sint64 time_offset = host_real_time_offset() / 1000;
+            int64_t time_offset = host_real_time_offset() / 1000;
             if(time_offset > 10)
                 events = SDL_WaitEventTimeout(&event, time_offset);
             else

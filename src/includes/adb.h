@@ -1,9 +1,9 @@
-Uint32 adb_lget(Uint32 addr);
-Uint16 adb_wget(Uint32 addr);
-Uint8 adb_bget(Uint32 addr);
+uint32_t adb_lget(uint32_t addr);
+uint16_t adb_wget(uint32_t addr);
+uint8_t adb_bget(uint32_t addr);
 
-void adb_lput(Uint32 addr, Uint32 l);
-void adb_wput(Uint32 addr, Uint16 w);
-void adb_bput(Uint32 addr, Uint8 b);
+void adb_lput(uint32_t addr, uint32_t l);
+void adb_wput(uint32_t addr, uint16_t w);
+void adb_bput(uint32_t addr, uint8_t b);
 
 void ADB_Reset(void);

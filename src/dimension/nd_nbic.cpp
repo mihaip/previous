@@ -12,7 +12,7 @@
 
 NBIC::NBIC(int slot, int id) : slot(slot), id(id) {}
 
-Uint8 NBIC::read(int addr) {
+uint8_t NBIC::read(int addr) {
     switch(addr&0x1F) {
         case 0x00:
         case 0x01:
@@ -51,7 +51,7 @@ Uint8 NBIC::read(int addr) {
     }
 }
 
-void  NBIC::write(int addr, Uint8 val) {
+void  NBIC::write(int addr, uint8_t val) {
     switch(addr&0x1F) {
         case 0x0C:
             Log_Printf(ND_LOG_IO_WR, "[ND] Slot %i: NBIC Interrupt mask write %02X at %08X", slot,val,addr);
@@ -74,8 +74,8 @@ void  NBIC::write(int addr, Uint8 val) {
 }
 
 /* NeXTdimension NBIC access */
-Uint32 NBIC::lget(Uint32 addr) {
-    Uint32 val = 0;
+uint32_t NBIC::lget(uint32_t addr) {
+    uint32_t val = 0;
     
     if (addr&3) {
         Log_Printf(LOG_WARN, "[ND] Slot %i: NBIC Unaligned access at %08X.", slot, addr);
@@ -89,8 +89,8 @@ Uint32 NBIC::lget(Uint32 addr) {
     return val;
 }
 
-Uint16 NBIC::wget(Uint32 addr) {
-    Uint32 val = 0;
+uint16_t NBIC::wget(uint32_t addr) {
+    uint32_t val = 0;
     
     if (addr&1) {
         Log_Printf(LOG_WARN, "[ND] Slot %i: NBIC Unaligned access at %08X.", slot, addr);
@@ -102,11 +102,11 @@ Uint16 NBIC::wget(Uint32 addr) {
     return val;
 }
 
-Uint8 NBIC::bget(Uint32 addr) {
+uint8_t NBIC::bget(uint32_t addr) {
     return read(addr);
 }
 
-void NBIC::lput(Uint32 addr, Uint32 l) {
+void NBIC::lput(uint32_t addr, uint32_t l) {
     if (addr&3) {
         Log_Printf(LOG_WARN, "[ND] Slot %i: NBIC Unaligned access at %08X.", slot, addr);
         abort();
@@ -117,7 +117,7 @@ void NBIC::lput(Uint32 addr, Uint32 l) {
     write(addr+2,l);
 }
 
-void NBIC::wput(Uint32 addr, Uint16 w) {
+void NBIC::wput(uint32_t addr, uint16_t w) {
     if (addr&1) {
         Log_Printf(LOG_WARN, "[ND] Slot %i: NBIC Unaligned access at %08X.", slot, addr);
         abort();
@@ -126,7 +126,7 @@ void NBIC::wput(Uint32 addr, Uint16 w) {
     write(addr+1,w);
 }
 
-void NBIC::bput(Uint32 addr, Uint8 b) {
+void NBIC::bput(uint32_t addr, uint8_t b) {
     write(addr,b);
 }
 
@@ -152,8 +152,8 @@ void NBIC::init(void) {
     set_interrupt(INT_REMOTE, RELEASE_INT);
 }
 
-volatile Uint32 NBIC::remInter;
-volatile Uint32 NBIC::remInterMask;
+volatile uint32_t NBIC::remInter;
+volatile uint32_t NBIC::remInterMask;
 
 /* Interrupt function, called from ,68k thread */
 void nd_nbic_interrupt(void) {

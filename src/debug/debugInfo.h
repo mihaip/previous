@@ -11,9 +11,9 @@
 #define HATARI_DEBUGINFO_H
 
 /* for breakcond.c */
-extern Uint32 DebugInfo_GetTEXT(void);
-extern Uint32 DebugInfo_GetDATA(void);
-extern Uint32 DebugInfo_GetBSS(void);
+extern uint32_t DebugInfo_GetTEXT(void);
+extern uint32_t DebugInfo_GetDATA(void);
+extern uint32_t DebugInfo_GetBSS(void);
 
 /* for debugui.c */
 extern void DebugInfo_ShowSessionInfo(void);

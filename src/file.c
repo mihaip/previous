@@ -186,9 +186,9 @@ bool File_DoesFileNameEndWithSlash(char *pszFileName)
  * or NULL for error. If pFileSize is non-NULL, read file size is set to that.
  */
 #if HAVE_LIBZ
-Uint8 *File_ZlibRead(const char *pszFileName, long *pFileSize)
+uint8_t *File_ZlibRead(const char *pszFileName, long *pFileSize)
 {
-	Uint8 *pFile = NULL;
+	uint8_t *pFile = NULL;
 	gzFile hGzFile;
 	long nFileSize = 0;
 
@@ -231,9 +231,9 @@ Uint8 *File_ZlibRead(const char *pszFileName, long *pFileSize)
  * unmodified, or NULL for error.  If pFileSize is non-NULL, read
  * file size is set to that.
  */
-Uint8 *File_ReadAsIs(const char *pszFileName, long *pFileSize)
+uint8_t *File_ReadAsIs(const char *pszFileName, long *pFileSize)
 {
-	Uint8 *pFile = NULL;
+	uint8_t *pFile = NULL;
 	long FileSize = 0;
 	FILE *hDiskFile;
 
@@ -271,10 +271,10 @@ Uint8 *File_ReadAsIs(const char *pszFileName, long *pFileSize)
  * ZIP, first file in it is read).  If pFileSize is non-NULL, read
  * file size is set to that.
  */
-Uint8 *File_Load(const char *pszFileName, long *pFileSize, const char * const ppszExts[])
+uint8_t *File_Load(const char *pszFileName, long *pFileSize, const char * const ppszExts[])
 {
 	char *filepath = NULL;
-	Uint8 *pFile = NULL;
+	uint8_t *pFile = NULL;
 	long FileSize = 0;
 
 	/* Does the file exist? If not, see if can scan for other extensions and try these */
@@ -318,7 +318,7 @@ Uint8 *File_Load(const char *pszFileName, long *pFileSize, const char * const pp
  * Save file to disk, return FALSE if errors
  * If built with ZLib support + file name ends with *.gz, compress it first
  */
-bool File_Save(const char *pszFileName, const Uint8 *pAddress, size_t Size, bool bQueryOverwrite)
+bool File_Save(const char *pszFileName, const uint8_t *pAddress, size_t Size, bool bQueryOverwrite)
 {
 	bool bRet = false;
 
@@ -775,7 +775,7 @@ void File_UnLock(FILE *fp)
 /**
  * Read data from given FILE pointer to buffer and return status
  */
-bool File_Read(Uint8 *data, Uint32 size, Uint64 offset, FILE *fp)
+bool File_Read(uint8_t *data, uint32_t size, uint64_t offset, FILE *fp)
 {
     if (fseek(fp, offset, SEEK_SET))
     {
@@ -795,7 +795,7 @@ bool File_Read(Uint8 *data, Uint32 size, Uint64 offset, FILE *fp)
 /**
  * Write data to given FILE pointer and return status
  */
-bool File_Write(Uint8 *data, Uint32 size, Uint64 offset, FILE *fp)
+bool File_Write(uint8_t *data, uint32_t size, uint64_t offset, FILE *fp)
 {
     if (fseek(fp, offset, SEEK_SET))
     {

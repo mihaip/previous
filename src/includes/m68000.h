@@ -28,7 +28,6 @@ extern "C" {
 #include "newcpu.h"     /* for regs */
 #include "cycInt.h"
 #include "log.h"
-#include "host.h"
 #include "configuration.h"
 
 /* 68000 Register defines */
@@ -110,12 +109,12 @@ enum {
 # define M68000_GetPC()     m68k_getpc()
 # define M68000_SetPC(val)  m68k_setpc(val)
 
-static inline Uint16 M68000_GetSR(void)
+static inline uint16_t M68000_GetSR(void)
 {
 	MakeSR();
 	return regs.sr;
 }
-static inline void M68000_SetSR(Uint16 v)
+static inline void M68000_SetSR(uint16_t v)
 {
 	regs.sr = v;
 	MakeFromSR();
@@ -148,8 +147,8 @@ static inline void M68000_SetSR(Uint16 v)
 #define	BUS_MODE_BLITTER	1			/* bus is owned by the blitter */
 
 
-extern Uint32 BusErrorAddress;
-extern Uint32 BusErrorPC;
+extern uint32_t BusErrorAddress;
+extern uint32_t BusErrorPC;
 extern bool bBusErrorReadWrite;
 extern int BusMode;
 
@@ -184,8 +183,8 @@ void M68000_Reset(bool bCold);
 void M68000_Stop(void);
 void M68000_Start(void);
 void M68000_CheckCpuSettings(void);
-void M68000_BusError (Uint32 addr, int ReadWrite, int Size, int AccessType, uae_u32 val);
-   void M68000_Exception(Uint32 ExceptionVector , int ExceptionSource);
+void M68000_BusError (uint32_t addr, int ReadWrite, int Size, int AccessType, uae_u32 val);
+   void M68000_Exception(uint32_t ExceptionVector , int ExceptionSource);
 
 #ifdef __cplusplus
 }

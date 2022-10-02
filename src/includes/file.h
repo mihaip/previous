@@ -28,10 +28,10 @@ extern bool File_DoesFileExtensionMatch(const char *pszFileName, const char *psz
 extern bool File_ChangeFileExtension(const char *Filename_old, const char *Extension_old , char *Filename_new , const char *Extension_new);
 extern const char *File_RemoveFileNameDrive(const char *pszFileName);
 extern bool File_DoesFileNameEndWithSlash(char *pszFileName);
-extern Uint8 *File_ZlibRead(const char *pszFileName, long *pFileSize);
-extern Uint8 *File_ReadAsIs(const char *pszFileName, long *pFileSize);
-extern Uint8 *File_Load(const char *pszFileName, long *pFileSize, const char * const ppszExts[]);
-extern bool File_Save(const char *pszFileName, const Uint8 *pAddress, size_t Size, bool bQueryOverwrite);
+extern uint8_t *File_ZlibRead(const char *pszFileName, long *pFileSize);
+extern uint8_t *File_ReadAsIs(const char *pszFileName, long *pFileSize);
+extern uint8_t *File_Load(const char *pszFileName, long *pFileSize, const char * const ppszExts[]);
+extern bool File_Save(const char *pszFileName, const uint8_t *pAddress, size_t Size, bool bQueryOverwrite);
 extern off_t File_Length(const char *pszFileName);
 extern bool File_Exists(const char *pszFileName);
 extern bool File_DirExists(const char *psDirName);
@@ -44,8 +44,8 @@ extern int File_MakePathBuf(char *buf, size_t buflen, const char *pDir,
 extern void File_ShrinkName(char *pDestFileName, const char *pSrcFileName, int maxlen);
 extern FILE *File_Open(const char *path, const char *mode);
 extern FILE *File_Close(FILE *fp);
-extern bool File_Read(Uint8 *data, Uint32 size, Uint64 offset, FILE *fp);
-extern bool File_Write(Uint8 *data, Uint32 size, Uint64 offset, FILE *fp);
+extern bool File_Read(uint8_t *data, uint32_t size, uint64_t offset, FILE *fp);
+extern bool File_Write(uint8_t *data, uint32_t size, uint64_t offset, FILE *fp);
 extern bool File_Lock(FILE *fp);
 extern void File_UnLock(FILE *fp);
 extern bool File_InputAvailable(FILE *fp);

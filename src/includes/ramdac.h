@@ -6,11 +6,11 @@
 typedef struct {
     int   addr;
     int   idx;
-    Uint32 wtt_tmp;
-    Uint32 wtt[0x10];
-    Uint8 ccr[0xC];
-    Uint8 reg[0x30];
-    Uint8 ram[0x630];
+    uint32_t wtt_tmp;
+    uint32_t wtt[0x10];
+    uint8_t ccr[0xC];
+    uint8_t reg[0x30];
+    uint8_t ram[0x630];
 } bt463;
 
 

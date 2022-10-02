@@ -81,7 +81,7 @@ void enet_pcap_queue_poll(void)
     }
 }
 
-void enet_pcap_input(Uint8 *pkt, int pkt_len) {
+void enet_pcap_input(uint8_t *pkt, int pkt_len) {
     if (pcap_started) {
         Log_Printf(LOG_EN_PCAP_LEVEL, "[PCAP] Input packet with %i bytes",enet_tx_buffer.size);
         SDL_LockMutex(pcap_mutex);
@@ -105,7 +105,7 @@ void enet_pcap_stop(void) {
     }
 }
 
-void enet_pcap_start(Uint8 *mac) {
+void enet_pcap_start(uint8_t *mac) {
     char errbuf[PCAP_ERRBUF_SIZE];
     char *dev;
     struct bpf_program fp;

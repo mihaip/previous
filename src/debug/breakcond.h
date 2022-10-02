@@ -14,7 +14,7 @@ extern char *BreakCond_MatchCpuVariable(const char *text, int state);
 extern char *BreakCond_MatchDspVariable(const char *text, int state);
 
 /* for evaluate.c */
-extern bool BreakCond_GetHatariVariable(const char *name, Uint32 *value);
+extern bool BreakCond_GetHatariVariable(const char *name, uint32_t *value);
 
 /* for debugcpu.c & debugdsp.c */
 extern const char BreakCond_Description[];

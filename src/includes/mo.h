@@ -7,9 +7,9 @@ void MO_IO_Handler(void);
 void ECC_IO_Handler(void);
 
 typedef struct {
-    Uint8 data[1296];
-    Uint32 size;
-    Uint32 limit;
+    uint8_t data[1296];
+    uint32_t size;
+    uint32_t limit;
 } OpticalDiskBuffer;
 
 extern OpticalDiskBuffer ecc_buffer[2];

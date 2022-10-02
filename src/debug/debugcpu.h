@@ -15,14 +15,14 @@ void DebugCpu_SetDebugging(void);
 int DebugCpu_DisAsm(int nArgc, char *psArgs[]);
 int DebugCpu_MemDump(int nArgc, char *psArgs[]);
 int DebugCpu_Register(int nArgc, char *psArgs[]);
-int DebugCpu_GetRegisterAddress(const char *reg, Uint32 **addr);
+int DebugCpu_GetRegisterAddress(const char *reg, uint32_t **addr);
 
-Uint32 DBGMemory_ReadLong(Uint32 addr);
-Uint16 DBGMemory_ReadWord(Uint32 addr);
-Uint8  DBGMemory_ReadByte(Uint32 addr);
+uint32_t DBGMemory_ReadLong(uint32_t addr);
+uint16_t DBGMemory_ReadWord(uint32_t addr);
+uint8_t  DBGMemory_ReadByte(uint32_t addr);
 
-void DBGMemory_WriteLong(Uint32 addr,Uint32 val);
-void DBGMemory_WriteWord(Uint32 addr,Uint16 val);
-void DBGMemory_WriteByte(Uint32 addr,Uint8 val);
+void DBGMemory_WriteLong(uint32_t addr,uint32_t val);
+void DBGMemory_WriteWord(uint32_t addr,uint16_t val);
+void DBGMemory_WriteByte(uint32_t addr,uint8_t val);
 
 #endif /* HATARI_DEBUGCPU_H */

@@ -28,7 +28,7 @@ void Statusbar_SetNdLed(int state);
 
 void Statusbar_Init(SDL_Surface *screen);
 void Statusbar_UpdateInfo(void);
-void Statusbar_AddMessage(const char *msg, Uint32 msecs);
+void Statusbar_AddMessage(const char *msg, uint32_t msecs);
 void Statusbar_OverlayBackup(SDL_Surface *screen);
 void Statusbar_Update(SDL_Surface *screen);
 void Statusbar_OverlayRestore(SDL_Surface *screen);

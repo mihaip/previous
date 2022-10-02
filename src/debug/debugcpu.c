@@ -33,14 +33,14 @@ const char DebugCpu_fileid[] = "Hatari debugcpu.c : " __DATE__ " " __TIME__;
 #define MEMDUMP_COLS   16      /* memdump, number of bytes per row */
 #define NON_PRINT_CHAR '.'     /* character to display for non-printables */
 
-static Uint32 disasm_addr=0;     /* disasm address */
-static Uint32 memdump_addr=0;    /* memdump address */
+static uint32_t disasm_addr=0;     /* disasm address */
+static uint32_t memdump_addr=0;    /* memdump address */
 
 static bool bCpuProfiling;     /* Whether CPU profiling is activated */
 static int nCpuActiveCBs = 0;  /* Amount of active conditional breakpoints */
 static int nCpuSteps = 0;      /* Amount of steps for CPU single-stepping */
 
-Uint32 DBGMemory_ReadLong(Uint32 addr) {
+uint32_t DBGMemory_ReadLong(uint32_t addr) {
     switch (ConfigureParams.System.nCpuLevel) {
         case 3: return get_long_mmu030(addr);
         case 4: return get_long_mmu040(addr);
@@ -48,7 +48,7 @@ Uint32 DBGMemory_ReadLong(Uint32 addr) {
     }
 }
 
-Uint16 DBGMemory_ReadWord(Uint32 addr) {
+uint16_t DBGMemory_ReadWord(uint32_t addr) {
     switch (ConfigureParams.System.nCpuLevel) {
         case 3: return get_word_mmu030(addr);
         case 4: return get_word_mmu040(addr);
@@ -56,7 +56,7 @@ Uint16 DBGMemory_ReadWord(Uint32 addr) {
     }
 }
 
-Uint8 DBGMemory_ReadByte(Uint32 addr) {
+uint8_t DBGMemory_ReadByte(uint32_t addr) {
     switch (ConfigureParams.System.nCpuLevel) {
         case 3: return get_byte_mmu030(addr);
         case 4: return get_byte_mmu040(addr);
@@ -64,7 +64,7 @@ Uint8 DBGMemory_ReadByte(Uint32 addr) {
     }
 }
 
-void DBGMemory_WriteLong(Uint32 addr, Uint32 val) {
+void DBGMemory_WriteLong(uint32_t addr, uint32_t val) {
     switch (ConfigureParams.System.nCpuLevel) {
         case 3: put_long_mmu030(addr, val); break;
         case 4: put_long_mmu040(addr, val); break;
@@ -72,7 +72,7 @@ void DBGMemory_WriteLong(Uint32 addr, Uint32 val) {
     }
 }
 
-void DBGMemory_WriteWord(Uint32 addr, Uint16 val) {
+void DBGMemory_WriteWord(uint32_t addr, uint16_t val) {
     switch (ConfigureParams.System.nCpuLevel) {
         case 3: put_word_mmu030(addr, val); break;
         case 4: put_word_mmu040(addr, val); break;
@@ -80,7 +80,7 @@ void DBGMemory_WriteWord(Uint32 addr, Uint16 val) {
     }
 }
 
-void DBGMemory_WriteByte(Uint32 addr, Uint8 val) {
+void DBGMemory_WriteByte(uint32_t addr, uint8_t val) {
     switch (ConfigureParams.System.nCpuLevel) {
         case 3: put_byte_mmu030(addr, val); break;
         case 4: put_byte_mmu040(addr, val); break;
@@ -95,7 +95,7 @@ static int DebugCpu_LoadBin(int nArgc, char *psArgs[])
 {
 	FILE *fp;
 	unsigned char c;
-	Uint32 address;
+	uint32_t address;
 	int i=0;
 
 	if (nArgc < 3)
@@ -137,8 +137,8 @@ static int DebugCpu_SaveBin(int nArgc, char *psArgs[])
 {
 	FILE *fp;
 	unsigned char c;
-	Uint32 address;
-	Uint32 bytes, i = 0;
+	uint32_t address;
+	uint32_t bytes, i = 0;
 
 	if (nArgc < 4)
 	{
@@ -181,9 +181,9 @@ static int DebugCpu_SaveBin(int nArgc, char *psArgs[])
  * Check whether given address matches any CPU symbol and whether
  * there's profiling information available for it.  If yes, show it.
  */
-static void DebugCpu_ShowAddressInfo(Uint32 addr)
+static void DebugCpu_ShowAddressInfo(uint32_t addr)
 {
-    Uint32 count, cycles;
+    uint32_t count, cycles;
     const char *symbol;
     bool shown = false;
 
@@ -208,7 +208,7 @@ static void DebugCpu_ShowAddressInfo(Uint32 addr)
  */
 int DebugCpu_DisAsm(int nArgc, char *psArgs[])
 {
-	Uint32 disasm_upper = 0;
+	uint32_t disasm_upper = 0;
 	int insts, max_insts;
 	uaecptr nextpc;
 	FILE* mydebugOutput=debugOutput;
@@ -303,7 +303,7 @@ static char *DebugCpu_MatchRegister(const char *text, int state)
  * Handles D0-7 data and A0-7 address registers, but not PC & SR
  * registers as they need to be accessed using UAE accessors.
  */
-int DebugCpu_GetRegisterAddress(const char *reg, Uint32 **addr)
+int DebugCpu_GetRegisterAddress(const char *reg, uint32_t **addr)
 {
 	char r0, r1;
 	if (!reg[0] || !reg[1] || reg[2])
@@ -342,7 +342,7 @@ int DebugCpu_GetRegisterAddress(const char *reg, Uint32 **addr)
 int DebugCpu_Register(int nArgc, char *psArgs[])
 {
 	char reg[3], *assign;
-	Uint32 value;
+	uint32_t value;
 	char *arg;
 
 	/* If no parameter has been given, simply dump all registers */
@@ -389,7 +389,7 @@ int DebugCpu_Register(int nArgc, char *psArgs[])
 	}
 	else
 	{
-		Uint32 *regaddr;
+		uint32_t *regaddr;
 		/* check&set data and address registers */
 		if (DebugCpu_GetRegisterAddress(reg, &regaddr))
 		{
@@ -442,7 +442,7 @@ int DebugCpu_MemDump(int nArgc, char *psArgs[])
 {
 	int i;
 	char c;
-	Uint32 memdump_upper = 0;
+	uint32_t memdump_upper = 0;
 
 	if (nArgc > 1)
 	{
@@ -492,7 +492,7 @@ int DebugCpu_MemDump(int nArgc, char *psArgs[])
 static int DebugCpu_MemWrite(int nArgc, char *psArgs[])
 {
 	int i, numBytes;
-	Uint32 write_addr, d;
+	uint32_t write_addr, d;
 	unsigned char bytes[256]; /* store bytes */
 
 	if (nArgc < 3)

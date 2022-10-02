@@ -12,6 +12,9 @@
 /* Define to 1 if you have the `z' library (-lz). */
 #cmakedefine HAVE_LIBZ 1
 
+/* Define to 1 if you have the <zlib.h> header file. */
+#cmakedefine HAVE_ZLIB_H 1
+
 /* Define to 1 if you have the <strings.h> header file. */
 #cmakedefine HAVE_STRINGS_H 1
 
@@ -35,6 +38,18 @@
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #cmakedefine HAVE_NETINET_IN_H 1
+
+/* Define to 1 if you have the <byteswap.h> header file. */
+#cmakedefine HAVE_BYTESWAP_H 1
+
+/* Define to 1 if you have the 'bswap_16' function. */
+#cmakedefine HAVE_BSWAP_16 1
+
+/* Define to 1 if you have the 'bswap_32' function. */
+#cmakedefine HAVE_BSWAP_32 1
+
+/* Define to 1 if you have the `cfmakeraw' function. */
+#cmakedefine HAVE_CFMAKERAW 1
 
 /* Define to 1 if you have the 'setenv' function. */
 #cmakedefine HAVE_SETENV 1
@@ -62,9 +77,6 @@
 
 /* Define to 1 if you have the 'flock' function. */
 #cmakedefine HAVE_FLOCK 1
-
-/* Define to 1 if you have the 'strlcpy' function. */
-#cmakedefine HAVE_LIBC_STRLCPY 1
 
 /* Define to 1 if you have the 'strdup' function */
 #cmakedefine HAVE_STRDUP 1

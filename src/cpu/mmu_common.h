@@ -1,7 +1,6 @@
 #ifndef UAE_MMU_COMMON_H
 #define UAE_MMU_COMMON_H
 
-#include "main.h"
 #include "uae/types.h"
 #include "uae/likely.h"
 

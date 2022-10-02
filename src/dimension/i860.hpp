@@ -32,16 +32,16 @@
 #include "nd_sdl.hpp"
 
 typedef uint64_t UINT64;
-typedef int64_t INT64;
+typedef int64_t  INT64;
 
 typedef uint32_t UINT32;
-typedef int32_t INT32;
+typedef int32_t  INT32;
 
 typedef uint16_t UINT16;
-typedef int16_t INT16;
+typedef int16_t  INT16;
 
 typedef uint8_t  UINT8;
-typedef int8_t  INT8;
+typedef int8_t   INT8;
 
 typedef int64_t offs_t;
 
@@ -458,7 +458,7 @@ public:
     
     static int thread(void* data);
     
-    const char* reports(Uint64 realTime, Uint64 hostTIme);
+    const char* reports(uint64_t realTime, uint64_t hostTIme);
 private:
     // debugger
     void debugger(char cmd, const char* format, ...);

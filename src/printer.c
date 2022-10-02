@@ -64,7 +64,7 @@ int         png_count;
 int         png_page_count   = 0;
 const char* png_path;
 
-static void lp_png_setup(Uint32 data) {
+static void lp_png_setup(uint32_t data) {
     int i;
     png_width = ((data >> 16) & 0x7F) * 32;
     
@@ -135,7 +135,7 @@ static void lp_png_finish(void) {
     }
 }
 #else
-static void lp_png_setup(Uint32 data) {}
+static void lp_png_setup(uint32_t data) {}
 static void lp_png_print(void) {}
 static void lp_png_finish(void) {}
 #endif
@@ -153,19 +153,19 @@ PrinterBuffer lp_buffer;
 struct {
     /* Registers */
     struct {
-        Uint8 dma;
-        Uint8 printer;
-        Uint8 transmit;
-        Uint8 cmd;
+        uint8_t dma;
+        uint8_t printer;
+        uint8_t transmit;
+        uint8_t cmd;
     } csr;
     
-    Uint8  command;
-    Uint32 data;
+    uint8_t  command;
+    uint32_t data;
     
     /* Internal */
-    Uint8  stat;
-    Uint8  statmask;
-    Uint32 margins;
+    uint8_t  stat;
+    uint8_t  statmask;
+    uint32_t margins;
 } lp;
 
 static bool lp_data_transfer = false;
@@ -276,7 +276,7 @@ static void lp_check_interrupt(void) {
 #define LP_GPO_CMD_BIT  0x02
 #define LP_GPO_BUSY     0x01
 
-static void lp_send_data(Uint32 data) {
+static void lp_send_data(uint32_t data) {
     lp.data = data;
     
     if (lp.csr.printer&LP_DATA) {
@@ -287,11 +287,11 @@ static void lp_send_data(Uint32 data) {
     lp_set_interrupt();
 }
 
-static void lp_gpi(Uint32 data) {
+static void lp_gpi(uint32_t data) {
     lp_send_data(data);
 }
 
-static void lp_boot_message(Uint32 data) {
+static void lp_boot_message(uint32_t data) {
     lp_send_data(data);
 }
 
@@ -306,7 +306,7 @@ static void lp_dma_underrun(void) {
     lp_set_interrupt();
 }
 
-static void lp_command_out(Uint8 command, Uint32 data) {
+static void lp_command_out(uint8_t command, uint32_t data) {
     if (!(lp.csr.transmit&LP_TX_EN)) {
         return;
     }
@@ -390,17 +390,17 @@ static void lp_command_out(Uint8 command, Uint32 data) {
 
 #define STAT15_NOTONER  0x04
 
-static Uint8 lp_serial_status[16] = {
+static uint8_t lp_serial_status[16] = {
     0,0,0,0,
     0,STAT5_A4,0,0,
     0,0,0,0,
     0,0,0,0
 };
 
-static Uint8 lp_serial_phase = 0;
+static uint8_t lp_serial_phase = 0;
 
-static void lp_interface_status(Uint8 changed_bits, bool set) {
-    Uint8 old_stat = lp.stat;
+static void lp_interface_status(uint8_t changed_bits, bool set) {
+    uint8_t old_stat = lp.stat;
     
     Log_Printf(LOG_LP_PRINT_LEVEL,"[Printer] Interface status %s: %02X (mask: %02X)",set?"set":"release",changed_bits,lp.statmask);
     
@@ -415,9 +415,9 @@ static void lp_interface_status(Uint8 changed_bits, bool set) {
     }
 }
 
-static Uint8 lp_printer_status(Uint8 num) {
+static uint8_t lp_printer_status(uint8_t num) {
     int i;
-    Uint8 val;
+    uint8_t val;
     
     lp_serial_phase = 8;
     lp_interface_status(LP_GPI_BUSY, true);
@@ -447,7 +447,7 @@ static Uint8 lp_printer_status(Uint8 num) {
 }
 
 /* COPY. NeXT 1987 */
-static const Uint32 lp_copyright_message[4] = { 0x00434f50, 0x522e204e, 0x65585420, 0x31393837 };
+static const uint32_t lp_copyright_message[4] = { 0x00434f50, 0x522e204e, 0x65585420, 0x31393837 };
 static int lp_copyright_sequence = 0;
 
 static void lp_check_boot_sequence(void) {
@@ -503,7 +503,7 @@ static void lp_power_off(void) {
     lp.stat = 0;
 }
 
-static Uint8 lp_printer_command(Uint8 cmd) {
+static uint8_t lp_printer_command(uint8_t cmd) {
     switch (cmd) {
         case CMD_STATUS0:
             Log_Printf(LOG_LP_PRINT_LEVEL, "[Printer] Read status register 0");
@@ -558,12 +558,12 @@ static Uint8 lp_printer_command(Uint8 cmd) {
     }
 }
 
-static void lp_gpo_access(Uint8 data) {
-    static Uint8 lp_cmd = 0;
-    static Uint8 lp_stat = 0;
-    static Uint8 lp_old_data = 0;
+static void lp_gpo_access(uint8_t data) {
+    static uint8_t lp_cmd = 0;
+    static uint8_t lp_stat = 0;
+    static uint8_t lp_old_data = 0;
     
-    Uint8 changed_bits = data ^ lp_old_data;
+    uint8_t changed_bits = data ^ lp_old_data;
     
     Log_Printf(LOG_LP_PRINT_LEVEL, "[Printer] Control logic access: %02X",data);
     
@@ -597,7 +597,7 @@ static void lp_gpi_request(void) {
     lp_command_out(LP_CMD_GPI, (~lp.stat)<<24);
 }
 
-static void lp_gpo(Uint8 cmd) {
+static void lp_gpo(uint8_t cmd) {
     if (cmd&LP_GPO_DENSITY) {
         Log_Printf(LOG_LP_PRINT_LEVEL,"[Printer] 300 DPI mode");
     }
@@ -624,7 +624,7 @@ static void lp_gpo(Uint8 cmd) {
     lp_gpo_access(cmd);
 }
 
-void lp_command_in(Uint8 cmd, Uint32 data) {
+void lp_command_in(uint8_t cmd, uint32_t data) {
     if (!(lp.csr.transmit&LP_TX_EN)) {
         return;
     }
@@ -747,7 +747,7 @@ void LP_CSR0_Read(void) { // 0x0200F000
 }
 
 void LP_CSR0_Write(void) {
-    Uint8 val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    uint8_t val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
     Log_Printf(LOG_LP_REG_LEVEL,"[LP] DMA control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
     lp.csr.dma &= ~(LP_DMA_OUT_EN|LP_DMA_IN_EN);
@@ -768,7 +768,7 @@ void LP_CSR1_Read(void) { // 0x0200F001
 }
 
 void LP_CSR1_Write(void) {
-    Uint8 val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    uint8_t val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
     Log_Printf(LOG_LP_REG_LEVEL,"[LP] Printer control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
     if (((val&LP_ON) != (lp.csr.printer&LP_ON)) && ConfigureParams.Printer.bPrinterConnected) {
@@ -794,8 +794,8 @@ void LP_CSR2_Read(void) { // 0x0200F002
 }
 
 void LP_CSR2_Write(void) {
-    Uint8 old = lp.csr.transmit;
-    Uint8 val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    uint8_t old = lp.csr.transmit;
+    uint8_t val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
     Log_Printf(LOG_LP_REG_LEVEL,"[LP] Transmitter control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
     lp.csr.transmit &= ~(LP_TX_EN|LP_TX_LOOP);
@@ -833,7 +833,7 @@ void LP_Data_Read(void) { // 0x0200F004 (access must be 32-bit)
 }
 
 void LP_Data_Write(void) {
-    Uint32 val = IoMem_ReadLong(IoAccessCurrentAddress&IO_SEG_MASK);
+    uint32_t val = IoMem_ReadLong(IoAccessCurrentAddress&IO_SEG_MASK);
     Log_Printf(LOG_LP_REG_LEVEL,"[LP] Data write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, val, m68k_getpc());
     
     if (lp.csr.transmit&LP_TX_LOOP) {

@@ -688,8 +688,7 @@ static void returncycles(int cycles)
 #endif
 #ifdef WINUAE_FOR_PREVIOUS
     out ("return %d;\n", adjust_cycles(cycles));
-    return;
-#endif // WINUAE_FOR_PREVIOUS
+#else // WINUAE_FOR_PREVIOUS
 	if (using_nocycles) {
 		out("return 0;\n");
 		return;
@@ -721,6 +720,7 @@ static void returncycles(int cycles)
 	} else {
 		out("return %d * CYCLE_UNIT / 2;\n", cycles);
 	}
+#endif // WINUAE_FOR_PREVIOUS
 }
 
 static void write_return_cycles_none(void)

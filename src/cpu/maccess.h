@@ -14,7 +14,19 @@
 #ifndef UAE_MACCESS_H
 #define UAE_MACCESS_H
 
-#include <SDL_endian.h>
+#include "sysdeps.h"
+
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+
+#define be_swap32(x) ((uint32_t)(x))
+#define be_swap16(x) ((uint16_t)(x))
+
+#else
+
+#define be_swap32(x) bswap_32(x)
+#define be_swap16(x) bswap_16(x)
+
+#endif
 
 /* Can the actual CPU access unaligned memory? */
 #ifndef CPU_CAN_ACCESS_UNALIGNED
@@ -26,30 +38,28 @@
 # endif
 #endif
 
-#define ALIGN_POINTER_TO32(p) ((~(unsigned long)(p)) & 3)
-
 /* If the CPU can access unaligned memory, use these accelerated functions: */
 #if CPU_CAN_ACCESS_UNALIGNED
 
 static inline uae_u32 do_get_mem_long(void *a)
 {
-	return SDL_SwapBE32(*(uae_u32 *)a);
+	return be_swap32(*(uae_u32 *)a);
 }
 
 static inline uae_u16 do_get_mem_word(void *a)
 {
-	return SDL_SwapBE16(*(uae_u16 *)a);
+	return be_swap16(*(uae_u16 *)a);
 }
 
 
 static inline void do_put_mem_long(void *a, uae_u32 v)
 {
-	*(uae_u32 *)a = SDL_SwapBE32(v);
+	*(uae_u32 *)a = be_swap32(v);
 }
 
 static inline void do_put_mem_word(void *a, uae_u16 v)
 {
-	*(uae_u16 *)a = SDL_SwapBE16(v);
+	*(uae_u16 *)a = be_swap16(v);
 }
 
 
@@ -105,19 +115,14 @@ static inline void do_put_mem_byte(uae_u8 *a, uae_u8 v)
 }
 
 
-STATIC_INLINE uae_u64 do_byteswap_64(uae_u64 v)
-{
-	return SDL_Swap64(v);
-}
-
 STATIC_INLINE uae_u32 do_byteswap_32(uae_u32 v)
 {
-	return SDL_Swap32(v);
+	return bswap_32(v);
 }
 
 STATIC_INLINE uae_u16 do_byteswap_16(uae_u16 v)
 {
-	return SDL_Swap16(v);
+	return bswap_16(v);
 }
 
 STATIC_INLINE uae_u32 do_get_mem_word_unswapped(uae_u16 *a)
@@ -128,5 +133,19 @@ STATIC_INLINE uae_u32 do_get_mem_word_unswapped(uae_u16 *a)
 #define call_mem_get_func(func, addr) ((*func)(addr))
 #define call_mem_put_func(func, addr, v) ((*func)(addr, v))
 
+/* Allocate aligned memory: */
+static inline uint8_t* malloc_aligned(size_t size) {
+#if defined(HAVE_POSIX_MEMALIGN)
+	void* result = NULL;
+	posix_memalign(&result, 0x10000, size);
+	return (uint8_t*)result;
+#elif defined(HAVE_ALIGNED_ALLOC)
+	return (uint8_t*)aligned_alloc(0x10000, size);
+#elif defined(HAVE__ALIGNED_ALLOC)
+	return (uint8_t*)_aligned_alloc(0x10000, size);
+#else
+	return (uint8_t*)malloc(size);
+#endif
+}
 
 #endif /* UAE_MACCESS_H */

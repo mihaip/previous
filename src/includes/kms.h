@@ -14,12 +14,12 @@ void KMS_Data_Read(void);
 
 void KMS_KM_Data_Read(void);
 
-void kms_keydown(Uint8 modkeys, Uint8 keycode);
-void kms_keyup(Uint8 modkeys, Uint8 keycode);
+void kms_keydown(uint8_t modkeys, uint8_t keycode);
+void kms_keyup(uint8_t modkeys, uint8_t keycode);
 void kms_mouse_move(int x, bool left, int y, bool up);
 void kms_mouse_button(bool left, bool down);
 
-bool kms_send_codec_receive(Uint32 data);
+bool kms_send_codec_receive(uint32_t data);
 bool kms_can_receive_codec(void);
 void kms_send_sndout_underrun(void);
 void kms_send_sndout_request(void);

@@ -593,7 +593,7 @@ void i860_cpu_device::run() {
     }
 }
 
-const char* i860_cpu_device::reports(Uint64 realTime, Uint64 hostTime) {
+const char* i860_cpu_device::reports(uint64_t realTime, uint64_t hostTime) {
     double dVT = (hostTime - m_last_vt) / 1000000.0;
     
     if(is_halted()) {

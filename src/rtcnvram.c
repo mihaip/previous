@@ -9,6 +9,7 @@
 
  */
 
+#include "host.h"
 #include "ioMem.h"
 #include "ioMemTables.h"
 #include "m68000.h"
@@ -27,15 +28,15 @@
 #define RTC_ADDR_WRITE  0x80
 #define RTC_ADDR_CLOCK  0x20
 #define RTC_ADDR_MASK   0x7F
-Uint8 rtc_addr = 0;
-Uint8 rtc_val  = 0;
-Uint8 rtc_data = 0;
+uint8_t rtc_addr = 0;
+uint8_t rtc_val  = 0;
+uint8_t rtc_data = 0;
 int phase = 0;
 
-int oldrtc_interface_io(Uint8 rtdatabit);
-int newrtc_interface_io(Uint8 rtdatabit);
+int oldrtc_interface_io(uint8_t rtdatabit);
+int newrtc_interface_io(uint8_t rtdatabit);
 
-void rtc_interface_write(Uint8 rtdatabit) {
+void rtc_interface_write(uint8_t rtdatabit) {
     switch (ConfigureParams.System.nRTC) {
         case MC68HC68T1: rtc_data = oldrtc_interface_io(rtdatabit); break;
         case MCCS1850:   rtc_data = newrtc_interface_io(rtdatabit); break;
@@ -46,7 +47,7 @@ void rtc_interface_write(Uint8 rtdatabit) {
     }
 }
 
-Uint8 rtc_interface_read(void) {
+uint8_t rtc_interface_read(void) {
     return rtc_data;
 }
 
@@ -125,8 +126,8 @@ void RTC_Reset(void) {
  * registers are located at address 0x20 to 0x32.
  */
 
-Uint8 rtc_get_clock(Uint8 addr);
-void rtc_put_clock(Uint8 addr, Uint8 val);
+uint8_t rtc_get_clock(uint8_t addr);
+void rtc_put_clock(uint8_t addr, uint8_t val);
 
 /* All time values in RTC clock are in packed decimal format */
 static char rtc_treg_name[8][8] = {
@@ -141,21 +142,21 @@ static char rtc_treg_name[8][8] = {
 };
 
 typedef struct {
-    Uint8 sec;      /* 00 - 59 */
-    Uint8 min;      /* 00 - 59 */
-    Uint8 hour;     /* 01 - 12 or 00 - 24; bit 7: 1 = 12 hr, 0 = 24 hr; bit 5: 1 = pm, 0 = am */
-    Uint8 wday;     /* 01 - 07; 1 = sunday */
-    Uint8 mday;     /* 01 - 31 */
-    Uint8 month;    /* 01 - 12; 1 = january */
-    Uint8 year;     /* 00 - 99 */
+    uint8_t sec;      /* 00 - 59 */
+    uint8_t min;      /* 00 - 59 */
+    uint8_t hour;     /* 01 - 12 or 00 - 24; bit 7: 1 = 12 hr, 0 = 24 hr; bit 5: 1 = pm, 0 = am */
+    uint8_t wday;     /* 01 - 07; 1 = sunday */
+    uint8_t mday;     /* 01 - 31 */
+    uint8_t month;    /* 01 - 12; 1 = january */
+    uint8_t year;     /* 00 - 99 */
 } RTC_TIME;
 
 RTC_TIME get_rtc_time(void);
 
 typedef struct {
-    Uint8 sec;      /* 00 - 59 */
-    Uint8 min;      /* 00 - 59 */
-    Uint8 hour;     /* 01 - 12 or 00 - 24; bit 5: 1 = pm, 0 = am in 24 hr mode */
+    uint8_t sec;      /* 00 - 59 */
+    uint8_t min;      /* 00 - 59 */
+    uint8_t hour;     /* 01 - 12 or 00 - 24; bit 5: 1 = pm, 0 = am in 24 hr mode */
 } RTC_ALARM;
 
 
@@ -230,16 +231,16 @@ typedef struct {
 #define RTC_PERIODIC    0x0F
 
 struct {
-    Uint8 ram[32];      /* 0x00 - 0x1F (r), 0x80 - 0x9F (w) */
+    uint8_t ram[32];      /* 0x00 - 0x1F (r), 0x80 - 0x9F (w) */
     RTC_TIME time;      /* 0x20 - 0x26 (r), 0xA0 - 0xA6 (w) */
     RTC_ALARM alarm;    /* 0xA8 - 0xAA (w) */
-    Uint8 status;       /* 0x30 (r) */
-    Uint8 clkctrl;      /* 0x31 (r), 0xB1 (w) */
-    Uint8 intctrl;      /* 0x32 (r), 0xB2 (w) */
+    uint8_t status;       /* 0x30 (r) */
+    uint8_t clkctrl;      /* 0x31 (r), 0xB1 (w) */
+    uint8_t intctrl;      /* 0x32 (r), 0xB2 (w) */
 } rtc;
 
 
-int oldrtc_interface_io(Uint8 rtdatabit) {
+int oldrtc_interface_io(uint8_t rtdatabit) {
     
     phase++;
     
@@ -293,16 +294,16 @@ int oldrtc_interface_io(Uint8 rtdatabit) {
     return rtdatabit;
 }
 
-static Uint8 toBCD(int val) {
+static uint8_t toBCD(int val) {
     return (((val/10)%10)<<4)|(val%10);
 }
 
 /* Year is supported up to 2050 through overflow of decimal decade */
-static Uint8 toBCDyr(int val) {
+static uint8_t toBCDyr(int val) {
     return (((val/10)&0xF)<<4)|(val%10);
 }
 
-static int fromBCD(Uint8 bcd) {
+static int fromBCD(uint8_t bcd) {
     return ((bcd&0xF0)>>4)*10+(bcd&0xF);
 }
 
@@ -333,7 +334,7 @@ static void my_set_rtc_time(void) {
 }
 
 void oldrtc_check_time(void) {
-    Uint8 year;
+    uint8_t year;
     
     my_get_rtc_time();
     year = fromBCD(rtc.time.year);
@@ -344,8 +345,8 @@ void oldrtc_check_time(void) {
     }
 }
 
-Uint8 rtc_get_clock(Uint8 addr) {
-    Uint8 val = 0x00;
+uint8_t rtc_get_clock(uint8_t addr) {
+    uint8_t val = 0x00;
     
     my_get_rtc_time();
     
@@ -379,7 +380,7 @@ Uint8 rtc_get_clock(Uint8 addr) {
     return val;
 }
 
-void rtc_put_clock(Uint8 addr, Uint8 val) {
+void rtc_put_clock(uint8_t addr, uint8_t val) {
     switch (addr&RTC_ADDR_MASK) {
         case 0x20: /* seconds */
             rtc.time.sec=val;
@@ -450,8 +451,8 @@ void oldrtc_stop_pdown_request(void) {
  * control/status registers are located at address 0x20 to 0x31.
  */
 
-Uint8 newrtc_get_clock(Uint8 addr);
-void newrtc_put_clock(Uint8 addr, Uint8 val);
+uint8_t newrtc_get_clock(uint8_t addr);
+void newrtc_put_clock(uint8_t addr, uint8_t val);
 
 /* New RTC has two 32 bit counters, one for time and one for alarm */
 
@@ -507,16 +508,16 @@ void newrtc_put_clock(Uint8 addr, Uint8 val);
 
 struct {
     /* --> see old chip  * 0x00 - 0x1F (r), 0x80 - 0x9F (w) */
-    Uint32 timecntr;    /* 0x20 - 0x23 (r), 0xA0 - 0xA3 (w) */
-    Uint32 alarmcntr;   /* 0x24 - 0x27 (r), 0xA4 - 0xA7 (w) */
-    Uint8 status;       /* 0x30 (r) */
-    Uint8 control;      /* 0x31 (r), 0xB1 (w) */
-    Uint8 ram2[32];     /* 0x40 - 0x5F (r), 0xC0 - 0xDF (w) */
+    uint32_t timecntr;    /* 0x20 - 0x23 (r), 0xA0 - 0xA3 (w) */
+    uint32_t alarmcntr;   /* 0x24 - 0x27 (r), 0xA4 - 0xA7 (w) */
+    uint8_t status;       /* 0x30 (r) */
+    uint8_t control;      /* 0x31 (r), 0xB1 (w) */
+    uint8_t ram2[32];     /* 0x40 - 0x5F (r), 0xC0 - 0xDF (w) */
 } newrtc;
 
 #define RTC_ADDR_NEWRAM 0x40
 
-int newrtc_interface_io(Uint8 rtdatabit) {
+int newrtc_interface_io(uint8_t rtdatabit) {
     
     phase++;
     
@@ -577,8 +578,8 @@ int newrtc_interface_io(Uint8 rtdatabit) {
 }
 
 
-Uint8 newrtc_get_clock(Uint8 addr) {
-    Uint8 val = 0x00;
+uint8_t newrtc_get_clock(uint8_t addr) {
+    uint8_t val = 0x00;
     
     newrtc.timecntr = host_unix_time();
     
@@ -623,7 +624,7 @@ Uint8 newrtc_get_clock(Uint8 addr) {
     return val;
 }
 
-void newrtc_put_clock(Uint8 addr, Uint8 val) {
+void newrtc_put_clock(uint8_t addr, uint8_t val) {
     switch (rtc_addr&RTC_ADDR_MASK) {
         case 0x20:
             newrtc.timecntr &= 0x00FFFFFF;
@@ -809,7 +810,7 @@ void newrtc_stop_pdown_request(void) {}
  */
 
 /* RTC RAM */
-Uint8 nvram_default[32]={
+uint8_t nvram_default[32]={
     0x94,0x0f,0x40,0x00, // byte 0 - 3: volume, brightness, ...
     0x00,0x00,0x00,0x00,0x00,0x00, // byte 4 - 9: hardware password, ethernet address (?)
     0x00,0x00, // byte 10, 11: simm type and size (4 simms, 4 bits per simm), see bits in ni_simm above
@@ -825,7 +826,7 @@ void nvram_init(void) {
     memset(rtc.ram, 0, 32);
     
     /* Build configuration bytes */
-    Uint32 config = 0x94000000; /* reset = 9, allow eject = 1 */
+    uint32_t config = 0x94000000; /* reset = 9, allow eject = 1 */
     config |= 0x3D<<14; /* brightness */
     
     rtc.ram[0] = config>>24;
@@ -866,9 +867,9 @@ void nvram_init(void) {
     }
     
     /* Build SIMM bytes */
-    Uint16 SIMMconfig = 0x0000;
-    Uint8 simm[4];
-    Uint8 parity = 0xF0;
+    uint16_t SIMMconfig = 0x0000;
+    uint8_t simm[4];
+    uint8_t parity = 0xF0;
     if (ConfigureParams.System.bTurbo) {
         parity = 0x00;
         for (i = 0; i<4; i++) {

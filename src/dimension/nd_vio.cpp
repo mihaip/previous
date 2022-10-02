@@ -29,7 +29,7 @@
 
 DMCD::DMCD(NextDimension* nd) : nd(nd) {}
 
-void DMCD::write(Uint32 step, Uint8 data) {
+void DMCD::write(uint32_t step, uint8_t data) {
     if (step == 0) {
         addr = data;
     } else {
@@ -52,7 +52,7 @@ void DMCD::write(Uint32 step, Uint8 data) {
 
 DCSC::DCSC(NextDimension* nd, int dev) : nd(nd), dev(dev) {}
 
-void DCSC::write(Uint32 step, Uint8 data) {
+void DCSC::write(uint32_t step, uint8_t data) {
     switch (step) {
         case 0:
             addr = data;
@@ -81,7 +81,7 @@ void DCSC::write(Uint32 step, Uint8 data) {
 
 /* Receiver function (from IIC bus) */
 
-void NextDimension::video_dev_write(Uint8 addr, Uint32 step, Uint8 data) {
+void NextDimension::video_dev_write(uint8_t addr, uint32_t step, uint8_t data) {
     if (addr&0x01) {
         Log_Printf(LOG_WARN, "[ND] Slot %i: IIC bus: Unimplemented read from video device at %02X", slot, addr);
     }

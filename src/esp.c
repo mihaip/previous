@@ -32,37 +32,37 @@ SCSI_STATE esp_state;
 
 /* ESP FIFO */
 #define ESP_FIFO_SIZE 16
-Uint8 esp_fifo_read(void);
-void esp_fifo_write(Uint8 val);
+uint8_t esp_fifo_read(void);
+void esp_fifo_write(uint8_t val);
 void esp_fifo_clear(void);
 
 /* ESP Command Register */
-Uint8 esp_cmd_state;
+uint8_t esp_cmd_state;
 #define ESP_CMD_INPROGRESS  0x01
 #define ESP_CMD_WAITING     0x02
-void esp_start_command(Uint8 cmd);
+void esp_start_command(uint8_t cmd);
 void esp_finish_command(void);
 void esp_command_clear(void);
-void esp_command_write(Uint8 cmd);
+void esp_command_write(uint8_t cmd);
 
 /* ESP Registers */
-static Uint8 writetranscountl;
-static Uint8 writetranscounth;
-static Uint8 fifo[ESP_FIFO_SIZE];
-static Uint8 command[2];
-static Uint8 status;
-static Uint8 selectbusid;
-static Uint8 intstatus;
-static Uint8 selecttimeout;
-static Uint8 seqstep;
-static Uint8 syncperiod;
-static Uint8 fifoflags;
-static Uint8 syncoffset;
-static Uint8 configuration;
-static Uint8 clockconv;
-static Uint8 esptest;
+static uint8_t writetranscountl;
+static uint8_t writetranscounth;
+static uint8_t fifo[ESP_FIFO_SIZE];
+static uint8_t command[2];
+static uint8_t status;
+static uint8_t selectbusid;
+static uint8_t intstatus;
+static uint8_t selecttimeout;
+static uint8_t seqstep;
+static uint8_t syncperiod;
+static uint8_t fifoflags;
+static uint8_t syncoffset;
+static uint8_t configuration;
+static uint8_t clockconv;
+static uint8_t esptest;
 
-Uint32 esp_counter;
+uint32_t esp_counter;
 
 
 /* Command Register */
@@ -139,7 +139,7 @@ Uint32 esp_counter;
 
 
 /* ESP Status Variables */
-Uint8 mode_dma;
+uint8_t mode_dma;
 
 /* Experimental */
 #define ESP_CLOCK_FREQ  20      /* ESP is clocked at 20 MHz */
@@ -352,9 +352,9 @@ void ESP_Conf2_Read(void) { // 0x0201400b
 /* Helper functions */
 
 /* Functions for reading and writing ESP FIFO */
-Uint8 esp_fifo_read(void) {
+uint8_t esp_fifo_read(void) {
     int i;
-    Uint8 val;
+    uint8_t val;
     
     if (fifoflags > 0) {
         val = fifo[0];
@@ -370,7 +370,7 @@ Uint8 esp_fifo_read(void) {
     return val;
 }
 
-void esp_fifo_write(Uint8 val) {
+void esp_fifo_write(uint8_t val) {
     if (fifoflags==ESP_FIFO_SIZE) {
         Log_Printf(LOG_WARN, "ESP FIFO write: FIFO overflow! Top of FIFO overwritten\n");
         fifo[fifoflags-1] = val;
@@ -391,7 +391,7 @@ void esp_fifo_clear(void) {
 }
 
 /* Functions for handling dual ranked command register */
-void esp_command_write(Uint8 cmd) {
+void esp_command_write(uint8_t cmd) {
     if ((command[1]&CMD_CMD)==CMD_RESET && (cmd&CMD_CMD)!=CMD_NOP) {
         Log_Printf(LOG_WARN, "ESP command write: Chip reset in command register, not executing command.\n");
     } else {
@@ -435,7 +435,7 @@ void esp_finish_command(void) {
     }
 }
 
-void esp_start_command(Uint8 cmd) {
+void esp_start_command(uint8_t cmd) {
     esp_cmd_state |= ESP_CMD_INPROGRESS;
     
     /* Check if command is valid for actual state */
@@ -688,13 +688,13 @@ void esp_flush_fifo(void) {
 /* Select with or without ATN */
 void esp_select(bool atn) {
     int cmd_size;
-    Uint8 identify_msg = 0;
-    Uint8 commandbuf[SCSI_CDB_MAX_SIZE];
+    uint8_t identify_msg = 0;
+    uint8_t commandbuf[SCSI_CDB_MAX_SIZE];
 
     seqstep = 0;
     
     /* First select our target */
-    Uint8 target = selectbusid & BUSID_DID; /* Get bus ID from register */
+    uint8_t target = selectbusid & BUSID_DID; /* Get bus ID from register */
     bool timeout = SCSIdisk_Select(target);
     if (timeout) {
         /* If a timeout occurs, generate disconnect interrupt */
@@ -906,7 +906,7 @@ void esp_message_accepted(void) {
  * in status register if the group is 0, 1, 5, 6, or 7 (group
  * 2 is also valid on NCR53C90A).
  */
-Uint8 scsi_command_group = (commandbuf[0] & 0xE0) >> 5;
+uint8_t scsi_command_group = (commandbuf[0] & 0xE0) >> 5;
 if(scsi_command_group < 3 || scsi_command_group > 4) {
     if(ConfigureParams.System.nSCSI == NCR53C90 && scsi_command_group == 2) {
         Log_Printf(LOG_WARN, "[ESP] Select: Invalid command group %i on NCR53C90\n", scsi_command_group);

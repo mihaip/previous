@@ -28,7 +28,7 @@ void EN_CounterHi_Read(void);
 
 
 typedef struct {
-    Uint8 data[64*1024];
+    uint8_t data[64*1024];
     int size;
     int limit;
 } EthernetBuffer;
@@ -38,7 +38,7 @@ extern EthernetBuffer enet_rx_buffer;
 
 void ENET_IO_Handler(void);
 void Ethernet_Reset(bool hard);
-void enet_receive(Uint8 *pkt, int len);
+void enet_receive(uint8_t *pkt, int len);
 
 /* Turbo ethernet controller */
 void EN_Turbo_RX_Status_Read(void);

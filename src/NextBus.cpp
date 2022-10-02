@@ -4,7 +4,7 @@
 #include "nbic.h"
 #include "dimension.hpp"
 
-static Uint8 bus_error(Uint32 addr, int read, int size, uae_u32 val, const char* acc) {
+static uint8_t bus_error(uint32_t addr, int read, int size, uae_u32 val, const char* acc) {
     Log_Printf(LOG_WARN, "[NextBus] Bus error %s at %08X", acc, addr);
     M68000_BusError(addr, read, size, BUS_ERROR_ACCESS_DATA, val);
     return 0;
@@ -13,21 +13,21 @@ static Uint8 bus_error(Uint32 addr, int read, int size, uae_u32 val, const char*
 NextBusSlot::NextBusSlot(int slot) : slot(slot) {}
 NextBusSlot::~NextBusSlot() {}
 
-Uint32 NextBusSlot::slot_lget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_LONG, 0, "lget");}
-Uint16 NextBusSlot::slot_wget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_WORD, 0, "wget");}
-Uint8  NextBusSlot::slot_bget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, 0, "bget");}
+uint32_t NextBusSlot::slot_lget(uint32_t addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_LONG, 0, "lget");}
+uint16_t NextBusSlot::slot_wget(uint32_t addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_WORD, 0, "wget");}
+uint8_t  NextBusSlot::slot_bget(uint32_t addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, 0, "bget");}
 
-Uint32 NextBusSlot::board_lget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_LONG, 0, "lget");}
-Uint16 NextBusSlot::board_wget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_WORD, 0, "wget");}
-Uint8  NextBusSlot::board_bget(Uint32 addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, 0, "bget");}
+uint32_t NextBusSlot::board_lget(uint32_t addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_LONG, 0, "lget");}
+uint16_t NextBusSlot::board_wget(uint32_t addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_WORD, 0, "wget");}
+uint8_t  NextBusSlot::board_bget(uint32_t addr) {return bus_error(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, 0, "bget");}
 
-void NextBusSlot::slot_lput(Uint32 addr, Uint32 val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_LONG, val, "lput");}
-void NextBusSlot::slot_wput(Uint32 addr, Uint16 val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_WORD, val, "wput");}
-void NextBusSlot::slot_bput(Uint32 addr, Uint8 val)  {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_BYTE, val, "bput");}
+void NextBusSlot::slot_lput(uint32_t addr, uint32_t val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_LONG, val, "lput");}
+void NextBusSlot::slot_wput(uint32_t addr, uint16_t val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_WORD, val, "wput");}
+void NextBusSlot::slot_bput(uint32_t addr, uint8_t val)  {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_BYTE, val, "bput");}
 
-void NextBusSlot::board_lput(Uint32 addr, Uint32 val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_LONG, val, "lput");}
-void NextBusSlot::board_wput(Uint32 addr, Uint16 val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_WORD, val, "wput");}
-void NextBusSlot::board_bput(Uint32 addr, Uint8 val)  {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_BYTE, val, "bput");}
+void NextBusSlot::board_lput(uint32_t addr, uint32_t val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_LONG, val, "lput");}
+void NextBusSlot::board_wput(uint32_t addr, uint16_t val) {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_WORD, val, "wput");}
+void NextBusSlot::board_bput(uint32_t addr, uint8_t val)  {bus_error(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_BYTE, val, "bput");}
 
 void NextBusSlot::reset(void) {}
 void NextBusSlot::pause(bool pause) {}
@@ -38,12 +38,12 @@ class M68KBoard : public NextBusBoard {
 public:
     M68KBoard(int slot) : NextBusBoard(slot) {}
         
-    virtual Uint32 slot_lget(Uint32 addr) {return nb_cpu_slot_lget(addr);}
-    virtual Uint16 slot_wget(Uint32 addr) {return nb_cpu_slot_wget(addr);}
-    virtual Uint8  slot_bget(Uint32 addr) {return nb_cpu_slot_bget(addr);}
-    virtual void   slot_lput(Uint32 addr, Uint32 val) {nb_cpu_slot_lput(addr, val);}
-    virtual void   slot_wput(Uint32 addr, Uint16 val) {nb_cpu_slot_wput(addr, val);}
-    virtual void   slot_bput(Uint32 addr, Uint8 val)  {nb_cpu_slot_bput(addr, val);}
+    virtual uint32_t slot_lget(uint32_t addr) {return nb_cpu_slot_lget(addr);}
+    virtual uint16_t slot_wget(uint32_t addr) {return nb_cpu_slot_wget(addr);}
+    virtual uint8_t  slot_bget(uint32_t addr) {return nb_cpu_slot_bget(addr);}
+    virtual void   slot_lput(uint32_t addr, uint32_t val) {nb_cpu_slot_lput(addr, val);}
+    virtual void   slot_wput(uint32_t addr, uint16_t val) {nb_cpu_slot_wput(addr, val);}
+    virtual void   slot_bput(uint32_t addr, uint8_t val)  {nb_cpu_slot_bput(addr, val);}
 };
 
 NextBusSlot* nextbus[16] = {
@@ -70,42 +70,42 @@ NextBusSlot* nextbus[16] = {
 
 extern "C" {
     /* Slot memory */
-    Uint32 nextbus_slot_lget(Uint32 addr) {
+    uint32_t nextbus_slot_lget(uint32_t addr) {
         int slot = SLOT(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Slot %i: lget at %08X",slot,addr);
         
         return nextbus[slot]->slot_lget(addr);
     }
     
-    Uint32 nextbus_slot_wget(Uint32 addr) {
+    uint32_t nextbus_slot_wget(uint32_t addr) {
         int slot = SLOT(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Slot %i: wget at %08X",slot,addr);
         
         return nextbus[slot]->slot_wget(addr);
     }
     
-    Uint32 nextbus_slot_bget(Uint32 addr) {
+    uint32_t nextbus_slot_bget(uint32_t addr) {
         int slot = SLOT(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Slot %i: bget at %08X",slot,addr);
         
         return nextbus[slot]->slot_bget(addr);
     }
     
-    void nextbus_slot_lput(Uint32 addr, Uint32 val) {
+    void nextbus_slot_lput(uint32_t addr, uint32_t val) {
         int slot = SLOT(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Slot %i: lput at %08X, val %08X",slot,addr,val);
         
         nextbus[slot]->slot_lput(addr, val);
     }
     
-    void nextbus_slot_wput(Uint32 addr, Uint32 val) {
+    void nextbus_slot_wput(uint32_t addr, uint32_t val) {
         int slot = SLOT(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Slot %i: wput at %08X, val %04X",slot,addr,val);
         
         nextbus[slot]->slot_wput(addr, val);
     }
     
-    void nextbus_slot_bput(Uint32 addr, Uint32 val) {
+    void nextbus_slot_bput(uint32_t addr, uint32_t val) {
         int slot = SLOT(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Slot %i: bput at %08X, val %02X",slot,addr,val);
         
@@ -114,42 +114,42 @@ extern "C" {
     
     /* Board memory */
 
-    Uint32 nextbus_board_lget(Uint32 addr) {
+    uint32_t nextbus_board_lget(uint32_t addr) {
         int board = BOARD(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Board %i: lget at %08X",board,addr);
         
         return nextbus[board]->board_lget(addr);
     }
     
-    Uint32 nextbus_board_wget(Uint32 addr) {
+    uint32_t nextbus_board_wget(uint32_t addr) {
         int board = BOARD(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Board %i: wget at %08X",board,addr);
         
         return nextbus[board]->board_wget(addr);
     }
     
-    Uint32 nextbus_board_bget(Uint32 addr) {
+    uint32_t nextbus_board_bget(uint32_t addr) {
         int board = BOARD(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Board %i: bget at %08X",board,addr);
         
         return nextbus[board]->board_bget(addr);
     }
     
-    void nextbus_board_lput(Uint32 addr, Uint32 val) {
+    void nextbus_board_lput(uint32_t addr, uint32_t val) {
         int board = BOARD(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Board %i: lput at %08X, val %08X",board,addr,val);
         
         nextbus[board]->board_lput(addr, val);
     }
     
-    void nextbus_board_wput(Uint32 addr, Uint32 val) {
+    void nextbus_board_wput(uint32_t addr, uint32_t val) {
         int board = BOARD(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Board %i: wput at %08X, val %04X",board,addr,val);
         
         nextbus[board]->board_wput(addr, val);
     }
     
-    void nextbus_board_bput(Uint32 addr, Uint32 val) {
+    void nextbus_board_bput(uint32_t addr, uint32_t val) {
         int board = BOARD(addr);
         Log_Printf(LOG_NEXTBUS_LEVEL, "[NextBus] Board %i: bput at %08X, val %02X",board,addr,val);
         

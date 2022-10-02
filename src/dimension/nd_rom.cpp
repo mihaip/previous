@@ -23,7 +23,7 @@
 #define ROM_ID_MFG      0x89
 #define ROM_ID_DEV      0xB4
 
-Uint8 NextDimension::rom_read(Uint32 addr) {
+uint8_t NextDimension::rom_read(uint32_t addr) {
     switch (rom_command) {
         case ROM_CMD_READ:
             return rom[addr];
@@ -45,7 +45,7 @@ Uint8 NextDimension::rom_read(Uint32 addr) {
     }
 }
 
-void NextDimension::rom_write(Uint32 addr, Uint8 val) {
+void NextDimension::rom_write(uint32_t addr, uint8_t val) {
     int i;
     
     switch (rom_command) {

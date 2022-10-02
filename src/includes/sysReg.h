@@ -60,11 +60,11 @@ extern "C" {
 #define SET_INT         1
 #define RELEASE_INT     0
 
-void set_interrupt(Uint32 intr, Uint8 state);
-int scr_get_interrupt_level(Uint32 interrupt);
+void set_interrupt(uint32_t intr, uint8_t state);
+int scr_get_interrupt_level(uint32_t interrupt);
 
-extern Uint32 scrIntStat;
-extern Uint32 scrIntMask;
+extern uint32_t scrIntStat;
+extern uint32_t scrIntMask;
 
 /**
  * Return interrupt number (1 - 7), 0 means no interrupt.
@@ -75,11 +75,11 @@ static inline int intlev(void) {
     /* Poll interrupt level from interrupt status and mask registers
      * --> see sysReg.c
      */
-    Uint32 interrupt = scrIntStat&scrIntMask;
+    uint32_t interrupt = scrIntStat&scrIntMask;
     return interrupt ? scr_get_interrupt_level(interrupt) : 0;
 }
 
-void set_dsp_interrupt(Uint8 state);
+void set_dsp_interrupt(uint8_t state);
 
 void SCR_Reset(void);
     

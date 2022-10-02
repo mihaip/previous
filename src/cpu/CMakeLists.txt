@@ -83,5 +83,3 @@ endif()
 
 add_library(UaeCpu ${CPUEMU_SRCS} ${WINUAE_SRCS} custom.c events.c memory.c
 		   hatari-glue.c)
-
-target_link_libraries(UaeCpu PRIVATE ${SDL2_LIBRARIES})

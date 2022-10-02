@@ -17,12 +17,12 @@
 /* TMC registers */
 
 struct {
-	Uint32 scr1;
-	Uint32 control;
-	Uint32 horizontal;
-	Uint32 vertical;
-	Uint8 video_intr;
-	Uint32 nitro;
+	uint32_t scr1;
+	uint32_t control;
+	uint32_t horizontal;
+	uint32_t vertical;
+	uint8_t video_intr;
+	uint32_t nitro;
 } tmc;
 
 /* Additional System Control Register for Turbo systems:
@@ -49,8 +49,8 @@ struct {
 #define TURBOSCR_FMASK   0x0FFF0F08
 
 static void TurboSCR1_Reset(void) {
-	Uint8 memory_speed = 0;
-	Uint8 cpu_speed = 0x07; // 33 MHz
+	uint8_t memory_speed = 0;
+	uint8_t cpu_speed = 0x07; // 33 MHz
 	
 	if (ConfigureParams.System.nCpuFreq<20) {
 		cpu_speed = 4;
@@ -87,74 +87,74 @@ static void TurboSCR1_Reset(void) {
 
 /* Register read/write functions */
 
-static void tmc_ill_write(Uint8 val) {
+static void tmc_ill_write(uint8_t val) {
 	Log_Printf(LOG_WARN, "[TMC] Illegal write!\n");
 }
 
-static Uint8 tmc_unimpl_read(void) {
+static uint8_t tmc_unimpl_read(void) {
 	Log_Printf(LOG_WARN, "[TMC] Unimplemented read!\n");
 	return 0;
 }
 
-static void tmc_unimpl_write(Uint8 val) {
+static void tmc_unimpl_write(uint8_t val) {
 	Log_Printf(LOG_WARN, "[TMC] Unimplemented write!\n");
 }
 
-static Uint8 tmc_void_read(void) {
+static uint8_t tmc_void_read(void) {
 	return 0;
 }
 
-static void tmc_void_write(Uint8 val) {
+static void tmc_void_write(uint8_t val) {
 }
 
 /* SCR1 */
-static Uint8 tmc_scr1_read0(void) {
+static uint8_t tmc_scr1_read0(void) {
 	Log_Printf(LOG_WARN,"[TMC] SCR1 read at $0x2200000 PC=$%08x\n",m68k_getpc());
 	return (tmc.scr1>>24);
 }
-static Uint8 tmc_scr1_read1(void) {
+static uint8_t tmc_scr1_read1(void) {
 	Log_Printf(LOG_WARN,"[TMC] SCR1 read at $0x2200001 PC=$%08x\n",m68k_getpc());
 	return (tmc.scr1>>16);
 }
-static Uint8 tmc_scr1_read2(void) {
+static uint8_t tmc_scr1_read2(void) {
 	Log_Printf(LOG_WARN,"[TMC] SCR1 read at $0x2200002 PC=$%08x\n",m68k_getpc());
 	return (tmc.scr1>>8);
 }
-static Uint8 tmc_scr1_read3(void) {
+static uint8_t tmc_scr1_read3(void) {
 	Log_Printf(LOG_WARN,"[TMC] SCR1 read at $0x2200003 PC=$%08x\n",m68k_getpc());
 	return tmc.scr1;
 }
 
 /* TMC Control Register */
 
-static Uint8 tmc_ctrl_read0(void) {
+static uint8_t tmc_ctrl_read0(void) {
 	return (tmc.control>>24);
 }
-static Uint8 tmc_ctrl_read1(void) {
+static uint8_t tmc_ctrl_read1(void) {
 	return (tmc.control>>16);
 }
-static Uint8 tmc_ctrl_read2(void) {
+static uint8_t tmc_ctrl_read2(void) {
 	return (tmc.control>>8);
 }
-static Uint8 tmc_ctrl_read3(void) {
+static uint8_t tmc_ctrl_read3(void) {
 	return tmc.control;
 }
 
-static void tmc_ctrl_write0(Uint8 val) {
+static void tmc_ctrl_write0(uint8_t val) {
 	tmc.control &= 0x00FFFFFF;
 	tmc.control |= (val&0xFF)<<24;
 }
-static void tmc_ctrl_write1(Uint8 val) {
+static void tmc_ctrl_write1(uint8_t val) {
 	tmc.control &= 0xFF00FFFF;
 	tmc.control |= (val&0xFF)<<16;
 }
-static void tmc_ctrl_write2(Uint8 val) {
+static void tmc_ctrl_write2(uint8_t val) {
 	val &= ~0x04; /* no parity memory */
 	
 	tmc.control &= 0xFFFF00FF;
 	tmc.control |= (val&0xFF)<<8;
 }
-static void tmc_ctrl_write3(Uint8 val) {
+static void tmc_ctrl_write3(uint8_t val) {
 	tmc.control &= 0xFFFFFF00;
 	tmc.control |= val&0xFF;
 }
@@ -188,11 +188,11 @@ void tmc_video_interrupt(void) {
 	}
 }
 
-static Uint8 tmc_vir_read0(void) {
+static uint8_t tmc_vir_read0(void) {
 	return tmc.video_intr;
 }
 
-static void tmc_vir_write0(Uint8 val) {
+static void tmc_vir_write0(uint8_t val) {
 	tmc.video_intr = val;
 	if (tmc.video_intr&TMC_VI_INTERRUPT) {
 		tmc.video_intr &= ~TMC_VI_INTERRUPT;
@@ -200,69 +200,69 @@ static void tmc_vir_write0(Uint8 val) {
 	}
 }
 
-static Uint8 tmc_hcr_read0(void) {
+static uint8_t tmc_hcr_read0(void) {
 	return (tmc.horizontal>>24);
 }
-static Uint8 tmc_hcr_read1(void) {
+static uint8_t tmc_hcr_read1(void) {
 	return (tmc.horizontal>>16);
 }
-static Uint8 tmc_hcr_read2(void) {
+static uint8_t tmc_hcr_read2(void) {
 	return (tmc.horizontal>>8);
 }
-static Uint8 tmc_hcr_read3(void) {
+static uint8_t tmc_hcr_read3(void) {
 	return tmc.horizontal;
 }
 
-static void tmc_hcr_write0(Uint8 val) {
+static void tmc_hcr_write0(uint8_t val) {
 	tmc.horizontal &= 0x00FFFFFF;
 	tmc.horizontal |= (val&0xFF)<<24;
 }
-static void tmc_hcr_write1(Uint8 val) {
+static void tmc_hcr_write1(uint8_t val) {
 	tmc.horizontal &= 0xFF00FFFF;
 	tmc.horizontal |= (val&0xFF)<<16;
 }
-static void tmc_hcr_write2(Uint8 val) {
+static void tmc_hcr_write2(uint8_t val) {
 	tmc.horizontal &= 0xFFFF00FF;
 	tmc.horizontal |= (val&0xFF)<<8;
 }
-static void tmc_hcr_write3(Uint8 val) {
+static void tmc_hcr_write3(uint8_t val) {
 	tmc.horizontal &= 0xFFFFFF00;
 	tmc.horizontal |= val&0xFF;
 }
 
-static Uint8 tmc_vcr_read0(void) {
+static uint8_t tmc_vcr_read0(void) {
 	return (tmc.vertical>>24);
 }
-static Uint8 tmc_vcr_read1(void) {
+static uint8_t tmc_vcr_read1(void) {
 	return (tmc.vertical>>16);
 }
-static Uint8 tmc_vcr_read2(void) {
+static uint8_t tmc_vcr_read2(void) {
 	return (tmc.vertical>>8);
 }
-static Uint8 tmc_vcr_read3(void) {
+static uint8_t tmc_vcr_read3(void) {
 	return tmc.vertical;
 }
 
-static void tmc_vcr_write0(Uint8 val) {
+static void tmc_vcr_write0(uint8_t val) {
 	tmc.vertical &= 0x00FFFFFF;
 	tmc.vertical |= (val&0xFF)<<24;
 }
-static void tmc_vcr_write1(Uint8 val) {
+static void tmc_vcr_write1(uint8_t val) {
 	tmc.vertical &= 0xFF00FFFF;
 	tmc.vertical |= (val&0xFF)<<16;
 }
-static void tmc_vcr_write2(Uint8 val) {
+static void tmc_vcr_write2(uint8_t val) {
 	tmc.vertical &= 0xFFFF00FF;
 	tmc.vertical |= (val&0xFF)<<8;
 }
-static void tmc_vcr_write3(Uint8 val) {
+static void tmc_vcr_write3(uint8_t val) {
 	tmc.vertical &= 0xFFFFFF00;
 	tmc.vertical |= val&0xFF;
 }
 
 
 /* Read register functions */
-static Uint8 (*tmc_read_reg[36])(void) = {
+static uint8_t (*tmc_read_reg[36])(void) = {
 	tmc_scr1_read0, tmc_scr1_read1, tmc_scr1_read2, tmc_scr1_read3,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
@@ -274,7 +274,7 @@ static Uint8 (*tmc_read_reg[36])(void) = {
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read
 };
 
-static Uint8 (*tmc_read_vid_reg[16])(void) = {
+static uint8_t (*tmc_read_vid_reg[16])(void) = {
 	tmc_vir_read0, tmc_void_read, tmc_void_read, tmc_void_read,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
 	tmc_hcr_read0, tmc_hcr_read1, tmc_hcr_read2, tmc_hcr_read3,
@@ -282,7 +282,7 @@ static Uint8 (*tmc_read_vid_reg[16])(void) = {
 };
 
 /* Write register functions */
-static void (*tmc_write_reg[36])(Uint8) = {
+static void (*tmc_write_reg[36])(uint8_t) = {
 	tmc_ill_write, tmc_ill_write, tmc_ill_write, tmc_ill_write,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
@@ -294,7 +294,7 @@ static void (*tmc_write_reg[36])(Uint8) = {
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write
 };
 
-static void (*tmc_write_vid_reg[16])(Uint8) = {
+static void (*tmc_write_vid_reg[16])(uint8_t) = {
 	tmc_vir_write0, tmc_void_write, tmc_void_write, tmc_void_write,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
 	tmc_hcr_write0, tmc_hcr_write1, tmc_hcr_write2, tmc_hcr_write3,
@@ -302,8 +302,8 @@ static void (*tmc_write_vid_reg[16])(Uint8) = {
 };
 
 
-Uint32 tmc_lget(uaecptr addr) {
-	Uint32 val = 0;
+uint32_t tmc_lget(uaecptr addr) {
+	uint32_t val = 0;
 	
     if (addr%4) {
         Log_Printf(LOG_WARN, "[TMC] Unaligned access.");
@@ -344,8 +344,8 @@ Uint32 tmc_lget(uaecptr addr) {
 	return val;
 }
 
-Uint32 tmc_wget(uaecptr addr) {
-    Uint32 val = 0;
+uint32_t tmc_wget(uaecptr addr) {
+    uint32_t val = 0;
     
 	if (addr%2) {
 		Log_Printf(LOG_WARN, "[TMC] Unaligned access.");
@@ -371,7 +371,7 @@ Uint32 tmc_wget(uaecptr addr) {
 	return val;
 }
 
-Uint32 tmc_bget(uaecptr addr) {
+uint32_t tmc_bget(uaecptr addr) {
 	if ((addr&0xFFFFF00)==TMC_ADB_ADDR_MASK) {
 		return adb_bget(addr);
 	}
@@ -389,7 +389,7 @@ Uint32 tmc_bget(uaecptr addr) {
     return 0;
 }
 
-void tmc_lput(uaecptr addr, Uint32 l) {
+void tmc_lput(uaecptr addr, uint32_t l) {
 	if (addr%4) {
 		Log_Printf(LOG_WARN, "[TMC] Unaligned access.");
 		abort();
@@ -428,7 +428,7 @@ void tmc_lput(uaecptr addr, Uint32 l) {
 	}
 }
 
-void tmc_wput(uaecptr addr, Uint32 w) {
+void tmc_wput(uaecptr addr, uint32_t w) {
 	if (addr%2) {
 		Log_Printf(LOG_WARN, "[TMC] Unaligned access.");
 		abort();
@@ -452,7 +452,7 @@ void tmc_wput(uaecptr addr, Uint32 w) {
 	}
 }
 
-void tmc_bput(uaecptr addr, Uint32 b) {
+void tmc_bput(uaecptr addr, uint32_t b) {
 	if ((addr&0xFFFFF00)==TMC_ADB_ADDR_MASK) {
 		adb_bput(addr, b);
 		return;

@@ -20,7 +20,7 @@
  */
 
 /* Partial remainders, e.g. t_rem[i] = (i*x^4) % ((x-1)*(x-2)*(x-4)*(x-8)) */
-const Uint32 t_rem[256] = {
+const uint32_t t_rem[256] = {
 	0x00000000, 0x0f367840, 0x1e6cf080, 0x115a88c0, 0x3cd8fd1d, 0x33ee855d, 0x22b40d9d, 0x2d8275dd,
 	0x78ade73a, 0x779b9f7a, 0x66c117ba, 0x69f76ffa, 0x44751a27, 0x4b436267, 0x5a19eaa7, 0x552f92e7,
 	0xf047d374, 0xff71ab34, 0xee2b23f4, 0xe11d5bb4, 0xcc9f2e69, 0xc3a95629, 0xd2f3dee9, 0xddc5a6a9,
@@ -55,7 +55,7 @@ const Uint32 t_rem[256] = {
 	0x416732ec, 0x4e514aac, 0x5f0bc26c, 0x503dba2c, 0x7dbfcff1, 0x7289b7b1, 0x63d33f71, 0x6ce54731,
 };
 
-const Uint8 t_exp[768] = {
+const uint8_t t_exp[768] = {
 	0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1d, 0x3a, 0x74, 0xe8, 0xcd, 0x87, 0x13, 0x26,
 	0x4c, 0x98, 0x2d, 0x5a, 0xb4, 0x75, 0xea, 0xc9, 0x8f, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0,
 	0x9d, 0x27, 0x4e, 0x9c, 0x25, 0x4a, 0x94, 0x35, 0x6a, 0xd4, 0xb5, 0x77, 0xee, 0xc1, 0x9f, 0x23,
@@ -106,7 +106,7 @@ const Uint8 t_exp[768] = {
 	0xb0, 0x7d, 0xfa, 0xe9, 0xcf, 0x83, 0x1b, 0x36, 0x6c, 0xd8, 0xad, 0x47, 0x8e, 0x01, 0x02, 0x04,
 };
 
-const Uint8 t_log[256] = {
+const uint8_t t_log[256] = {
 	0x00, 0x00, 0x01, 0x19, 0x02, 0x32, 0x1a, 0xc6, 0x03, 0xdf, 0x33, 0xee, 0x1b, 0x68, 0xc7, 0x4b,
 	0x04, 0x64, 0xe0, 0x0e, 0x34, 0x8d, 0xef, 0x81, 0x1c, 0xc1, 0x69, 0xf8, 0xc8, 0x08, 0x4c, 0x71,
 	0x05, 0x8a, 0x65, 0x2f, 0xe1, 0x24, 0x0f, 0x21, 0x35, 0x93, 0x8e, 0xda, 0xf0, 0x12, 0x82, 0x45,
@@ -125,10 +125,10 @@ const Uint8 t_log[256] = {
 	0x4f, 0xae, 0xd5, 0xe9, 0xe6, 0xe7, 0xad, 0xe8, 0x74, 0xd6, 0xf4, 0xea, 0xa8, 0x50, 0x58, 0xaf,
 };
 
-static Uint32 ecc_block(const Uint8 *s, int ss)
+static uint32_t ecc_block(const uint8_t *s, int ss)
 {
     int i;
-    Uint32 r = (s[0] << 24) | (s[ss] << 16) | (s[2*ss] << 8) | s[3*ss];
+    uint32_t r = (s[0] << 24) | (s[ss] << 16) | (s[2*ss] << 8) | s[3*ss];
     
     s += 4*ss;
     for(i=4; i<36; i++) {
@@ -141,20 +141,20 @@ static Uint32 ecc_block(const Uint8 *s, int ss)
     return r;
 }
 
-static void rs_encode_string(Uint8 *sector, int off, int step)
+static void rs_encode_string(uint8_t *sector, int off, int step)
 {
-	Uint32 ecc = ecc_block(sector+off, step);
+	uint32_t ecc = ecc_block(sector+off, step);
 	sector[off+32*step] = ecc >> 24;
 	sector[off+33*step] = ecc >> 16;
 	sector[off+34*step] = ecc >> 8;
 	sector[off+35*step] = ecc;
 }
 
-static int rs_decode_string(Uint8 *sector, int off, int step)
+static int rs_decode_string(uint8_t *sector, int off, int step)
 {
     int i;
-	Uint32 ecc = ecc_block(sector+off, step);
-	Uint32 ref_ecc =
+	uint32_t ecc = ecc_block(sector+off, step);
+	uint32_t ref_ecc =
     (sector[off+32*step] << 24) |
     (sector[off+33*step] << 16) |
     (sector[off+34*step] << 8) |
@@ -164,11 +164,11 @@ static int rs_decode_string(Uint8 *sector, int off, int step)
     
 	// Syndrome polynomial
 	// syn[i] = value of the codebook polynom at 2**(i-1)
-	Uint8 syn[5];
+	uint8_t syn[5];
 	memset(syn, 0, 5);
 	syn[0] = 1;
 	for(i=0; i<36; i++) {
-		Uint8 v = sector[off+step*(35-i)];
+		uint8_t v = sector[off+step*(35-i)];
 		if(v) {
 			syn[1] ^= v;
 			int lv = t_log[v];
@@ -180,10 +180,10 @@ static int rs_decode_string(Uint8 *sector, int off, int step)
     
 	// Berlekamp-Massey
     
-	Uint8 sigma[5];
-	Uint8 omega[5];
-	Uint8 tau[5];
-	Uint8 gamma[5];
+	uint8_t sigma[5];
+	uint8_t omega[5];
+	uint8_t tau[5];
+	uint8_t gamma[5];
 	int d;
 	int b;
     
@@ -200,7 +200,7 @@ static int rs_decode_string(Uint8 *sector, int off, int step)
     int l;
 	for(l=1; l<5; l++) {
 		// 1- Determine the l-order coefficient syn*sigma
-		Uint8 delta = 0;
+		uint8_t delta = 0;
 		for(i=0; i<=l; i++)
 			if(sigma[i] && syn[l-i])
 				delta ^= t_exp[t_log[sigma[i]] + t_log[syn[l-i]]];
@@ -222,7 +222,7 @@ static int rs_decode_string(Uint8 *sector, int off, int step)
 			tau[0] = gamma[0] = 0;
             
 			if(delta) {
-				Uint8 ldelta = t_log[delta];
+				uint8_t ldelta = t_log[delta];
 				for(i=1; i<=l; i++) {
 					if(tau[i])
 						sigma[i] ^= t_exp[t_log[tau  [i]] + ldelta];
@@ -238,8 +238,8 @@ static int rs_decode_string(Uint8 *sector, int off, int step)
 			// gamma(n+1) = omega(n) / delta
 			// sigma(n+1) = sigma(n) - delta*x*tau(n)
 			// omega(n+1) = omega(n) - delta*x*gamma(n)
-			Uint8 ldelta = t_log[delta];
-			Uint8 ildelta = ldelta ^ 255;
+			uint8_t ldelta = t_log[delta];
+			uint8_t ildelta = ldelta ^ 255;
 			for(i=l; i>0; i--) {
 				if(tau[i-1])
 					sigma[i]   = sigma[i] ^ t_exp[t_log[tau  [i-1]] + ldelta];
@@ -270,10 +270,10 @@ static int rs_decode_string(Uint8 *sector, int off, int step)
     
 	if(sigma[2] && sigma[0]) {
 		int epos1, epos2;
-		Uint8 ls1 = t_log[sigma[1]];
-		Uint8 ls2 = t_log[sigma[2]];
+		uint8_t ls1 = t_log[sigma[1]];
+		uint8_t ls2 = t_log[sigma[2]];
 		for(epos1 = 0; epos1 < 256; epos1++) {
-			Uint8 res = sigma[0];
+			uint8_t res = sigma[0];
 			if(sigma[1])
 				res ^= t_exp[255-epos1+ls1];
 			res ^= t_exp[2*(255-epos1)+ls2];
@@ -293,16 +293,16 @@ static int rs_decode_string(Uint8 *sector, int off, int step)
 		if(epos2 > 35)
 			return -1;
         
-		Uint8 err1 = omega[0];
+		uint8_t err1 = omega[0];
 		if(omega[1])
 			err1 ^= t_exp[t_log[omega[1]] + 255 - epos1];
 		if(omega[2])
 			err1 ^= t_exp[t_log[omega[2]] + 2*(255 - epos1)];
 		err1 = t_log[err1] + epos1;
-		Uint8 div = t_log[1 ^ t_exp[255 + epos2 - epos1]];
+		uint8_t div = t_log[1 ^ t_exp[255 + epos2 - epos1]];
 		err1 = t_exp[255 + err1 - div];
         
-		Uint8 err2 = omega[0];
+		uint8_t err2 = omega[0];
 		if(omega[1])
 			err2 ^= t_exp[t_log[omega[1]] + 255 - epos2];
 		if(omega[2])
@@ -322,7 +322,7 @@ static int rs_decode_string(Uint8 *sector, int off, int step)
 		if(epos > 35)
 			return -1;
         
-		Uint8 err = sigma[1]^omega[1];
+		uint8_t err = sigma[1]^omega[1];
 		sector[off + step*(35-epos)] ^= err;
 		return 1;
         
@@ -332,7 +332,7 @@ static int rs_decode_string(Uint8 *sector, int off, int step)
 	}
 }
 
-void rs_encode(Uint8 *sector)
+void rs_encode(uint8_t *sector)
 {
     int i;
     /* Create encoded sector structure */
@@ -346,7 +346,7 @@ void rs_encode(Uint8 *sector)
 		rs_encode_string(sector, 36*i, 1);
 }
 
-int rs_decode(Uint8 *sector)
+int rs_decode(uint8_t *sector)
 {
     int i,e;
 	int ecount = 0;

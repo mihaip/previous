@@ -4,7 +4,6 @@
 #define __ND_SDL_H__
 
 #include <SDL.h>
-#include <SDL_thread.h>
 #include "cycInt.h"
 
 #ifdef __cplusplus
@@ -16,7 +15,7 @@ class NDSDL {
     SDL_Window*   ndWindow;
     SDL_Renderer* ndRenderer;
     SDL_atomic_t  blitNDFB;
-    Uint32*       vram;
+    uint32_t*     vram;
     
     static int    repainter(void *_this);
     int           repainter(void);
@@ -24,7 +23,7 @@ public:
     static volatile bool ndVBLtoggle;
     static volatile bool ndVideoVBLtoggle;
 
-    NDSDL(int slot, Uint32* vram);
+    NDSDL(int slot, uint32_t* vram);
     void    init(void);
     void    uninit(void);
     void    pause(bool pause);

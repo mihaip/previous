@@ -22,6 +22,7 @@ const char CycInt_fileid[] = "Previous cycInt.c : " __DATE__ " " __TIME__;
 #include <stdint.h>
 #include <assert.h>
 #include "main.h"
+#include "host.h"
 #include "cycInt.h"
 #include "m68000.h"
 #include "screen.h"
@@ -41,11 +42,11 @@ const char CycInt_fileid[] = "Previous cycInt.c : " __DATE__ " " __TIME__;
 #include "nd_sdl.hpp"
 
 void (*PendingInterruptFunction)(void);
-Sint64 PendingInterruptCounter;
-int    usCheckCycles;
+int64_t PendingInterruptCounter;
+int     usCheckCycles;
 
-Sint64 nCyclesOver;
-Sint64 nCyclesMainCounter;         /* Main cycles counter, counts emulated CPU cycles sind reset */
+int64_t nCyclesOver;
+int64_t nCyclesMainCounter; /* Main cycles counter, counts emulated CPU cycles since reset */
 
 
 /* List of possible interrupt handlers to be store in 'PendingInterruptTable',
@@ -108,7 +109,7 @@ void CycInt_Reset(void) {
  * (SC) Microsecond interrupts are skipped here and handled in the decode loop.
  */
 static void CycInt_SetNewInterrupt(void) {
-	Sint64       LowestCycleCount = INT64_MAX;
+	int64_t      LowestCycleCount = INT64_MAX;
 	interrupt_id LowestInterrupt  = INTERRUPT_NULL;
     
 	/* Find next interrupt to go off */
@@ -145,7 +146,7 @@ static void CycInt_UpdateInterrupt(void) {
  * Check all microsecond interrupt timings
  */
 bool CycInt_SetNewInterruptUs(void) {
-    Sint64 now = host_time_us();
+    int64_t now = host_time_us();
     if (ConfigureParams.System.bRealtime) {
         for(int i = 0; i < MAX_INTERRUPTS; i++) {
             if (InterruptHandlers[i].type == CYC_INT_US && now > InterruptHandlers[i].time) {
@@ -179,7 +180,7 @@ void CycInt_AcknowledgeInterrupt(void) {
 /**
  * Add interrupt to occur from now.
  */
-void CycInt_AddRelativeInterruptCycles(Sint64 CycleTime, interrupt_id Handler) {
+void CycInt_AddRelativeInterruptCycles(int64_t CycleTime, interrupt_id Handler) {
 	assert(CycleTime >= 0);
 
 	/* Update list cycle counts with current PendingInterruptCount before adding a new int, */
@@ -199,7 +200,7 @@ void CycInt_AddRelativeInterruptCycles(Sint64 CycleTime, interrupt_id Handler) {
  * Add interrupt to occur us microsencods from now
  * Use usreal if we are in realtime mode
  */
-void CycInt_AddRelativeInterruptUs(Sint64 us, Sint64 usreal, interrupt_id Handler) {
+void CycInt_AddRelativeInterruptUs(int64_t us, int64_t usreal, interrupt_id Handler) {
     assert(us >= 0);
     
     if(ConfigureParams.System.bRealtime) {
@@ -224,7 +225,7 @@ void CycInt_AddRelativeInterruptUs(Sint64 us, Sint64 usreal, interrupt_id Handle
  * Add interrupt to occur microseconds from now. Convert to cycles.
  * Use usreal if we are in realtime mode.
  */
-void CycInt_AddRelativeInterruptUsCycles(Sint64 us, Sint64 usreal, interrupt_id Handler) {
+void CycInt_AddRelativeInterruptUsCycles(int64_t us, int64_t usreal, interrupt_id Handler) {
     
     if (ConfigureParams.System.bRealtime && usreal > 0) {
        us = usreal;

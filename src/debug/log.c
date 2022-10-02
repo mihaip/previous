@@ -1,8 +1,8 @@
 /*
  * Hatari - log.c
  *
- * This file is distributed under the GNU Public License, version 2 or at
- * your option any later version. Read the file gpl.txt for details.
+ * This file is distributed under the GNU General Public License, version 2
+ * or at your option any later version. Read the file gpl.txt for details.
  *
  * Logger functions.
  *
@@ -13,7 +13,7 @@
  * of LogTraceFlags. Multiple trace levels can be set at once, by setting
  * the corresponding bits in LogTraceFlags.
  */
-const char Log_fileid[] = "Hatari log.c : " __DATE__ " " __TIME__;
+const char Log_fileid[] = "Hatari log.c";
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -30,7 +30,7 @@ const char Log_fileid[] = "Hatari log.c : " __DATE__ " " __TIME__;
 
 
 static struct {
-	Uint64 Level;
+	uint64_t Level;
 	const char *Name;
 }
 TraceOptions[] = {
@@ -71,7 +71,7 @@ TraceOptions[] = {
 };
 
 
-Uint64	LogTraceFlags = TRACE_NONE;
+uint64_t	LogTraceFlags = TRACE_NONE;
 FILE *TraceFile = NULL;
 
 static FILE *hLogFile = NULL;

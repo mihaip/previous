@@ -1,8 +1,8 @@
 /* ESP DMA control and status registers */
 
 typedef struct {
-    Uint8 control;
-    Uint8 status;
+    uint8_t control;
+    uint8_t status;
 } ESPDMASTATUS;
 
 extern ESPDMASTATUS esp_dma;
@@ -77,7 +77,7 @@ void esp_lower_irq(void);
 bool esp_transfer_done(bool write);
 
 
-extern Uint32 esp_counter;
+extern uint32_t esp_counter;
 
 void ESP_InterruptHandler(void);
 void ESP_IO_Handler(void);

@@ -101,9 +101,9 @@ static void slirp_rip_tick(void)
 
 static int tick_func(void *arg)
 {
-    Uint32 time = host_get_save_time();
-    Uint32 last_time = time;
-    Uint64 next_time = time + SLIRP_RIP_SEC;
+    uint32_t time = host_get_save_time();
+    uint32_t last_time = time;
+    uint64_t next_time = time + SLIRP_RIP_SEC;
 
     while(slirp_started)
     {
@@ -141,7 +141,7 @@ void enet_slirp_queue_poll(void)
     SDL_UnlockMutex(slirp_mutex);
 }
 
-void enet_slirp_input(Uint8 *pkt, int pkt_len) {
+void enet_slirp_input(uint8_t *pkt, int pkt_len) {
     if (slirp_started) {
         Log_Printf(LOG_EN_SLIRP_LEVEL, "[SLIRP] Input packet with %i bytes",enet_tx_buffer.size);
         SDL_LockMutex(slirp_mutex);
@@ -162,7 +162,7 @@ void enet_slirp_stop(void) {
     }
 }
 
-void enet_slirp_start(Uint8 *mac) {
+void enet_slirp_start(uint8_t *mac) {
     struct in_addr guest_addr;
     
     if (!slirp_inited) {

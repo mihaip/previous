@@ -25,7 +25,7 @@ const char Keymap_fileid[] = "Hatari keymap.c : " __DATE__ " " __TIME__;
 
 #define  LOG_KEYMAP_LEVEL   LOG_DEBUG
 
-Uint8 modifiers = 0;
+uint8_t modifiers = 0;
 bool capslock = false;
 
 
@@ -38,7 +38,7 @@ void Keymap_Init(void) {
  * NeXT scancode values.
  */
 
-static Uint8 Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode) {
+static uint8_t Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode) {
     Log_Printf(LOG_KEYMAP_LEVEL, "[Keymap] Scancode: %i (%s)\n", sdlscancode, SDL_GetScancodeName(sdlscancode));
 
     switch (sdlscancode) {
@@ -144,7 +144,7 @@ static Uint8 Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode) {
  * NeXT modifier bits.
  */
 
-static Uint8 Keymap_Keydown_GetModFromScancode(SDL_Scancode sdlscancode) {
+static uint8_t Keymap_Keydown_GetModFromScancode(SDL_Scancode sdlscancode) {
     switch (sdlscancode) {
         case SDL_SCANCODE_LCTRL:
         case SDL_SCANCODE_RCTRL:
@@ -178,7 +178,7 @@ static Uint8 Keymap_Keydown_GetModFromScancode(SDL_Scancode sdlscancode) {
     return modifiers|(capslock?0x02:0x00);
 }
 
-static Uint8 Keymap_Keyup_GetModFromScancode(SDL_Scancode sdlscancode) {
+static uint8_t Keymap_Keyup_GetModFromScancode(SDL_Scancode sdlscancode) {
     
     switch (sdlscancode) {
         case SDL_SCANCODE_LCTRL:
@@ -218,7 +218,7 @@ static Uint8 Keymap_Keyup_GetModFromScancode(SDL_Scancode sdlscancode) {
  * NeXT scancode values.
  */
 
-static Uint8 Keymap_GetKeyFromSymbol(SDL_Keycode sdlkey) {
+static uint8_t Keymap_GetKeyFromSymbol(SDL_Keycode sdlkey) {
     Log_Printf(LOG_KEYMAP_LEVEL, "[Keymap] Symkey: %s\n", SDL_GetKeyName(sdlkey));
     
     switch (sdlkey) {
@@ -319,7 +319,7 @@ static Uint8 Keymap_GetKeyFromSymbol(SDL_Keycode sdlkey) {
  * NeXT modifier bits.
  */
 
-static Uint8 Keymap_Keydown_GetModFromSymbol(SDL_Keycode sdl_modifier) {
+static uint8_t Keymap_Keydown_GetModFromSymbol(SDL_Keycode sdl_modifier) {
     
     switch (sdl_modifier) {
         case SDLK_LCTRL:
@@ -354,7 +354,7 @@ static Uint8 Keymap_Keydown_GetModFromSymbol(SDL_Keycode sdl_modifier) {
     return modifiers|(capslock?0x02:0x00);
 }
 
-static Uint8 Keymap_Keyup_GetModFromSymbol(SDL_Keycode sdl_modifier) {
+static uint8_t Keymap_Keyup_GetModFromSymbol(SDL_Keycode sdl_modifier) {
     
     switch (sdl_modifier) {
         case SDLK_LCTRL:
@@ -431,7 +431,7 @@ void Keymap_MouseWheel(SDL_MouseWheelEvent* event) {
  */
 void Keymap_KeyDown(SDL_Keysym *sdlkey)
 {
-    Uint8 next_mod, next_key;
+    uint8_t next_mod, next_key;
 
     if (ShortCut_CheckKeys(sdlkey->mod, sdlkey->sym, 1)) { // Check if we pressed a shortcut
         ShortCut_ActKey();
@@ -457,7 +457,7 @@ void Keymap_KeyDown(SDL_Keysym *sdlkey)
  * User released key
  */
 void Keymap_KeyUp(SDL_Keysym *sdlkey) {
-    Uint8 next_mod, next_key;
+    uint8_t next_mod, next_key;
 
     if (ShortCut_CheckKeys(sdlkey->mod, sdlkey->sym, 0))
 		return;

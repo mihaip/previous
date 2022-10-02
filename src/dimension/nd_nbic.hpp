@@ -9,25 +9,25 @@
 
 class NBIC {
     int    slot;
-  //  Uint32 control; // unused
-    Uint32 id;
-    Uint8  intstatus;
-    Uint8  intmask;
+  //  uint32_t control; // unused
+    uint32_t id;
+    uint8_t  intstatus;
+    uint8_t  intmask;
 public:
-    static volatile Uint32 remInter;
-    static volatile Uint32 remInterMask;
+    static volatile uint32_t remInter;
+    static volatile uint32_t remInterMask;
 
     NBIC(int slot, int id);
     
-    Uint8 read(int addr);
-    void  write(int addr, Uint8 val);
+    uint8_t read(int addr);
+    void  write(int addr, uint8_t val);
     
-    Uint32 lget(Uint32 addr);
-    Uint16 wget(Uint32 addr);
-    Uint8  bget(Uint32 addr);
-    void   lput(Uint32 addr, Uint32 l);
-    void   wput(Uint32 addr, Uint16 w);
-    void   bput(Uint32 addr, Uint8 b);
+    uint32_t lget(uint32_t addr);
+    uint16_t wget(uint32_t addr);
+    uint8_t  bget(uint32_t addr);
+    void   lput(uint32_t addr, uint32_t l);
+    void   wput(uint32_t addr, uint16_t w);
+    void   bput(uint32_t addr, uint8_t b);
     
     void   init(void);
     void   set_intstatus(bool set);

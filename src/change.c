@@ -1,8 +1,8 @@
 /*
-  Hatari - change.c
+  Previous - change.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   This code handles run-time configuration changes. We keep all our
   configuration details in a structure called 'ConfigureParams'.  Before
@@ -10,7 +10,7 @@
   the changes are done, these are compared to see whether emulator
   needs to be rebooted
 */
-const char Change_fileid[] = "Hatari change.c : " __DATE__ " " __TIME__;
+const char Change_fileid[] = "Previous change.c";
 
 #include <ctype.h>
 #include "main.h"
@@ -32,9 +32,9 @@ const char Change_fileid[] = "Hatari change.c : " __DATE__ " " __TIME__;
 
 #define DEBUG 1
 #if DEBUG
-#define Dprintf(a) printf(a)
+#define Dprintf(...) printf(__VA_ARGS__)
 #else
-#define Dprintf(a)
+#define Dprintf(...)
 #endif
 
 /*-----------------------------------------------------------------------*/
@@ -250,7 +250,7 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 /**
  * Copy details back to configuration and perform reset.
  */
-bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset)
+void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset)
 {
 	bool NeedReset;
 	bool bReInitEnetEmu = false;
@@ -343,7 +343,6 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* update statusbar info (CPU, MHz, mem etc) */
 	Statusbar_UpdateInfo();
 	Dprintf("done.\n");
-	return true;
 }
 
 
@@ -372,11 +371,7 @@ static bool Change_Options(int argc, const char *argv[])
 	}
 	/* Copy details to configuration */
 	if (bOK) {
-		if (!Change_CopyChangedParamsToConfiguration(&current, &ConfigureParams, false)) {
-			ConfigureParams = current;
-			DlgAlert_Notice("Return to old parameters...");
-			Reset_Cold();
-		}
+		Change_CopyChangedParamsToConfiguration(&current, &ConfigureParams, false);
 	} else {
 		ConfigureParams = current;
 	}
@@ -388,7 +383,8 @@ static bool Change_Options(int argc, const char *argv[])
 
 /*-----------------------------------------------------------------------*/
 /**
- * Parse given command line and change Hatari options accordingly
+ * Parse given command line and change Hatari options accordingly.
+ * Given string must be stripped and not empty.
  * Return false if parsing failed or there were no args, true otherwise
  */
 bool Change_ApplyCommandline(char *cmdline)
@@ -401,7 +397,7 @@ bool Change_ApplyCommandline(char *cmdline)
 	inarg = argc = 0;
 	for (i = 0; cmdline[i]; i++)
 	{
-		if (isspace(cmdline[i]))
+		if (isspace((unsigned char)cmdline[i]) && cmdline[i-1] != '\\')
 		{
 			inarg = 0;
 			continue;
@@ -430,15 +426,24 @@ bool Change_ApplyCommandline(char *cmdline)
 	argv[argc++] = "hatari";
 	for (i = 0; cmdline[i]; i++)
 	{
-		if (isspace(cmdline[i]))
+		if (isspace((unsigned char)cmdline[i]))
 		{
-			cmdline[i] = '\0';
-			if (inarg)
+			if (cmdline[i-1] != '\\')
 			{
-				fprintf(stderr, "- '%s'\n", argv[argc-1]);
+				cmdline[i] = '\0';
+				if (inarg)
+				{
+					fprintf(stderr, "- '%s'\n", argv[argc-1]);
+				}
+				inarg = 0;
+				continue;
 			}
-			inarg = 0;
-			continue;
+			else
+			{
+				/* remove quote for space */
+				memcpy(cmdline+i-1, cmdline+i, strlen(cmdline+i)+1);
+				i--;
+			}
 		}
 		if (!inarg)
 		{

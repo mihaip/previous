@@ -37,7 +37,7 @@ const char BreakCond_fileid[] = "Hatari breakcond.c : " __DATE__ " " __TIME__;
 #define DEBUG 0
 
 /* needs to go through long long to handle x=32 */
-#define BITMASK(x)      ((Uint32)(((unsigned long long)1<<(x))-1))
+#define BITMASK(x)      ((uint32_t)(((unsigned long long)1<<(x))-1))
 
 #define BC_MAX_CONDITION_BREAKPOINTS 16
 #define BC_MAX_CONDITIONS_PER_BREAKPOINT 4
@@ -64,14 +64,14 @@ typedef struct {
 	char dsp_space;	/* DSP has P, X, Y address spaces, zero if not DSP */
 	value_t valuetype;	/* Hatari value variable type */
 	union {
-		Uint32 number;
-		Uint16 (*func16)(void);
-		Uint32 (*func32)(void);
-		Uint16 *reg16;
-		Uint32 *reg32;
+		uint32_t number;
+		uint16_t (*func16)(void);
+		uint32_t (*func32)(void);
+		uint16_t *reg16;
+		uint32_t *reg32;
 	} value;
-	Uint32 bits;	/* CPU has 8/16/32 bit address widths */
-	Uint32 mask;	/* <width mask> && <value mask> */
+	uint32_t bits;	/* CPU has 8/16/32 bit address widths */
+	uint32_t mask;	/* <width mask> && <value mask> */
 } bc_value_t;
 
 typedef struct {
@@ -170,7 +170,7 @@ static void _spaces(void)
 /**
  * Return value of given size read from given ST memory address
  */
-static Uint32 BreakCond_ReadNeXTMemory(Uint32 addr, const bc_value_t *bc_value)
+static uint32_t BreakCond_ReadNeXTMemory(uint32_t addr, const bc_value_t *bc_value)
 {
 	switch (bc_value->bits) {
 	case 32:
@@ -187,11 +187,11 @@ static Uint32 BreakCond_ReadNeXTMemory(Uint32 addr, const bc_value_t *bc_value)
 
 
 /**
- * Return Uint32 value according to given bc_value_t specification
+ * Return uint32_t value according to given bc_value_t specification
  */
-static Uint32 BreakCond_GetValue(const bc_value_t *bc_value)
+static uint32_t BreakCond_GetValue(const bc_value_t *bc_value)
 {
-	Uint32 value;
+	uint32_t value;
 
 	switch (bc_value->valuetype) {
 	case VALUE_TYPE_NUMBER:
@@ -223,7 +223,7 @@ static Uint32 BreakCond_GetValue(const bc_value_t *bc_value)
  */
 static bool BreakCond_MatchConditions(const bc_condition_t *condition, int count)
 {
-	Uint32 lvalue, rvalue;
+	uint32_t lvalue, rvalue;
 	bool hit = false;
 	int i;
 	
@@ -264,7 +264,7 @@ static bool BreakCond_MatchConditions(const bc_condition_t *condition, int count
  */
 static void BreakCond_ShowTracked(bc_condition_t *condition, int count)
 {
-	Uint32 addr, value;
+	uint32_t addr, value;
 	char sep;
 	int i;
 	
@@ -381,7 +381,7 @@ typedef struct {
 /* Hatari variable name & address array items */
 typedef struct {
 	const char *name;
-	Uint32 *addr;
+	uint32_t *addr;
 	value_t vtype;
 	size_t bits;
 	const char *constraints;
@@ -463,7 +463,7 @@ char *BreakCond_MatchDspVariable(const char *text, int state)
  * If given string is a Hatari variable name, set value to given
  * variable value and return true, otherwise return false.
  */
-bool BreakCond_GetHatariVariable(const char *name, Uint32 *value)
+bool BreakCond_GetHatariVariable(const char *name, uint32_t *value)
 {
     bc_value_t bc_value;
 //    if (!BreakCond_ParseVariable(name, &bc_value)) {
@@ -485,7 +485,7 @@ bool BreakCond_GetHatariVariable(const char *name, Uint32 *value)
 static bool BreakCond_ParseSymbol(const char *name, bc_value_t *bc_value)
 {
 	symtype_t symtype;
-	Uint32 addr;
+	uint32_t addr;
 
 	ENTERFUNC(("BreakCond_ParseSymbol('%s')\n", name));
 	if (bc_value->is_indirect) {
@@ -527,16 +527,16 @@ static bool BreakCond_ParseSymbol(const char *name, bc_value_t *bc_value)
 
 
 /**
- * Helper function to get CPU PC register value with static inline as Uint32
+ * Helper function to get CPU PC register value with static inline as uint32_t
  */
-static Uint32 GetCpuPC(void)
+static uint32_t GetCpuPC(void)
 {
 	return M68000_GetPC();
 }
 /**
- * Helper function to get CPU SR register value with static inline as Uint32
+ * Helper function to get CPU SR register value with static inline as uint32_t
  */
-static Uint32 GetCpuSR(void)
+static uint32_t GetCpuSR(void)
 {
 	return M68000_GetSR();
 }
@@ -583,7 +583,7 @@ static bool BreakCond_ParseRegister(const char *regname, bc_value_t *bc_value)
  */
 static bool BreakCond_CheckAddress(bc_value_t *bc_value)
 {
-	Uint32 highbyte, bit23, addr = bc_value->value.number;
+	uint32_t highbyte, bit23, addr = bc_value->value.number;
 
 	ENTERFUNC(("BreakCond_CheckAddress(%x)\n", addr));
 
@@ -835,7 +835,7 @@ static char BreakCond_ParseComparison(parser_state_t *pstate)
 /**
  * If no value, use the other value, if that also missing, use default
  */
-static void BreakCond_InheritDefault(Uint32 *value1, Uint32 value2, Uint32 defvalue)
+static void BreakCond_InheritDefault(uint32_t *value1, uint32_t value2, uint32_t defvalue)
 {
 	if (!*value1) {
 		if (value2) {
@@ -855,7 +855,7 @@ static bool BreakCond_CrossCheckValues(parser_state_t *pstate,
 				       bc_value_t *bc_value1,
 				       bc_value_t *bc_value2)
 {
-	Uint32 mask1, mask2, defbits;
+	uint32_t mask1, mask2, defbits;
 	ENTERFUNC(("BreakCond_CrossCheckValues()\n"));
 
 	/* make sure there're valid bit widths and that masks have some value */
@@ -1130,7 +1130,7 @@ static void BreakCond_CheckTracking(bc_breakpoint_t *bp)
 {
 	bc_condition_t *condition;
 	bool track = false;
-	Uint32 value;
+	uint32_t value;
 	int i;
 
 	condition = bp->conditions;
@@ -1387,7 +1387,7 @@ static void BreakCond_Help(void)
 //	for (i = 0; i < ARRAYSIZE(hatari_vars); i++) {
 //		switch (hatari_vars[i].vtype) {
 //		case VALUE_TYPE_FUNCTION32:
-//			value = ((Uint32(*)(void))(hatari_vars[i].addr))();
+//			value = ((uint32_t(*)(void))(hatari_vars[i].addr))();
 //			break;
 //		case VALUE_TYPE_VAR32:
 //			value = *(hatari_vars[i].addr);
@@ -1566,7 +1566,7 @@ bool BreakAddr_Command(char *args, bool bForDsp)
 {
 	const char *errstr, *expression = (const char *)args;
 	char *cut, command[32];
-	Uint32 addr;
+	uint32_t addr;
 	int offset;
 
     if (!args) {

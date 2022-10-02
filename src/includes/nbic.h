@@ -2,19 +2,19 @@
 extern "C" {
 #endif /* __cplusplus */
 
-Uint32 nbic_reg_lget(Uint32 addr);
-Uint32 nbic_reg_wget(Uint32 addr);
-Uint32 nbic_reg_bget(Uint32 addr);
-void nbic_reg_lput(Uint32 addr, Uint32 val);
-void nbic_reg_wput(Uint32 addr, Uint32 val);
-void nbic_reg_bput(Uint32 addr, Uint32 val);
+uint32_t nbic_reg_lget(uint32_t addr);
+uint32_t nbic_reg_wget(uint32_t addr);
+uint32_t nbic_reg_bget(uint32_t addr);
+void nbic_reg_lput(uint32_t addr, uint32_t val);
+void nbic_reg_wput(uint32_t addr, uint32_t val);
+void nbic_reg_bput(uint32_t addr, uint32_t val);
 
-Uint32 nb_cpu_slot_lget(Uint32 addr);
-Uint16 nb_cpu_slot_wget(Uint32 addr);
-Uint8 nb_cpu_slot_bget(Uint32 addr);
-void nb_cpu_slot_lput(Uint32 addr, Uint32 l);
-void nb_cpu_slot_wput(Uint32 addr, Uint16 w);
-void nb_cpu_slot_bput(Uint32 addr, Uint8 b);
+uint32_t nb_cpu_slot_lget(uint32_t addr);
+uint16_t nb_cpu_slot_wget(uint32_t addr);
+uint8_t  nb_cpu_slot_bget(uint32_t addr);
+void nb_cpu_slot_lput(uint32_t addr, uint32_t l);
+void nb_cpu_slot_wput(uint32_t addr, uint16_t w);
+void nb_cpu_slot_bput(uint32_t addr, uint8_t  b);
 
 #ifdef __cplusplus
 }

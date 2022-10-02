@@ -33,7 +33,7 @@ char* get_rtc_ram_info(void);
 /**
  * DebugInfo_Rtc : display the Videl registers values.
  */
-static void DebugInfo_Rtc(Uint32 dummy) {
+static void DebugInfo_Rtc(uint32_t dummy) {
     Update_StatusBar();
 	fprintf(stdout,"%s",get_rtc_ram_info());
 }
@@ -45,7 +45,7 @@ static void DebugInfo_Rtc(Uint32 dummy) {
 /**
  * Helper to call debugcpu.c and debugdsp.c debugger commands
  */
-static void DebugInfo_CallCommand(int (*func)(int, char* []), const char *command, Uint32 arg)
+static void DebugInfo_CallCommand(int (*func)(int, char* []), const char *command, uint32_t arg)
 {
 	char cmdbuffer[16], argbuffer[12];
 	char *argv[] = { cmdbuffer, NULL };
@@ -60,36 +60,36 @@ static void DebugInfo_CallCommand(int (*func)(int, char* []), const char *comman
 	func(argc, argv);
 }
 
-static void DebugInfo_CpuRegister(Uint32 arg)
+static void DebugInfo_CpuRegister(uint32_t arg)
 {
 	DebugInfo_CallCommand(DebugCpu_Register, "register", arg);
 }
-static void DebugInfo_CpuDisAsm(Uint32 arg)
+static void DebugInfo_CpuDisAsm(uint32_t arg)
 {
 	DebugInfo_CallCommand(DebugCpu_DisAsm, "disasm", arg);
 }
-static void DebugInfo_CpuMemDump(Uint32 arg)
+static void DebugInfo_CpuMemDump(uint32_t arg)
 {
 	DebugInfo_CallCommand(DebugCpu_MemDump, "memdump", arg);
 }
 
-static void DebugInfo_DspRegister(Uint32 arg)
+static void DebugInfo_DspRegister(uint32_t arg)
 {
 }
-static void DebugInfo_DspDisAsm(Uint32 arg)
+static void DebugInfo_DspDisAsm(uint32_t arg)
 {
 }
 
-static void DebugInfo_DspMemDump(Uint32 arg)
+static void DebugInfo_DspMemDump(uint32_t arg)
 {
 }
 
 /**
- * Convert arguments to Uint32 arg suitable for DSP memdump callback
+ * Convert arguments to uint32_t arg suitable for DSP memdump callback
  */
-static Uint32 DebugInfo_DspMemArgs(int argc, char *argv[])
+static uint32_t DebugInfo_DspMemArgs(int argc, char *argv[])
 {
-	Uint32 value;
+	uint32_t value;
 	char space;
 	if (argc != 2) {
 		return 0;
@@ -103,20 +103,20 @@ static Uint32 DebugInfo_DspMemArgs(int argc, char *argv[])
 		fprintf(stderr, "ERROR: invalid DSP address '%s'!\n", argv[1]);
 		return 0;
 	}
-	return ((Uint32)space<<16) | value;
+	return ((uint32_t)space<<16) | value;
 }
 
 
-static void DebugInfo_RegAddr(Uint32 arg)
+static void DebugInfo_RegAddr(uint32_t arg)
 {
 }
 
 /**
- * Convert arguments to Uint32 arg suitable for RegAddr callback
+ * Convert arguments to uint32_t arg suitable for RegAddr callback
  */
-static Uint32 DebugInfo_RegAddrArgs(int argc, char *argv[])
+static uint32_t DebugInfo_RegAddrArgs(int argc, char *argv[])
 {
-	Uint32 value, *regaddr;
+	uint32_t value, *regaddr;
 	if (argc != 2) {
 		return 0;
 	}
@@ -151,14 +151,14 @@ static Uint32 DebugInfo_RegAddrArgs(int argc, char *argv[])
 
 /* file name to be given before calling the Parse function,
  * needs to be set separately as it's a host pointer which
- * can be 64-bit i.e. may not fit into Uint32.
+ * can be 64-bit i.e. may not fit into uint32_t.
  */
 static char *parse_filename;
 
 /**
  * Parse and exec commands in the previously given debugger input file
  */
-static void DebugInfo_FileParse(Uint32 dummy)
+static void DebugInfo_FileParse(uint32_t dummy)
 {
     if (parse_filename) {
         DebugUI_ParseFile(parse_filename);
@@ -171,7 +171,7 @@ static void DebugInfo_FileParse(Uint32 dummy)
  * Set which input file to parse.
  * Return true if file exists, false on error
  */
-static Uint32 DebugInfo_FileArgs(int argc, char *argv[])
+static uint32_t DebugInfo_FileArgs(int argc, char *argv[])
 {
     if (argc != 1) {
         return false;
@@ -194,7 +194,7 @@ static Uint32 DebugInfo_FileArgs(int argc, char *argv[])
 /**
  * Default information on entering the debugger
  */
-static void DebugInfo_Default(Uint32 dummy)
+static void DebugInfo_Default(uint32_t dummy)
 {
 	fprintf(stderr, "\nCPU=$%x, DSP=",
 		M68000_GetPC());
@@ -205,9 +205,9 @@ static const struct {
 	/* if overlaps with other functionality, list only for lock command */
 	bool lock;
 	const char *name;
-	void (*func)(Uint32 arg);
-	/* convert args in argv into single Uint32 for func */
-	Uint32 (*args)(int argc, char *argv[]);
+	void (*func)(uint32_t arg);
+	/* convert args in argv into single uint32_t for func */
+	uint32_t (*args)(int argc, char *argv[]);
 	const char *info;
 } infotable[] = {
 	{ true, "default",   DebugInfo_Default,    NULL, "Show default debugger entry information" },
@@ -223,7 +223,7 @@ static const struct {
 };
 
 static int LockedFunction = 4; /* index for the "default" function */
-static Uint32 LockedArgument;
+static uint32_t LockedArgument;
 
 /**
  * Show selected debugger session information
@@ -276,7 +276,7 @@ char *DebugInfo_MatchInfo(const char *text, int state)
  */
 int DebugInfo_Command(int nArgc, char *psArgs[])
 {
-	Uint32 value;
+	uint32_t value;
 	const char *cmd;
 	bool ok, lock;
 	int i, sub;

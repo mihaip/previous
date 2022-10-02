@@ -55,19 +55,19 @@ void dma_mo_read_memory(void);
 void dma_enet_write_memory(bool eop);
 bool dma_enet_read_memory(void);
 
-void dma_dsp_write_memory(Uint8 val);
-Uint8 dma_dsp_read_memory(void);
+void dma_dsp_write_memory(uint8_t val);
+uint8_t dma_dsp_read_memory(void);
 bool dma_dsp_ready(void);
 
 void dma_m2m(void);
 void dma_m2m_write_memory(void);
 
-Uint8 dma_scc_read_memory(void);
+uint8_t dma_scc_read_memory(void);
 bool dma_scc_ready(void);
 
 void dma_sndout_read_memory(void);
 void dma_sndout_intr(void);
-bool dma_sndin_write_memory(Uint32 val);
+bool dma_sndin_write_memory(uint32_t val);
 bool dma_sndin_intr(void);
 
 void dma_printer_read_memory(void);

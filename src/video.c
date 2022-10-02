@@ -8,8 +8,8 @@
 const char Video_fileid[] = "Previous video.c : " __DATE__ " " __TIME__;
 
 #include <stdbool.h>
-#include <SDL_endian.h>
 
+#include "host.h"
 #include "configuration.h"
 #include "cycInt.h"
 #include "ioMem.h"

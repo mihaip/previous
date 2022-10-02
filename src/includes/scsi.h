@@ -9,8 +9,8 @@
 #define PHASE_MI      0x07 /* message in */
 
 typedef struct {
-    Uint8 target;
-    Uint8 phase;
+    uint8_t target;
+    uint8_t phase;
 } SCSIBusStatus;
 
 extern SCSIBusStatus SCSIbus;
@@ -23,11 +23,11 @@ extern SCSIBusStatus SCSIbus;
 /* This buffer temporarily stores data to be written to memory or disk */
 
 typedef struct {
-    Uint8 data[512]; /* FIXME: BLOCKSIZE */
+    uint8_t data[512]; /* FIXME: BLOCKSIZE */
     int limit;
     int size;
     bool disk;
-    Sint64 time;
+    int64_t time;
 } SCSIBuffer;
 
 extern SCSIBuffer scsi_buffer;
@@ -36,14 +36,14 @@ extern SCSIBuffer scsi_buffer;
 void SCSI_Init(void);
 void SCSI_Uninit(void);
 void SCSI_Reset(void);
-void SCSI_Insert(Uint8 target);
-void SCSI_Eject(Uint8 target);
+void SCSI_Insert(uint8_t target);
+void SCSI_Eject(uint8_t target);
 
-Uint8 SCSIdisk_Send_Status(void);
-Uint8 SCSIdisk_Send_Message(void);
-Uint8 SCSIdisk_Send_Data(void);
-void SCSIdisk_Receive_Data(Uint8 val);
-bool SCSIdisk_Select(Uint8 target);
-void SCSIdisk_Receive_Command(Uint8 *commandbuf, Uint8 identify);
+uint8_t SCSIdisk_Send_Status(void);
+uint8_t SCSIdisk_Send_Message(void);
+uint8_t SCSIdisk_Send_Data(void);
+void SCSIdisk_Receive_Data(uint8_t val);
+bool SCSIdisk_Select(uint8_t target);
+void SCSIdisk_Receive_Command(uint8_t *commandbuf, uint8_t identify);
 
-Sint64 SCSIdisk_Time(void);
+int64_t SCSIdisk_Time(void);

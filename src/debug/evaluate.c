@@ -1,18 +1,18 @@
 /*
-  Hatari - calculate.c
+  Hatari - evaluate.c
 
-  Copyright (C) 1994, 2009-2010 by Eero Tamminen
+  Copyright (C) 1994, 2009-2014 by Eero Tamminen
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   calculate.c - parse numbers, number ranges and expressions. Supports
   most unary and binary operations. Parenthesis are used for indirect
   ST RAM value addressing.
- 
+
   Originally based on code from my Clac calculator MiNT filter version.
 */
-const char Eval_fileid[] = "Hatari calculate.c : " __DATE__ " " __TIME__;
+const char Eval_fileid[] = "Hatari calculate.c";
 
 #include <ctype.h>
 #include <limits.h>
@@ -20,9 +20,9 @@ const char Eval_fileid[] = "Hatari calculate.c : " __DATE__ " " __TIME__;
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <SDL_types.h>
-#include "breakcond.h"
+#include <inttypes.h>
 #include "configuration.h"
+#include "dsp.h"
 #include "debugcpu.h"
 #include "evaluate.h"
 #include "main.h"
@@ -56,7 +56,7 @@ const char Eval_fileid[] = "Hatari calculate.c : " __DATE__ " " __TIME__;
 static struct {
 	const char *error;		/* global error code		*/
 	bool valid;			/* value validation		*/
-} id = {0, 0};
+} id = { NULL, 0 };
 
 /* parenthesis and function stacks					*/
 static struct {
@@ -121,7 +121,7 @@ static long long close_bracket(long long x);
  * - '0o' => octal decimal
  * Return how many characters were parsed or zero for error.
  */
-static int getNumber(const char *str, Uint32 *number, int *nbase)
+static int getNumber(const char *str, uint32_t *number, int *nbase)
 {
 	char *end;
 	const char *start = str;
@@ -132,7 +132,7 @@ static int getNumber(const char *str, Uint32 *number, int *nbase)
 		fprintf(stderr, "Value missing!\n");
 		return 0;
 	}
-	
+
 	/* determine correct number base */
 	if (str[0] == '0') {
 
@@ -156,7 +156,7 @@ static int getNumber(const char *str, Uint32 *number, int *nbase)
 		}
 		str += 2;
 	}
-	else if (!isxdigit(str[0])) {
+	else if (!isxdigit((unsigned char)str[0])) {
 
 		/* doesn't start with (hex) number -> is it prefix? */
 		switch (*str++) {
@@ -197,15 +197,15 @@ static int getNumber(const char *str, Uint32 *number, int *nbase)
  * and the number base used for parsing to "base".
  * Return how many characters were parsed or zero for error.
  */
-static int getValue(const char *str, Uint32 *number, int *base, bool bForDsp)
+static int getValue(const char *str, uint32_t *number, int *base, bool bForDsp)
 {
 	char name[64];
 	const char *end;
-	Uint32 *addr;
+	uint32_t mask, *addr;
 	int len;
 
-	for (end = str; *end == '_' || isalnum(*end); end++);
-	
+	for (end = str; *end == '_' || isalnum((unsigned char)*end); end++);
+
 	len = end-str;
 	if (len >= (int)sizeof(name)) {
 		fprintf(stderr, "ERROR: symbol name at '%s' too long (%d chars)\n", str, len);
@@ -213,17 +213,30 @@ static int getValue(const char *str, Uint32 *number, int *base, bool bForDsp)
 	}
 	memcpy(name, str, len);
 	name[len] = '\0';
-    
-    *base = 0; /* no base (e.g. variable) */
 
-    /* internal Hatari variable? */
-//    if (BreakCond_GetHatariVariable(name, number)) {
-//        return len;
-//    }
+	*base = 0; /* no base (e.g. variable) */
+
+#if 0
+	/* internal Hatari variable? */
+	if (Vars_GetVariableValue(name, number)) {
+		return len;
+	}
+#endif
 
 	if (bForDsp) {
-		if (Symbols_GetDspAddress(SYMTYPE_ALL, name, number)) {
+		int regsize = DSP_GetRegisterAddress(name, &addr, &mask);
+		/* DSP register or symbol? */
+		switch (regsize) {
+		case 16:
+			*number = (*((uint16_t*)addr) & mask);
 			return len;
+		case 32:
+			*number = (*addr & mask);
+			return len;
+		default:
+			if (Symbols_GetDspAddress(SYMTYPE_ALL, name, number)) {
+				return len;
+			}
 		}
 	} else {
 		/* a special case CPU register? */
@@ -256,36 +269,36 @@ static int getValue(const char *str, Uint32 *number, int *base, bool bForDsp)
  */
 static bool isNumberOK(const char *str, int offset, int base)
 {
-    const char *basestr;
+	const char *basestr;
 
-    if (!offset) {
-        return false;
-    }
-    if (!str[offset]) {
-        /* no extra chars after the parsed part */
-        return true;
-    }
-    switch (base) {
-        case 0:
-            fprintf(stderr, "Name '%s' contains non-alphanumeric characters!\n", str);
-            return false;
-        case 2:
-            basestr = "binary";
-            break;
-        case 8:
-            basestr = "octal";
-            break;
-        case 10:
-            basestr = "decimal";
-            break;
-        case 16:
-            basestr = "hexadecimal";
-            break;
-        default:
-            basestr = "unknown";
-    }
-    fprintf(stderr, "Extra characters in %s based number '%s'!\n", basestr, str);
-    return false;
+	if (!offset) {
+		return false;
+	}
+	if (!str[offset]) {
+		/* no extra chars after the parsed part */
+		return true;
+	}
+	switch (base) {
+	case 0:
+		fprintf(stderr, "Name '%s' contains non-alphanumeric characters!\n", str);
+		return false;
+	case 2:
+		basestr = "binary";
+		break;
+	case 8:
+		basestr = "octal";
+		break;
+	case 10:
+		basestr = "decimal";
+		break;
+	case 16:
+		basestr = "hexadecimal";
+		break;
+	default:
+		basestr = "unknown";
+	}
+	fprintf(stderr, "Extra characters in %s based number '%s'!\n", basestr, str);
+	return false;
 }
 
 /**
@@ -293,15 +306,18 @@ static bool isNumberOK(const char *str, int offset, int base)
  * default number base unless it has a suitable prefix.
  * Return true for success and false for failure.
  */
-bool Eval_Number(const char *str, Uint32 *number)
+bool Eval_Number(const char *str, uint32_t *number)
 {
-    int offset, base;
-    /* TODO: add CPU/DSP flag and use getValue() instead of getNumber()
-     * like getRange() does, so that user can use variable names in
-     * addition to numbers.
-     */
-    offset = getNumber(str, number, &base);
-    return isNumberOK(str, offset, base);
+	int offset, base;
+	/* TODO: add CPU/DSP flag and use getValue() instead of getNumber()
+	 * like getRange() does, so that user can use variable names in
+	 * addition to numbers.
+	 */
+	offset = getNumber(str, number, &base);
+	if (!offset)
+		return false;
+	else
+		return isNumberOK(str, offset, base);
 }
 
 
@@ -314,10 +330,10 @@ bool Eval_Number(const char *str, Uint32 *number)
  *  0 if single address,
  * +1 if a range.
  */
-int Eval_Range(char *str1, Uint32 *lower, Uint32 *upper, bool fordsp)
+int Eval_Range(char *str1, uint32_t *lower, uint32_t *upper, bool fordsp)
 {
 	int offset, base, ret;
-    bool fDash = false;
+	bool fDash = false;
 	char *str2 = str1;
 
 	while (*str2) {
@@ -329,34 +345,34 @@ int Eval_Range(char *str1, Uint32 *lower, Uint32 *upper, bool fordsp)
 		str2++;
 	}
 
-    offset = getValue(str1, lower, &base, fordsp);
-    if (!isNumberOK(str1, offset, base)) {
-        /* first number not OK */
-        fprintf(stderr,"Invalid address value '%s'!\n", str1);
-        ret = -1;
-    } else {
-        /* first number OK */
-        ret = 0;
-    }
-    if (fDash) {
-        offset = getValue(str2, upper, &base, fordsp);
-        if (!isNumberOK(str2, offset, base)) {
-            /* second number not OK */
-            fprintf(stderr, "Invalid address value '%s'!\n", str2);
-            ret = -1;
-        } else {
-            if (*lower > *upper) {
-                fprintf(stderr,"Invalid range ($%x > $%x)!\n", *lower, *upper);
-                /* not a range */
-                ret = -1;
-            } else {
-                /* second number & range OK */
-                ret = 1;
-            }
-        }
-        *--str2 = '-';
-    }
-    return ret;
+	offset = getValue(str1, lower, &base, fordsp);
+	if (offset == 0 || !isNumberOK(str1, offset, base)) {
+		/* first number not OK */
+		fprintf(stderr,"Invalid address value '%s'!\n", str1);
+		ret = -1;
+	} else {
+		/* first number OK */
+		ret = 0;
+	}
+	if (fDash) {
+		offset = getValue(str2, upper, &base, fordsp);
+		if (offset == 0 || !isNumberOK(str2, offset, base)) {
+			/* second number not OK */
+			fprintf(stderr, "Invalid address value '%s'!\n", str2);
+			ret = -1;
+		} else {
+			if (*lower > *upper) {
+				fprintf(stderr,"Invalid range ($%x > $%x)!\n", *lower, *upper);
+				/* not a range */
+				ret = -1;
+			} else {
+				/* second number & range OK */
+				ret = 1;
+			}
+		}
+		*--str2 = '-';
+	}
+	return ret;
 }
 
 
@@ -365,7 +381,7 @@ int Eval_Range(char *str1, Uint32 *lower, Uint32 *upper, bool fordsp)
  * are interpreted. Sets given value and parsing offset.
  * Return error string or NULL for success.
  */
-const char* Eval_Expression(const char *in, Uint32 *out, int *erroff, bool bForDsp)
+const char* Eval_Expression(const char *in, uint32_t *out, int *erroff, bool bForDsp)
 {
 	/* in	 : expression to evaluate				*/
 	/* out	 : final parsed value					*/
@@ -378,7 +394,7 @@ const char* Eval_Expression(const char *in, Uint32 *out, int *erroff, bool bForD
 	long long value;
 	int dummy, offset = 0;
 	char mark;
-	
+
 	/* Uses global variables:	*/
 
 	par.idx = 0;			/* parenthesis stack pointer	*/
@@ -436,7 +452,7 @@ const char* Eval_Expression(const char *in, Uint32 *out, int *erroff, bool bForD
 		default:
 			/* register/symbol/number value needed? */
 			if (id.valid == false) {
-				Uint32 tmp;
+				uint32_t tmp;
 				int consumed;
 				consumed = getValue(&(in[offset]), &tmp, &dummy, bForDsp);
 				/* number parsed? */
@@ -453,8 +469,8 @@ const char* Eval_Expression(const char *in, Uint32 *out, int *erroff, bool bForD
 	/* until exit or error message					*/
 	} while(mark && !id.error);
 
-        /* result of evaluation 					*/
-        if (val.idx >= 0)
+	/* result of evaluation 					*/
+	if (val.idx >= 0)
 		*out = val.buf[val.idx];
 
 	/* something to return?						*/
@@ -465,9 +481,10 @@ const char* Eval_Expression(const char *in, Uint32 *out, int *erroff, bool bForD
 			operation (value, LOWEST_PREDECENCE);
 			if (par.idx)			/* mismatched	*/
 				id.error = CLAC_PAR_ERR;
+			else if (val.idx < 0)
+				id.error = CLAC_PRG_ERR;
 			else				/* result out	*/
 				*out = val.buf[val.idx];
-
 		} else {
 			if ((val.idx < 0) && (op.idx < 0)) {
 				id.error = CLAC_EXP_ERR;
@@ -495,12 +512,11 @@ static void operation (long long value, char oper)
 	 * operation executed if the next one is on same or lower level
 	 */
 	/* something to calc? */
-	if(id.valid == true) {
-		
+	if (id.valid == true) {
 		/* add new items to stack */
 		PUSH(op, oper);
 		PUSH(val, value);
-		
+
 		/* more than 1 operator  */
 		if(op.idx > par.opx[par.idx]) {
 
@@ -605,19 +621,19 @@ static int get_level (int offset)
 	case '&':
 	case '^':
 		return 0;
-		
+
 	case '>':      /* bit shifting    */
 	case '<':
 		return 1;
-		
+
 	case '+':
 	case '-':
 		return 2;
-		
+
 	case '*':
 	case '/':
 		return 3;
-		
+
 	default:
 		id.error = CLAC_PRG_ERR;
 	}
@@ -634,18 +650,19 @@ static long long apply_op (char opcode, long long value1, long long value2)
 	/* returns the result of operation	*/
 
 	switch (opcode) {
-        case '|':
+	case '|':
 		value1 |= value2;
 		break;
-        case '&':
+	case '&':
 		value1 &= value2;
 		break;
-        case '^':
+	case '^':
 		value1 ^= value2;
 		break;
-        case '>':
+	case '>':
 		value1 >>= value2;
-        case '<':
+		break;
+	case '<':
 		value1 <<= value2;
 		break;
 	case '+':
@@ -664,7 +681,7 @@ static long long apply_op (char opcode, long long value1, long long value2)
 		else
 			id.error = CLAC_DEF_ERR;
 		break;
-        default:
+	default:
 		id.error = CLAC_PRG_ERR;
 	}
 	return value1;				/* return result	*/
@@ -676,7 +693,7 @@ static long long apply_op (char opcode, long long value1, long long value2)
 /* ==================================================================== */
 
 /**
- * open prenthesis, push values & operators to stack
+ * open parenthesis, push values & operators to stack
  */
 static void open_bracket (void)
 {
@@ -693,7 +710,7 @@ static void open_bracket (void)
 
 /* -------------------------------------------------------------------- */
 /**
- * close prenthesis, and evaluate / pop stacks
+ * close parenthesis, and evaluate / pop stacks
  */
 /* last parsed value, last param. flag, trigonometric mode	*/
 static long long close_bracket (long long value)
@@ -701,17 +718,18 @@ static long long close_bracket (long long value)
 	/* returns the value of the parenthesised expression	*/
 
 	if (id.valid) {			/* preceded by an operator	*/
-		if (par.idx > 0) {	/* prenthesis has a pair	*/
-            Uint32 addr;
-            
+		if (par.idx > 0) {	/* parenthesis has a pair	*/
+			uint32_t addr;
+
 			/* calculate the value of parenthesised exp.	*/
 			operation (value, LOWEST_PREDECENCE);
-            /* fetch the indirect ST RAM value */
-            addr = val.buf[val.idx];
-            value = DBGMemory_ReadLong(addr);
-            fprintf(stderr, "  value in RAM at ($%x).l = $%"FMT_ll"x\n", addr, value);
-            /* restore state before parenthesis */
-            op.idx = par.opx[par.idx] - 1;
+			/* fetch the indirect ST RAM value */
+			addr = val.buf[val.idx];
+			value = DBGMemory_ReadLong(addr);
+			fprintf(stderr, "  value in RAM at ($%x).l = $%"PRIx64"\n",
+				addr, (uint64_t)value);
+			/* restore state before parenthesis */
+			op.idx = par.opx[par.idx] - 1;
 			val.idx = par.vax[par.idx] - 1;
 			par.idx --;
 

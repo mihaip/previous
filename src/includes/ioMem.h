@@ -13,15 +13,15 @@
 
 #define IoMem NEXTIo
 
-extern Uint32 IoAccessBaseAddress;
-extern Uint32 IoAccessCurrentAddress;
+extern uint32_t IoAccessBaseAddress;
+extern uint32_t IoAccessCurrentAddress;
 extern int nIoMemAccessSize;
 
 /**
  * Read 32-bit word from IO memory space without interception.
  * NOTE - value will be converted to PC endian.
  */
-static inline Uint32 IoMem_ReadLong(Uint32 Address)
+static inline uint32_t IoMem_ReadLong(uint32_t Address)
 {
 	Address &= 0x01ffff;
 	return do_get_mem_long(&IoMem[Address]);
@@ -32,7 +32,7 @@ static inline Uint32 IoMem_ReadLong(Uint32 Address)
  * Read 16-bit word from IO memory space without interception.
  * NOTE - value will be converted to PC endian.
  */
-static inline Uint16 IoMem_ReadWord(Uint32 Address)
+static inline uint16_t IoMem_ReadWord(uint32_t Address)
 {
 	Address &= 0x01ffff;
 	return do_get_mem_word(&IoMem[Address]);
@@ -42,7 +42,7 @@ static inline Uint16 IoMem_ReadWord(Uint32 Address)
 /**
  * Read 8-bit byte from IO memory space without interception.
  */
-static inline Uint8 IoMem_ReadByte(Uint32 Address)
+static inline uint8_t IoMem_ReadByte(uint32_t Address)
 {
 	Address &= 0x01ffff;
  	return IoMem[Address];
@@ -53,7 +53,7 @@ static inline Uint8 IoMem_ReadByte(Uint32 Address)
  * Write 32-bit word into IO memory space without interception.
  * NOTE - value will be convert to 68000 endian
  */
-static inline void IoMem_WriteLong(Uint32 Address, Uint32 Var)
+static inline void IoMem_WriteLong(uint32_t Address, uint32_t Var)
 {
 	Address &= 0x01ffff;
 	do_put_mem_long(&IoMem[Address], Var);
@@ -64,7 +64,7 @@ static inline void IoMem_WriteLong(Uint32 Address, Uint32 Var)
  * Write 16-bit word into IO memory space without interception.
  * NOTE - value will be convert to 68000 endian.
  */
-static inline void IoMem_WriteWord(Uint32 Address, Uint16 Var)
+static inline void IoMem_WriteWord(uint32_t Address, uint16_t Var)
 {
 	Address &= 0x01ffff;
 	do_put_mem_word(&IoMem[Address], Var);
@@ -74,7 +74,7 @@ static inline void IoMem_WriteWord(Uint32 Address, Uint16 Var)
 /**
  * Write 8-bit byte into IO memory space without interception.
  */
-static inline void IoMem_WriteByte(Uint32 Address, Uint8 Var)
+static inline void IoMem_WriteByte(uint32_t Address, uint8_t Var)
 {
 	Address &= 0x01ffff;
 	IoMem[Address] = Var;

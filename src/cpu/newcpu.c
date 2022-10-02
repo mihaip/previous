@@ -17,6 +17,8 @@
 
 #define MORE_ACCURATE_68020_PIPELINE 1
 
+#include <inttypes.h>		/* Needed for PRIX64 */
+
 #include "main.h"
 #include "compat.h"
 
@@ -2277,7 +2279,7 @@ static int check_prefs_changed_cpu2(void)
 
 void check_prefs_changed_cpu(void)
 {
-#ifndef WINUAE_FOR_HATARI	/* [NP] TODO : handle cpu change on the fly ? */
+#ifndef WINUAE_FOR_PREVIOUS
 	if (!config_changed)
 		return;
 
@@ -7189,12 +7191,13 @@ void m68k_go (int may_quit)
 		int restored = 0;
 		void (*run_func)(void);
 
+#ifdef WINUAE_FOR_PREVIOUS
+		if (regs.spcflags & SPCFLAG_BRK) {
+			unset_special(SPCFLAG_BRK);
+			break;
+		}
+#endif
 #ifdef WINUAE_FOR_HATARI
-        if (regs.spcflags & SPCFLAG_BRK) {
-            unset_special(SPCFLAG_BRK);
-            break;
-        }
-
 		/* Exit hatari ? */
 		if (bQuitProgram == true)
 			break;

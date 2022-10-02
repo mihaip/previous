@@ -12,12 +12,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include <SDL_video.h>    /* for SDL_Surface */
-
-#if 1
-void SDL_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h);
-void SDL_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects);
-#endif
+#include <SDL.h>    /* for SDL_Surface */
 
 extern volatile bool bGrabMouse;
 extern volatile bool bInFullScreen;
@@ -33,9 +28,9 @@ void Screen_SizeChanged(void);
 void Screen_ModeChanged(void);
 void Screen_StatusbarChanged(void);
 bool Update_StatusBar(void);
-void SDL_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects);
-void SDL_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h);
-void blitDimension(Uint32* vram, SDL_Texture* tex);
+void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects);
+void Screen_UpdateRect(SDL_Surface *screen, int32_t x, int32_t y, int32_t w, int32_t h);
+void blitDimension(uint32_t* vram, SDL_Texture* tex);
 
 #ifdef __cplusplus
 }

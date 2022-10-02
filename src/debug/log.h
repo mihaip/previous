@@ -12,7 +12,6 @@ extern "C" {
 #endif /* __cplusplus */
     
 #include <stdbool.h>
-#include <SDL_types.h>
 
 
 /* Logging
@@ -76,7 +75,7 @@ extern char *Log_MatchTrace(const char *text, int state);
  */
 #include "config.h"
 
-/* Up to 64 levels when using Uint32 for HatariTraceFlags */
+/* Up to 64 levels when using uint32_t for HatariTraceFlags */
 
 #define	TRACE_MFP_EXCEPTION	 (1<<9)
 #define	TRACE_MFP_START 	 (1<<10)
@@ -128,7 +127,7 @@ extern char *Log_MatchTrace(const char *text, int state);
 
 
 extern FILE *TraceFile;
-extern Uint64 LogTraceFlags;
+extern uint64_t LogTraceFlags;
 
 #if ENABLE_TRACING
 

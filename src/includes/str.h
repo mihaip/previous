@@ -14,9 +14,6 @@
 # include <strings.h>
 #endif
 
-#if !HAVE_LIBC_STRLCPY
-#define strlcpy(dst, src, len) SDL_strlcpy(dst, src, len)
-#endif
 
 #define Str_Free(s) { free(s); s = NULL; }
 
@@ -25,5 +22,6 @@ extern char *Str_ToUpper(char *pString);
 extern char *Str_ToLower(char *pString);
 extern char *Str_Alloc(int len);
 extern char *Str_Dup(const char *str);
+extern long Str_Copy(char *pDest, const char *pSrc, long nBufLen);
 
 #endif  /* HATARI_STR_H */

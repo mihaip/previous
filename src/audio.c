@@ -15,20 +15,20 @@
 static SDL_AudioDeviceID Audio_Input_Device;
 static SDL_AudioDeviceID Audio_Output_Device;
 
-static bool          bSoundOutputWorking = false; /* Is sound output OK */
-static bool          bSoundInputWorking  = false; /* Is sound input OK */
-static bool          bSoundOutAlertShown = false;
-static bool          bSoundInAlertShown  = false;
-static bool          bPlayingBuffer      = false; /* Is playing buffer? */
-static bool          bRecordingBuffer    = false; /* Is recording buffer? */
-#define              REC_BUFFER_SZ       16  /* Recording buffer size in power of two */
-static const  Uint32 REC_BUFFER_MASK     = (1<<REC_BUFFER_SZ) - 1;
-static Uint8         recBuffer[1<<REC_BUFFER_SZ];
-static Uint32        recBufferWr         = 0;
-static Uint32        recBufferRd         = 0;
-static lock_t        recBufferLock;
+static bool           bSoundOutputWorking = false; /* Is sound output OK */
+static bool           bSoundInputWorking  = false; /* Is sound input OK */
+static bool           bSoundOutAlertShown = false;
+static bool           bSoundInAlertShown  = false;
+static bool           bPlayingBuffer      = false; /* Is playing buffer? */
+static bool           bRecordingBuffer    = false; /* Is recording buffer? */
+#define               REC_BUFFER_SZ       16       /* Recording buffer size in power of two */
+static const uint32_t REC_BUFFER_MASK     = (1<<REC_BUFFER_SZ) - 1;
+static uint8_t        recBuffer[1<<REC_BUFFER_SZ];
+static uint32_t       recBufferWr         = 0;
+static uint32_t       recBufferRd         = 0;
+static lock_t         recBufferLock;
 
-void Audio_Output_Queue(Uint8* data, int len) {
+void Audio_Output_Queue(uint8_t* data, int len) {
     int chunkSize = SOUND_BUFFER_SAMPLES;
     if (bSoundOutputWorking) {
         while (len > 0) {
@@ -40,7 +40,7 @@ void Audio_Output_Queue(Uint8* data, int len) {
     }
 }
 
-Uint32 Audio_Output_Queue_Size(void) {
+uint32_t Audio_Output_Queue_Size(void) {
     if (bSoundOutputWorking) {
         return SDL_GetQueuedAudioSize(Audio_Output_Device) / 4;
     } else {
@@ -60,7 +60,7 @@ void Audio_Output_Queue_Clear(void) {
  * Note: These functions will run in a separate thread.
  */
 
-static void Audio_Input_CallBack(void *userdata, Uint8 *stream, int len) {
+static void Audio_Input_CallBack(void *userdata, uint8_t *stream, int len) {
     Log_Printf(LOG_WARN, "Audio_Input_CallBack %d", len);
     if(len == 0) return;
     Audio_Input_Lock();
@@ -102,7 +102,7 @@ int Audio_Input_BufSize(void) {
     }
 }
 
-int Audio_Input_Read(Sint16* sample) {
+int Audio_Input_Read(int16_t* sample) {
     if (bSoundInputWorking) {
 		if ((recBufferRd&REC_BUFFER_MASK)==(recBufferWr&REC_BUFFER_MASK)) {
 			return -1;

@@ -38,14 +38,14 @@ protected:
 public:
     int flags;
     
-    virtual Uint32 lget(Uint32 addr) const;
-    virtual Uint32 wget(Uint32 addr) const;
-    virtual Uint32 bget(Uint32 addr) const;
-    virtual Uint32 cs8get(Uint32 addr) const;
+    virtual uint32_t lget(uint32_t addr) const;
+    virtual uint32_t wget(uint32_t addr) const;
+    virtual uint32_t bget(uint32_t addr) const;
+    virtual uint32_t cs8get(uint32_t addr) const;
     
-    virtual void lput(Uint32 addr, Uint32 val) const;
-    virtual void wput(Uint32 addr, Uint32 val) const;
-    virtual void bput(Uint32 addr, Uint32 val) const;
+    virtual void lput(uint32_t addr, uint32_t val) const;
+    virtual void wput(uint32_t addr, uint32_t val) const;
+    virtual void bput(uint32_t addr, uint32_t val) const;
     
     ND_Addrbank(NextDimension* nd);
 };

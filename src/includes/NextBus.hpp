@@ -3,7 +3,6 @@
 #ifndef __NEXT_BUS_H__
 #define __NEXT_BUS_H__
 
-#include <SDL_stdinc.h>
 #include "log.h"
 #include "cycInt.h"
 
@@ -14,19 +13,19 @@ extern "C" {
 #endif /* __cplusplus */
     void nextbus_init(void);
 
-    Uint32 nextbus_slot_lget(Uint32 addr);
-    Uint32 nextbus_slot_wget(Uint32 addr);
-    Uint32 nextbus_slot_bget(Uint32 addr);
-    void nextbus_slot_lput(Uint32 addr, Uint32 val);
-    void nextbus_slot_wput(Uint32 addr, Uint32 val);
-    void nextbus_slot_bput(Uint32 addr, Uint32 val);
+    uint32_t nextbus_slot_lget(uint32_t addr);
+    uint32_t nextbus_slot_wget(uint32_t addr);
+    uint32_t nextbus_slot_bget(uint32_t addr);
+    void nextbus_slot_lput(uint32_t addr, uint32_t val);
+    void nextbus_slot_wput(uint32_t addr, uint32_t val);
+    void nextbus_slot_bput(uint32_t addr, uint32_t val);
 
-    Uint32 nextbus_board_lget(Uint32 addr);
-    Uint32 nextbus_board_wget(Uint32 addr);
-    Uint32 nextbus_board_bget(Uint32 addr);
-    void nextbus_board_lput(Uint32 addr, Uint32 val);
-    void nextbus_board_wput(Uint32 addr, Uint32 val);
-    void nextbus_board_bput(Uint32 addr, Uint32 val);
+    uint32_t nextbus_board_lget(uint32_t addr);
+    uint32_t nextbus_board_wget(uint32_t addr);
+    uint32_t nextbus_board_bget(uint32_t addr);
+    void nextbus_board_lput(uint32_t addr, uint32_t val);
+    void nextbus_board_wput(uint32_t addr, uint32_t val);
+    void nextbus_board_bput(uint32_t addr, uint32_t val);
     
     void NextBus_Reset(void);
     void NextBus_Pause(bool pause);
@@ -47,19 +46,19 @@ public:
     
     virtual ~NextBusSlot();
     
-    virtual Uint32 slot_lget(Uint32 addr);
-    virtual Uint16 slot_wget(Uint32 addr);
-    virtual Uint8  slot_bget(Uint32 addr);
-    virtual void   slot_lput(Uint32 addr, Uint32 val);
-    virtual void   slot_wput(Uint32 addr, Uint16 val);
-    virtual void   slot_bput(Uint32 addr, Uint8 val);
+    virtual uint32_t slot_lget(uint32_t addr);
+    virtual uint16_t slot_wget(uint32_t addr);
+    virtual uint8_t  slot_bget(uint32_t addr);
+    virtual void   slot_lput(uint32_t addr, uint32_t val);
+    virtual void   slot_wput(uint32_t addr, uint16_t val);
+    virtual void   slot_bput(uint32_t addr, uint8_t val);
     
-    virtual Uint32 board_lget(Uint32 addr);
-    virtual Uint16 board_wget(Uint32 addr);
-    virtual Uint8  board_bget(Uint32 addr);
-    virtual void   board_lput(Uint32 addr, Uint32 val);
-    virtual void   board_wput(Uint32 addr, Uint16 val);
-    virtual void   board_bput(Uint32 addr, Uint8 val);
+    virtual uint32_t board_lget(uint32_t addr);
+    virtual uint16_t board_wget(uint32_t addr);
+    virtual uint8_t  board_bget(uint32_t addr);
+    virtual void   board_lput(uint32_t addr, uint32_t val);
+    virtual void   board_wput(uint32_t addr, uint16_t val);
+    virtual void   board_bput(uint32_t addr, uint8_t val);
     
     virtual void   reset(void);
     virtual void   pause(bool pause);

@@ -24,8 +24,8 @@ static void (*pInterceptReadTable[IO_SIZE])(void);     /* Table with read access
 static void (*pInterceptWriteTable[IO_SIZE])(void);    /* Table with write access handlers */
 
 int nIoMemAccessSize;                                 /* Set to 1, 2 or 4 according to byte, word or long word access */
-Uint32 IoAccessBaseAddress;                           /* Stores the base address of the IO mem access */
-Uint32 IoAccessCurrentAddress;                        /* Current byte address while handling WORD and LONG accesses */
+uint32_t IoAccessBaseAddress;                           /* Stores the base address of the IO mem access */
+uint32_t IoAccessCurrentAddress;                        /* Current byte address while handling WORD and LONG accesses */
 static int nBusErrorAccesses;                         /* Needed to count bus error accesses */
 
 
@@ -33,9 +33,9 @@ static int nBusErrorAccesses;                         /* Needed to count bus err
 /**
  * Fill a region with bus error handlers.
  */
-static void IoMem_SetBusErrorRegion(Uint32 startaddr, Uint32 endaddr)
+static void IoMem_SetBusErrorRegion(uint32_t startaddr, uint32_t endaddr)
 {
-	Uint32 a;
+	uint32_t a;
 
 	for (a = startaddr; a <= endaddr; a++)
 	{
@@ -59,7 +59,7 @@ static void IoMem_SetBusErrorRegion(Uint32 startaddr, Uint32 endaddr)
  */
 void IoMem_Init(void)
 {
-	Uint32 addr;
+	uint32_t addr;
 	int i;
 	const INTERCEPT_ACCESS_FUNC *pInterceptAccessFuncs = NULL;
 
@@ -113,7 +113,7 @@ void IoMem_UnInit(void)
  */
 uae_u32 IoMem_bget(uaecptr addr)
 {
-	Uint8 val;
+	uint8_t val;
 
 	if ((addr & IO_SEG_MASK) >= IO_SIZE)
 	{
@@ -150,8 +150,8 @@ uae_u32 IoMem_bget(uaecptr addr)
  */
 uae_u32 IoMem_wget(uaecptr addr)
 {
-	Uint32 idx;
-	Uint16 val;
+	uint32_t idx;
+	uint16_t val;
 
 
 	if ((addr & IO_SEG_MASK) >= IO_SIZE)
@@ -196,8 +196,8 @@ uae_u32 IoMem_wget(uaecptr addr)
  */
 uae_u32 IoMem_lget(uaecptr addr)
 {
-	Uint32 idx;
-	Uint32 val;
+	uint32_t idx;
+	uint32_t val;
 
 
 	if ((addr & IO_SEG_MASK) >= IO_SIZE)
@@ -287,7 +287,7 @@ void IoMem_bput(uaecptr addr, uae_u32 val)
  */
 void IoMem_wput(uaecptr addr, uae_u32 val)
 {
-	Uint32 idx;
+	uint32_t idx;
 
 
 	LOG_TRACE(TRACE_IOMEM_WR, "IO write.w $%06x = $%04x\n", addr, val&0xffff);
@@ -329,7 +329,7 @@ void IoMem_wput(uaecptr addr, uae_u32 val)
  */
 void IoMem_lput(uaecptr addr, uae_u32 val)
 {
-	Uint32 idx;
+	uint32_t idx;
 
 	LOG_TRACE(TRACE_IOMEM_WR, "IO write.l $%06x = $%08x\n", addr, val);
 
@@ -432,7 +432,7 @@ void IoMem_BusErrorOddWriteAccess(void)
  */
 void IoMem_VoidRead(void)
 {
-	Uint32 a;
+	uint32_t a;
 
 	/* handler is probably called only once, so we have to take care of the neighbour "void IO registers" */
 	for (a = IoAccessBaseAddress; a < IoAccessBaseAddress + nIoMemAccessSize; a++)

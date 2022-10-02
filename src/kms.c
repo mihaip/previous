@@ -29,21 +29,21 @@
 struct {
     /* Registers */
     struct {
-        Uint8 sound;
-        Uint8 km;
-        Uint8 transmit;
-        Uint8 cmd;
+        uint8_t sound;
+        uint8_t km;
+        uint8_t transmit;
+        uint8_t cmd;
     } status;
     
-    Uint8  command;
-    Uint32 data;
-    Uint32 kmdata;
+    uint8_t  command;
+    uint32_t data;
+    uint32_t kmdata;
     
     /* Internal */
-    Uint8  rev;
-    Uint32 km_addr;
-    Uint32 km_data[16];
-    Uint32 km_mask;
+    uint8_t  rev;
+    uint32_t km_addr;
+    uint32_t km_data[16];
+    uint32_t km_mask;
 } kms;
 
 
@@ -199,7 +199,7 @@ static void kms_sndin_overrun(void) {
 #define KMS_MAGIC_NMI_R     0x10009026 /* backquote and right command key */
 #define KMS_MAGIC_NMI_LR    0x10009826 /* backquote and both command keys */
 
-static void kms_km_receive(Uint32 data) {
+static void kms_km_receive(uint32_t data) {
     /* Compare to magic key combinations */
     switch (data&KMS_MAGIC_MASK) {
         case KMS_MAGIC_RESET:
@@ -228,7 +228,7 @@ static void kms_km_receive(Uint32 data) {
 
 static bool kms_codec_dma_blockend;
 
-static void kms_codec_receive(Uint32 data) {
+static void kms_codec_receive(uint32_t data) {
     kms.status.sound |= SNDIN_DMA_REQUEST;
     
     kms_codec_dma_blockend = dma_sndin_write_memory(data);
@@ -248,7 +248,7 @@ static void kms_sndout_request(void) {
     dma_sndout_read_memory();
 }
 
-static void kms_command_out(Uint8 command, Uint32 data) {
+static void kms_command_out(uint8_t command, uint32_t data) {
     if (!(kms.status.transmit&KMS_ENABLE)) {
         return;
     }
@@ -282,7 +282,7 @@ static void kms_command_out(Uint8 command, Uint32 data) {
     }
 }
 
-bool kms_send_codec_receive(Uint32 data) {
+bool kms_send_codec_receive(uint32_t data) {
     kms_command_out(KMSCMD_CODEC_IN, data);
     return kms_codec_dma_blockend;
 }
@@ -309,7 +309,7 @@ void kms_send_sndout_request(void) {
  * ---- ---- ---- ---- ---- ---- ---- xxxx  poll speed
  */
 
-static void km_set_addr(Uint8 addr) {
+static void km_set_addr(uint8_t addr) {
     if (kms.rev==REV_OLD) {
         kms.km_addr = addr&KM_ADDR;
     } else {
@@ -317,7 +317,7 @@ static void km_set_addr(Uint8 addr) {
     }
 }
 
-static void km_internal_poll(Uint8 addr) {
+static void km_internal_poll(uint8_t addr) {
     int i,mask,device;
     
     device = addr&KM_ADDR_MASK;
@@ -336,8 +336,8 @@ static void km_internal_poll(Uint8 addr) {
     Log_Printf(LOG_KMS_LEVEL, "[KMS] Device %i disabled (mask: %08X)",device,kms.km_mask);
 }
 
-static void km_user_poll(Uint8 addr) {
-    Uint32 data = 0;
+static void km_user_poll(uint8_t addr) {
+    uint32_t data = 0;
     
     data = kms.km_data[addr&KM_ADDR_MASK];
     
@@ -361,7 +361,7 @@ static void km_user_poll(Uint8 addr) {
 #define KM_MOUSE_ID   2
 
 static void km_no_response(void) {
-    Uint8 addr = 0;
+    uint8_t addr = 0;
     
     addr |= KM_USER_POLL;
     addr |= (KM_NO_RESPONSE|KM_INVALID); /* checked on real hardware */
@@ -369,8 +369,8 @@ static void km_no_response(void) {
     kms_command_out(KMSCMD_KM_RECV, addr<<24);
 }
 
-static void km_version(Uint8 addr) {
-    Uint32 data = 0;
+static void km_version(uint8_t addr) {
+    uint32_t data = 0;
     
     data |= kms.rev << 16;
     data |= ((addr&KM_MOUSE)?KM_MOUSE_REV:KM_KBD_REV)<<8;
@@ -393,9 +393,9 @@ int  m_move_y       = 0;
 int  m_move_dx      = 0;
 int  m_move_dy      = 0;
 
-void kms_keydown(Uint8 modkeys, Uint8 keycode) {
-    Uint8  addr = kms.km_addr|KM_MASTER;
-    Uint16 data = 0;
+void kms_keydown(uint8_t modkeys, uint8_t keycode) {
+    uint8_t  addr = kms.km_addr|KM_MASTER;
+    uint16_t data = 0;
 
     if (keycode==0x58) { /* Power key */
         rtc_request_power_down();
@@ -409,9 +409,9 @@ void kms_keydown(Uint8 modkeys, Uint8 keycode) {
     km_internal_poll(addr);
 }
 
-void kms_keyup(Uint8 modkeys, Uint8 keycode) {
-    Uint8  addr = kms.km_addr|KM_MASTER;
-    Uint16 data = 0;
+void kms_keyup(uint8_t modkeys, uint8_t keycode) {
+    uint8_t  addr = kms.km_addr|KM_MASTER;
+    uint16_t data = 0;
 
     if (keycode==0x58) {
         rtc_stop_pdown_request();
@@ -426,8 +426,8 @@ void kms_keyup(Uint8 modkeys, Uint8 keycode) {
 }
 
 void kms_mouse_button(bool left, bool down) {
-    Uint8  addr = kms.km_addr|KM_MOUSE;
-    Uint16 data = 0;
+    uint8_t  addr = kms.km_addr|KM_MOUSE;
+    uint16_t data = 0;
 
     if (left) {
         m_button_left = down;
@@ -444,8 +444,8 @@ void kms_mouse_button(bool left, bool down) {
 }
 
 void kms_mouse_move_step(void) {
-    Uint8  addr = kms.km_addr|KM_MOUSE;
-    Uint16 data = 0;
+    uint8_t  addr = kms.km_addr|KM_MOUSE;
+    uint16_t data = 0;
 
     int x = m_move_x > m_move_dx ? m_move_dx : m_move_x;
     int y = m_move_y > m_move_dy ? m_move_dy : m_move_y;
@@ -518,13 +518,13 @@ static void km_reset(void) {
     }
 }
 
-static void km_access(Uint32 data) {
-    Uint8 command = (data>>24)&0xFF;
-    Uint8 cmddata = (data>>16)&0xFF;
+static void km_access(uint32_t data) {
+    uint8_t command = (data>>24)&0xFF;
+    uint8_t cmddata = (data>>16)&0xFF;
     
-    Uint8 device_cmd  = (command&KM_CMD_MASK)>>5;
-    Uint8 device_addr = (command&KM_ADDR_MASK);
-    bool  device_kbd  = (command&KM_MOUSE) ? false : true;
+    uint8_t device_cmd  = (command&KM_CMD_MASK)>>5;
+    uint8_t device_addr = (command&KM_ADDR_MASK);
+    bool    device_kbd  = (command&KM_MOUSE) ? false : true;
     
     if (command==KM_CMD_RESET) {
         Log_Printf(LOG_KMS_LEVEL, "[KMS] Keyboard/Mouse: Reset");
@@ -579,7 +579,7 @@ static void kms_reset(void) {
     set_interrupt(INT_KEYMOUSE|INT_SOUND_OVRUN|INT_MONITOR|INT_NMI, RELEASE_INT);
 }
 
-static void kms_command_in(Uint8 command, Uint32 data) {
+static void kms_command_in(uint8_t command, uint32_t data) {
     if (!(kms.status.transmit&KMS_ENABLE)) {
         return;
     }
@@ -668,7 +668,7 @@ void KMS_Stat_Snd_Read(void) { // 0x0200e000
 }
 
 void KMS_Ctrl_Snd_Write(void) {
-    Uint8 val = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
+    uint8_t val = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
     Log_Printf(LOG_KMS_REG_LEVEL,"[KMS] Sound control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
     kms.status.sound &= ~(SNDOUT_DMA_ENABLE|SNDIN_DMA_ENABLE);
@@ -690,7 +690,7 @@ void KMS_Stat_KM_Read(void) { // 0x0200e001
 }
 
 void KMS_Ctrl_KM_Write(void) {
-    Uint8 val = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
+    uint8_t val = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
     Log_Printf(LOG_KMS_REG_LEVEL,"[KMS] Keyboard/Mouse control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 
     if (val&KM_OVERRUN) {
@@ -713,7 +713,7 @@ void KMS_Stat_TX_Read(void) { // 0x0200e002
 }
 
 void KMS_Ctrl_TX_Write(void) {
-    Uint8 val = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
+    uint8_t val = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
     Log_Printf(LOG_KMS_REG_LEVEL,"[KMS] Tansmitter control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
     if ((kms.status.transmit&KMS_ENABLE) && !(val&KMS_ENABLE)) {
@@ -739,7 +739,7 @@ void KMS_Data_Read(void) { // 0x0200e004
 }
 
 void KMS_Data_Write(void) {
-    Uint32 val = IoMem_ReadLong(IoAccessCurrentAddress&IO_SEG_MASK);
+    uint32_t val = IoMem_ReadLong(IoAccessCurrentAddress&IO_SEG_MASK);
     Log_Printf(LOG_KMS_REG_LEVEL,"[KMS] Data write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, val, m68k_getpc());
     if (kms.status.transmit&TX_LOOP) {
         kms_command_out(kms.command, val);

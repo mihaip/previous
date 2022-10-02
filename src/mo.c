@@ -40,35 +40,35 @@ OpticalDiskBuffer ecc_buffer[2];
 /* Registers */
 
 struct {
-    Uint8 tracknuml;
-    Uint8 tracknumh;
-    Uint8 sector_num;
-    int   sector_count;
-    Uint8 intstatus;
-    Uint8 intmask;
-    Uint8 ctrlr_csr2;
-    Uint8 ctrlr_csr1;
-    Uint8 csrl;
-    Uint8 csrh;
-    Uint8 err_stat;
-    Uint8 ecc_cnt;
-    Uint8 init;
-    Uint8 format;
-    Uint8 mark;
-    Uint8 flag[7];
+    uint8_t tracknuml;
+    uint8_t tracknumh;
+    uint8_t sector_num;
+    int     sector_count;
+    uint8_t intstatus;
+    uint8_t intmask;
+    uint8_t ctrlr_csr2;
+    uint8_t ctrlr_csr1;
+    uint8_t csrl;
+    uint8_t csrh;
+    uint8_t err_stat;
+    uint8_t ecc_cnt;
+    uint8_t init;
+    uint8_t format;
+    uint8_t mark;
+    uint8_t flag[7];
 } osp;
 
 struct {
-    Uint16 status;
-    Uint16 dstat;
-    Uint16 estat;
-    Uint16 hstat;
+    uint16_t status;
+    uint16_t dstat;
+    uint16_t estat;
+    uint16_t hstat;
     
-    Uint8 head;
+    uint8_t  head;
     
-    Uint32 head_pos;
-    Uint32 ho_head_pos;
-    Uint32 sec_offset;
+    uint32_t head_pos;
+    uint32_t ho_head_pos;
+    uint32_t sec_offset;
     
     FILE* dsk;
     
@@ -169,9 +169,9 @@ static int dnum;
 #define MO_SECTORSIZE_DATA  1024 /* size of decoded sector, like handled by software */
 
 
-static Uint32 get_logical_sector(Uint32 sector_id) {
-    Sint32 tracknum = (sector_id&0xFFFF00)>>8;
-    Uint8 sectornum = sector_id&0x0F;
+static uint32_t get_logical_sector(uint32_t sector_id) {
+    int32_t tracknum = (sector_id&0xFFFF00)>>8;
+    uint8_t sectornum = sector_id&0x0F;
 
     tracknum-=MO_TRACK_OFFSET;
     if (tracknum<0 || tracknum>=MO_TRACK_LIMIT) {
@@ -199,15 +199,15 @@ static void mo_set_signals(bool complete, bool attn, int drive);
 static void mo_set_signals_delayed(bool complete, bool attn, int delay);
 static void mo_connect_signals(void);
 
-static void mo_read_sector(Uint32 sector_id);
-static void mo_write_sector(Uint32 sector_id);
-static void mo_erase_sector(Uint32 sector_id);
-static void mo_verify_sector(Uint32 sector_id);
+static void mo_read_sector(uint32_t sector_id);
+static void mo_write_sector(uint32_t sector_id);
+static void mo_erase_sector(uint32_t sector_id);
+static void mo_verify_sector(uint32_t sector_id);
 
-static void mo_drive_cmd(Uint16 command);
-static void mo_seek(Uint16 command);
-static void mo_high_order_seek(Uint16 command);
-static void mo_jump_head(Uint16 command);
+static void mo_drive_cmd(uint16_t command);
+static void mo_seek(uint16_t command);
+static void mo_high_order_seek(uint16_t command);
+static void mo_jump_head(uint16_t command);
 static void mo_recalibrate(void);
 static void mo_return_drive_status(void);
 static void mo_return_track_addr(void);
@@ -234,7 +234,7 @@ static void osp_formatter_cmd(void);
 static void osp_formatter_cmd2(void);
 static void osp_select(int drive);
 static void osp_set_interrupts(void);
-static void osp_interrupt(Uint8 interrupt);
+static void osp_interrupt(uint8_t interrupt);
 
 static void ecc_read(void);
 static void ecc_write(void);
@@ -245,10 +245,10 @@ static void ecc_decode(void);
 static void ecc_encode(void);
 static void ecc_sequence_done(void);
 
-static Uint32 get_logical_sector(Uint32 sector_id);
+static uint32_t get_logical_sector(uint32_t sector_id);
 static void fmt_sector_done(void);
-static bool fmt_match_id(Uint32 sector_id);
-static void fmt_io(Uint32 sector_id);
+static bool fmt_match_id(uint32_t sector_id);
+static void fmt_io(uint32_t sector_id);
 
 static int sector_increment = 0;
 
@@ -283,7 +283,7 @@ void MO_SectorIncr_Read(void) { // 0x02012002
 }
 
 void MO_SectorIncr_Write(void) {
-    Uint8 val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    uint8_t val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
     osp.sector_num = val&MOSEC_NUM_MASK;
     sector_increment = (val&MOSEC_INCR_MASK)>>4;
     Log_Printf(LOG_MO_REG_LEVEL,"[OSP] Sector increment and number write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
@@ -308,7 +308,7 @@ void MO_IntStatus_Read(void) { // 0x02012004
 }
 
 void MO_IntStatus_Write(void) {
-    Uint8 val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    uint8_t val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
     osp.intstatus &= ~(val&MOINT_OSP_MASK);
     Log_Printf(LOG_MO_REG_LEVEL,"[OSP] Interrupt status write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 
@@ -501,7 +501,7 @@ static void print_regs(void) {
 }
 #endif
 
-void osp_interrupt(Uint8 interrupt) {
+void osp_interrupt(uint8_t interrupt) {
     osp.intstatus|=interrupt;
     osp_set_interrupts();
 }
@@ -602,7 +602,7 @@ void osp_formatter_cmd(void) {
 }
 
 void fmt_sector_done(void) {
-    Uint16 track = (osp.tracknumh<<8)|osp.tracknuml;
+    uint16_t track = (osp.tracknumh<<8)|osp.tracknuml;
     osp.sector_num+=sector_increment;
     track+=osp.sector_num/MO_SEC_PER_TRACK;
     osp.sector_num%=MO_SEC_PER_TRACK;
@@ -618,14 +618,14 @@ void fmt_sector_done(void) {
 
 int sector_timer=0;
 #define SECTOR_TIMEOUT_COUNT 32
-bool fmt_match_id(Uint32 sector_id) {
+bool fmt_match_id(uint32_t sector_id) {
     if ((osp.init&MOINIT_ID_MASK)==MOINIT_ID_0) {
         Log_Printf(LOG_MO_CMD_LEVEL, "[OSP] Sector ID matching disabled!");
         abort(); /* CHECK: this routine is critical to disk image corruption, check if it gives correct results */
         return true;
     }
     
-    Uint32 fmt_id = (osp.tracknumh<<16)|(osp.tracknuml<<8)|osp.sector_num;
+    uint32_t fmt_id = (osp.tracknumh<<16)|(osp.tracknuml<<8)|osp.sector_num;
     
     if (sector_id==fmt_id) {
         sector_timer=0;
@@ -651,7 +651,7 @@ bool fmt_match_id(Uint32 sector_id) {
     }
 }
 
-void fmt_io(Uint32 sector_id) {
+void fmt_io(uint32_t sector_id) {
 
     switch (fmt_mode) {
         case FMT_MODE_IDLE:
@@ -908,7 +908,7 @@ void ecc_sequence_done(void) {
 }
 
 void ECC_IO_Handler(void) {
-    static Uint32 old_size;
+    static uint32_t old_size;
     
     CycInt_AcknowledgeInterrupt();
     
@@ -1009,8 +1009,8 @@ void ECC_IO_Handler(void) {
 
 /* I/O functions */
 
-void mo_read_sector(Uint32 sector_id) {
-    Uint32 sector_num = get_logical_sector(sector_id);
+void mo_read_sector(uint32_t sector_id) {
+    uint32_t sector_num = get_logical_sector(sector_id);
     
     Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Read sector at offset %i (%i sectors remaining)",
                dnum, sector_num, osp.sector_count-1);
@@ -1020,8 +1020,8 @@ void mo_read_sector(Uint32 sector_id) {
     ecc_buffer[eccin].limit = ecc_buffer[eccin].size = MO_SECTORSIZE_DISK;
 }
 
-void mo_write_sector(Uint32 sector_id) {
-    Uint32 sector_num = get_logical_sector(sector_id);
+void mo_write_sector(uint32_t sector_id) {
+    uint32_t sector_num = get_logical_sector(sector_id);
     
     Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Write sector at offset %i (%i sectors remaining)",
                dnum, sector_num, osp.sector_count-1);
@@ -1038,20 +1038,20 @@ void mo_write_sector(Uint32 sector_id) {
     }
 }
 
-void mo_erase_sector(Uint32 sector_id) {
-    Uint32 sector_num = get_logical_sector(sector_id);
+void mo_erase_sector(uint32_t sector_id) {
+    uint32_t sector_num = get_logical_sector(sector_id);
     
     Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Erase sector at offset %i (%i sectors remaining)",
                dnum, sector_num, osp.sector_count-1);
     
-    Uint8 erase_buf[MO_SECTORSIZE_DISK];
+    uint8_t erase_buf[MO_SECTORSIZE_DISK];
     memset(erase_buf, 0xFF, MO_SECTORSIZE_DISK);
     
     File_Write(erase_buf, MO_SECTORSIZE_DISK, sector_num*MO_SECTORSIZE_DISK, mo[dnum].dsk);
 }
 
-void mo_verify_sector(Uint32 sector_id) {
-    Uint32 sector_num = get_logical_sector(sector_id);
+void mo_verify_sector(uint32_t sector_id) {
+    uint32_t sector_num = get_logical_sector(sector_id);
     
     Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Verify sector at offset %i (%i sectors remaining)",
                dnum, sector_num, osp.sector_count-1);
@@ -1149,7 +1149,7 @@ void mo_verify_sector(Uint32 sector_id) {
 /* Version information (returned for DRV_RVI) */
 #define VI_VERSION  0x0880
 
-void mo_drive_cmd(Uint16 command) {
+void mo_drive_cmd(uint16_t command) {
 
     if (!mo[dnum].connected) {
         Log_Printf(LOG_MO_CMD_LEVEL,"[MO] Drive command: Drive %i not connected.\n", dnum);
@@ -1305,9 +1305,9 @@ bool mo_stopped(void) {
     return false;
 }
 
-void mo_seek(Uint16 command) {
+void mo_seek(uint16_t command) {
 #if SEEK_TIMING
-    Uint32 seek_time=mo[dnum].head_pos;
+    uint32_t seek_time=mo[dnum].head_pos;
 #endif
     if (mo_stopped()) {
         return;
@@ -1331,7 +1331,7 @@ void mo_seek(Uint16 command) {
 #endif
 }
 
-void mo_high_order_seek(Uint16 command) {
+void mo_high_order_seek(uint16_t command) {
     if (mo_stopped()) {
         return;
     }
@@ -1343,7 +1343,7 @@ void mo_high_order_seek(Uint16 command) {
     mo_set_signals_delayed(true, false, CMD_DELAY);
 }
 
-void mo_jump_head(Uint16 command) {
+void mo_jump_head(uint16_t command) {
     if (mo_stopped()) {
         return;
     }

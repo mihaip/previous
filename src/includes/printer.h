@@ -10,7 +10,7 @@ void LP_Data_Read(void);
 void LP_Data_Write(void);
 
 typedef struct {
-    Uint8 data[64*1024];
+    uint8_t data[64*1024];
     int size;
     int limit;
 } PrinterBuffer;

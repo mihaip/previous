@@ -998,10 +998,10 @@ mem_put_func bank_bput[65536];
 const char* memory_init(int *nNewNEXTMemSize)
 {
     if(!(NEXTRam)) {
-        NEXTRam   = host_malloc_aligned(NEXT_RAM_MAX_SIZE);
-        NEXTVideo = host_malloc_aligned(NEXT_VRAM_COLOR_SIZE);
-        NEXTIo    = host_malloc_aligned(NEXT_IO_SIZE);
-        NEXTRom   = host_malloc_aligned(NEXT_EPROM_SIZE);
+        NEXTRam   = malloc_aligned(NEXT_RAM_MAX_SIZE);
+        NEXTVideo = malloc_aligned(NEXT_VRAM_COLOR_SIZE);
+        NEXTIo    = malloc_aligned(NEXT_IO_SIZE);
+        NEXTRom   = malloc_aligned(NEXT_EPROM_SIZE);
     }
 
 	int i;

@@ -209,6 +209,6 @@ void DlgMissing_Disk(const char* type, int num, char *imgname, bool *inserted, b
     while (but != DLGMISDSK_SELECT && but != DLGMISDSK_REMOVE &&
            but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
     
-    SDL_UpdateRect(sdlscrn, 0, 0, 0, 0);
+    Screen_UpdateRect(sdlscrn, 0, 0, 0, 0);
     SDL_ShowCursor(bOldMouseVisibility);
 }

@@ -17,8 +17,8 @@ const char M68000_fileid[] = "Hatari m68000.c : " __DATE__ " " __TIME__;
 
 #include "mmu_common.h"
 
-Uint32 BusErrorAddress;         /* Stores the offending address for bus-/address errors */
-Uint32 BusErrorPC;              /* Value of the PC when bus error occurs */
+uint32_t BusErrorAddress;         /* Stores the offending address for bus-/address errors */
+uint32_t BusErrorPC;              /* Value of the PC when bus error occurs */
 bool bBusErrorReadWrite;        /* 0 for write error, 1 for read error */
 int BusMode = BUS_MODE_CPU;	/* Used to tell which part is owning the bus (cpu, blitter, ...) */
 
@@ -253,7 +253,7 @@ void M68000_CheckCpuSettings(void)
  *   AccessType : BUS_ERROR_ACCESS_INSTR or BUS_ERROR_ACCESS_DATA
  *   val : value we wanted to write in case of a BUS_ERROR_WRITE
  */
-void M68000_BusError ( Uint32 addr , int ReadWrite , int Size , int AccessType , uae_u32 val )
+void M68000_BusError ( uint32_t addr , int ReadWrite , int Size , int AccessType , uae_u32 val )
 {
     LOG_TRACE(TRACE_CPU_EXCEPTION, "Bus error %s at address $%x PC=$%x.\n",
               ReadWrite ? "reading" : "writing", addr, M68000_InstrPC);
@@ -277,7 +277,7 @@ void M68000_BusError ( Uint32 addr , int ReadWrite , int Size , int AccessType ,
 #endif
 }
 #if 0
-void M68000_BusError(Uint32 addr, bool bRead)
+void M68000_BusError(uint32_t addr, bool bRead)
 {
 	/* FIXME: In prefetch mode, m68k_getpc() seems already to point to the next instruction */
 	// BusErrorPC = M68000_GetPC();		/* [NP] We set BusErrorPC in m68k_run_1 */
@@ -317,7 +317,7 @@ void M68000_BusError(Uint32 addr, bool bRead)
 /**
  * Exception handler
  */
-void M68000_Exception(Uint32 ExceptionVector , int ExceptionSource)
+void M68000_Exception(uint32_t ExceptionVector , int ExceptionSource)
 {
 	int exceptionNr = ExceptionVector/4;
 
@@ -333,7 +333,7 @@ void M68000_Exception(Uint32 ExceptionVector , int ExceptionSource)
 
 	else							/* direct CPU exceptions */
 	{
-		Uint16 SR;
+		uint16_t SR;
 
 		/* Was the CPU stopped, i.e. by a STOP instruction? */
 		if (regs.spcflags & SPCFLAG_STOP)

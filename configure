@@ -3,7 +3,7 @@
 # NOTE: this is a simple script wrapper around the cmake command line tools,
 # for those used to the autotools configure script conventions
 
-if ! which cmake > /dev/null; then
+if ! command -v cmake > /dev/null 2>&1; then
   echo "ERROR: You need the 'cmake' program to configure the Previous build process."
   echo "Please install 'cmake' first, then try again."
   exit 1
@@ -13,11 +13,12 @@ print_help()
 {
   echo "This is a simple configure script wrapper around cmake build system."
   echo "Parameters are:"
-  echo "  --prefix=<path>         Set the install prefix to path"
-  echo "  --enable-debug          Enable debug (non-optimized) build"
-  echo "  --disable-tracing       Disable tracing messages for debugging"
-  echo "  --disable-osx-bundle    Disable application bundling on Mac OS X"
-  echo "  --cross-compile-win32   Build the Windows version under linux"
+  echo "  --prefix=<path>            Set the install prefix to path"
+  echo "  --enable-debug             Enable debug (non-optimized) build"
+  echo "  --disable-tracing          Disable tracing messages for debugging"
+  echo "  --disable-osx-bundle       Disable application bundling on macOS"
+  echo "  --cross-compile-win64_32   Build the 32 bit Windows version using mingw-w64"
+  echo "  --cross-compile-win64_64   Build the 64 bit Windows version using mingw-w64"
   echo
   echo "Please run cmake directly for full control over the build."
   echo
@@ -59,8 +60,11 @@ do
     --disable-osx-bundle)
       cmake_args="$cmake_args -DENABLE_OSX_BUNDLE:BOOL=0"
     ;;
-    --cross-compile-win32)
-      cmake_args="$cmake_args -DCMAKE_TOOLCHAIN_FILE=cmake/Toolchain-mingw32.cmake"
+    --cross-compile-win64_32)
+      cmake_args="$cmake_args -DCMAKE_TOOLCHAIN_FILE=cmake/Toolchain-mingw32-win64_32.cmake"
+    ;;
+    --cross-compile-win64_64)
+      cmake_args="$cmake_args -DCMAKE_TOOLCHAIN_FILE=cmake/Toolchain-mingw32-win64_64.cmake"
     ;;
     *)
       echo "Invalid argument: $preq"
@@ -72,7 +76,12 @@ do
 done
 
 # remove previous cmake's cache
-rm -f `dirname $0`/CMakeCache.txt
+rm -rf CMakeCache.txt CMakeFiles/
+
+if [ -e `dirname $0`/CMakeCache.txt ]; then
+    echo "Source directory is not clean, please run 'make distclean' there first."
+    exit 1
+fi
 
 cmake `dirname $0` $cmake_args || exit 1
 

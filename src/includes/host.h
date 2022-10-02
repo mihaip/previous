@@ -40,22 +40,22 @@ extern "C" {
     void        host_reset(void);
     void        host_blank(int slot, int src, bool state);
     bool        host_blank_state(int slot, int src);
-    Uint64      host_time_us(void);
-    Uint64      host_time_ms(void);
-    Uint64      host_time_sec(void);
-    void        host_time(Uint64* realTime, Uint64* hostTime);
+    uint64_t    host_time_us(void);
+    uint64_t    host_time_ms(void);
+    uint64_t    host_time_sec(void);
+    void        host_time(uint64_t* realTime, uint64_t* hostTime);
     time_t      host_unix_time(void);
     void        host_set_unix_time(time_t now);
     struct tm*  host_unix_tm(void);
     void        host_set_unix_tm(struct tm* now);
-    Uint64      host_get_save_time(void);
-    void        host_sleep_ms(Uint32 ms);
-    void        host_sleep_us(Uint64 us);
+    uint64_t    host_get_save_time(void);
+    void        host_sleep_ms(uint32_t ms);
+    void        host_sleep_us(uint64_t us);
     int         host_num_cpus(void);
     void        host_hardclock(int expected, int actual);
-    Sint64      host_real_time_offset(void);
+    int64_t     host_real_time_offset(void);
     void        host_pause_time(bool pausing);
-    const char* host_report(Uint64 realTime, Uint64 hostTime);
+    const char* host_report(uint64_t realTime, uint64_t hostTime);
     
     void        host_lock(lock_t* lock);
     void        host_unlock(lock_t* lock);
@@ -69,7 +69,6 @@ extern "C" {
     void        host_mutex_destroy(mutex_t* mutex);
     thread_t*   host_thread_create(thread_func_t, const char* name, void* data);
     int         host_thread_wait(thread_t* thread);
-    Uint8*      host_malloc_aligned(size_t size);
     #ifdef __cplusplus
 }
 #endif

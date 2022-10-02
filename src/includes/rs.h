@@ -1,2 +1,2 @@
-void rs_encode(Uint8 *sector);
-int rs_decode(Uint8 *sector);
+void rs_encode(uint8_t *sector);
+int  rs_decode(uint8_t *sector);

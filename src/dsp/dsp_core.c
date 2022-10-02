@@ -27,12 +27,12 @@
 #include <string.h>
 #include <math.h>
 
+#include "main.h"
 #include "dsp_core.h"
 #include "dsp_cpu.h"
 #include "ioMem.h"
 #include "dsp.h"
 #include "log.h"
-#include "statusbar.h"
 
 /*--- the DSP core itself ---*/
 dsp_core_t dsp_core;
@@ -43,7 +43,7 @@ dsp_core_t dsp_core;
 #endif
 
 /*--- Memory size ---*/
-Uint32 DSP_RAMSIZE = DSP_RAMSIZE_24kB;
+uint32_t DSP_RAMSIZE = DSP_RAMSIZE_24kB;
 
 /*--- Functions prototypes ---*/
 static void dsp_core_dsp2host(void);
@@ -51,7 +51,7 @@ static void dsp_core_host2dsp(void);
 
 static void (*dsp_host_interrupt)(int set);   /* Function to trigger host interrupt */
 
-static Uint32 const x_rom[0x100] = {
+static uint32_t const x_rom[0x100] = {
 	/* mulaw table */
 	/* M_00 */ 0x7D7C00, /* 8031 */
 	/* M_01 */ 0x797C00, /* 7775 */
@@ -314,7 +314,7 @@ static Uint32 const x_rom[0x100] = {
 };
 
 /* sin table */
-static Uint32 const y_rom[0x100] = {
+static uint32_t const y_rom[0x100] = {
 	/* S_00 */ 0x000000, /* +0.0000000000 */
 	/* S_01 */ 0x03242b, /* +0.0245412588 */
 	/* S_02 */ 0x0647d9, /* +0.0490676165 */
@@ -586,7 +586,7 @@ void dsp_core_init(void (*host_interrupt)(int))
 }
 
 /* Start DSP emulation */
-void dsp_core_start(Uint8 mode)
+void dsp_core_start(uint8_t mode)
 {
 	dsp_core.registers[DSP_REG_OMR] = mode;
 	if (mode==2) {
@@ -684,7 +684,7 @@ void dsp_core_reset(void)
 */
 
 /* Set PortC data register : send a frame order to the DMA in handshake mode */
-void dsp_core_setPortCDataRegister(Uint32 value)
+void dsp_core_setPortCDataRegister(uint32_t value)
 {
 	/* TXD interrupt */
 	if (dsp_core.periph[DSP_SPACE_X][DSP_PCC] & 0x02) {
@@ -724,7 +724,7 @@ void dsp_core_setPortCDataRegister(Uint32 value)
 }
 
 /* SSI set TX register */
-void dsp_core_ssi_writeTX(Uint32 value)
+void dsp_core_ssi_writeTX(uint32_t value)
 {
 	/* Clear SSI TDE bit */
 	dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] &= 0xff-(1<<DSP_SSI_SR_TDE);
@@ -752,7 +752,7 @@ void dsp_core_ssi_writeTSR(void)
 }
 
 /* SSI get RX register */
-Uint32 dsp_core_ssi_readRX(void)
+uint32_t dsp_core_ssi_readRX(void)
 {
 	/* Clear SSI RDF bit */
 	dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] &= 0xff-(1<<DSP_SSI_SR_RDF);
@@ -770,7 +770,7 @@ Uint32 dsp_core_ssi_readRX(void)
  */
 void dsp_core_ssi_Receive_SC0(void)
 {
-	Uint32 value, i, temp=0;
+	uint32_t value, i, temp=0;
 
 	/* Receive data from crossbar to SSI */
 	value = dsp_core.ssi.received_value;
@@ -814,7 +814,7 @@ void dsp_core_ssi_Receive_SC0(void)
  *     value = 1 : beginning of a new frame
  *     value = 0 : not beginning of a new frame
  */
-void dsp_core_ssi_Receive_SC1(Uint32 value)
+void dsp_core_ssi_Receive_SC1(uint32_t value)
 {
 	/* SSI runs in network mode ? */
 	if (dsp_core.ssi.crb_mode) {
@@ -838,7 +838,7 @@ void dsp_core_ssi_Receive_SC1(Uint32 value)
  *     value = 1 : beginning of a new frame
  *     value = 0 : not beginning of a new frame
  */
-void dsp_core_ssi_Receive_SC2(Uint32 value)
+void dsp_core_ssi_Receive_SC2(uint32_t value)
 {
 	/* SSI runs in network mode ? */
 	if (dsp_core.ssi.crb_mode) {
@@ -863,7 +863,7 @@ void dsp_core_ssi_Receive_SC2(Uint32 value)
  */
 void dsp_core_ssi_Receive_SCK(void)
 {
-	Uint32 value, i, temp=0;
+	uint32_t value, i, temp=0;
 
 	value = dsp_core.ssi.TX;
 
@@ -905,9 +905,9 @@ void dsp_core_ssi_Receive_SCK(void)
 
 
 /* SSI initialisations and state management */
-void dsp_core_ssi_configure(Uint32 address, Uint32 value)
+void dsp_core_ssi_configure(uint32_t address, uint32_t value)
 {
-	Uint32 crb_te, crb_re;
+	uint32_t crb_te, crb_re;
 
 	switch (address) {
 		case DSP_SSI_CRA:
@@ -1075,9 +1075,9 @@ void dsp_core_hostport_dspwrite(void)
 }
 
 /* Read/writes on host port */
-Uint8 dsp_core_read_host(int addr)
+uint8_t dsp_core_read_host(int addr)
 {
-	Uint8 value;
+	uint8_t value;
 
 	value = dsp_core.hostport[addr];
 	if (addr == CPU_HOST_TRXL) {
@@ -1091,7 +1091,7 @@ Uint8 dsp_core_read_host(int addr)
 	return value;
 }
 
-void dsp_core_write_host(int addr, Uint8 value)
+void dsp_core_write_host(int addr, uint8_t value)
 {
 	switch(addr) {
 		case CPU_HOST_ICR:
