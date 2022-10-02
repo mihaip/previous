@@ -8,8 +8,7 @@
 #ifndef HATARI_KEYMAP_H
 #define HATARI_KEYMAP_H
 
-#include <SDL_keyboard.h>
-#include "SDL.h"
+#include <SDL.h>
 
 
 extern void Keymap_Init(void);

@@ -7,10 +7,6 @@
  (SC) Simon Schubiger - most of it rewritten for Previous NeXT emulator
 */
 
-#include <SDL.h>
-#include <SDL_endian.h>
-#include <SDL_blendmode.h>
-
 const char Screen_fileid[] = "Previous fast_screen.c : " __DATE__ " " __TIME__;
 
 #include "main.h"
@@ -25,6 +21,9 @@ const char Screen_fileid[] = "Previous fast_screen.c : " __DATE__ " " __TIME__;
 #include "screen.h"
 #include "statusbar.h"
 #include "video.h"
+
+#include <SDL.h>
+
 
 SDL_Window*   sdlWindow;
 SDL_Surface*  sdlscrn = NULL;        /* The SDL screen surface */

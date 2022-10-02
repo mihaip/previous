@@ -4,7 +4,6 @@
 #define __ND_SDL_H__
 
 #include <SDL.h>
-#include "cycInt.h"
 
 #ifdef __cplusplus
 

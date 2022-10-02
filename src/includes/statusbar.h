@@ -8,7 +8,6 @@
 #define HATARI_STATUSBAR_H
 
 #include <SDL.h>
-#include "main.h"
 
 typedef enum {
 	DEVICE_LED_ENET,

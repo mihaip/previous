@@ -8,8 +8,6 @@
 */
 const char ShortCut_fileid[] = "Hatari shortcut.c : " __DATE__ " " __TIME__;
 
-#include <SDL.h>
-
 #include "main.h"
 #include "dialog.h"
 #include "file.h"
@@ -24,6 +22,9 @@ const char ShortCut_fileid[] = "Hatari shortcut.c : " __DATE__ " " __TIME__;
 #include "video.h"
 #include "snd.h"
 #include "statusbar.h"
+
+#include <SDL.h>
+
 
 static SHORTCUTKEYIDX ShortCutKey = SHORTCUT_NONE;  /* current shortcut key */
 

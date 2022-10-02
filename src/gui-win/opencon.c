@@ -1,8 +1,8 @@
 /*
   Hatari - opencon.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   The SDL library redirects the stdio normally to the files stdout.txt and stderr.txt.
   But with this redirection, the debugger of Hatari does not work anymore.
@@ -13,19 +13,18 @@
 #include <windows.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <SDL_types.h>
 
 #include "opencon.h"
-#include "../debug/debugui.h"
+#include "../includes/configuration.h"
 
 
 void Win_OpenCon(void)
 {
-	if (!bExceptionDebugging)
-		return;
-
-	AllocConsole();
-	freopen("CON", "w", stdout);
-	freopen("CON", "r", stdin);
-	freopen("CON", "wr", stderr);
+	if (1)
+	{
+		AllocConsole();
+		freopen("CON", "w", stdout);
+		freopen("CON", "r", stdin);
+		freopen("CON", "w", stderr);
+	}
 }

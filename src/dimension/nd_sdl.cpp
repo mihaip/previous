@@ -7,6 +7,9 @@
 #include "cycInt.h"
 #include "NextBus.hpp"
 
+#include <SDL.h>
+
+
 volatile bool NDSDL::ndVBLtoggle;
 volatile bool NDSDL::ndVideoVBLtoggle;
 

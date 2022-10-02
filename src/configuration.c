@@ -11,8 +11,6 @@
 */
 const char Configuration_fileid[] = "Hatari configuration.c : " __DATE__ " " __TIME__;
 
-#include <SDL_keyboard.h>
-
 #include "main.h"
 #include "host.h"
 #include "configuration.h"
@@ -23,6 +21,9 @@ const char Configuration_fileid[] = "Hatari configuration.c : " __DATE__ " " __T
 #include "paths.h"
 #include "screen.h"
 #include "video.h"
+
+#include <SDL.h>
+
 
 CNF_PARAMS ConfigureParams;                 /* List of configuration for the emulator */
 char sConfigFileName[FILENAME_MAX];         /* Stores the name of the configuration file */

@@ -48,9 +48,6 @@
 /* Define to 1 if you have the 'bswap_32' function. */
 #cmakedefine HAVE_BSWAP_32 1
 
-/* Define to 1 if you have the `cfmakeraw' function. */
-#cmakedefine HAVE_CFMAKERAW 1
-
 /* Define to 1 if you have the 'setenv' function. */
 #cmakedefine HAVE_SETENV 1
 
