@@ -2117,7 +2117,9 @@ static void update_68k_cycles (void)
 {
 	cycles_mult = 0;
 #ifdef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
 	Log_Printf(LOG_DEBUG, "update cyc speed %d throttle %f clock_mult %d\n", currprefs.m68k_speed, currprefs.m68k_speed_throttle, changed_prefs.cpu_clock_multiplier);
+#endif // WINUAE_FOR_PREVIOUS
 #else	/* Don't adjust cycles_mult in Hatari and ignore m68k_speed (forced to 0) */
 
 	if (currprefs.m68k_speed == 0) { // approximate

@@ -207,8 +207,8 @@ void MC::check_interrupt(void) {
         nd->send_msg(MSG_LOWER_INTR);
 }
 
-// static const char* MC_RD_FORMAT   = "[ND] Memory controller %s read %08X at %08X";
-// static const char* MC_RD_FORMAT_S = "[ND] Memory controller %s read (%s) at %08X";
+static const char* MC_RD_FORMAT   = "[ND] Memory controller %s read %08X at %08X";
+static const char* MC_RD_FORMAT_S = "[ND] Memory controller %s read (%s) at %08X";
 
 uint32_t MC::read(uint32_t addr) {
 	switch (addr&0x3FFF) {
@@ -285,8 +285,8 @@ uint32_t MC::read(uint32_t addr) {
 	return 0;
 }
 
-// static const char* MC_WR_FORMAT   = "[ND] Memory controller %s write %08X at %08X";
-// static const char* MC_WR_FORMAT_S = "[ND] Memory controller %s write (%s) at %08X";
+static const char* MC_WR_FORMAT   = "[ND] Memory controller %s write %08X at %08X";
+static const char* MC_WR_FORMAT_S = "[ND] Memory controller %s write (%s) at %08X";
 
 void MC::write(uint32_t addr, uint32_t val) {
     switch (addr&0x3FFF) {
