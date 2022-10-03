@@ -45,37 +45,37 @@ char inserteject1[16] = "Insert";
 static SGOBJ modlg[] =
 {
 #if DUAL_MO_DRIVE
-    { SGBOX, 0, 0, 0,0, 64,30, NULL },
+	{ SGBOX, 0, 0, 0,0, 64,30, NULL },
 #else
-    { SGBOX, 0, 0, 0,0, 64,20, NULL },
+	{ SGBOX, 0, 0, 0,0, 64,20, NULL },
 #endif
 	{ SGTEXT, 0, 0, 21,1, 10,1, "Magneto-optical drives" },
 
 	{ SGTEXT, 0, 0, 2,4, 14,1, "MO Drive 0:" },
-    { SGCHECKBOX, 0, 0, 16, 4, 11, 1, "Connected" },
-    
-    { SGBOX, 0, 0, 2,6, 60,6, NULL },
-    { SGTEXT, 0, 0, 4,7, 14,1, "Optical disk:" },
+	{ SGCHECKBOX, 0, 0, 16, 4, 11, 1, "Connected" },
+	
+	{ SGBOX, 0, 0, 2,6, 60,6, NULL },
+	{ SGTEXT, 0, 0, 4,7, 14,1, "Optical disk:" },
 	{ SGBUTTON, 0, 0, 20,7, 10,1, inserteject0 },
 	{ SGTEXT, 0, 0, 32,7, 17,1, NULL },
 	{ SGTEXT, 0, 0, 4,9, 56,1, NULL },
 #if DUAL_MO_DRIVE
 	{ SGTEXT, 0, 0, 2,14, 14,1, "MO Drive 1:" },
-    { SGCHECKBOX, 0, 0, 16, 14, 11, 1, "Connected" },
-    
-    { SGBOX, 0, 0, 2,16, 60,6, NULL },
-    { SGTEXT, 0, 0, 4,17, 14,1, "Optical disk:" },
+	{ SGCHECKBOX, 0, 0, 16, 14, 11, 1, "Connected" },
+	
+	{ SGBOX, 0, 0, 2,16, 60,6, NULL },
+	{ SGTEXT, 0, 0, 4,17, 14,1, "Optical disk:" },
 	{ SGBUTTON, 0, 0, 20,17, 10,1, inserteject1 },
 	{ SGTEXT, 0, 0, 32,17, 17,1, NULL },
 	{ SGTEXT, 0, 0, 4,19, 56,1, NULL },
-    
-    { SGTEXT, 0, 0, 2,24, 14,1, "Note: Magneto-optical drives only work with non-turbo Cubes." },
+	
+	{ SGTEXT, 0, 0, 2,24, 14,1, "Note: Magneto-optical drives only work with non-turbo Cubes." },
 
-    { SGBUTTON, SG_DEFAULT, 0, 21,27, 21,1, "Back to main menu" },
+	{ SGBUTTON, SG_DEFAULT, 0, 21,27, 21,1, "Back to main menu" },
 #else
-    { SGTEXT, 0, 0, 2,14, 14,1, "Note: Magneto-optical drives only work with non-turbo Cubes." },
-    
-    { SGBUTTON, SG_DEFAULT, 0, 21,17, 21,1, "Back to main menu" },
+	{ SGTEXT, 0, 0, 2,14, 14,1, "Note: Magneto-optical drives only work with non-turbo Cubes." },
+	
+	{ SGBUTTON, SG_DEFAULT, 0, 21,17, 21,1, "Back to main menu" },
 #endif
 
 	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
@@ -83,155 +83,155 @@ static SGOBJ modlg[] =
 
 
 /**
- * Show and process the hard disk dialog.
+ * Show and process the magneto-optical disk dialog.
  */
 void DlgOptical_Main(void)
 {
-    int but;
-    char dlgname_mo[MO_MAX_DRIVES][64];
+	int but;
+	char dlgname_mo[MO_MAX_DRIVES][64];
 
 	SDLGui_CenterDlg(modlg);
 
 	/* Set up dialog to actual values: */
 
 	/* MO disk image: */
-    if (ConfigureParams.MO.drive[0].bDriveConnected && ConfigureParams.MO.drive[0].bDiskInserted) {
-        File_ShrinkName(dlgname_mo[0], ConfigureParams.MO.drive[0].szImageName,
-                        modlg[MODLG_DISKNAME0].w);
-        sprintf(inserteject0, "Eject");
-    } else {
-        dlgname_mo[0][0] = '\0';
-        sprintf(inserteject0, "Insert");
-    }
-    modlg[MODLG_DISKNAME0].txt = dlgname_mo[0];
+	if (ConfigureParams.MO.drive[0].bDriveConnected && ConfigureParams.MO.drive[0].bDiskInserted) {
+		File_ShrinkName(dlgname_mo[0], ConfigureParams.MO.drive[0].szImageName,
+						modlg[MODLG_DISKNAME0].w);
+		sprintf(inserteject0, "Eject");
+	} else {
+		dlgname_mo[0][0] = '\0';
+		sprintf(inserteject0, "Insert");
+	}
+	modlg[MODLG_DISKNAME0].txt = dlgname_mo[0];
 #if DUAL_MO_DRIVE
-    if (ConfigureParams.MO.drive[1].bDriveConnected && ConfigureParams.MO.drive[1].bDiskInserted) {
-        File_ShrinkName(dlgname_mo[1], ConfigureParams.MO.drive[1].szImageName,
-                        modlg[MODLG_DISKNAME1].w);
-        sprintf(inserteject1, "Eject");
-    } else {
-        dlgname_mo[1][0] = '\0';
-        sprintf(inserteject1, "Insert");
-    }
-    modlg[MODLG_DISKNAME1].txt = dlgname_mo[1];
+	if (ConfigureParams.MO.drive[1].bDriveConnected && ConfigureParams.MO.drive[1].bDiskInserted) {
+		File_ShrinkName(dlgname_mo[1], ConfigureParams.MO.drive[1].szImageName,
+						modlg[MODLG_DISKNAME1].w);
+		sprintf(inserteject1, "Eject");
+	} else {
+		dlgname_mo[1][0] = '\0';
+		sprintf(inserteject1, "Insert");
+	}
+	modlg[MODLG_DISKNAME1].txt = dlgname_mo[1];
 #endif
 
-    /* Drive connected true or false? */
-    if (ConfigureParams.MO.drive[0].bDriveConnected)
-        modlg[MODLG_CONNECTED0].state |= SG_SELECTED;
-    else
-        modlg[MODLG_CONNECTED0].state &= ~SG_SELECTED;
+	/* Drive connected true or false? */
+	if (ConfigureParams.MO.drive[0].bDriveConnected)
+		modlg[MODLG_CONNECTED0].state |= SG_SELECTED;
+	else
+		modlg[MODLG_CONNECTED0].state &= ~SG_SELECTED;
 #if DUAL_MO_DRIVE
-    if (ConfigureParams.MO.drive[1].bDriveConnected)
-        modlg[MODLG_CONNECTED1].state |= SG_SELECTED;
-    else
-        modlg[MODLG_CONNECTED1].state &= ~SG_SELECTED;
+	if (ConfigureParams.MO.drive[1].bDriveConnected)
+		modlg[MODLG_CONNECTED1].state |= SG_SELECTED;
+	else
+		modlg[MODLG_CONNECTED1].state &= ~SG_SELECTED;
 #endif
-    
+	
 	/* Draw and process the dialog */
 	do
 	{
-        /* Write protection true or false? */
-        if (ConfigureParams.MO.drive[0].bWriteProtected)
-            modlg[MODLG_READONLY0].txt = "read-only";
-        else
-            modlg[MODLG_READONLY0].txt = "";
+		/* Write protection true or false? */
+		if (ConfigureParams.MO.drive[0].bWriteProtected)
+			modlg[MODLG_READONLY0].txt = "read-only";
+		else
+			modlg[MODLG_READONLY0].txt = "";
 #if DUAL_MO_DRIVE
-        if (ConfigureParams.MO.drive[1].bWriteProtected)
-            modlg[MODLG_READONLY1].txt = "read-only";
-        else
-            modlg[MODLG_READONLY1].txt = "";
+		if (ConfigureParams.MO.drive[1].bWriteProtected)
+			modlg[MODLG_READONLY1].txt = "read-only";
+		else
+			modlg[MODLG_READONLY1].txt = "";
 #endif
 
 		but = SDLGui_DoDialog(modlg);
 
 		switch (but)
 		{
-            case MODLG_INSERT0:
-                if (!ConfigureParams.MO.drive[0].bDiskInserted) {
-                    if (SDLGui_FileConfSelect(dlgname_mo[0], ConfigureParams.MO.drive[0].szImageName,
-                                          modlg[MODLG_DISKNAME0].w, &ConfigureParams.MO.drive[0].bWriteProtected, false)) {
-                        ConfigureParams.MO.drive[0].bDiskInserted = true;
-                        sprintf(inserteject0, "Eject");
-                        if (!ConfigureParams.MO.drive[0].bDriveConnected) {
-                            ConfigureParams.MO.drive[0].bDriveConnected = true;
-                            modlg[MODLG_CONNECTED0].state |= SG_SELECTED;
-                        }
-                        MO_Insert(0);
-                    }
-                } else {
-                    if (DlgAlert_Query(MODLG_EJECT_WARNING)) {
-                        ConfigureParams.MO.drive[0].bDiskInserted = false;
-                        ConfigureParams.MO.drive[0].bWriteProtected = false;
-                        sprintf(inserteject0, "Insert");
-                        ConfigureParams.MO.drive[0].szImageName[0] = '\0';
-                        dlgname_mo[0][0] = '\0';
-                        MO_Eject(0);
-                    }
-                }
-                break;
-            case MODLG_CONNECTED0:
-                if (ConfigureParams.MO.drive[0].bDriveConnected) {
-                    ConfigureParams.MO.drive[0].bDriveConnected = false;
-                    ConfigureParams.MO.drive[0].bDiskInserted = false;
-                    sprintf(inserteject0, "Insert");
-                    ConfigureParams.MO.drive[0].bWriteProtected = false;
-                    ConfigureParams.MO.drive[0].szImageName[0] = '\0';
-                    dlgname_mo[0][0] = '\0';
-                } else {
-                    ConfigureParams.MO.drive[0].bDriveConnected = true;
-                }
-                break;
+			case MODLG_INSERT0:
+				if (!ConfigureParams.MO.drive[0].bDiskInserted) {
+					if (SDLGui_FileConfSelect(dlgname_mo[0], ConfigureParams.MO.drive[0].szImageName,
+										  modlg[MODLG_DISKNAME0].w, &ConfigureParams.MO.drive[0].bWriteProtected, false)) {
+						ConfigureParams.MO.drive[0].bDiskInserted = true;
+						sprintf(inserteject0, "Eject");
+						if (!ConfigureParams.MO.drive[0].bDriveConnected) {
+							ConfigureParams.MO.drive[0].bDriveConnected = true;
+							modlg[MODLG_CONNECTED0].state |= SG_SELECTED;
+						}
+						MO_Insert(0);
+					}
+				} else {
+					if (DlgAlert_Query(MODLG_EJECT_WARNING)) {
+						ConfigureParams.MO.drive[0].bDiskInserted = false;
+						ConfigureParams.MO.drive[0].bWriteProtected = false;
+						sprintf(inserteject0, "Insert");
+						ConfigureParams.MO.drive[0].szImageName[0] = '\0';
+						dlgname_mo[0][0] = '\0';
+						MO_Eject(0);
+					}
+				}
+				break;
+			case MODLG_CONNECTED0:
+				if (ConfigureParams.MO.drive[0].bDriveConnected) {
+					ConfigureParams.MO.drive[0].bDriveConnected = false;
+					ConfigureParams.MO.drive[0].bDiskInserted = false;
+					sprintf(inserteject0, "Insert");
+					ConfigureParams.MO.drive[0].bWriteProtected = false;
+					ConfigureParams.MO.drive[0].szImageName[0] = '\0';
+					dlgname_mo[0][0] = '\0';
+				} else {
+					ConfigureParams.MO.drive[0].bDriveConnected = true;
+				}
+				break;
 #if DUAL_MO_DRIVE
-            case MODLG_INSERT1:
-                if (!ConfigureParams.MO.drive[1].bDiskInserted) {
-                    if (!ConfigureParams.MO.drive[1].bDriveConnected) {
-                        if (!DlgAlert_Query(MODLG_DUALDRV_WARNING)) {
-                            break;
-                        }
-                    }
-                    if (SDLGui_FileConfSelect(dlgname_mo[1], ConfigureParams.MO.drive[1].szImageName,
-                                          modlg[MODLG_DISKNAME1].w, &ConfigureParams.MO.drive[1].bWriteProtected, false)) {
-                        if (!ConfigureParams.MO.drive[1].bDriveConnected) {
-                            ConfigureParams.MO.drive[1].bDriveConnected = true;
-                            modlg[MODLG_CONNECTED1].state |= SG_SELECTED;
-                        }
-                        ConfigureParams.MO.drive[1].bDiskInserted = true;
-                        sprintf(inserteject1, "Eject");
-                        MO_Insert(1);
-                    }
-                } else {
-                    if (DlgAlert_Query(MODLG_EJECT_WARNING)) {
-                        ConfigureParams.MO.drive[1].bDiskInserted = false;
-                        ConfigureParams.MO.drive[1].bWriteProtected = false;
-                        sprintf(inserteject1, "Insert");
-                        ConfigureParams.MO.drive[1].szImageName[0] = '\0';
-                        dlgname_mo[1][0] = '\0';
-                        MO_Eject(1);
-                    }
-                }
-                break;
-            case MODLG_CONNECTED1:
-                if (ConfigureParams.MO.drive[1].bDriveConnected) {
-                    ConfigureParams.MO.drive[1].bDriveConnected = false;
-                    ConfigureParams.MO.drive[1].bDiskInserted = false;
-                    sprintf(inserteject1, "Insert");
-                    ConfigureParams.MO.drive[1].bWriteProtected = false;
-                    ConfigureParams.MO.drive[1].szImageName[0] = '\0';
-                    dlgname_mo[1][0] = '\0';
-                } else {
-                    if (DlgAlert_Query(MODLG_DUALDRV_WARNING)) {
-                        ConfigureParams.MO.drive[1].bDriveConnected = true;
-                    } else {
-                        modlg[MODLG_CONNECTED1].state &= ~SG_SELECTED;
-                    }
-                }
-                break;
+			case MODLG_INSERT1:
+				if (!ConfigureParams.MO.drive[1].bDiskInserted) {
+					if (!ConfigureParams.MO.drive[1].bDriveConnected) {
+						if (!DlgAlert_Query(MODLG_DUALDRV_WARNING)) {
+							break;
+						}
+					}
+					if (SDLGui_FileConfSelect(dlgname_mo[1], ConfigureParams.MO.drive[1].szImageName,
+										  modlg[MODLG_DISKNAME1].w, &ConfigureParams.MO.drive[1].bWriteProtected, false)) {
+						if (!ConfigureParams.MO.drive[1].bDriveConnected) {
+							ConfigureParams.MO.drive[1].bDriveConnected = true;
+							modlg[MODLG_CONNECTED1].state |= SG_SELECTED;
+						}
+						ConfigureParams.MO.drive[1].bDiskInserted = true;
+						sprintf(inserteject1, "Eject");
+						MO_Insert(1);
+					}
+				} else {
+					if (DlgAlert_Query(MODLG_EJECT_WARNING)) {
+						ConfigureParams.MO.drive[1].bDiskInserted = false;
+						ConfigureParams.MO.drive[1].bWriteProtected = false;
+						sprintf(inserteject1, "Insert");
+						ConfigureParams.MO.drive[1].szImageName[0] = '\0';
+						dlgname_mo[1][0] = '\0';
+						MO_Eject(1);
+					}
+				}
+				break;
+			case MODLG_CONNECTED1:
+				if (ConfigureParams.MO.drive[1].bDriveConnected) {
+					ConfigureParams.MO.drive[1].bDriveConnected = false;
+					ConfigureParams.MO.drive[1].bDiskInserted = false;
+					sprintf(inserteject1, "Insert");
+					ConfigureParams.MO.drive[1].bWriteProtected = false;
+					ConfigureParams.MO.drive[1].szImageName[0] = '\0';
+					dlgname_mo[1][0] = '\0';
+				} else {
+					if (DlgAlert_Query(MODLG_DUALDRV_WARNING)) {
+						ConfigureParams.MO.drive[1].bDriveConnected = true;
+					} else {
+						modlg[MODLG_CONNECTED1].state &= ~SG_SELECTED;
+					}
+				}
+				break;
 #endif
-            default:
-                break;
-        }
+			default:
+				break;
+		}
 	}
 	while (but != DISKDLG_EXIT && but != SDLGUI_QUIT
-	        && but != SDLGUI_ERROR && !bQuitProgram);    
+			&& but != SDLGUI_ERROR && !bQuitProgram);
 }

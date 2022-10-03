@@ -41,7 +41,7 @@ static SGOBJ maindlg[] =
 {
 	{ SGBOX, 0, 0, 0,0, 50,19, NULL },
 	{ SGTEXT, 0, 0, 15,1, 20,1, "Previous - Main menu" },
-    { SGHIDDEN, 0, 0, 15,1, 8,1, "Previous" },
+	{ SGHIDDEN, 0, 0, 15,1, 8,1, "Previous" },
 	{ SGBUTTON, 0, 0, 2,4, 13,1, "System" },
 	{ SGBUTTON, 0, 0, 2,6, 13,1, "ROM" },
 	{ SGBUTTON, 0, 0, 2,8, 13,1, "Display" },
@@ -57,7 +57,7 @@ static SGOBJ maindlg[] =
 	{ SGBUTTON, 0, 0, 7,13, 16,1, "Load config." },
 	{ SGBUTTON, 0, 0, 27,13, 16,1, "Save config." },
 	{ SGCHECKBOX, 0, 0, 2,15, 15,1, "Reset machine" },
-    { SGCHECKBOX, 0, 0, 2,17, 17,1, "Show at startup" },
+	{ SGCHECKBOX, 0, 0, 2,17, 17,1, "Show at startup" },
 	{ SGBUTTON, SG_DEFAULT, 0, 21,15, 8,3, "OK" },
 	{ SGBUTTON, 0, 0, 36,15, 10,1, "Quit" },
 	{ SGBUTTON, SG_CANCEL, 0, 36,17, 10,1, "Cancel" },
@@ -86,12 +86,11 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 	SDLGui_CenterDlg(maindlg);
 
 	maindlg[MAINDLG_RESET].state &= ~SG_SELECTED;
-    
-    if(ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup) {
-        maindlg[MAINDLG_SHOW].state |= SG_SELECTED;		
-	}
-    else {
-        maindlg[MAINDLG_SHOW].state &= ~SG_SELECTED;		
+
+	if(ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup) {
+		maindlg[MAINDLG_SHOW].state |= SG_SELECTED;
+	} else {
+		maindlg[MAINDLG_SHOW].state &= ~SG_SELECTED;
 	}
 
 	do
@@ -115,7 +114,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 			DlgRom_Main();
 			break;
 		 case MAINDLG_MO:
-            DlgOptical_Main();
+			DlgOptical_Main();
 			break;
 		 case MAINDLG_FLOPPY:
 			DlgFloppy_Main();
@@ -156,21 +155,21 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 				free(psNewCfg);
 			}
 			break;
-         case MAINDLG_SHOW:
-            if (maindlg[MAINDLG_SHOW].state & SG_SELECTED)
-                ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = true;
-            else
-                ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = false;
-            break;
+		 case MAINDLG_SHOW:
+			if (maindlg[MAINDLG_SHOW].state & SG_SELECTED)
+				ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = true;
+			else
+				ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = false;
+			break;
 		 case MAINDLG_QUIT:
 			bQuitProgram = true;
 			break;
 		}
 	}
 	while (retbut != MAINDLG_OK && retbut != MAINDLG_CANCEL && retbut != SDLGUI_QUIT
-	        && retbut != SDLGUI_ERROR && !bQuitProgram);
+			&& retbut != SDLGUI_ERROR && !bQuitProgram);
 
-    
+
 	if (maindlg[MAINDLG_RESET].state & SG_SELECTED)
 		*bReset = true;
 

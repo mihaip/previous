@@ -29,19 +29,19 @@ const char DlgMissingFile_fileid[] = "Previous dlgMissingFile.c";
 
 static SGOBJ missingromdlg[] =
 {
-    { SGBOX, 0, 0, 0,0, 52,15, NULL },
-    { SGTEXT, 0, 0, 2,1, 38,1, NULL },
-    { SGTEXT, 0, 0, 2,4, 43,1, "Please select a valid ROM file:" },
-    
-    { SGBOX, 0, 0, 1,6, 50,4, NULL },
-    { SGBUTTON, 0, 0, 2,7, 8,1, "Browse" },
-    { SGBUTTON, 0, 0, 11,7, 9,1, "Default" },
-    { SGTEXT, 0, 0, 2,8, 46,1, NULL },
-    
-    { SGBUTTON, SG_DEFAULT, 0, 4,12, 10,1, "Select" },
-    { SGBUTTON, 0, 0, 16,12, 10,1, "Remove" },
-    { SGBUTTON, 0, 0, 38,12, 10,1, "Quit" },
-    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
+	{ SGBOX, 0, 0, 0,0, 52,15, NULL },
+	{ SGTEXT, 0, 0, 2,1, 38,1, NULL },
+	{ SGTEXT, 0, 0, 2,4, 43,1, "Please select a valid ROM file:" },
+	
+	{ SGBOX, 0, 0, 1,6, 50,4, NULL },
+	{ SGBUTTON, 0, 0, 2,7, 8,1, "Browse" },
+	{ SGBUTTON, 0, 0, 11,7, 9,1, "Default" },
+	{ SGTEXT, 0, 0, 2,8, 46,1, NULL },
+	
+	{ SGBUTTON, SG_DEFAULT, 0, 4,12, 10,1, "Select" },
+	{ SGBUTTON, 0, 0, 16,12, 10,1, "Remove" },
+	{ SGBUTTON, 0, 0, 38,12, 10,1, "Quit" },
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -60,20 +60,20 @@ static SGOBJ missingromdlg[] =
 
 static SGOBJ missingdiskdlg[] =
 {
-    { SGBOX, 0, 0, 0,0, 52,15, NULL },
-    { SGTEXT, 0, 0, 6,1, 38,1, NULL },
-    { SGTEXT, 0, 0, 2,4, 43,1, "Please remove or select a valid disk image:" },
-    
-    { SGBOX, 0, 0, 1,6, 50,4, NULL },
-    { SGTEXT, 0, 0, 2,7, 15,1, NULL },
-    { SGBUTTON, 0, 0, 39,7, 10,1, "Browse" },
-    { SGTEXT, 0, 0, 15,7, 10,1, NULL },
-    { SGTEXT, 0, 0, 2,8, 46,1, NULL },
-    
-    { SGBUTTON, SG_DEFAULT, 0, 4,12, 10,1, "Select" },
-    { SGBUTTON, 0, 0, 16,12, 10,1, "Remove" },
-    { SGBUTTON, 0, 0, 38,12, 10,1, "Quit" },
-    { SGSTOP, 0, 0, 0,0, 0,0, NULL }
+	{ SGBOX, 0, 0, 0,0, 52,15, NULL },
+	{ SGTEXT, 0, 0, 6,1, 38,1, NULL },
+	{ SGTEXT, 0, 0, 2,4, 43,1, "Please remove or select a valid disk image:" },
+	
+	{ SGBOX, 0, 0, 1,6, 50,4, NULL },
+	{ SGTEXT, 0, 0, 2,7, 15,1, NULL },
+	{ SGBUTTON, 0, 0, 39,7, 10,1, "Browse" },
+	{ SGTEXT, 0, 0, 15,7, 10,1, NULL },
+	{ SGTEXT, 0, 0, 2,8, 46,1, NULL },
+	
+	{ SGBUTTON, SG_DEFAULT, 0, 4,12, 10,1, "Select" },
+	{ SGBUTTON, 0, 0, 16,12, 10,1, "Remove" },
+	{ SGBUTTON, 0, 0, 38,12, 10,1, "Quit" },
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
 
@@ -84,67 +84,67 @@ static SGOBJ missingdiskdlg[] =
  * Show and process the Missing ROM dialog.
  */
 void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *enabled) {
-    int but;
-    
-    char dlgname_missingrom[64];
-    char missingrom_alert[64];
-    
-    bool bOldMouseVisibility;
-    bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
-    SDL_ShowCursor(SDL_ENABLE);
-    
-    SDLGui_CenterDlg(missingromdlg);
-    
-    /* Set up dialog to actual values: */
-    sprintf(missingrom_alert, "%s: ROM file not found!", type);
-    missingromdlg[DLGMISROM_ALERT].txt = missingrom_alert;
-    
-    File_ShrinkName(dlgname_missingrom, imgname, missingromdlg[DLGMISROM_NAME].w);
-    
-    missingromdlg[DLGMISROM_NAME].txt = dlgname_missingrom;
-    
-    if (*enabled) {
-        missingromdlg[DLGMISROM_REMOVE].type = SGBUTTON;
-        missingromdlg[DLGMISROM_REMOVE].txt = "Remove";
-    } else {
-        missingromdlg[DLGMISROM_REMOVE].type = SGTEXT;
-        missingromdlg[DLGMISROM_REMOVE].txt = "";
-    }
-    
-    
-    /* Draw and process the dialog */
-    do
-    {
-        but = SDLGui_DoDialog(missingromdlg);
-        switch (but)
-        {
-                
-            case DLGMISROM_BROWSE:
-                SDLGui_FileConfSelect(dlgname_missingrom, imgname,
-                                      missingromdlg[DLGMISROM_NAME].w,
-                                      NULL, false);
-                break;
-            case DLGMISROM_DEFAULT:
-                sprintf(imgname, "%s",defname);
-                File_ShrinkName(dlgname_missingrom, imgname, missingromdlg[DLGMISROM_NAME].w);
-                break;
-            case DLGMISROM_REMOVE:
-                *enabled = false;
-                *imgname = '\0';
-                break;
-            case DLGMISROM_QUIT:
-                bQuitProgram = true;
-                break;
-                
-            default:
-                break;
-        }
-    }
-    while (but != DLGMISROM_SELECT && but != DLGMISROM_REMOVE &&
-           but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
-    
-    
-    SDL_ShowCursor(bOldMouseVisibility);
+	int but;
+	
+	char dlgname_missingrom[64];
+	char missingrom_alert[64];
+	
+	bool bOldMouseVisibility;
+	bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
+	SDL_ShowCursor(SDL_ENABLE);
+	
+	SDLGui_CenterDlg(missingromdlg);
+	
+	/* Set up dialog to actual values: */
+	sprintf(missingrom_alert, "%s: ROM file not found!", type);
+	missingromdlg[DLGMISROM_ALERT].txt = missingrom_alert;
+	
+	File_ShrinkName(dlgname_missingrom, imgname, missingromdlg[DLGMISROM_NAME].w);
+	
+	missingromdlg[DLGMISROM_NAME].txt = dlgname_missingrom;
+	
+	if (*enabled) {
+		missingromdlg[DLGMISROM_REMOVE].type = SGBUTTON;
+		missingromdlg[DLGMISROM_REMOVE].txt = "Remove";
+	} else {
+		missingromdlg[DLGMISROM_REMOVE].type = SGTEXT;
+		missingromdlg[DLGMISROM_REMOVE].txt = "";
+	}
+	
+	
+	/* Draw and process the dialog */
+	do
+	{
+		but = SDLGui_DoDialog(missingromdlg);
+		switch (but)
+		{
+				
+			case DLGMISROM_BROWSE:
+				SDLGui_FileConfSelect(dlgname_missingrom, imgname,
+									  missingromdlg[DLGMISROM_NAME].w,
+									  NULL, false);
+				break;
+			case DLGMISROM_DEFAULT:
+				sprintf(imgname, "%s",defname);
+				File_ShrinkName(dlgname_missingrom, imgname, missingromdlg[DLGMISROM_NAME].w);
+				break;
+			case DLGMISROM_REMOVE:
+				*enabled = false;
+				*imgname = '\0';
+				break;
+			case DLGMISROM_QUIT:
+				bQuitProgram = true;
+				break;
+				
+			default:
+				break;
+		}
+	}
+	while (but != DLGMISROM_SELECT && but != DLGMISROM_REMOVE &&
+		   but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
+	
+	
+	SDL_ShowCursor(bOldMouseVisibility);
 }
 
 
@@ -154,61 +154,60 @@ void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *
  */
 void DlgMissing_Disk(const char* type, int num, char *imgname, bool *inserted, bool *wp)
 {
-    int but;
-    
-    char dlgname_missingdisk[64];
-    char missingdisk_alert[64];
-    char missingdisk_disk[64];
-    
-    bool bOldMouseVisibility;
-    bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
-    SDL_ShowCursor(SDL_ENABLE);
+	int but;
+	
+	char dlgname_missingdisk[64];
+	char missingdisk_alert[64];
+	char missingdisk_disk[64];
+	
+	bool bOldMouseVisibility;
+	bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
+	SDL_ShowCursor(SDL_ENABLE);
 
-    SDLGui_CenterDlg(missingdiskdlg);
-    
-    /* Set up dialog to actual values: */
-    sprintf(missingdisk_alert, "%s drive %i: disk image not found!", type, num);
-    missingdiskdlg[DLGMISDSK_ALERT].txt = missingdisk_alert;
-    
-    sprintf(missingdisk_disk, "%s %i:", type, num);
-    missingdiskdlg[DLGMISDSK_DRIVE].txt = missingdisk_disk;
-    
-    File_ShrinkName(dlgname_missingdisk, imgname, missingdiskdlg[DLGMISDSK_NAME].w);
-    
-    missingdiskdlg[DLGMISDSK_NAME].txt = dlgname_missingdisk;
-    
-    
-    /* Draw and process the dialog */
-    do
-    {
-        if (*wp)
-            missingdiskdlg[DLGMISDSK_PROTECT].txt = "read-only";
-        else
-            missingdiskdlg[DLGMISDSK_PROTECT].txt = "";
+	SDLGui_CenterDlg(missingdiskdlg);
+	
+	/* Set up dialog to actual values: */
+	sprintf(missingdisk_alert, "%s drive %i: disk image not found!", type, num);
+	missingdiskdlg[DLGMISDSK_ALERT].txt = missingdisk_alert;
+	
+	sprintf(missingdisk_disk, "%s %i:", type, num);
+	missingdiskdlg[DLGMISDSK_DRIVE].txt = missingdisk_disk;
+	
+	File_ShrinkName(dlgname_missingdisk, imgname, missingdiskdlg[DLGMISDSK_NAME].w);
+	
+	missingdiskdlg[DLGMISDSK_NAME].txt = dlgname_missingdisk;
+	
+	
+	/* Draw and process the dialog */
+	do
+	{
+		if (*wp)
+			missingdiskdlg[DLGMISDSK_PROTECT].txt = "read-only";
+		else
+			missingdiskdlg[DLGMISDSK_PROTECT].txt = "";
 
-        but = SDLGui_DoDialog(missingdiskdlg);
-        switch (but)
-        {
-                
-            case DLGMISDSK_BROWSE:
-                SDLGui_FileConfSelect(dlgname_missingdisk, imgname, missingdiskdlg[DLGMISDSK_NAME].w, wp, false);
-                break;
-            case DLGMISDSK_REMOVE:
-                *inserted = false;
-                *wp = false;
-                *imgname = '\0';
-                break;
-            case DLGMISDSK_QUIT:
-                bQuitProgram = true;
-                break;
-                
-            default:
-                break;
-        }
-    }
-    while (but != DLGMISDSK_SELECT && but != DLGMISDSK_REMOVE &&
-           but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
-    
-    Screen_UpdateRect(sdlscrn, 0, 0, 0, 0);
-    SDL_ShowCursor(bOldMouseVisibility);
+		but = SDLGui_DoDialog(missingdiskdlg);
+		switch (but)
+		{
+			case DLGMISDSK_BROWSE:
+				SDLGui_FileConfSelect(dlgname_missingdisk, imgname, missingdiskdlg[DLGMISDSK_NAME].w, wp, false);
+				break;
+			case DLGMISDSK_REMOVE:
+				*inserted = false;
+				*wp = false;
+				*imgname = '\0';
+				break;
+			case DLGMISDSK_QUIT:
+				bQuitProgram = true;
+				break;
+				
+			default:
+				break;
+		}
+	}
+	while (but != DLGMISDSK_SELECT && but != DLGMISDSK_REMOVE &&
+		   but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
+	
+	Screen_UpdateRect(sdlscrn, 0, 0, 0, 0);
+	SDL_ShowCursor(bOldMouseVisibility);
 }

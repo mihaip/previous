@@ -1134,7 +1134,7 @@ clean_exit:
 bool SDLGui_FileConfSelect(char *dlgname, char *confname, int maxlen, bool *readonly, bool bAllowNew)
 {
 	char *selname;
-	
+
 	selname = SDLGui_FileSelect("Choose a file", confname, NULL, readonly, bAllowNew);
 	if (selname)
 	{
@@ -1169,24 +1169,24 @@ bool SDLGui_FileConfSelect(char *dlgname, char *confname, int maxlen, bool *read
 
 bool SDLGui_DirectorySelect(char *dlgname, char *confname, int maxlen)
 {
-    char *selname;
-    
-    selname = SDLGui_FileSelect("Choose a folder", confname, NULL, NULL, false);
-    if (selname)
-    {
-        File_MakeValidPathName(selname);
-        
-        if (File_DirExists(selname))
-        {
-            strncpy(confname, selname, FILENAME_MAX);
-            File_ShrinkName(dlgname, selname, maxlen);
-        }
-        else
-        {
-            dlgname[0] = confname[0] = 0;
-        }
-        free(selname);
-        return true;
-    }
-    return false;
+	char *selname;
+	
+	selname = SDLGui_FileSelect("Choose a folder", confname, NULL, NULL, false);
+	if (selname)
+	{
+		File_MakeValidPathName(selname);
+		
+		if (File_DirExists(selname))
+		{
+			strncpy(confname, selname, FILENAME_MAX);
+			File_ShrinkName(dlgname, selname, maxlen);
+		}
+		else
+		{
+			dlgname[0] = confname[0] = 0;
+		}
+		free(selname);
+		return true;
+	}
+	return false;
 }

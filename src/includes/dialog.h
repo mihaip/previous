@@ -1,8 +1,8 @@
 /*
   Hatari - dialog.h
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
 
 #ifndef HATARI_DIALOG_H
@@ -11,42 +11,36 @@
 #include "configuration.h"
 
 /* prototypes for gui-sdl/dlg*.c functions: */
-int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot);
-void Dialog_AboutDlg(void);
-int DlgAlert_Notice(const char *text);
-int DlgAlert_Query(const char *text);
-void Dialog_DeviceDlg(void);
-void DlgFloppy_Main(void);
-void DlgSCSI_Main(void);
-void DlgOptical_Main(void);
-void DlgEthernet_Main(void);
-bool DlgEthernetAdvanced_ConfigurePCAP(void);
-void DlgEthernetAdvanced_ConfigureMAC(uint8_t *mac);
-bool DlgEthernetAdvanced_GetRomMAC(uint8_t *mac);
-void DlgEthernetAdvanced_GetMAC(uint8_t *mac);
-void DlgSound_Main(void);
-void DlgPrinter_Main(void);
-void Dialog_JoyDlg(void);
-void Dialog_KeyboardDlg(void);
-void Dialog_MouseDlg(void);
-bool Dialog_MemDlg(void);
-void Dialog_MemAdvancedDlg(int *membanks);
-char* DlgNewDisk_Main(void);
-void Dialog_SlotSelect(int *slot);
-void Dialog_MonitorDlg(void);
-void Dialog_WindowDlg(void);
-void Dialog_SoundDlg(void);
-void Dialog_SystemDlg(void);
-void Dialog_AdvancedDlg(void);
-void Dialog_GraphicsCheckConsole(int board);
-void Dialog_GraphicsDlg(void);
-void Dialog_DimensionDlg(int board);
-void DlgRom_Main(void);
-void DlgBoot_Main(void);
-void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *enabled);
-void DlgMissing_Disk(const char* type, int num, char *imgname, bool *ins, bool *wp);
+extern int  Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot);
+extern void Dialog_AboutDlg(void);
+extern bool DlgAlert_Notice(const char *text);
+extern bool DlgAlert_Query(const char *text);
+extern void DlgFloppy_Main(void);
+extern void DlgSCSI_Main(void);
+extern void DlgOptical_Main(void);
+extern void DlgEthernet_Main(void);
+extern bool DlgEthernetAdvanced_ConfigurePCAP(void);
+extern void DlgEthernetAdvanced_ConfigureMAC(uint8_t *mac);
+extern bool DlgEthernetAdvanced_GetRomMAC(uint8_t *mac);
+extern void DlgEthernetAdvanced_GetMAC(uint8_t *mac);
+extern void DlgSound_Main(void);
+extern void DlgPrinter_Main(void);
+extern void Dialog_KeyboardDlg(void);
+extern void Dialog_MouseDlg(void);
+extern bool Dialog_MemDlg(void);
+extern void Dialog_MemAdvancedDlg(int *membanks);
+extern void Dialog_SlotSelect(int *slot);
+extern void Dialog_SystemDlg(void);
+extern void Dialog_AdvancedDlg(void);
+extern void Dialog_GraphicsCheckConsole(int board);
+extern void Dialog_GraphicsDlg(void);
+extern void Dialog_DimensionDlg(int board);
+extern void DlgRom_Main(void);
+extern void DlgBoot_Main(void);
+extern void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *enabled);
+extern void DlgMissing_Disk(const char* type, int num, char *imgname, bool *ins, bool *wp);
 /* and dialog.c */
-bool Dialog_DoProperty(void);
-void Dialog_CheckFiles(void);
+extern bool Dialog_DoProperty(void);
+extern void Dialog_CheckFiles(void);
 
 #endif

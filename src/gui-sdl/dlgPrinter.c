@@ -31,27 +31,27 @@ char dlgprint_dirname[64];
 static SGOBJ printerdlg[] =
 {
 	{ SGBOX, 0, 0, 0,0, 47,22, NULL },
-    { SGTEXT, 0, 0, 16,1, 9,1, "Printer options" },
+	{ SGTEXT, 0, 0, 16,1, 9,1, "Printer options" },
 
-    { SGBOX, 0, 0, 1,3, 22,8, NULL },
-    { SGCHECKBOX, 0, 0, 2,4, 19,1, "Printer connected" },
-    
-    { SGBOX, 0, 0, 24,3, 22,8, NULL },
+	{ SGBOX, 0, 0, 1,3, 22,8, NULL },
+	{ SGCHECKBOX, 0, 0, 2,4, 19,1, "Printer connected" },
+	
+	{ SGBOX, 0, 0, 24,3, 22,8, NULL },
 	{ SGTEXT, 0, 0, 25,4, 30,1, "Paper size:" },
 	{ SGRADIOBUT, 0, 0, 25,6, 4,1, "A4" },
-    { SGRADIOBUT, 0, 0, 25,7, 8,1, "Letter" },
-    { SGRADIOBUT, 0, 0, 25,8, 4,1, "B5" },
-    { SGRADIOBUT, 0, 0, 25,9, 7,1, "Legal" },
+	{ SGRADIOBUT, 0, 0, 25,7, 8,1, "Letter" },
+	{ SGRADIOBUT, 0, 0, 25,8, 4,1, "B5" },
+	{ SGRADIOBUT, 0, 0, 25,9, 7,1, "Legal" },
 #if HAVE_LIBPNG
-    { SGBOX, 0, 0, 1,12, 45,5, NULL },
-    { SGTEXT, 0, 0, 2,13, 19,1, "Directory to save printer output:" },
-    { SGBUTTON, 0, 0, 37,13, 8,1, "Browse" },
-    { SGTEXT, 0, 0, 2,15, 43,1, dlgprint_dirname },
+	{ SGBOX, 0, 0, 1,12, 45,5, NULL },
+	{ SGTEXT, 0, 0, 2,13, 19,1, "Directory to save printer output:" },
+	{ SGBUTTON, 0, 0, 37,13, 8,1, "Browse" },
+	{ SGTEXT, 0, 0, 2,15, 43,1, dlgprint_dirname },
 #else
-    { SGBOX, 0, 0, 1,12, 45,5, NULL },
-    { SGTEXT, 0, 0, 2,13, 40,1, "This build of Previous is not configured" },
-    { SGTEXT, 0, 0, 2,14, 1,1, "" },
-    { SGTEXT, 0, 0, 2,15, 17,1, "for PNG printing." },
+	{ SGBOX, 0, 0, 1,12, 45,5, NULL },
+	{ SGTEXT, 0, 0, 2,13, 40,1, "This build of Previous is not configured" },
+	{ SGTEXT, 0, 0, 2,14, 1,1, "" },
+	{ SGTEXT, 0, 0, 2,15, 17,1, "for PNG printing." },
 #endif
 	{ SGBUTTON, SG_DEFAULT, 0, 13,19, 21,1, "Back to main menu" },
 	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
@@ -69,67 +69,67 @@ void DlgPrinter_Main(void)
 
 	SDLGui_CenterDlg(printerdlg);
 
-    /* Set up the dialog from actual values */
-    if (ConfigureParams.Printer.bPrinterConnected)
-        printerdlg[DLGPRINT_CONNECTED].state |= SG_SELECTED;
-    else
-        printerdlg[DLGPRINT_CONNECTED].state &= ~SG_SELECTED;
-    
-    printerdlg[DLGPRINT_A4].state &= ~SG_SELECTED;
-    printerdlg[DLGPRINT_LETTER].state &= ~SG_SELECTED;
-    printerdlg[DLGPRINT_B5].state &= ~SG_SELECTED;
-    printerdlg[DLGPRINT_LEGAL].state &= ~SG_SELECTED;
+	/* Set up the dialog from actual values */
+	if (ConfigureParams.Printer.bPrinterConnected)
+		printerdlg[DLGPRINT_CONNECTED].state |= SG_SELECTED;
+	else
+		printerdlg[DLGPRINT_CONNECTED].state &= ~SG_SELECTED;
+	
+	printerdlg[DLGPRINT_A4].state &= ~SG_SELECTED;
+	printerdlg[DLGPRINT_LETTER].state &= ~SG_SELECTED;
+	printerdlg[DLGPRINT_B5].state &= ~SG_SELECTED;
+	printerdlg[DLGPRINT_LEGAL].state &= ~SG_SELECTED;
 
-    switch (ConfigureParams.Printer.nPaperSize) {
-        case PAPER_A4:
-            printerdlg[DLGPRINT_A4].state |= SG_SELECTED;
-            break;
-        case PAPER_LETTER:
-            printerdlg[DLGPRINT_LETTER].state |= SG_SELECTED;
-            break;
-        case PAPER_B5:
-            printerdlg[DLGPRINT_B5].state |= SG_SELECTED;
-            break;
-        case PAPER_LEGAL:
-            printerdlg[DLGPRINT_LEGAL].state |= SG_SELECTED;
-            break;
-            
-        default:
-            printerdlg[DLGPRINT_A4].state |= SG_SELECTED;
-            break;
-    }
-    
-    File_ShrinkName(dlgprint_dirname, ConfigureParams.Printer.szPrintToFileName,
-                    printerdlg[DLGPRINT_DIRECTORY].w);
-    
+	switch (ConfigureParams.Printer.nPaperSize) {
+		case PAPER_A4:
+			printerdlg[DLGPRINT_A4].state |= SG_SELECTED;
+			break;
+		case PAPER_LETTER:
+			printerdlg[DLGPRINT_LETTER].state |= SG_SELECTED;
+			break;
+		case PAPER_B5:
+			printerdlg[DLGPRINT_B5].state |= SG_SELECTED;
+			break;
+		case PAPER_LEGAL:
+			printerdlg[DLGPRINT_LEGAL].state |= SG_SELECTED;
+			break;
+			
+		default:
+			printerdlg[DLGPRINT_A4].state |= SG_SELECTED;
+			break;
+	}
+	
+	File_ShrinkName(dlgprint_dirname, ConfigureParams.Printer.szPrintToFileName,
+					printerdlg[DLGPRINT_DIRECTORY].w);
+	
 
-    /* Draw and process the dialog */
-    
+	/* Draw and process the dialog */
+	
 	do
 	{
 		but = SDLGui_DoDialog(printerdlg);
-        
-        if (but == DLGPRINT_BROWSE) {
-            SDLGui_DirectorySelect(dlgprint_dirname,
-                                   ConfigureParams.Printer.szPrintToFileName,
-                                   printerdlg[DLGPRINT_DIRECTORY].w);
-        }
+		
+		if (but == DLGPRINT_BROWSE) {
+			SDLGui_DirectorySelect(dlgprint_dirname,
+								   ConfigureParams.Printer.szPrintToFileName,
+								   printerdlg[DLGPRINT_DIRECTORY].w);
+		}
 	}
 	while (but != DLGPRINT_EXIT && but != SDLGUI_QUIT
-	       && but != SDLGUI_ERROR && !bQuitProgram);
-    
-    
-    /* Read values from dialog */
-    ConfigureParams.Printer.bPrinterConnected = printerdlg[DLGPRINT_CONNECTED].state & SG_SELECTED;
-    
-    if (printerdlg[DLGPRINT_A4].state & SG_SELECTED)
-        ConfigureParams.Printer.nPaperSize = PAPER_A4;
-    else if (printerdlg[DLGPRINT_LETTER].state & SG_SELECTED)
-        ConfigureParams.Printer.nPaperSize = PAPER_LETTER;
-    else if (printerdlg[DLGPRINT_B5].state & SG_SELECTED)
-        ConfigureParams.Printer.nPaperSize = PAPER_B5;
-    else if (printerdlg[DLGPRINT_LEGAL].state & SG_SELECTED)
-        ConfigureParams.Printer.nPaperSize = PAPER_LEGAL;
-    else
-        ConfigureParams.Printer.nPaperSize = PAPER_A4;
+		   && but != SDLGUI_ERROR && !bQuitProgram);
+	
+	
+	/* Read values from dialog */
+	ConfigureParams.Printer.bPrinterConnected = printerdlg[DLGPRINT_CONNECTED].state & SG_SELECTED;
+	
+	if (printerdlg[DLGPRINT_A4].state & SG_SELECTED)
+		ConfigureParams.Printer.nPaperSize = PAPER_A4;
+	else if (printerdlg[DLGPRINT_LETTER].state & SG_SELECTED)
+		ConfigureParams.Printer.nPaperSize = PAPER_LETTER;
+	else if (printerdlg[DLGPRINT_B5].state & SG_SELECTED)
+		ConfigureParams.Printer.nPaperSize = PAPER_B5;
+	else if (printerdlg[DLGPRINT_LEGAL].state & SG_SELECTED)
+		ConfigureParams.Printer.nPaperSize = PAPER_LEGAL;
+	else
+		ConfigureParams.Printer.nPaperSize = PAPER_A4;
 }
