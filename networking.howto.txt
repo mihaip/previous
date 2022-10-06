@@ -42,7 +42,7 @@ NOWTO: Setup networking on NeXTstep 1.0 and later:
    d  For "Address" select "Autoconfigure"
    e  For "Router" select "Dynamic"
    f  For "Broadcast Address" select "Default"
-   g  For "Netmask" select "Default"
+   g  For "Netmask" select "Automatic"
    h  Hit "OK" and confirm all messages. It will reboot. Done.
 
 NOTE: On NeXTstep 3.0 and later NetManager is called HostManager, "Network Type" 
