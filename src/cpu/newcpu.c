@@ -120,6 +120,7 @@ int movem_index2[256];
 int movem_next[256];
 
 cpuop_func *cpufunctbl[65536];
+cpuop_func_noret *cpufunctbl_noret[65536];
 cpuop_func *loop_mode_table[65536];
 
 struct cputbl_data
@@ -1843,11 +1844,15 @@ static uae_u32 opcode_swap(uae_u16 opcode)
 	return do_byteswap_16(opcode);
 }
 
-uae_u32 REGPARAM2 op_illg_1 (uae_u32 opcode)
+uae_u32 REGPARAM2 op_illg_1(uae_u32 opcode)
 {
 	opcode = opcode_swap(opcode);
 	op_illg(opcode);
 	return 4;
+}
+void REGPARAM2 op_illg_1_noret(uae_u32 opcode)
+{
+	op_illg_1(opcode);
 }
 uae_u32 REGPARAM2 op_unimpl_1 (uae_u32 opcode)
 {
@@ -1858,6 +1863,11 @@ uae_u32 REGPARAM2 op_unimpl_1 (uae_u32 opcode)
 		op_unimpl(opcode);
 	return 4;
 }
+void REGPARAM2 op_unimpl_1_noret(uae_u32 opcode)
+{
+	op_unimpl_1(opcode);
+}
+
 
 // generic+direct, generic+direct+jit, generic+indirect, more compatible, cycle-exact, mmu, mmu+more compatible, mmu+mc+ce
 static const struct cputbl *cputbls[6][8] =
@@ -1937,11 +1947,14 @@ static void build_cpufunctbl (void)
 		abort ();
 	}
 
-	for (opcode = 0; opcode < 65536; opcode++)
+	for (opcode = 0; opcode < 65536; opcode++) {
 		cpufunctbl[opcode] = op_illg_1;
-	for (i = 0; tbl[i].handler_ff != NULL; i++) {
+		cpufunctbl_noret[opcode] = op_illg_1_noret;
+	}
+	for (i = 0; tbl[i].handler_ff != NULL || tbl[i].handler_ff_noret != NULL; i++) {
 		opcode = tbl[i].opcode;
 		cpufunctbl[opcode] = tbl[i].handler_ff;
+		cpufunctbl_noret[opcode] = tbl[i].handler_ff_noret;
 		cpudatatbl[opcode].length = tbl[i].length;
 		cpudatatbl[opcode].disp020[0] = tbl[i].disp020[0];
 		cpudatatbl[opcode].disp020[1] = tbl[i].disp020[1];
@@ -1952,9 +1965,10 @@ static void build_cpufunctbl (void)
 #ifndef WINUAE_FOR_PREVIOUS
 	if (currprefs.fpu_model && currprefs.cpu_model < 68020) {
 		tbl = op_smalltbl_3;
-		for (i = 0; tbl[i].handler_ff != NULL; i++) {
+		for (i = 0; tbl[i].handler_ff != NULL || tbl[i].handler_ff_noret != NULL; i++) {
 			if ((tbl[i].opcode & 0xfe00) == 0xf200) {
 				cpufunctbl[tbl[i].opcode] = tbl[i].handler_ff;
+				cpufunctbl_noret[tbl[i].opcode] = tbl[i].handler_ff_noret;
 				cpudatatbl[tbl[i].opcode].length = tbl[i].length;
 				cpudatatbl[tbl[i].opcode].disp020[0] = tbl[i].disp020[0];
 				cpudatatbl[tbl[i].opcode].disp020[1] = tbl[i].disp020[1];
@@ -1966,7 +1980,6 @@ static void build_cpufunctbl (void)
 
 	opcnt = 0;
 	for (opcode = 0; opcode < 65536; opcode++) {
-		cpuop_func *f;
 		struct instr *table = &table68k[opcode];
 
 		if (table->mnemo == i_ILLG)
@@ -1980,6 +1993,7 @@ static void build_cpufunctbl (void)
 				// generates unimplemented instruction exception.
 				if (currprefs.int_no_unimplemented && table->unimpclev == 5) {
 					cpufunctbl[opcode] = op_unimpl_1;
+					cpufunctbl_noret[opcode] = op_unimpl_1_noret;
 					continue;
 				}
 				// remove unimplemented instruction that were removed in previous models,
@@ -1988,10 +2002,12 @@ static void build_cpufunctbl (void)
 				// clev=4: implemented in 68040 or later. unimpclev=5: not in 68060
 				if (table->unimpclev < 5 || (table->clev == 4 && table->unimpclev == 5)) {
 					cpufunctbl[opcode] = op_illg_1;
+					cpufunctbl_noret[opcode] = op_illg_1_noret;
 					continue;
 				}
 			} else {
 				cpufunctbl[opcode] = op_illg_1;
+				cpufunctbl_noret[opcode] = op_illg_1_noret;
 				continue;
 			}
 		}
@@ -2006,10 +2022,10 @@ static void build_cpufunctbl (void)
 
 		if (table->handler != -1) {
 			int idx = table->handler;
-			f = cpufunctbl[idx];
-			if (f == op_illg_1)
+			if (cpufunctbl[idx] == op_illg_1 || cpufunctbl_noret[idx] == op_illg_1_noret)
 				abort ();
-			cpufunctbl[opcode] = f;
+			cpufunctbl[opcode] = cpufunctbl[idx];
+			cpufunctbl_noret[opcode] = cpufunctbl_noret[idx];
 			memcpy(&cpudatatbl[opcode], &cpudatatbl[idx], sizeof(struct cputbl_data));
 			opcnt++;
 		}
@@ -5265,7 +5281,7 @@ static void m68k_run_1_ce (void)
 							Exception (cputrace.state);
 						} else if (cputrace.state == 1) {
 							write_log (_T("CPU TRACE: %04X\n"), cputrace.opcode);
-							(*cpufunctbl[cputrace.opcode])(cputrace.opcode);
+							(*cpufunctbl_noret[cputrace.opcode])(cputrace.opcode);
 						}
 					} else {
 						write_log (_T("CPU TRACE: STOPPED\n"));
@@ -5341,7 +5357,7 @@ static void m68k_run_1_ce (void)
 				}
 #endif
 
-				(*cpufunctbl[r->opcode])(r->opcode);
+				(*cpufunctbl_noret[r->opcode])(r->opcode);
 				if (!regs.loop_mode)
 					regs.ird = regs.opcode;
 				regs.instruction_cnt++;
@@ -6107,8 +6123,8 @@ static void m68k_run_mmu040 (void)
 {
 	struct flag_struct f;
 	int halt     = 0;
-    int intr     = 0;
-    int lastintr = 0;
+	int intr     = 0;
+	int lastintr = 0;
 
 	check_halt();
 #ifdef WINUAE_FOR_HATARI
@@ -6132,27 +6148,27 @@ static void m68k_run_mmu040 (void)
 				cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
 
 #ifdef WINUAE_FOR_HATARI
-                M68000_AddCycles(cpu_cycles);
-				
-                run_other_MPUs();
+				M68000_AddCycles(cpu_cycles);
+
+				run_other_MPUs();
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
 				/* We must check for pending interrupt and call do_specialties_interrupt() only */
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-                while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) ) {
-                    CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
-                }
-                
-                /* Previous: for now we poll the interrupt pins with every instruction.
-                 * TODO: only do this when an actual interrupt is active to not
-                 * unneccessarily slow down emulation.
-                 */
-                intr = intlev ();
-                if (intr>regs.intmask || (intr==7 && intr>lastintr))
-                    Exception (intr + 24);
-                lastintr = intr;
+				while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) ) {
+					CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
+				}
+
+				/* Previous: for now we poll the interrupt pins with every instruction.
+				 * TODO: only do this when an actual interrupt is active to not
+				 * unneccessarily slow down emulation.
+				 */
+				intr = intlev ();
+				if (intr>regs.intmask || (intr==7 && intr>lastintr))
+					Exception (intr + 24);
+				lastintr = intr;
 #endif
 
 				if (regs.spcflags) {
@@ -6190,8 +6206,8 @@ static void m68k_run_mmu030 (void)
 {
 	struct flag_struct f;
 	int halt     = 0;
-    int intr     = 0;
-    int lastintr = 0;
+	int intr     = 0;
+	int lastintr = 0;
 
 #ifdef WINUAE_FOR_HATARI
 	Log_Printf(LOG_DEBUG,  "m68k_run_mmu030\n");
@@ -6246,9 +6262,9 @@ insretry:
 					mmu030_idx = 0;
 
 					mmu030_retry = false;
-					
+
 					cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
-					
+
 					cnt--; // so that we don't get in infinite loop if things go horribly wrong
 					if (!mmu030_retry)
 						break;
@@ -6264,9 +6280,9 @@ insretry:
 
 #ifdef WINUAE_FOR_HATARI
 				M68000_AddCycles(cpu_cycles);
-				
+
 				run_other_MPUs();
-				
+
 				/* We can have several interrupts at the same time before the next CPU instruction */
 				/* We must check for pending interrupt and call do_specialties_interrupt() only */
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
@@ -6363,7 +6379,7 @@ static void m68k_run_3ce (void)
 				}
 #endif
 
-				(*cpufunctbl[r->opcode])(r->opcode);
+				(*cpufunctbl_noret[r->opcode])(r->opcode);
 
 #ifndef WINUAE_FOR_PREVIOUS
 //fprintf ( stderr, "cyc_3ce %ld\n" , currcycle );
@@ -6459,7 +6475,7 @@ static void m68k_run_3p(void)
 				}
 #endif
 
-				(*cpufunctbl[r->opcode])(r->opcode);
+				(*cpufunctbl_noret[r->opcode])(r->opcode);
 
 #ifndef WINUAE_FOR_HATARI
 				cpu_cycles = 1 * CYCLE_UNIT;
@@ -6562,7 +6578,7 @@ static void m68k_run_2ce (void)
 						if (cputrace.state > 1)
 							Exception (cputrace.state);
 						else if (cputrace.state == 1)
-							(*cpufunctbl[cputrace.opcode])(cputrace.opcode);
+							(*cpufunctbl_noret[cputrace.opcode])(cputrace.opcode);
 					}
 					set_cpu_tracer (false);
 					goto cont;
@@ -6664,7 +6680,7 @@ fprintf ( stderr , "cache valid %d tag1 %x lws1 %x ctag %x data %x mem=%x\n" , c
 				}
 #endif
 
-				(*cpufunctbl[r->opcode])(r->opcode);
+				(*cpufunctbl_noret[r->opcode])(r->opcode);
 		
 				wait_memory_cycles();
 				regs.instruction_cnt++;
