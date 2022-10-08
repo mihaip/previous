@@ -587,9 +587,10 @@ static void uiUpdate(void) {
     // poor man's green-screen - would be nice if SDL had more blending modes...
     for(int i = count; --i >= 0; src++)
         *dst++ = *src == mask ? 0 : *src;
-    SDL_AtomicSet(&blitUI, 1);
     SDL_AtomicUnlock(&uiBufferLock);
     SDL_UnlockSurface(sdlscrn);
+	SDL_Delay(1); // FIXME: find a better way to prevent invisible GUI elements
+	SDL_AtomicSet(&blitUI, 1);
 }
 
 void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects) {

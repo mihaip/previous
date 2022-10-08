@@ -1,10 +1,10 @@
 /*
  * Hatari - symbols.c
  * 
- * Copyright (C) 2010 by Eero Tamminen
+ * Copyright (C) 2010-2019 by Eero Tamminen
  * 
- * This file is distributed under the GNU Public License, version 2 or at
- * your option any later version. Read the file gpl.txt for details.
+ * This file is distributed under the GNU General Public License, version 2
+ * or at your option any later version. Read the file gpl.txt for details.
  * 
  * symbols.c - Hatari debugger symbol/address handling; parsing, sorting,
  * matching, TAB completion support etc.
@@ -14,7 +14,7 @@
  * type (T = text/code, D = data, B = BSS), space and the symbol name.
  * Empty lines and lines starting with '#' are ignored.
  */
-const char Symbols_fileid[] = "Hatari symbols.c : " __DATE__ " " __TIME__;
+const char Symbols_fileid[] = "Hatari symbols.c";
 
 #include <ctype.h>
 #include <stdio.h>
@@ -27,12 +27,6 @@ const char Symbols_fileid[] = "Hatari symbols.c : " __DATE__ " " __TIME__;
 #include "evaluate.h"
 
 typedef struct {
-	char *name;
-	uint32_t address;
-	symtype_t type;
-} symbol_t;
-
-typedef struct {
 	unsigned int count;
 	symbol_t *addresses;	/* items sorted by address */
 	symbol_t *names;	/* items sorted by symbol name */
@@ -43,7 +37,6 @@ typedef struct {
  * NOTE: change also sscanf width arg if you change this!!!
  */
 #define MAX_SYM_SIZE 32
-
 
 /* TODO: add symbol name/address file names to configuration? */
 static symbol_list_t *CpuSymbolsList;
@@ -115,7 +108,7 @@ static symbol_list_t* Symbols_Load(const char *filename, uint32_t offset, uint32
 			continue;
 		}
 		/* skip empty lines */
-		for (buf = buffer; isspace(*buf); buf++);
+		for (buf = buffer; isspace((unsigned char)*buf); buf++);
 		if (!*buf) {
 			continue;
 		}
@@ -143,7 +136,7 @@ static symbol_list_t* Symbols_Load(const char *filename, uint32_t offset, uint32
 			continue;
 		}
 		/* skip empty lines */
-		for (buf = buffer; isspace(*buf); buf++);
+		for (buf = buffer; isspace((unsigned char)*buf); buf++);
 		if (!*buf) {
 			continue;
 		}

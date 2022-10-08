@@ -37,11 +37,6 @@
 /*--- the DSP core itself ---*/
 dsp_core_t dsp_core;
 
-/*--- Defines ---*/
-#ifndef M_PI
-#define M_PI	3.141592653589793238462643383279502
-#endif
-
 /*--- Memory size ---*/
 uint32_t DSP_RAMSIZE = DSP_RAMSIZE_24kB;
 

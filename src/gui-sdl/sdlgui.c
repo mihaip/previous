@@ -622,12 +622,6 @@ static void SDLGui_EditField(SGOBJ *dlg, int objnum)
 			{
 				switch (event.type)
 				{
-				 case SDL_WINDOWEVENT:
-					if(event.window.event == SDL_WINDOWEVENT_CLOSE) {
-						bQuitProgram = true;
-						bStopEditing = true;
-					}
-					break;
 				 case SDL_QUIT:                     /* User wants to quit */
 					bQuitProgram = true;
 					bStopEditing = true;
@@ -749,7 +743,6 @@ void SDLGui_DrawDialog(const SGOBJ *dlg)
 	{
 		SDLGui_DrawObj(dlg, i);
 	}
-	SDL_Delay(10); // Previous: Workaround for invisible dialog bug
 	Screen_UpdateRect(pSdlGuiScrn, 0,0,0,0);
 }
 
@@ -1275,7 +1268,55 @@ int SDLGui_DoDialogExt(SGOBJ *dlg, bool (*isEventOut)(SDL_EventType), SDL_Event 
 				break;
 
 			 case SDL_JOYAXISMOTION:
+				value = sdlEvent.jaxis.value;
+				if (value < -3200 || value > 3200)
+				{
+					if(sdlEvent.jaxis.axis == 0)
+					{
+						/* Left-right movement */
+						if (value < 0)
+							retbutton = SDLGui_HandleShortcut(dlg, SG_SHORTCUT_LEFT);
+						else
+							retbutton = SDLGui_HandleShortcut(dlg, SG_SHORTCUT_RIGHT);
+					}
+					else if(sdlEvent.jaxis.axis == 1)
+					{
+						/* Up-Down movement */
+						if (value < 0)
+						{
+							SDLGui_RemoveFocus(dlg, focused);
+							focused = SDLGui_FocusNext(dlg, focused, -1);
+						}
+						else
+						{
+							SDLGui_RemoveFocus(dlg, focused);
+							focused = SDLGui_FocusNext(dlg, focused, +1);
+						}
+					}
+				}
+				break;
+
 			 case SDL_JOYHATMOTION:
+				if (sdlEvent.jhat.value & SDL_HAT_LEFT)
+					retbutton = SDLGui_HandleShortcut(dlg, SG_SHORTCUT_LEFT);
+				else if (sdlEvent.jhat.value & SDL_HAT_RIGHT)
+					retbutton = SDLGui_HandleShortcut(dlg, SG_SHORTCUT_RIGHT);
+				if (sdlEvent.jhat.value & SDL_HAT_UP)
+				{
+					SDLGui_RemoveFocus(dlg, focused);
+					focused = SDLGui_FocusNext(dlg, focused, -1);
+				}
+				else if (sdlEvent.jhat.value & SDL_HAT_DOWN)
+				{
+					SDLGui_RemoveFocus(dlg, focused);
+					focused = SDLGui_FocusNext(dlg, focused, +1);
+				}
+				break;
+
+			 case SDL_JOYBUTTONDOWN:
+				retbutton = SDLGui_HandleSelection(dlg, focused, focused);
+				break;
+
 			 case SDL_JOYBALLMOTION:
 			 case SDL_MOUSEMOTION:
 			 case SDL_KEYMAPCHANGED:
@@ -1359,6 +1400,10 @@ int SDLGui_DoDialogExt(SGOBJ *dlg, bool (*isEventOut)(SDL_EventType), SDL_Event 
 				if (sdlEvent.window.event == SDL_WINDOWEVENT_RESIZED)
 				{
 					Screen_SizeChanged();
+				}
+				else if (sdlEvent.window.event == SDL_WINDOWEVENT_CLOSE)
+				{
+					bQuitProgram = true;
 				}
 				else if (sdlEvent.window.event == SDL_WINDOWEVENT_SIZE_CHANGED
 				    || sdlEvent.window.event == SDL_WINDOWEVENT_RESTORED

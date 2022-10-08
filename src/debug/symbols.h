@@ -1,19 +1,27 @@
 /*
  * Hatari - symbols.h
  * 
- * This file is distributed under the GNU Public License, version 2 or at
- * your option any later version. Read the file gpl.txt for details.
+ * This file is distributed under the GNU General Public License, version 2
+ * or at your option any later version. Read the file gpl.txt for details.
  */
 
 #ifndef HATARI_SYMBOLS_H
 #define HATARI_SYMBOLS_H
 
 typedef enum {
-	SYMTYPE_TEXT = 1,
+	SYMTYPE_TEXT = 1,  /* Needs to be smallest number for sorting! */
 	SYMTYPE_DATA = 2,
 	SYMTYPE_BSS  = 4,
-	SYMTYPE_ALL  = SYMTYPE_TEXT|SYMTYPE_DATA|SYMTYPE_BSS
+	SYMTYPE_ABS  = 8,
+	SYMTYPE_ALL  = SYMTYPE_TEXT|SYMTYPE_DATA|SYMTYPE_BSS|SYMTYPE_ABS
 } symtype_t;
+
+typedef struct {
+	char *name;
+	uint32_t address;
+	symtype_t type;
+	bool name_allocated;
+} symbol_t;
 
 extern const char Symbols_Description[];
 
