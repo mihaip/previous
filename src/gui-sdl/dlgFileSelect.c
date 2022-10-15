@@ -110,8 +110,8 @@ static SGOBJ fsdlg[] =
 	{ SGTEXT, SG_EXIT, 0, 2,21, DLGFILENAMES_SIZE,1, dlgfilenames[14] },
 	{ SGTEXT, SG_EXIT, 0, 2,22, DLGFILENAMES_SIZE,1, dlgfilenames[15] },
 	{ SGSCROLLBAR, SG_TOUCHEXIT, 0, 62, 8, 0, 0, NULL },       /* Scrollbar */
-	{ SGBUTTON,   SG_TOUCHEXIT, 0, 62, 7,1,1, "\x01" },          /* Arrow up */
-	{ SGBUTTON,   SG_TOUCHEXIT, 0, 62,22,1,1, "\x02" },          /* Arrow down */
+	{ SGBUTTON,   SG_TOUCHEXIT, 0, 62, 7,1,1, "\x01", SG_SHORTCUT_UP },
+	{ SGBUTTON,   SG_TOUCHEXIT, 0, 62,22,1,1, "\x02", SG_SHORTCUT_DOWN },
 	{ SGCHECKBOX, SG_EXIT, 0, 2,24, 18,1, "Show hidden files" },
 	{ SGBUTTON, SG_DEFAULT, 0, 32,24, 8,1, "Okay" },
 	{ SGBUTTON, SG_CANCEL, 0, 50,24, 8,1, "Cancel" },

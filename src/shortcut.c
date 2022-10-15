@@ -1,12 +1,14 @@
 /*
   Hatari - shortcut.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   Shortcut keys
 */
-const char ShortCut_fileid[] = "Hatari shortcut.c : " __DATE__ " " __TIME__;
+const char ShortCut_fileid[] = "Hatari shortcut.c";
+
+#include <SDL.h>
 
 #include "main.h"
 #include "dialog.h"
@@ -22,9 +24,6 @@ const char ShortCut_fileid[] = "Hatari shortcut.c : " __DATE__ " " __TIME__;
 #include "video.h"
 #include "snd.h"
 #include "statusbar.h"
-
-#include <SDL.h>
-
 
 static SHORTCUTKEYIDX ShortCutKey = SHORTCUT_NONE;  /* current shortcut key */
 
@@ -284,14 +283,14 @@ static SHORTCUTKEYIDX ShortCut_CheckKey(int symkey, int *keys)
 /**
  * Check which Shortcut key is pressed/released.
  * If press is set, store the key array index.
- * Return zero if key didn't match to a shortcut
+ * Return true if key combo matched to a shortcut
  */
-int ShortCut_CheckKeys(int modkey, int symkey, bool press)
+bool ShortCut_CheckKeys(int modkey, int symkey, bool press)
 {
 	SHORTCUTKEYIDX key;
 
 #if defined(__APPLE__)
-    if ((modkey&(KMOD_RCTRL|KMOD_LCTRL)) && (modkey&(KMOD_RALT|KMOD_LALT)))
+	if ((modkey&(KMOD_RCTRL|KMOD_LCTRL)) && (modkey&(KMOD_RALT|KMOD_LALT)))
 #else
 	if (modkey & (KMOD_RALT|KMOD_LGUI|KMOD_RGUI|KMOD_MODE))
 #endif
@@ -300,10 +299,10 @@ int ShortCut_CheckKeys(int modkey, int symkey, bool press)
 		key = ShortCut_CheckKey(symkey, ConfigureParams.Shortcut.withoutModifier);
 
 	if (key == SHORTCUT_NONE)
-		return 0;
+		return false;
 	if (press) {
 		ShortCutKey = key;
 		fprintf(stderr,"Short :%x\n",ShortCutKey);
 	}
-	return 1;
+	return true;
 }

@@ -49,6 +49,7 @@ extern bool File_Write(uint8_t *data, uint32_t size, uint64_t offset, FILE *fp);
 extern bool File_Lock(FILE *fp);
 extern void File_UnLock(FILE *fp);
 extern bool File_InputAvailable(FILE *fp);
+extern const char *File_Basename(const char *path);
 extern void File_MakeAbsoluteSpecialName(char *pszFileName);
 extern void File_MakeAbsoluteName(char *pszFileName);
 extern void File_MakeValidPathName(char *pPathName);

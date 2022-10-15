@@ -1,8 +1,8 @@
 /*
   Hatari - configuration.h
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
 
 #pragma once
@@ -378,16 +378,16 @@ typedef struct
 extern CNF_PARAMS ConfigureParams;
 extern char sConfigFileName[FILENAME_MAX];
 
-void Configuration_SetDefault(void);
-void Configuration_SetSystemDefaults(void);
-void Configuration_Apply(bool bReset);
-int Configuration_CheckMemory(int *banksize);
-int  Configuration_CheckDimensionMemory(int *banksize);
-void Configuration_CheckDimensionSettings(void);
-void Configuration_CheckEthernetSettings(void);
-void Configuration_Load(const char *psFileName);
-void Configuration_Save(void);
-void Configuration_MemorySnapShot_Capture(bool bSave);
+extern void Configuration_SetDefault(void);
+extern void Configuration_SetSystemDefaults(void);
+extern void Configuration_Apply(bool bReset);
+extern int  Configuration_CheckMemory(int *banksize);
+extern int  Configuration_CheckDimensionMemory(int *banksize);
+extern void Configuration_CheckDimensionSettings(void);
+extern void Configuration_CheckEthernetSettings(void);
+extern void Configuration_Load(const char *psFileName);
+extern void Configuration_Save(void);
+extern void Configuration_MemorySnapShot_Capture(bool bSave);
 
 #ifdef __cplusplus
 }

@@ -16,7 +16,7 @@ const char File_fileid[] = "Hatari file.c";
 #include <unistd.h>
 #include <assert.h>
 #include <errno.h>
-#if HAVE_LIBZ
+#if HAVE_ZLIB_H
 #include <zlib.h>
 #endif
 #if defined(WIN32) && !defined(_VCWIN_)
@@ -516,6 +516,17 @@ char * File_FindPossibleExtFileName(const char *pszFileName, const char * const 
 	return NULL;
 }
 
+/*-----------------------------------------------------------------------*/
+/**
+ * Return basename of given path (remove directory names)
+ */
+const char *File_Basename(const char *path)
+{
+	const char *basename;
+	if ((basename = strrchr(path, PATHSEP)))
+		return basename + 1;
+	return path;
+}
 
 /*-----------------------------------------------------------------------*/
 /**

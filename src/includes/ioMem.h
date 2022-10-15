@@ -1,8 +1,8 @@
 /*
   Hatari - ioMem.h
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
 
 #ifndef HATARI_IOMEM_H
@@ -13,9 +13,9 @@
 
 #define IoMem NEXTIo
 
+extern int nIoMemAccessSize;
 extern uint32_t IoAccessBaseAddress;
 extern uint32_t IoAccessCurrentAddress;
-extern int nIoMemAccessSize;
 
 /**
  * Read 32-bit word from IO memory space without interception.
@@ -81,28 +81,28 @@ static inline void IoMem_WriteByte(uint32_t Address, uint8_t Var)
 }
 
 
-void IoMem_Init(void);
-void IoMem_UnInit(void);
+extern void IoMem_Init(void);
+extern void IoMem_UnInit(void);
 
-uae_u32 IoMem_bget(uaecptr addr);
-uae_u32 IoMem_wget(uaecptr addr);
-uae_u32 IoMem_lget(uaecptr addr);
+extern uae_u32 IoMem_bget(uaecptr addr);
+extern uae_u32 IoMem_wget(uaecptr addr);
+extern uae_u32 IoMem_lget(uaecptr addr);
 
-void IoMem_bput(uaecptr addr, uae_u32 val);
-void IoMem_wput(uaecptr addr, uae_u32 val);
-void IoMem_lput(uaecptr addr, uae_u32 val);
+extern void IoMem_bput(uaecptr addr, uae_u32 val);
+extern void IoMem_wput(uaecptr addr, uae_u32 val);
+extern void IoMem_lput(uaecptr addr, uae_u32 val);
 
-void IoMem_BusErrorEvenReadAccess(void);
-void IoMem_BusErrorOddReadAccess(void);
-void IoMem_BusErrorEvenWriteAccess(void);
-void IoMem_BusErrorOddWriteAccess(void);
-void IoMem_VoidRead(void);
-void IoMem_VoidRead_00(void);
-void IoMem_VoidWrite(void);
-void IoMem_WriteWithoutInterception(void);
-void IoMem_ReadWithoutInterception(void);
-void IoMem_WriteWithoutInterceptionButTrace(void);
-void IoMem_ReadWithoutInterceptionButTrace(void);
-void IoMem_Debug(void);
+extern void IoMem_BusErrorEvenReadAccess(void);
+extern void IoMem_BusErrorOddReadAccess(void);
+extern void IoMem_BusErrorEvenWriteAccess(void);
+extern void IoMem_BusErrorOddWriteAccess(void);
+extern void IoMem_VoidRead(void);
+extern void IoMem_VoidRead_00(void);
+extern void IoMem_VoidWrite(void);
+extern void IoMem_WriteWithoutInterception(void);
+extern void IoMem_ReadWithoutInterception(void);
+extern void IoMem_WriteWithoutInterceptionButTrace(void);
+extern void IoMem_ReadWithoutInterceptionButTrace(void);
+extern void IoMem_Debug(void);
 
 #endif

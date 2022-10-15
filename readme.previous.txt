@@ -161,9 +161,6 @@ input devices.
 Issues in Previous:
   > Un-emulated hardware may cause problems when attempted to being used.
   > NeXTdimension emulation does not work on hosts with big endian byte order.
-  > DSP sound has timing related issues. playscore under NeXTstep 0.9 sometimes 
-    produces bad audio in variable speed mode. ScorePlayer under NeXTstep 2.x 
-    produces distorted sound in normal CPU mode.
   > Shortcuts do not work properly or overlap with host commands on some 
     platforms.
   > CPU timings are not correct. You may experience performance differences 

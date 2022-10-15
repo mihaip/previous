@@ -1,8 +1,8 @@
 /*
   Hatari - m68000.h
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
 
 /* 2007/11/10	[NP]	Add pairing for lsr / dbcc (and all variants	*/
@@ -178,13 +178,13 @@ static inline void M68000_AddCycles(int cycles) {
     nCyclesMainCounter += cycles;
 }
 
-void M68000_Init(void);
-void M68000_Reset(bool bCold);
-void M68000_Stop(void);
-void M68000_Start(void);
-void M68000_CheckCpuSettings(void);
-void M68000_BusError (uint32_t addr, int ReadWrite, int Size, int AccessType, uae_u32 val);
-   void M68000_Exception(uint32_t ExceptionVector , int ExceptionSource);
+extern void M68000_Init(void);
+extern void M68000_Reset(bool bCold);
+extern void M68000_Stop(void);
+extern void M68000_Start(void);
+extern void M68000_CheckCpuSettings(void);
+extern void M68000_BusError (uint32_t addr, int ReadWrite, int Size, int AccessType, uae_u32 val);
+extern void M68000_Exception(uint32_t ExceptionVector , int ExceptionSource);
 
 #ifdef __cplusplus
 }
