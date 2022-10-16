@@ -1,8 +1,8 @@
 /*
   Hatari - statusbar.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   Code to draw statusbar area, floppy leds etc.
 
@@ -15,17 +15,19 @@
     to re-initialize / re-draw the statusbar
   - Call Statusbar_SetFloppyLed() to set floppy drive led ON/OFF,
     or call Statusbar_EnableHDLed() to enabled HD led for a while
-  - Whenever screen is redrawn, call Statusbar_Update() to draw the
-    updated information to the statusbar (outside of screen locking)
-  - If screen redraws may be partial, Statusbar_OverlayRestore()
+  - Whenever screen is redrawn, call Statusbar_Update() to update
+    statusbar contents and find out whether and what screen area
+    needs to be updated (outside of screen locking)
+  - If screen redraws can be partial, Statusbar_OverlayRestore()
     needs to be called before locking the screen for drawing and
     Statusbar_OverlayBackup() needs to be called after screen unlocking,
     but before calling Statusbar_Update().  These are needed for
-    hiding the overlay drive led when drive leds are turned OFF.
+    hiding the overlay drive led (= restoring the area that was below
+    them before LED was shown) when drive leds are turned OFF.
   - If other information shown by Statusbar (TOS version etc) changes,
     call Statusbar_UpdateInfo()
 */
-const char Statusbar_fileid[] = "Hatari statusbar.c : " __DATE__ " " __TIME__;
+const char Statusbar_fileid[] = "Hatari statusbar.c";
 
 #include <assert.h>
 #include "main.h"
@@ -35,6 +37,7 @@ const char Statusbar_fileid[] = "Hatari statusbar.c : " __DATE__ " " __TIME__;
 #include "screen.h"
 #include "video.h"
 #include "dimension.hpp"
+#include "str.h"
 
 #include <SDL.h>
 
@@ -334,13 +337,14 @@ void Statusbar_Init(SDL_Surface *surf)
 
 /*-----------------------------------------------------------------------*/
 /**
- * Qeueue new statusbar message 'msg' to be shown for 'msecs' milliseconds
+ * Queue new statusbar message 'msg' to be shown for 'msecs' milliseconds
  */
 void Statusbar_AddMessage(const char *msg, uint32_t msecs)
 {
 	msg_item_t *item;
 
-	if (!ConfigureParams.Screen.bShowStatusbar) {
+	if (!ConfigureParams.Screen.bShowStatusbar)
+	{
 		/* no sense in queuing messages that aren't shown */
 		return;
 	}
@@ -350,13 +354,15 @@ void Statusbar_AddMessage(const char *msg, uint32_t msecs)
 	item->next = MessageList;
 	MessageList = item;
 
-	strncpy(item->msg, msg, MAX_MESSAGE_LEN);
-	item->msg[MAX_MESSAGE_LEN] = '\0';
+	Str_Copy(item->msg, msg, sizeof(item->msg));
 	DEBUGPRINT(("Add message: '%s'\n", item->msg));
 
-	if (msecs) {
+	if (msecs)
+	{
 		item->timeout = msecs;
-	} else {
+	}
+	else
+	{
 		/* show items by default for 2.5 secs */
 		item->timeout = 2500;
 	}
@@ -369,7 +375,8 @@ void Statusbar_AddMessage(const char *msg, uint32_t msecs)
  */
 static char *Statusbar_AddString(char *buffer, const char *more)
 {
-	while(*more) {
+	while (*more)
+	{
 		*buffer++ = *more++;
 	}
 	return buffer;
