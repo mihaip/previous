@@ -1403,7 +1403,8 @@ int SDLGui_DoDialogExt(SGOBJ *dlg, bool (*isEventOut)(SDL_EventType), SDL_Event 
 				}
 				else if (sdlEvent.window.event == SDL_WINDOWEVENT_CLOSE)
 				{
-					bQuitProgram = true;
+					SDL_FlushEvent(SDL_QUIT);
+					retbutton = SDLGUI_QUIT;
 				}
 				else if (sdlEvent.window.event == SDL_WINDOWEVENT_SIZE_CHANGED
 				    || sdlEvent.window.event == SDL_WINDOWEVENT_RESTORED
