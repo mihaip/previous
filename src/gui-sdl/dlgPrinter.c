@@ -110,9 +110,9 @@ void DlgPrinter_Main(void)
 		but = SDLGui_DoDialog(printerdlg);
 		
 		if (but == DLGPRINT_BROWSE) {
-			SDLGui_DirectorySelect(dlgprint_dirname,
-								   ConfigureParams.Printer.szPrintToFileName,
-								   printerdlg[DLGPRINT_DIRECTORY].w);
+			SDLGui_DirConfSelect(dlgprint_dirname,
+			                     ConfigureParams.Printer.szPrintToFileName,
+			                     printerdlg[DLGPRINT_DIRECTORY].w);
 		}
 	}
 	while (but != DLGPRINT_EXIT && but != SDLGUI_QUIT

@@ -195,9 +195,9 @@ void DlgEthernet_Main(void)
 				break;
 				
 			case DLGENET_NFSBROWSE:
-				SDLGui_DirectorySelect(nfs_root_string,
-									   ConfigureParams.Ethernet.szNFSroot,
-									   enetdlg[DLGENET_NFSROOT].w);
+				SDLGui_DirConfSelect(nfs_root_string,
+				                     ConfigureParams.Ethernet.szNFSroot,
+				                     enetdlg[DLGENET_NFSROOT].w);
 				break;
 				
 			default:

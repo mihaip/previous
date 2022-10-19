@@ -656,7 +656,7 @@ static void refreshDrive(char driveletter)
  * within a selected zip file, or NULL if browsing zip files is disallowed.
  * bAllowNew: true if the user is allowed to insert new file names.
  */
-char* SDLGui_FileSelect(const char *title, const char *path_and_name, char **zip_path, bool *readonly, bool bAllowNew)
+char* SDLGui_FileSelect(const char *title, const char *path_and_name, char **zip_path, bool *pReadOnly, bool bAllowNew)
 {
 	struct dirent **files = NULL;
 	char *pStringMem;
@@ -724,11 +724,11 @@ char* SDLGui_FileSelect(const char *title, const char *path_and_name, char **zip
 		fsdlg[SGFSDLG_FILENAME].type = SGTEXT;
 		fsdlg[SGFSDLG_FILENAME].flags &= ~SG_EXIT;
 	}
-	if (readonly)
+	if (pReadOnly)
 	{
 		fsdlg[SGFSDLG_READONLY].type = SGCHECKBOX;
 		sprintf(dlgreadonly, "Write protected");
-		if (*readonly)
+		if (*pReadOnly)
 			fsdlg[SGFSDLG_READONLY].state |= SG_SELECTED;
 		else
 			fsdlg[SGFSDLG_READONLY].state &= ~SG_SELECTED;
@@ -966,7 +966,7 @@ char* SDLGui_FileSelect(const char *title, const char *path_and_name, char **zip
 			switch(retbut)
 			{
 			case SGFSDLG_READONLY:              /* Change disk protection */
-				*readonly = !*readonly;
+				*pReadOnly = !*pReadOnly;
 				break;
 
 			case SGFSDLG_UPDIR:                 /* Change path to parent directory */
@@ -1130,11 +1130,11 @@ clean_exit:
  * (dlgname is shrunken & limited to maxlen and confname is assumed
  * to have FILENAME_MAX amount of space).
  */
-bool SDLGui_FileConfSelect(char *dlgname, char *confname, int maxlen, bool *readonly, bool bAllowNew)
+bool SDLGui_FileConfSelect(char *dlgname, char *confname, int maxlen, bool *pReadOnly, bool bAllowNew)
 {
 	char *selname;
 
-	selname = SDLGui_FileSelect("Choose a file", confname, NULL, readonly, bAllowNew);
+	selname = SDLGui_FileSelect("Choose a file", confname, NULL, pReadOnly, bAllowNew);
 	if (selname)
 	{
 		if (!File_DoesFileNameEndWithSlash(selname) &&
@@ -1154,33 +1154,22 @@ bool SDLGui_FileConfSelect(char *dlgname, char *confname, int maxlen, bool *read
 
 /*-----------------------------------------------------------------------*/
 /**
- * Let user browse for a directory, confname is used as default.
+ * Let user browse given directory.  If one is selected, set directory
+ * to confname & short name to dlgname, and return true, else false.
  *
- * If no directory is selected, or there's some problem with it,
- * return false and clear dlgname & confname.
- * Otherwise return true, set dlgname & confname to the directory name
- * (dlgname is shrinked & limited to maxlen and confname is assumed
- * to have FILENAME_MAX amount of space).
+ * (dlgname is limited to maxlen and confname is assumed to be
+ * Hatari config field with FILENAME_MAX amount of space)
  */
-
-bool SDLGui_DirectorySelect(char *dlgname, char *confname, int maxlen)
+bool SDLGui_DirConfSelect(char *dlgname, char *confname, int maxlen)
 {
 	char *selname;
-	
+
 	selname = SDLGui_FileSelect("Choose a folder", confname, NULL, NULL, false);
 	if (selname)
 	{
 		File_MakeValidPathName(selname);
-		
-		if (File_DirExists(selname))
-		{
-			strncpy(confname, selname, FILENAME_MAX);
-			File_ShrinkName(dlgname, selname, maxlen);
-		}
-		else
-		{
-			dlgname[0] = confname[0] = 0;
-		}
+		Str_Copy(confname, selname, FILENAME_MAX);
+		File_ShrinkName(dlgname, selname, maxlen);
 		free(selname);
 		return true;
 	}
