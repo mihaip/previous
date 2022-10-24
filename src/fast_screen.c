@@ -49,7 +49,6 @@ static bool          doUIblit;
 static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen. Used to restore window size & position. */
 static MONITORTYPE   saveMonitorType;  /* Save monitor type to restore on return from fullscreen */
 static void*         uiBuffer;         /* uiBuffer used for ui texture */
-static void*         uiBufferTmp;      /* Temporary uiBuffer used by repainter */
 static SDL_SpinLock  uiBufferLock;     /* Lock for concurrent access to UI buffer between m68k thread and repainter */
 static uint32_t      mask;             /* green screen mask for transparent UI areas */
 static volatile bool doRepaint = true; /* Repaint thread runs while true */
@@ -204,6 +203,17 @@ static bool blitScreen(SDL_Texture* tex) {
 }
 
 /*
+ Blit user interface to texture.
+ */
+static void blitInterface(SDL_Texture* tex) {
+    void* pixels;
+    int d;
+    SDL_LockTexture(tex, NULL, &pixels, &d);
+    memcpy(pixels, uiBuffer, sdlscrn->h * sdlscrn->pitch);
+    SDL_UnlockTexture(tex);
+}
+
+/*
  Initializes SDL graphics and then enters repaint loop.
  Loop: Blits the NeXT framebuffer to the fbTexture, blends with the GUI surface and
  shows it.
@@ -231,7 +241,6 @@ static int repainter(void* unused) {
     mask = g | a;
     sdlscrn     = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, r, g, b, a);
     uiBuffer    = malloc(sdlscrn->h * sdlscrn->pitch);
-    uiBufferTmp = malloc(sdlscrn->h * sdlscrn->pitch);
     // clear UI with mask
     SDL_FillRect(sdlscrn, NULL, mask);
     
@@ -266,7 +275,6 @@ static int repainter(void* unused) {
     /* Enter repaint loop */
     while(doRepaint) {
         bool updateFB = false;
-        bool updateUI = false;
         
         if (SDL_AtomicGet(&blitFB)) {
             // Blit the NeXT framebuffer to texture
@@ -275,20 +283,15 @@ static int repainter(void* unused) {
         
         // Copy UI surface to texture
         SDL_AtomicLock(&uiBufferLock);
-        if(SDL_AtomicSet(&blitUI, 0)) {
+        if (SDL_AtomicSet(&blitUI, 0)) {
             // update full UI texture
-            memcpy(uiBufferTmp, uiBuffer, sdlscrn->h * sdlscrn->pitch);
-            updateUI = true;
+            blitInterface(uiTexture);
+            updateFB = true;
         }
         SDL_AtomicUnlock(&uiBufferLock);
         
-        if(updateUI) {
-            SDL_Delay(10); // FIXME: Find a better way to prevent invisible GUI elements
-            SDL_UpdateTexture(uiTexture, NULL, uiBufferTmp, sdlscrn->pitch);
-        }
-        
         // Update and render UI texture
-        if (updateFB || updateUI) {
+        if (updateFB) {
             SDL_RenderClear(sdlRenderer);
             // Render NeXT framebuffer texture
             SDL_RenderCopy(sdlRenderer, fbTexture, NULL, &screenRect);
@@ -588,6 +591,7 @@ static void uiUpdate(void) {
     // poor man's green-screen - would be nice if SDL had more blending modes...
     for(int i = count; --i >= 0; src++)
         *dst++ = *src == mask ? 0 : *src;
+    SDL_Delay(10); // FIXME: Find a better way to prevent invisible GUI elements
     SDL_AtomicSet(&blitUI, 1);
     SDL_AtomicUnlock(&uiBufferLock);
     SDL_UnlockSurface(sdlscrn);
