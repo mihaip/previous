@@ -203,17 +203,6 @@ static bool blitScreen(SDL_Texture* tex) {
 }
 
 /*
- Blit user interface to texture.
- */
-static void blitInterface(SDL_Texture* tex) {
-    void* pixels;
-    int d;
-    SDL_LockTexture(tex, NULL, &pixels, &d);
-    memcpy(pixels, uiBuffer, sdlscrn->h * sdlscrn->pitch);
-    SDL_UnlockTexture(tex);
-}
-
-/*
  Initializes SDL graphics and then enters repaint loop.
  Loop: Blits the NeXT framebuffer to the fbTexture, blends with the GUI surface and
  shows it.
@@ -225,7 +214,11 @@ static int repainter(void* unused) {
     SDL_Texture*  fbTexture;
     
     uint32_t r, g, b, a;
-    
+    uint32_t format;
+    int      d;
+    void*    pixels;
+    bool     updateFB;
+	
     SDL_RenderSetLogicalSize(sdlRenderer, width, height);
     
     uiTexture = SDL_CreateTexture(sdlRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, width, height);
@@ -234,8 +227,6 @@ static int repainter(void* unused) {
     fbTexture = SDL_CreateTexture(sdlRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, width, height);
     SDL_SetTextureBlendMode(fbTexture, SDL_BLENDMODE_NONE);
     
-    uint32_t format;
-    int      d;
     SDL_QueryTexture(uiTexture, &format, &d, &d, &d);
     SDL_PixelFormatEnumToMasks(format, &d, &r, &g, &b, &a);
     mask = g | a;
@@ -274,7 +265,7 @@ static int repainter(void* unused) {
     
     /* Enter repaint loop */
     while(doRepaint) {
-        bool updateFB = false;
+        updateFB = false;
         
         if (SDL_AtomicGet(&blitFB)) {
             // Blit the NeXT framebuffer to texture
@@ -285,7 +276,9 @@ static int repainter(void* unused) {
         SDL_AtomicLock(&uiBufferLock);
         if (SDL_AtomicSet(&blitUI, 0)) {
             // update full UI texture
-            blitInterface(uiTexture);
+            SDL_LockTexture(uiTexture, NULL, &pixels, &d);
+            memcpy(pixels, uiBuffer, sdlscrn->h * sdlscrn->pitch);
+            SDL_UnlockTexture(uiTexture);
             updateFB = true;
         }
         SDL_AtomicUnlock(&uiBufferLock);
