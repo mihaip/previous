@@ -49,6 +49,7 @@ static bool          doUIblit;
 static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen. Used to restore window size & position. */
 static MONITORTYPE   saveMonitorType;  /* Save monitor type to restore on return from fullscreen */
 static void*         uiBuffer;         /* uiBuffer used for ui texture */
+static void*         uiBufferTmp;      /* Temporary uiBuffer used by repainter */
 static SDL_SpinLock  uiBufferLock;     /* Lock for concurrent access to UI buffer between m68k thread and repainter */
 static uint32_t      mask;             /* green screen mask for transparent UI areas */
 static volatile bool doRepaint = true; /* Repaint thread runs while true */
@@ -214,11 +215,7 @@ static int repainter(void* unused) {
     SDL_Texture*  fbTexture;
     
     uint32_t r, g, b, a;
-    uint32_t format;
-    int      d;
-    void*    pixels;
-    bool     updateFB;
-	
+    
     SDL_RenderSetLogicalSize(sdlRenderer, width, height);
     
     uiTexture = SDL_CreateTexture(sdlRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, width, height);
@@ -227,11 +224,14 @@ static int repainter(void* unused) {
     fbTexture = SDL_CreateTexture(sdlRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, width, height);
     SDL_SetTextureBlendMode(fbTexture, SDL_BLENDMODE_NONE);
     
+    uint32_t format;
+    int      d;
     SDL_QueryTexture(uiTexture, &format, &d, &d, &d);
     SDL_PixelFormatEnumToMasks(format, &d, &r, &g, &b, &a);
     mask = g | a;
     sdlscrn     = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, r, g, b, a);
     uiBuffer    = malloc(sdlscrn->h * sdlscrn->pitch);
+    uiBufferTmp = malloc(sdlscrn->h * sdlscrn->pitch);
     // clear UI with mask
     SDL_FillRect(sdlscrn, NULL, mask);
     
@@ -265,7 +265,8 @@ static int repainter(void* unused) {
     
     /* Enter repaint loop */
     while(doRepaint) {
-        updateFB = false;
+        bool updateFB = false;
+        bool updateUI = false;
         
         if (SDL_AtomicGet(&blitFB)) {
             // Blit the NeXT framebuffer to texture
@@ -274,17 +275,19 @@ static int repainter(void* unused) {
         
         // Copy UI surface to texture
         SDL_AtomicLock(&uiBufferLock);
-        if (SDL_AtomicSet(&blitUI, 0)) {
+        if(SDL_AtomicSet(&blitUI, 0)) {
             // update full UI texture
-            SDL_LockTexture(uiTexture, NULL, &pixels, &d);
-            memcpy(pixels, uiBuffer, sdlscrn->h * sdlscrn->pitch);
-            SDL_UnlockTexture(uiTexture);
-            updateFB = true;
+            memcpy(uiBufferTmp, uiBuffer, sdlscrn->h * sdlscrn->pitch);
+            updateUI = true;
         }
         SDL_AtomicUnlock(&uiBufferLock);
         
+        if(updateUI) {
+            SDL_UpdateTexture(uiTexture, NULL, uiBufferTmp, sdlscrn->pitch);
+        }
+        
         // Update and render UI texture
-        if (updateFB) {
+        if (updateFB || updateUI) {
             SDL_RenderClear(sdlRenderer);
             // Render NeXT framebuffer texture
             SDL_RenderCopy(sdlRenderer, fbTexture, NULL, &screenRect);
