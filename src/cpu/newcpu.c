@@ -2132,13 +2132,13 @@ static uae_u32 cycles_mult;
 
 static void update_68k_cycles (void)
 {
-	cycles_mult = 0;
 #ifdef WINUAE_FOR_HATARI
 #ifndef WINUAE_FOR_PREVIOUS
 	Log_Printf(LOG_DEBUG, "update cyc speed %d throttle %f clock_mult %d\n", currprefs.m68k_speed, currprefs.m68k_speed_throttle, changed_prefs.cpu_clock_multiplier);
 #endif // WINUAE_FOR_PREVIOUS
+	cycles_mult = CYCLES_DIV;
 #else	/* Don't adjust cycles_mult in Hatari and ignore m68k_speed (forced to 0) */
-
+	cycles_mult = 0;
 	if (currprefs.m68k_speed == 0) { // approximate
 		cycles_mult = CYCLES_DIV;
 		if (currprefs.cpu_model >= 68040) {
@@ -2383,11 +2383,16 @@ STATIC_INLINE void wait_memory_cycles (void)
 
 STATIC_INLINE int adjust_cycles (int cycles)
 {
+#ifndef WINUAE_FOR_HATARI
 	int mc = regs.memory_waitstate_cycles;
 	regs.memory_waitstate_cycles = 0;
 	cycles *= cycles_mult;
 	cycles /= CYCLES_DIV;
 	return cycles + mc;
+#else
+	/* Don't adjust cycles in Hatari, return the same value */
+	return cycles;
+#endif
 }
 
 void m68k_cancel_idle(void)
