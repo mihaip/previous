@@ -587,29 +587,23 @@ static void Main_SetSignalHandlers(void) {
  * 
  * Note: 'argv' cannot be declared const, MinGW would then fail to link.
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	/* Generate random seed */
 	srand(time(NULL));
-    
+
     /* Set signal handlers */
     Main_SetSignalHandlers();
 
 	/* Initialize directory strings */
 	Paths_Init(argv[0]);
 
-	/* Set default configuration values: */
+	/* Set default configuration values */
 	Configuration_SetDefault();
 
 	/* Now load the values from the configuration file */
 	Main_LoadInitialConfig();
-    
-#if 0 /* FIXME: This sometimes causes exits when starting from application bundles */
-	/* Check for any passed parameters */
-	if (!Opt_ParseParameters(argc, (const char * const *)argv))
-	{
-		return 1;
-	}
-#endif
+
 	/* monitor type option might require "reset" -> true */
 	Configuration_Apply(true);
 
@@ -617,11 +611,13 @@ int main(int argc, char *argv[]) {
 	Win_OpenCon();
 #endif
 
-	/* Needed on maemo but useful also with normal X11 window managers
-	 * for window grouping when you have multiple Hatari SDL windows open
-	 */
 #if HAVE_SETENV
-	setenv("SDL_VIDEO_X11_WMCLASS", "previous", 1);
+	/* Needed on maemo but useful also with normal X11 window managers for
+	 * window grouping when you have multiple Hatari SDL windows open */
+	setenv("SDL_VIDEO_X11_WMCLASS", "hatari", 1);
+
+	/* Needed for proper behavior of Caps Lock on some systems */
+	setenv("SDL_DISABLE_LOCK_KEYS", "1", 1);
 #endif
 
 	/* Init emulator system */
