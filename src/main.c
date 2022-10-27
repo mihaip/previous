@@ -1,16 +1,18 @@
 /*
   Hatari - main.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   Main initialization and event handling routines.
 */
-const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
+const char Main_fileid[] = "Hatari main.c";
 
 #include <time.h>
 #include <errno.h>
 #include <signal.h>
+
+#include <SDL.h>
 
 #include "main.h"
 #include "configuration.h"
@@ -340,7 +342,7 @@ void Main_EventHandler(void) {
             case SDL_WINDOWEVENT:
                 switch(event.window.event) {
                     case SDL_WINDOWEVENT_CLOSE:
-                        SDL_WaitEventTimeout(&event, 100); // grab SDL_Quit if pending
+                        SDL_FlushEvent(SDL_QUIT); // remove SDL_Quit if pending
                         Main_RequestQuit();
                         break;
                     case SDL_WINDOWEVENT_RESIZED:
