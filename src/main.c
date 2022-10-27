@@ -615,8 +615,8 @@ int main(int argc, char *argv[])
 
 #if HAVE_SETENV
 	/* Needed on maemo but useful also with normal X11 window managers for
-	 * window grouping when you have multiple Hatari SDL windows open */
-	setenv("SDL_VIDEO_X11_WMCLASS", "hatari", 1);
+	 * window grouping when you have multiple Previous SDL windows open */
+	setenv("SDL_VIDEO_X11_WMCLASS", "previous", 1);
 
 	/* Needed for proper behavior of Caps Lock on some systems */
 	setenv("SDL_DISABLE_LOCK_KEYS", "1", 1);
