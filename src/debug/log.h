@@ -1,8 +1,8 @@
 /*
   Hatari - log.h
   
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 */
 #ifndef HATARI_LOG_H
 #define HATARI_LOG_H
@@ -12,6 +12,7 @@ extern "C" {
 #endif /* __cplusplus */
     
 #include <stdbool.h>
+#include <stdint.h>
 
 
 /* Logging
@@ -75,7 +76,7 @@ extern char *Log_MatchTrace(const char *text, int state);
  */
 #include "config.h"
 
-/* Up to 64 levels when using uint32_t for HatariTraceFlags */
+/* Up to 64 levels when using uint64_t for HatariTraceFlags */
 
 #define	TRACE_MFP_EXCEPTION	 (1<<9)
 #define	TRACE_MFP_START 	 (1<<10)

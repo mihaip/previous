@@ -2,14 +2,14 @@ cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 
 project(Previous)
 
-SET(APP_NAME "Previous")
+set(APP_NAME "Previous")
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
-include(CheckCCompilerFlag)
 include(CheckStructHasMember)
+include(CheckCCompilerFlag)
 include(DistClean)
 
 # Set build type to "Release" if user did not specify any build type yet
@@ -29,7 +29,7 @@ set(ENABLE_TRACING 1
 
 if(APPLE)
 	set(ENABLE_OSX_BUNDLE 1
-	    CACHE BOOL "Built Previous as Mac OS X application bundle")
+	    CACHE BOOL "Built Previous as macOS application bundle")
 	# set(CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "Target architectures" FORCE)
 	# set(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.6.sdk" CACHE STRING "10.6 SDK" FORCE)
 	# set(CMAKE_OSX_DEPLOYMENT_TARGET "10.5" CACHE STRING "Target Min 10.5" FORCE)
@@ -37,7 +37,7 @@ if(APPLE)
 	set_source_files_properties(${FRAMEWORKS} PROPERTIES MACOSX_PACKAGE_LOCATION Frameworks)
 else()
 	set(ENABLE_OSX_BUNDLE 0
-	    CACHE BOOL "Built Hatari as Mac OS X application bundle")
+	    CACHE BOOL "Built Previous as macOS application bundle")
 endif(APPLE)
 
 # ####################

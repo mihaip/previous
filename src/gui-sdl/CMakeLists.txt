@@ -1,5 +1,5 @@
 
-include_directories(. ../.. ../debug ../includes)
+include_directories(. ../.. ../debug ../includes ${SDL2_INCLUDE_DIRS})
 
 if(PCAP_FOUND)
     include_directories(${PCAP_INCLUDE_DIR})

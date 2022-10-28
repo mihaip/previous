@@ -1,5 +1,5 @@
 
-include_directories(. ../.. ../debug ../includes) 
+include_directories(. ../.. ../debug ../includes ${SDL2_INCLUDE_DIRS}) 
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-write-strings")
 

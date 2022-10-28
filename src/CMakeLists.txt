@@ -1,3 +1,4 @@
+
 set(SOURCES
 	adb.c audio.c bmap.c cfgopts.c configuration.c change.c cycInt.c 
 	dialog.c dma.c esp.c enet_slirp.c enet_pcap.c ethernet.c file.c 
@@ -7,7 +8,7 @@ set(SOURCES
 	scsi.c shortcut.c snd.c statusbar.c str.c sysReg.c tmc.c unzip.c 
 	video.c zip.c)
 
-# When building for OSX, define specific sources for gui and ressources
+# When building for macOS, define specific sources for gui and ressources
 if(ENABLE_OSX_BUNDLE)
 	set(GUIOSX_RSRCS
 	    gui-osx/Previous.icns gui-osx/English.lproj gui-osx/French.lproj)
@@ -15,7 +16,7 @@ endif(ENABLE_OSX_BUNDLE)
 
 
 # When building for Windows, define specific sources for gui and resources
-# and set the subsytem of the resulting .exe to "windows GUI" instead of "console"
+# and set the subsystem of the resulting .exe to "windows GUI" instead of "console"
 if(WIN32)
 	set(GUIWIN_SOURCES gui-win/opencon.c)
     set(GUIWIN_RES gui-win/previous-winicon.rc)
@@ -23,8 +24,8 @@ if(WIN32)
 	add_definitions(-DSDL_MAIN_HANDLED)
 endif(WIN32)
 
-include_directories(${CMAKE_BINARY_DIR} includes debug softfloat cpu
-		    dsp dimension slirp)
+include_directories(includes debug dsp softfloat dimension slirp
+		    ${CMAKE_BINARY_DIR} ${SDL2_INCLUDE_DIRS} cpu)
 
 if(ZLIB_FOUND)
 	include_directories(${ZLIB_INCLUDE_DIR})
