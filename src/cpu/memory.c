@@ -1159,8 +1159,8 @@ const char* memory_init(int *nNewNEXTMemSize)
 		}
 		write_log("Mapping NextBus slot memory at $%08x\n", NEXTBUS_SLOT_START(i));
 	}
-    nextbus_init();
-    
+	nextbus_init();
+
 	ROMmemory=NEXTRom;
 	IOmemory=NEXTIo;
 	

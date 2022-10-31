@@ -69,7 +69,7 @@ uae_u32 wait_cpu_cycle_read (uaecptr addr, int mode)
 	uae_u32 v = 0;
 #ifndef WINUAE_FOR_HATARI
 	int hpos;
-	int ipl = regs.ipl_pin;
+	int ipl = regs.ipl[0];
 	evt_t now = get_cycles();
 
 	sync_cycles();
@@ -132,7 +132,7 @@ uae_u32 wait_cpu_cycle_read (uaecptr addr, int mode)
 	}
 
 #else						/* WINUAE_FOR_HATARI */
-	int ipl = regs.ipl_pin;
+	int ipl = regs.ipl[0];
 	evt_t now = get_cycles();
 
 #ifndef WINUAE_FOR_PREVIOUS
@@ -180,7 +180,7 @@ void wait_cpu_cycle_write (uaecptr addr, int mode, uae_u32 v)
 {
 #ifndef WINUAE_FOR_HATARI
 	int hpos;
-	int ipl = regs.ipl_pin;
+	int ipl = regs.ipl[0];
 	evt_t now = get_cycles();
 
 	sync_cycles();
@@ -227,7 +227,7 @@ void wait_cpu_cycle_write (uaecptr addr, int mode, uae_u32 v)
 	}
 
 #else						/* WINUAE_FOR_HATARI */
-	int ipl = regs.ipl_pin;
+	int ipl = regs.ipl[0];
 	evt_t now = get_cycles();
 
 #ifndef WINUAE_FOR_PREVIOUS

@@ -59,7 +59,6 @@ static int trace_mode;
 static uae_u32 trace_param[3];
 
 #ifdef WINUAE_FOR_HATARI
-//#include "stMemory.h"
 int debugger_active;
 static int debug_mmu_mode;
 int debugging;
@@ -5387,11 +5386,19 @@ static struct regstruct trace_prev_regs;
 #endif
 static uaecptr nextpc;
 
-int instruction_breakpoint (TCHAR **c)
+int instruction_breakpoint(TCHAR **c)
 {
 	struct breakpoint_node *bpn;
+	int bpcnt = 0;
 	int i;
 
+	if (more_params(c)) {
+		TCHAR nc = _totupper((*c)[0]);
+		if (nc == 'N') {
+			next_char(c);
+			bpcnt = readint(c);
+		}
+	}
 	if (more_params (c)) {
 		TCHAR nc = _totupper ((*c)[0]);
 		if (nc == 'O') {
@@ -5401,6 +5408,7 @@ int instruction_breakpoint (TCHAR **c)
 				int bpidx = readint(c);
 				if (more_params(c) && bpidx >= 0 && bpidx < BREAKPOINT_TOTAL) {
 					bpn = &bpnodes[bpidx];
+					bpn->cnt = bpcnt;
 					int regid = getregidx(c);
 					if (regid >= 0) {
 						bpn->type = regid;
@@ -5506,6 +5514,7 @@ int instruction_breakpoint (TCHAR **c)
 				bpn->value1 = trace_param[0];
 				bpn->type = BREAKPOINT_REG_PC;
 				bpn->oper = BREAKPOINT_CMP_EQUAL;
+				bpn->cnt = bpcnt;
 				bpn->enabled = 1;
 				console_out (_T("Breakpoint added.\n"));
 				trace_mode = 0;
@@ -7042,8 +7051,16 @@ void debug (void)
 				debug_continue();
 				return;
 			}
-			if (bp > 0)
+			if (bp > 0) {
+				if (bpnodes[bp - 1].cnt > 0) {
+					bpnodes[bp - 1].cnt--;
+				}
+				if (bpnodes[bp - 1].cnt > 0) {
+					debug_continue();
+					return;
+				}
 				console_out_f(_T("Breakpoint %d triggered.\n"), bp - 1);
+			}
 			debug_cycles(1);
 		}
 	} else {
