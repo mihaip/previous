@@ -181,7 +181,7 @@ void Main_RequestQuit(void) {
 
 	if (bQuitProgram) {
 		/* Assure that CPU core shuts down */
-		M68000_SetSpecial(SPCFLAG_BRK);
+		M68000_Stop();
 	}
 }
 

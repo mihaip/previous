@@ -193,3 +193,8 @@ void Dialog_CheckFiles(void) {
         }
     }
 }
+
+void Dialog_HaltDlg(void) {
+    if (!DlgAlert_Query("Fatal error: CPU halted!\n\nPress OK to restart CPU or cancel to quit."))
+        Main_RequestQuit();
+}

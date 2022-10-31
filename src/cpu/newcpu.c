@@ -6091,9 +6091,7 @@ void cpu_halt (int id)
 	}
 	set_special(SPCFLAG_CHECK);
 #else
-	write_log (_T("CPU halted: reason = %d PC=%08x\n"), id, M68K_GETPC);
-	if (!DlgAlert_Query("Fatal error: CPU halted!\n\nPress OK to restart CPU or cancel to quit."))
-		set_special(SPCFLAG_BRK);
+	Dialog_HaltDlg();
 #endif
 }
 

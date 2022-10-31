@@ -25,6 +25,7 @@ extern bool DlgEthernetAdvanced_GetRomMAC(uint8_t *mac);
 extern void DlgEthernetAdvanced_GetMAC(uint8_t *mac);
 extern void DlgSound_Main(void);
 extern void DlgPrinter_Main(void);
+extern void Dialog_HaltDlg(void);
 extern void Dialog_KeyboardDlg(void);
 extern void Dialog_MouseDlg(void);
 extern bool Dialog_MemDlg(void);
