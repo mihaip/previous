@@ -9,23 +9,21 @@
 
 class NDSDL {
     int           slot;
-    volatile bool doRepaint;
-    SDL_Thread*   repaintThread;
     SDL_Window*   ndWindow;
     SDL_Renderer* ndRenderer;
+    SDL_Texture*  ndTexture;
     SDL_atomic_t  blitNDFB;
-    uint32_t*     vram;
-    
-    static int    repainter(void *_this);
-    int           repainter(void);
+    SDL_SpinLock  bufferLock;
+    uint32_t      buffer[1024*1024];
 public:
     static volatile bool ndVBLtoggle;
     static volatile bool ndVideoVBLtoggle;
 
-    NDSDL(int slot, uint32_t* vram);
+    NDSDL(int slot);
     void    init(void);
     void    uninit(void);
-    void    pause(bool pause);
+    void    copy(uint8_t* vram);
+    void    repaint(void);
     void    resize(float scale);
     void    destroy(void);
     void    start_interrupts();
@@ -39,6 +37,7 @@ extern "C" {
     
     void nd_vbl_handler(void);
     void nd_video_vbl_handler(void);
+    void nd_sdl_repaint(void);
     void nd_sdl_resize(float scale);
     void nd_sdl_show(void);
     void nd_sdl_hide(void);

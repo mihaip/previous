@@ -59,7 +59,7 @@ i860_cpu_device::i860_cpu_device(NextDimension* nd) : nd(nd) {
     m_thread = NULL;
     m_halt   = true;
     
-    sprintf(m_thread_name, "[ND] Slot %d: i860", nd->slot);
+    sprintf(m_thread_name, "[Previous] i860 at slot %d", nd->slot);
     
     for(int i = 0; i < 8192; i++) {
         int upper6 = i >> 7;

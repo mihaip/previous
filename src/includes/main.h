@@ -67,7 +67,7 @@ enum {
 /* Flag for pausing m68k thread (used by i860 debugger) */
 extern volatile int mainPauseEmulation;
 
-extern bool bQuitProgram;
+extern volatile bool bQuitProgram;
 
 extern bool Main_PauseEmulation(bool visualize);
 extern bool Main_UnPauseEmulation(void);

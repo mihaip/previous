@@ -20,7 +20,7 @@ extern int Keymap_GetKeyFromName(const char *name);
 extern const char *Keymap_GetKeyName(int keycode);
 
 extern void Keymap_MouseWheel(SDL_MouseWheelEvent* event);
-extern void Keymap_MouseMove(int dx, int dy, float lin, float exp);
+extern void Keymap_MouseMove(int dx, int dy);
 extern void Keymap_MouseDown(bool left);
 extern void Keymap_MouseUp(bool left);
 

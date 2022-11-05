@@ -13,45 +13,25 @@
 volatile bool NDSDL::ndVBLtoggle;
 volatile bool NDSDL::ndVideoVBLtoggle;
 
-NDSDL::NDSDL(int slot, uint32_t* vram) : slot(slot), doRepaint(true), repaintThread(NULL), ndWindow(NULL), ndRenderer(NULL), vram(vram) {}
+NDSDL::NDSDL(int slot) : slot(slot), ndWindow(NULL), ndRenderer(NULL), ndTexture(NULL) {}
 
-int NDSDL::repainter(void *_this) {
-    return ((NDSDL*)_this)->repainter();
-}
-
-int NDSDL::repainter(void) {
-    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_NORMAL);
-    
-    SDL_Texture*  ndTexture  = NULL;
-    
-    SDL_Rect r = {0,0,1120,832};
-    
-    SDL_RenderSetLogicalSize(ndRenderer, r.w, r.h);
-    ndTexture = SDL_CreateTexture(ndRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, r.w, r.h);
-    
-    SDL_AtomicSet(&blitNDFB, 1);
-    
-    while(doRepaint) {
-        if (SDL_AtomicGet(&blitNDFB)) {
-            blitDimension(vram, ndTexture);
-            SDL_RenderClear(ndRenderer);
-            SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
-            SDL_RenderPresent(ndRenderer);
-        } else {
-            host_sleep_ms(100);
-        }
+void NDSDL::repaint(void) {
+    if (SDL_AtomicSet(&blitNDFB, 0)) {
+        SDL_AtomicLock(&bufferLock);
+        blitDimension(buffer, ndTexture);
+        SDL_AtomicUnlock(&bufferLock);
+        SDL_RenderClear(ndRenderer);
+        SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
+        SDL_RenderPresent(ndRenderer);
     }
-
-    SDL_DestroyTexture(ndTexture);
-
-    return 0;
 }
 
 void NDSDL::init(void) {
     int x, y, w, h;
     char title[32], name[32];
+    SDL_Rect r = {0,0,1120,832};
 
-    if(!ndWindow) {
+    if (!ndWindow) {
         SDL_GetWindowPosition(sdlWindow, &x, &y);
         SDL_GetWindowSize(sdlWindow, &w, &h);
         h = (w * 832) / 1120;
@@ -59,40 +39,58 @@ void NDSDL::init(void) {
         ndWindow = SDL_CreateWindow(title, x+14*slot, y+14*slot, w, h, SDL_WINDOW_HIDDEN | SDL_WINDOW_ALLOW_HIGHDPI);
         
         if (!ndWindow) {
-            fprintf(stderr,"[ND] Slot %i: Failed to create window!\n", slot);
+            fprintf(stderr,"[ND] Slot %i: Failed to create window! (%s)\n", slot, SDL_GetError());
             exit(-1);
         }
     }
     
-    if (!(repaintThread) && ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
-        ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
         if (!ndRenderer) {
-            fprintf(stderr,"[ND] Slot %i: Failed to create renderer!\n", slot);
-            exit(-1);
+            ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED);
+            
+            if (!ndRenderer) {
+                fprintf(stderr,"[ND] Slot %i: Failed to create renderer! (%s)\n", slot, SDL_GetError());
+                exit(-1);
+            }
+            SDL_RenderSetLogicalSize(ndRenderer, r.w, r.h);
+            
+            ndTexture = SDL_CreateTexture(ndRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, r.w, r.h);
         }
-        
-        sprintf(name, "[ND] Slot %i: Repainter", slot);
-        repaintThread = SDL_CreateThread(NDSDL::repainter, name, this);
-    }
 
-    if(ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
         SDL_ShowWindow(ndWindow);
     } else {
         SDL_HideWindow(ndWindow);
     }
 }
 
-void NDSDL::start_interrupts() {
+void NDSDL::start_interrupts(void) {
     CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VBL);
     CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VIDEO_VBL);
 }
 
 // called from m68k thread
+void NDSDL::copy(uint8_t* vram) {
+    SDL_AtomicLock(&bufferLock);
+    memcpy(buffer, vram, ND_VRAM_SIZE);
+    SDL_AtomicSet(&blitNDFB, 1);
+    SDL_AtomicUnlock(&bufferLock);
+}
+
+// called from 68k thread
 void nd_vbl_handler(void)       {
     CycInt_AcknowledgeInterrupt();
 
     FOR_EACH_SLOT(slot) {
         IF_NEXT_DIMENSION(slot, nd) {
+            if (NDSDL::ndVBLtoggle) {
+                if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
+                    nd->sdl.copy(nd->vram);
+                } else if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DIMENSION) {
+                    if (ConfigureParams.Screen.nMonitorNum == ND_NUM(slot)) {
+                        Screen_CopyBuffer(nd->vram, ND_VRAM_SIZE);
+                    }
+                }
+            }
             host_blank(nd->slot, ND_DISPLAY, NDSDL::ndVBLtoggle);
             nd->i860.i860cycles = (1000*1000*33)/136;
         }
@@ -123,17 +121,17 @@ void NDSDL::uninit(void) {
     SDL_HideWindow(ndWindow);
 }
 
-void NDSDL::pause(bool pause) {
-    if (!pause && ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
-        SDL_AtomicSet(&blitNDFB, 1);
-    } else {
-        SDL_AtomicSet(&blitNDFB, 0);
-    }
-}
-
 void NDSDL::resize(float scale) {
     if (ndWindow) {
         SDL_SetWindowSize(ndWindow, 1120*scale, 832*scale);
+    }
+}
+
+void nd_sdl_repaint(void) {
+    FOR_EACH_SLOT(slot) {
+        IF_NEXT_DIMENSION(slot, nd) {
+            nd->sdl.repaint();
+        }
     }
 }
 
@@ -156,7 +154,6 @@ void nd_sdl_show(void) {
 void nd_sdl_hide(void) {
     FOR_EACH_SLOT(slot) {
         IF_NEXT_DIMENSION(slot, nd) {
-            nd->sdl.pause(true);
             nd->sdl.uninit();
         }
     }
@@ -171,9 +168,7 @@ void nd_sdl_destroy(void) {
 }
 
 void NDSDL::destroy(void) {
-    doRepaint = false; // stop repaint thread
-    int s;
-    SDL_WaitThread(repaintThread, &s);
+    SDL_DestroyTexture(ndTexture);
     SDL_DestroyRenderer(ndRenderer);
     SDL_DestroyWindow(ndWindow);
     uninit();

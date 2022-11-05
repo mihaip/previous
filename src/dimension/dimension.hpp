@@ -6,6 +6,8 @@
 /* NeXTdimension memory controller revision (0 and 1 allowed) */
 #define ND_STEP 1
 
+#define ND_VRAM_SIZE (4*1024*1024)
+
 #define ND_SLOT(num) ((num)*2+2)
 #define ND_NUM(slot) ((slot)/2-1)
 
@@ -17,7 +19,7 @@ extern "C" {
     extern i860_run_func i860_Run;
     void nd_start_debugger(void);
     const char* nd_reports(uint64_t realTime, uint64_t hostTime);
-    uint32_t* nd_vram_for_slot(int slot);
+    void nd_vram_for_slot(uint8_t* vram, int slot);
     
 #define ND_LOG_IO_RD LOG_NONE
 #define ND_LOG_IO_WR LOG_NONE

@@ -13,7 +13,6 @@ const char Keymap_fileid[] = "Hatari keymap.c : " __DATE__ " " __TIME__;
 #include "keymap.h"
 #include "configuration.h"
 #include "file.h"
-#include "shortcut.h"
 #include "str.h"
 #include "screen.h"
 #include "debugui.h"
@@ -433,11 +432,6 @@ void Keymap_KeyDown(SDL_Keysym *sdlkey)
 {
     uint8_t next_mod, next_key;
 
-    if (ShortCut_CheckKeys(sdlkey->mod, sdlkey->sym, 1)) { // Check if we pressed a shortcut
-        ShortCut_ActKey();
-        return;
-    }
-    
     if (ConfigureParams.Keyboard.nKeymapType==KEYMAP_SYMBOLIC) {
         next_key = Keymap_GetKeyFromSymbol(sdlkey->sym);
         next_mod = Keymap_Keydown_GetModFromSymbol(sdlkey->sym);
@@ -459,9 +453,6 @@ void Keymap_KeyDown(SDL_Keysym *sdlkey)
 void Keymap_KeyUp(SDL_Keysym *sdlkey) {
     uint8_t next_mod, next_key;
 
-    if (ShortCut_CheckKeys(sdlkey->mod, sdlkey->sym, 0))
-		return;
-    
     if (ConfigureParams.Keyboard.nKeymapType==KEYMAP_SYMBOLIC) {
         next_key = Keymap_GetKeyFromSymbol(sdlkey->sym);
         next_mod = Keymap_Keyup_GetModFromSymbol(sdlkey->sym);
@@ -511,59 +502,20 @@ void Keymap_SimulateCharacter(char asckey, bool press)
 /**
  * User moved mouse
  */
-void Keymap_MouseMove(int dx, int dy, float lin, float exp)
+void Keymap_MouseMove(int dx, int dy)
 {
-    static bool s_left=false;
-    static bool s_up=false;
-    static float s_fdx=0.0;
-    static float s_fdy=0.0;
+    bool left = false;
+    bool up   = false;
     
-    bool left=false;
-    bool up=false;
-    float fdx;
-    float fdy;
-    
-    if ((dx!=0) || (dy!=0)) {
-        /* Remove the sign */
-        if (dx<0) {
-            dx=-dx;
-            left=true;
-        }
-        if (dy<0) {
-            dy=-dy;
-            up=true;
-        }
-        
-        /* Exponential adjustmend */
-        fdx = pow(dx, exp);
-        fdy = pow(dy, exp);
-        
-        /* Linear adjustment */
-        fdx *= lin;
-        fdy *= lin;
-        
-        /* Add residuals */
-        if (left==s_left) {
-            s_fdx+=fdx;
-        } else {
-            s_fdx=fdx;
-            s_left=left;
-        }
-        if (up==s_up) {
-            s_fdy+=fdy;
-        } else {
-            s_fdy=fdy;
-            s_up=up;
-        }
-        
-        /* Convert to integer and save residuals */
-        dx=s_fdx;
-        s_fdx-=dx;
-        dy=s_fdy;
-        s_fdy-=dy;
-        //printf("adjusted: dx=%i, dy=%i\n",dx,dy);
-        kms_mouse_move(dx, left, dy, up);
+    if (dx < 0) {
+        dx = -dx;
+        left = true;
     }
+    if (dy < 0) {
+        dy = -dy;
+        up = true;
+    }
+    kms_mouse_move(dx, left, dy, up);
 }
 
 /*-----------------------------------------------------------------------*/

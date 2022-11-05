@@ -33,7 +33,7 @@ NextDimension::NextDimension(int slot) :
     vram(malloc_aligned(4*1024*1024)),
     rom(malloc_aligned(128*1024)),
     rom_last_addr(0),
-    sdl(slot, (uint32_t*)vram),
+    sdl(slot),
     i860(this),
     nbic(slot, ND_NBIC_ID),
     mc(this),
@@ -71,7 +71,6 @@ void NextDimension::reset(void) {
 
 void NextDimension::pause(bool pause) {
     i860.pause(pause);
-    sdl.pause(pause);
 }
 
 /* NeXTdimension board memory access (m68k) */
@@ -328,13 +327,9 @@ extern "C" {
         return "";
     }
     
-    uint32_t* nd_vram_for_slot(int slot) {
-        IF_NEXT_DIMENSION(slot, nd)
-            return (uint32_t*)nd->vram;
-        else
-            return NULL;
+    void nd_vram_for_slot(uint8_t* vram, int slot) {
+        IF_NEXT_DIMENSION(slot, nd) {
+            memcpy(vram, nd->vram, ND_VRAM_SIZE);
+        }
     }
 }
-
-
-

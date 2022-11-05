@@ -9,6 +9,7 @@
 
  */
 
+#include "main.h"
 #include "host.h"
 #include "ioMem.h"
 #include "ioMemTables.h"
@@ -425,6 +426,7 @@ void rtc_put_clock(uint8_t addr, uint8_t val) {
             if (rtc.intctrl&RTC_POWERDOWN) {
                 Log_Printf(LOG_WARN, "[RTC] Power down!");
                 M68000_Stop();
+                bQuitProgram = true;
             }
             break;
             
@@ -680,6 +682,7 @@ void newrtc_put_clock(uint8_t addr, uint8_t val) {
             if (newrtc.control&NRTC_POWERDOWN) {
                 Log_Printf(LOG_WARN, "[newRTC] Power down!");
                 M68000_Stop();
+                bQuitProgram = true;
             }
             if (!(newrtc.status&(NRTC_FIRSTUP|NRTC_INT_ALARM|NRTC_INT_PDOWN|NRTC_INT_LBAT))) {
                 newrtc.status&= ~NRTC_INT;

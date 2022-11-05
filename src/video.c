@@ -13,7 +13,6 @@ const char Video_fileid[] = "Previous video.c : " __DATE__ " " __TIME__;
 #include "configuration.h"
 #include "cycInt.h"
 #include "ioMem.h"
-#include "m68000.h"
 #include "screen.h"
 #include "shortcut.h"
 #include "video.h"
@@ -60,14 +59,11 @@ static void Video_InterruptHandler(void) {
  */
 static bool statusBarToggle;
 void Video_InterruptHandler_VBL ( void ) {
-	CycInt_AcknowledgeInterrupt();
+    CycInt_AcknowledgeInterrupt();
+    if (ConfigureParams.Screen.nMonitorType != MONITOR_TYPE_DIMENSION) {
+        Screen_CopyBuffer(NEXTVideo, ConfigureParams.System.bColor?(2*1024*1024):(256*1024));
+    }
     host_blank(0, MAIN_DISPLAY, true);
-    if(statusBarToggle) Update_StatusBar();
-    statusBarToggle = !statusBarToggle;
     Video_InterruptHandler();
     CycInt_AddRelativeInterruptUs((1000*1000)/NEXT_VBL_FREQ, 0, INTERRUPT_VIDEO_VBL);
 }
-
-
-
-
