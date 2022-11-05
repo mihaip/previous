@@ -513,7 +513,9 @@ static int Main_Thread(void* unused) {
 		CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_EVENT_LOOP);
 		M68000_Start();               /* Start emulation */
 	}
-	
+
+	bEmulationActive = false;
+
 	return 0;
 }
 

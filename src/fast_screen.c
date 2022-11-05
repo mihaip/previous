@@ -122,11 +122,11 @@ static void blitColor(SDL_Texture* tex) {
 /*
  Dimension format is 8bit per pixel, big-endian: RRGGBBAA
  */
-void blitDimension(uint32_t* vram, SDL_Texture* tex) {
+void blitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) {
 #if ND_STEP
-    uint32_t* src = &vram[0];
+    uint32_t* src = &fb[0];
 #else
-    uint32_t* src = &vram[16];
+    uint32_t* src = &fb[16];
 #endif
     int       d;
     uint32_t  format;
@@ -140,6 +140,7 @@ void blitDimension(uint32_t* vram, SDL_Texture* tex) {
                 uint32_t* dst = (uint32_t*)pixels;
 
                 /* fallback to SDL_MapRGB */
+                SDL_AtomicLock(fbLock);
                 SDL_PixelFormat* pformat = SDL_AllocFormat(format);
                 for(int y = NeXT_SCRN_HEIGHT; --y >= 0;) {
                     for(int x = NeXT_SCRN_WIDTH; --x >= 0;) {
@@ -148,6 +149,7 @@ void blitDimension(uint32_t* vram, SDL_Texture* tex) {
                     }
                     src += 32;
                 }
+                SDL_AtomicUnlock(fbLock);
                 SDL_FreeFormat(pformat);
                 SDL_UnlockTexture(tex);
                 break;
@@ -157,7 +159,9 @@ void blitDimension(uint32_t* vram, SDL_Texture* tex) {
         /* Add little-endian accelerated blit loops as needed here */
         switch (format) {
             case SDL_PIXELFORMAT_ARGB8888: {
+                SDL_AtomicLock(fbLock);
                 SDL_UpdateTexture(tex, NULL, src, (NeXT_SCRN_WIDTH+32)*4);
+                SDL_AtomicUnlock(fbLock);
                 break;
             }
             default: {
@@ -167,6 +171,7 @@ void blitDimension(uint32_t* vram, SDL_Texture* tex) {
 
                 /* fallback to SDL_MapRGB */
                 SDL_PixelFormat* pformat = SDL_AllocFormat(format);
+                SDL_AtomicLock(fbLock);
                 for(int y = NeXT_SCRN_HEIGHT; --y >= 0;) {
                     for(int x = NeXT_SCRN_WIDTH; --x >= 0;) {
                         uint32_t v = *src++;
@@ -174,6 +179,7 @@ void blitDimension(uint32_t* vram, SDL_Texture* tex) {
                     }
                     src += 32;
                 }
+                SDL_AtomicUnlock(fbLock);
                 SDL_FreeFormat(pformat);
                 SDL_UnlockTexture(tex);
                 break;
@@ -186,11 +192,9 @@ void blitDimension(uint32_t* vram, SDL_Texture* tex) {
  Blit NeXT framebuffer to texture.
  */
 static bool blitScreen(SDL_Texture* tex) {
-    if (!fbBuffer) {
+    if (fbBuffer) {
         if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
-            SDL_AtomicLock(&fbBufferLock);
-            blitDimension((uint32_t*)fbBuffer, tex);
-            SDL_AtomicUnlock(&fbBufferLock);
+            blitDimension((uint32_t*)fbBuffer, &fbBufferLock, tex);
         } else if (ConfigureParams.System.bColor) {
             blitColor(tex);
         } else {

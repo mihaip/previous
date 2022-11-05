@@ -17,9 +17,7 @@ NDSDL::NDSDL(int slot) : slot(slot), ndWindow(NULL), ndRenderer(NULL), ndTexture
 
 void NDSDL::repaint(void) {
     if (SDL_AtomicSet(&blitNDFB, 0)) {
-        SDL_AtomicLock(&bufferLock);
-        blitDimension(buffer, ndTexture);
-        SDL_AtomicUnlock(&bufferLock);
+        blitDimension(buffer, &bufferLock, ndTexture);
         SDL_RenderClear(ndRenderer);
         SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
         SDL_RenderPresent(ndRenderer);
