@@ -1,15 +1,15 @@
 /*
   Hatari - configuration.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   Configuration File
 
   The configuration file is now stored in an ASCII format to allow the user
   to edit the file manually.
 */
-const char Configuration_fileid[] = "Hatari configuration.c : " __DATE__ " " __TIME__;
+const char Configuration_fileid[] = "Hatari configuration.c";
 
 #include "main.h"
 #include "host.h"
@@ -21,6 +21,7 @@ const char Configuration_fileid[] = "Hatari configuration.c : " __DATE__ " " __T
 #include "paths.h"
 #include "screen.h"
 #include "video.h"
+#include "68kDisass.h"
 
 #include <SDL.h>
 
@@ -37,13 +38,14 @@ static const struct Config_Tag configs_Log[] =
 	{ "nTextLogLevel", Int_Tag, &ConfigureParams.Log.nTextLogLevel },
 	{ "nAlertDlgLogLevel", Int_Tag, &ConfigureParams.Log.nAlertDlgLogLevel },
 	{ "bConfirmQuit", Bool_Tag, &ConfigureParams.Log.bConfirmQuit },
+	{ "bConsoleWindow", Bool_Tag, &ConfigureParams.Log.bConsoleWindow },
 	{ NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save configuration dialog options */
 static const struct Config_Tag configs_ConfigDialog[] =
 {
-    { "bShowConfigDialogAtStartup", Bool_Tag, &ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup },
+	{ "bShowConfigDialogAtStartup", Bool_Tag, &ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -51,8 +53,10 @@ static const struct Config_Tag configs_ConfigDialog[] =
 static const struct Config_Tag configs_Debugger[] =
 {
 	{ "nNumberBase", Int_Tag, &ConfigureParams.Debugger.nNumberBase },
-	{ "nDisasmLines", Int_Tag, &ConfigureParams.Debugger.nDisasmLines },
+	{ "nSymbolLines", Int_Tag, &ConfigureParams.Debugger.nSymbolLines },
 	{ "nMemdumpLines", Int_Tag, &ConfigureParams.Debugger.nMemdumpLines },
+	{ "nDisasmLines", Int_Tag, &ConfigureParams.Debugger.nDisasmLines },
+	{ "nBacktraceLines", Int_Tag, &ConfigureParams.Debugger.nBacktraceLines },
 	{ "nDisasmOptions", Int_Tag, &ConfigureParams.Debugger.nDisasmOptions },
 	{ "bDisasmUAE", Bool_Tag, &ConfigureParams.Debugger.bDisasmUAE },
 	{ NULL , Error_Tag, NULL }
@@ -62,7 +66,7 @@ static const struct Config_Tag configs_Debugger[] =
 static const struct Config_Tag configs_Screen[] =
 {
 	{ "nMonitorType", Int_Tag, &ConfigureParams.Screen.nMonitorType },
-    { "nMonitorNum", Int_Tag, &ConfigureParams.Screen.nMonitorNum },
+	{ "nMonitorNum", Int_Tag, &ConfigureParams.Screen.nMonitorNum },
 	{ "bFullScreen", Bool_Tag, &ConfigureParams.Screen.bFullScreen },
 	{ "bShowStatusbar", Bool_Tag, &ConfigureParams.Screen.bShowStatusbar },
 	{ "bShowDriveLed", Bool_Tag, &ConfigureParams.Screen.bShowDriveLed },
@@ -72,7 +76,7 @@ static const struct Config_Tag configs_Screen[] =
 /* Used to load/save keyboard options */
 static const struct Config_Tag configs_Keyboard[] =
 {
-    { "bSwapCmdAlt", Bool_Tag, &ConfigureParams.Keyboard.bSwapCmdAlt },
+	{ "bSwapCmdAlt", Bool_Tag, &ConfigureParams.Keyboard.bSwapCmdAlt },
 	{ "nKeymapType", Int_Tag, &ConfigureParams.Keyboard.nKeymapType },
 	{ "szMappingFileName", String_Tag, ConfigureParams.Keyboard.szMappingFileName },
 	{ NULL , Error_Tag, NULL }
@@ -82,9 +86,9 @@ static const struct Config_Tag configs_Keyboard[] =
 static const struct Config_Tag configs_Mouse[] =
 {
 	{ "bEnableAutoGrab", Bool_Tag, &ConfigureParams.Mouse.bEnableAutoGrab },
-    { "fLinSpeedNormal", Float_Tag, &ConfigureParams.Mouse.fLinSpeedNormal },
+	{ "fLinSpeedNormal", Float_Tag, &ConfigureParams.Mouse.fLinSpeedNormal },
 	{ "fLinSpeedLocked", Float_Tag, &ConfigureParams.Mouse.fLinSpeedLocked },
-    { "fExpSpeedNormal", Float_Tag, &ConfigureParams.Mouse.fExpSpeedNormal },
+	{ "fExpSpeedNormal", Float_Tag, &ConfigureParams.Mouse.fExpSpeedNormal },
 	{ "fExpSpeedLocked", Float_Tag, &ConfigureParams.Mouse.fExpSpeedLocked },
 	{ NULL , Error_Tag, NULL }
 };
@@ -92,38 +96,38 @@ static const struct Config_Tag configs_Mouse[] =
 /* Used to load/save shortcut key bindings with modifiers options */
 static const struct Config_Tag configs_ShortCutWithMod[] =
 {
-	{ "keyOptions",     Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] },
-	{ "keyFullScreen",  Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN] },
-	{ "keyMouseMode",   Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_MOUSEGRAB] },
-	{ "keyColdReset",   Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_COLDRESET] },
-	{ "keyWarmReset",   Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_WARMRESET] },
-	{ "keyCursorEmu",   Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_CURSOREMU] },
-	{ "keySound",       Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_SOUND] },
-	{ "keyPause",       Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_PAUSE] },
-	{ "keyDebuggerM68K",Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG_M68K] },
-    { "keyDebuggerI860",Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG_I860] },
-	{ "keyQuit",        Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_QUIT] },
-	{ "keyDimension",   Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_DIMENSION] },
-	{ "keyStatusbar",   Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR] },
+	{ "kOptions",     Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] },
+	{ "kFullScreen",  Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN] },
+	{ "kMouseMode",   Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_MOUSEGRAB] },
+	{ "kColdReset",   Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_COLDRESET] },
+	{ "kWarmReset",   Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_WARMRESET] },
+	{ "kCursorEmu",   Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_CURSOREMU] },
+	{ "kSound",       Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_SOUND] },
+	{ "kPause",       Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_PAUSE] },
+	{ "kDebuggerM68K",Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG_M68K] },
+	{ "kDebuggerI860",Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG_I860] },
+	{ "kQuit",        Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_QUIT] },
+	{ "kDimension",   Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_DIMENSION] },
+	{ "kStatusbar",   Key_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_STATUSBAR] },
 	{ NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save shortcut key bindings without modifiers options */
 static const struct Config_Tag configs_ShortCutWithoutMod[] =
 {
-	{ "keyOptions",     Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS] },
-	{ "keyFullScreen",  Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_FULLSCREEN] },
-	{ "keyMouseMode",   Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_MOUSEGRAB] },
-	{ "keyColdReset",   Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_COLDRESET] },
-	{ "keyWarmReset",   Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_WARMRESET] },
-	{ "keyCursorEmu",   Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_CURSOREMU] },
-	{ "keySound",       Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_SOUND] },
-	{ "keyPause",       Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_PAUSE] },
-	{ "keyDebuggerM68K",Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_DEBUG_M68K] },
-    { "keyDebuggerI860",Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_DEBUG_I860] },
-	{ "keyQuit",        Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_QUIT] },
-	{ "keyDimension",   Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_DIMENSION] },
-	{ "keyStatusbar",   Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_STATUSBAR] },
+	{ "kOptions",     Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS] },
+	{ "kFullScreen",  Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_FULLSCREEN] },
+	{ "kMouseMode",   Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_MOUSEGRAB] },
+	{ "kColdReset",   Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_COLDRESET] },
+	{ "kWarmReset",   Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_WARMRESET] },
+	{ "kCursorEmu",   Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_CURSOREMU] },
+	{ "kSound",       Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_SOUND] },
+	{ "kPause",       Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_PAUSE] },
+	{ "kDebuggerM68K",Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_DEBUG_M68K] },
+	{ "kDebuggerI860",Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_DEBUG_I860] },
+	{ "kQuit",        Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_QUIT] },
+	{ "kDimension",   Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_DIMENSION] },
+	{ "kStatusbar",   Key_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_STATUSBAR] },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -131,7 +135,7 @@ static const struct Config_Tag configs_ShortCutWithoutMod[] =
 /* Used to load/save sound options */
 static const struct Config_Tag configs_Sound[] =
 {
-    { "bEnableMicrophone", Bool_Tag, &ConfigureParams.Sound.bEnableMicrophone },
+	{ "bEnableMicrophone", Bool_Tag, &ConfigureParams.Sound.bEnableMicrophone },
   	{ "bEnableSound", Bool_Tag, &ConfigureParams.Sound.bEnableSound },
 	{ NULL , Error_Tag, NULL }
 };
@@ -140,10 +144,10 @@ static const struct Config_Tag configs_Sound[] =
 static const struct Config_Tag configs_Memory[] =
 {
 	{ "nMemoryBankSize0", Int_Tag, &ConfigureParams.Memory.nMemoryBankSize[0] },
-    { "nMemoryBankSize1", Int_Tag, &ConfigureParams.Memory.nMemoryBankSize[1] },
+	{ "nMemoryBankSize1", Int_Tag, &ConfigureParams.Memory.nMemoryBankSize[1] },
 	{ "nMemoryBankSize2", Int_Tag, &ConfigureParams.Memory.nMemoryBankSize[2] },
 	{ "nMemoryBankSize3", Int_Tag, &ConfigureParams.Memory.nMemoryBankSize[3] },
-    { "nMemorySpeed", Int_Tag, &ConfigureParams.Memory.nMemorySpeed },
+	{ "nMemorySpeed", Int_Tag, &ConfigureParams.Memory.nMemorySpeed },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -155,67 +159,67 @@ static const struct Config_Tag configs_Boot[] =
 	{ "bEnablePot", Bool_Tag, &ConfigureParams.Boot.bEnablePot },
 	{ "bEnableSoundTest", Bool_Tag, &ConfigureParams.Boot.bEnableSoundTest },
 	{ "bEnableSCSITest", Bool_Tag, &ConfigureParams.Boot.bEnableSCSITest },
-    { "bLoopPot", Bool_Tag, &ConfigureParams.Boot.bLoopPot },
+	{ "bLoopPot", Bool_Tag, &ConfigureParams.Boot.bLoopPot },
 	{ "bVerbose", Bool_Tag, &ConfigureParams.Boot.bVerbose },
-    { "bExtendedPot", Bool_Tag, &ConfigureParams.Boot.bExtendedPot },
+	{ "bExtendedPot", Bool_Tag, &ConfigureParams.Boot.bExtendedPot },
 	{ NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save SCSI options */
 static const struct Config_Tag configs_SCSI[] =
 {
-    { "szImageName0", String_Tag, ConfigureParams.SCSI.target[0].szImageName },
-    { "nDeviceType0", Int_Tag, &ConfigureParams.SCSI.target[0].nDeviceType },
-    { "bDiskInserted0", Bool_Tag, &ConfigureParams.SCSI.target[0].bDiskInserted },
-    { "bWriteProtected0", Bool_Tag, &ConfigureParams.SCSI.target[0].bWriteProtected },
-    
-    { "szImageName1", String_Tag, ConfigureParams.SCSI.target[1].szImageName },
-    { "nDeviceType1", Int_Tag, &ConfigureParams.SCSI.target[1].nDeviceType },
-    { "bDiskInserted1", Bool_Tag, &ConfigureParams.SCSI.target[1].bDiskInserted },
-    { "bWriteProtected1", Bool_Tag, &ConfigureParams.SCSI.target[1].bWriteProtected },
+	{ "szImageName0", String_Tag, ConfigureParams.SCSI.target[0].szImageName },
+	{ "nDeviceType0", Int_Tag, &ConfigureParams.SCSI.target[0].nDeviceType },
+	{ "bDiskInserted0", Bool_Tag, &ConfigureParams.SCSI.target[0].bDiskInserted },
+	{ "bWriteProtected0", Bool_Tag, &ConfigureParams.SCSI.target[0].bWriteProtected },
+	
+	{ "szImageName1", String_Tag, ConfigureParams.SCSI.target[1].szImageName },
+	{ "nDeviceType1", Int_Tag, &ConfigureParams.SCSI.target[1].nDeviceType },
+	{ "bDiskInserted1", Bool_Tag, &ConfigureParams.SCSI.target[1].bDiskInserted },
+	{ "bWriteProtected1", Bool_Tag, &ConfigureParams.SCSI.target[1].bWriteProtected },
 
-    { "szImageName2", String_Tag, ConfigureParams.SCSI.target[2].szImageName },
-    { "nDeviceType2", Int_Tag, &ConfigureParams.SCSI.target[2].nDeviceType },
-    { "bDiskInserted2", Bool_Tag, &ConfigureParams.SCSI.target[2].bDiskInserted },
-    { "bWriteProtected2", Bool_Tag, &ConfigureParams.SCSI.target[2].bWriteProtected },
+	{ "szImageName2", String_Tag, ConfigureParams.SCSI.target[2].szImageName },
+	{ "nDeviceType2", Int_Tag, &ConfigureParams.SCSI.target[2].nDeviceType },
+	{ "bDiskInserted2", Bool_Tag, &ConfigureParams.SCSI.target[2].bDiskInserted },
+	{ "bWriteProtected2", Bool_Tag, &ConfigureParams.SCSI.target[2].bWriteProtected },
 
-    { "szImageName3", String_Tag, ConfigureParams.SCSI.target[3].szImageName },
-    { "nDeviceType3", Int_Tag, &ConfigureParams.SCSI.target[3].nDeviceType },
-    { "bDiskInserted3", Bool_Tag, &ConfigureParams.SCSI.target[3].bDiskInserted },
-    { "bWriteProtected3", Bool_Tag, &ConfigureParams.SCSI.target[3].bWriteProtected },
+	{ "szImageName3", String_Tag, ConfigureParams.SCSI.target[3].szImageName },
+	{ "nDeviceType3", Int_Tag, &ConfigureParams.SCSI.target[3].nDeviceType },
+	{ "bDiskInserted3", Bool_Tag, &ConfigureParams.SCSI.target[3].bDiskInserted },
+	{ "bWriteProtected3", Bool_Tag, &ConfigureParams.SCSI.target[3].bWriteProtected },
 
-    { "szImageName4", String_Tag, ConfigureParams.SCSI.target[4].szImageName },
-    { "nDeviceType4", Int_Tag, &ConfigureParams.SCSI.target[4].nDeviceType },
-    { "bDiskInserted4", Bool_Tag, &ConfigureParams.SCSI.target[4].bDiskInserted },
-    { "bWriteProtected4", Bool_Tag, &ConfigureParams.SCSI.target[4].bWriteProtected },
+	{ "szImageName4", String_Tag, ConfigureParams.SCSI.target[4].szImageName },
+	{ "nDeviceType4", Int_Tag, &ConfigureParams.SCSI.target[4].nDeviceType },
+	{ "bDiskInserted4", Bool_Tag, &ConfigureParams.SCSI.target[4].bDiskInserted },
+	{ "bWriteProtected4", Bool_Tag, &ConfigureParams.SCSI.target[4].bWriteProtected },
 
-    { "szImageName5", String_Tag, ConfigureParams.SCSI.target[5].szImageName },
-    { "nDeviceType5", Int_Tag, &ConfigureParams.SCSI.target[5].nDeviceType },
-    { "bDiskInserted5", Bool_Tag, &ConfigureParams.SCSI.target[5].bDiskInserted },
-    { "bWriteProtected5", Bool_Tag, &ConfigureParams.SCSI.target[5].bWriteProtected },
+	{ "szImageName5", String_Tag, ConfigureParams.SCSI.target[5].szImageName },
+	{ "nDeviceType5", Int_Tag, &ConfigureParams.SCSI.target[5].nDeviceType },
+	{ "bDiskInserted5", Bool_Tag, &ConfigureParams.SCSI.target[5].bDiskInserted },
+	{ "bWriteProtected5", Bool_Tag, &ConfigureParams.SCSI.target[5].bWriteProtected },
 
-    { "szImageName6", String_Tag, ConfigureParams.SCSI.target[6].szImageName },
-    { "nDeviceType6", Int_Tag, &ConfigureParams.SCSI.target[6].nDeviceType },
-    { "bDiskInserted6", Bool_Tag, &ConfigureParams.SCSI.target[6].bDiskInserted },
-    { "bWriteProtected6", Bool_Tag, &ConfigureParams.SCSI.target[6].bWriteProtected },
+	{ "szImageName6", String_Tag, ConfigureParams.SCSI.target[6].szImageName },
+	{ "nDeviceType6", Int_Tag, &ConfigureParams.SCSI.target[6].nDeviceType },
+	{ "bDiskInserted6", Bool_Tag, &ConfigureParams.SCSI.target[6].bDiskInserted },
+	{ "bWriteProtected6", Bool_Tag, &ConfigureParams.SCSI.target[6].bWriteProtected },
 
-    { "nWriteProtection", Int_Tag, &ConfigureParams.SCSI.nWriteProtection },
-    
-    { NULL , Error_Tag, NULL }
+	{ "nWriteProtection", Int_Tag, &ConfigureParams.SCSI.nWriteProtection },
+
+	{ NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save MO options */
 static const struct Config_Tag configs_MO[] =
 {
-    { "szImageName0", String_Tag, ConfigureParams.MO.drive[0].szImageName },
-    { "bDriveConnected0", Bool_Tag, &ConfigureParams.MO.drive[0].bDriveConnected },
-    { "bDiskInserted0", Bool_Tag, &ConfigureParams.MO.drive[0].bDiskInserted },
-    { "bWriteProtected0", Bool_Tag, &ConfigureParams.MO.drive[0].bWriteProtected },
-    
-    { "szImageName1", String_Tag, ConfigureParams.MO.drive[1].szImageName },
-    { "bDriveConnected1", Bool_Tag, &ConfigureParams.MO.drive[1].bDriveConnected },
-    { "bDiskInserted1", Bool_Tag, &ConfigureParams.MO.drive[1].bDiskInserted },
-    { "bWriteProtected1", Bool_Tag, &ConfigureParams.MO.drive[1].bWriteProtected },
+	{ "szImageName0", String_Tag, ConfigureParams.MO.drive[0].szImageName },
+	{ "bDriveConnected0", Bool_Tag, &ConfigureParams.MO.drive[0].bDriveConnected },
+	{ "bDiskInserted0", Bool_Tag, &ConfigureParams.MO.drive[0].bDiskInserted },
+	{ "bWriteProtected0", Bool_Tag, &ConfigureParams.MO.drive[0].bWriteProtected },
+
+	{ "szImageName1", String_Tag, ConfigureParams.MO.drive[1].szImageName },
+	{ "bDriveConnected1", Bool_Tag, &ConfigureParams.MO.drive[1].bDriveConnected },
+	{ "bDiskInserted1", Bool_Tag, &ConfigureParams.MO.drive[1].bDiskInserted },
+	{ "bWriteProtected1", Bool_Tag, &ConfigureParams.MO.drive[1].bWriteProtected },
 
 	{ NULL , Error_Tag, NULL }
 };
@@ -223,46 +227,46 @@ static const struct Config_Tag configs_MO[] =
 /* Used to load/save floppy options */
 static const struct Config_Tag configs_Floppy[] =
 {
-    { "szImageName0", String_Tag, ConfigureParams.Floppy.drive[0].szImageName },
-    { "bDriveConnected0", Bool_Tag, &ConfigureParams.Floppy.drive[0].bDriveConnected },
-    { "bDiskInserted0", Bool_Tag, &ConfigureParams.Floppy.drive[0].bDiskInserted },
-    { "bWriteProtected0", Bool_Tag, &ConfigureParams.Floppy.drive[0].bWriteProtected },
-    
-    { "szImageName1", String_Tag, ConfigureParams.Floppy.drive[1].szImageName },
-    { "bDriveConnected1", Bool_Tag, &ConfigureParams.Floppy.drive[1].bDriveConnected },
-    { "bDiskInserted1", Bool_Tag, &ConfigureParams.Floppy.drive[1].bDiskInserted },
-    { "bWriteProtected1", Bool_Tag, &ConfigureParams.Floppy.drive[1].bWriteProtected },
-    
-    { NULL , Error_Tag, NULL }
+	{ "szImageName0", String_Tag, ConfigureParams.Floppy.drive[0].szImageName },
+	{ "bDriveConnected0", Bool_Tag, &ConfigureParams.Floppy.drive[0].bDriveConnected },
+	{ "bDiskInserted0", Bool_Tag, &ConfigureParams.Floppy.drive[0].bDiskInserted },
+	{ "bWriteProtected0", Bool_Tag, &ConfigureParams.Floppy.drive[0].bWriteProtected },
+
+	{ "szImageName1", String_Tag, ConfigureParams.Floppy.drive[1].szImageName },
+	{ "bDriveConnected1", Bool_Tag, &ConfigureParams.Floppy.drive[1].bDriveConnected },
+	{ "bDiskInserted1", Bool_Tag, &ConfigureParams.Floppy.drive[1].bDiskInserted },
+	{ "bWriteProtected1", Bool_Tag, &ConfigureParams.Floppy.drive[1].bWriteProtected },
+
+	{ NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save Ethernet options */
 static const struct Config_Tag configs_Ethernet[] =
 {
-    { "bEthernetConnected", Bool_Tag, &ConfigureParams.Ethernet.bEthernetConnected },
-    { "bTwistedPair", Bool_Tag, &ConfigureParams.Ethernet.bTwistedPair },
+	{ "bEthernetConnected", Bool_Tag, &ConfigureParams.Ethernet.bEthernetConnected },
+	{ "bTwistedPair", Bool_Tag, &ConfigureParams.Ethernet.bTwistedPair },
 
-    { "nHostInterface", Int_Tag, &ConfigureParams.Ethernet.nHostInterface },
-    { "szInterfaceName", String_Tag, ConfigureParams.Ethernet.szInterfaceName },
-    { "szNFSroot", String_Tag, ConfigureParams.Ethernet.szNFSroot },
+	{ "nHostInterface", Int_Tag, &ConfigureParams.Ethernet.nHostInterface },
+	{ "szInterfaceName", String_Tag, ConfigureParams.Ethernet.szInterfaceName },
+	{ "szNFSroot", String_Tag, ConfigureParams.Ethernet.szNFSroot },
 
-    { NULL , Error_Tag, NULL }
+	{ NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save ROM options */
 static const struct Config_Tag configs_Rom[] =
 {
-    { "szRom030FileName", String_Tag, ConfigureParams.Rom.szRom030FileName },
-    { "szRom040FileName", String_Tag, ConfigureParams.Rom.szRom040FileName },
-    { "szRomTurboFileName", String_Tag, ConfigureParams.Rom.szRomTurboFileName },
-    
-    { "bUseCustomMac", Bool_Tag, &ConfigureParams.Rom.bUseCustomMac },
-    { "nRomCustomMac0", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[0] },
-    { "nRomCustomMac1", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[1] },
-    { "nRomCustomMac2", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[2] },
-    { "nRomCustomMac3", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[3] },
-    { "nRomCustomMac4", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[4] },
-    { "nRomCustomMac5", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[5] },
+	{ "szRom030FileName", String_Tag, ConfigureParams.Rom.szRom030FileName },
+	{ "szRom040FileName", String_Tag, ConfigureParams.Rom.szRom040FileName },
+	{ "szRomTurboFileName", String_Tag, ConfigureParams.Rom.szRomTurboFileName },
+
+	{ "bUseCustomMac", Bool_Tag, &ConfigureParams.Rom.bUseCustomMac },
+	{ "nRomCustomMac0", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[0] },
+	{ "nRomCustomMac1", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[1] },
+	{ "nRomCustomMac2", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[2] },
+	{ "nRomCustomMac3", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[3] },
+	{ "nRomCustomMac4", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[4] },
+	{ "nRomCustomMac5", Int_Tag, &ConfigureParams.Rom.nRomCustomMac[5] },
 
 	{ NULL , Error_Tag, NULL }
 };
@@ -279,13 +283,13 @@ static const struct Config_Tag configs_Printer[] =
 /* Used to load/save system options */
 static const struct Config_Tag configs_System[] =
 {
-    { "nMachineType", Int_Tag, &ConfigureParams.System.nMachineType },
-    { "bColor", Bool_Tag, &ConfigureParams.System.bColor },
-    { "bTurbo", Bool_Tag, &ConfigureParams.System.bTurbo },
-    { "bNBIC", Bool_Tag, &ConfigureParams.System.bNBIC },
-    { "nSCSI", Bool_Tag, &ConfigureParams.System.nSCSI },
-    { "nRTC", Bool_Tag, &ConfigureParams.System.nRTC },
-    
+	{ "nMachineType", Int_Tag, &ConfigureParams.System.nMachineType },
+	{ "bColor", Bool_Tag, &ConfigureParams.System.bColor },
+	{ "bTurbo", Bool_Tag, &ConfigureParams.System.bTurbo },
+	{ "bNBIC", Bool_Tag, &ConfigureParams.System.bNBIC },
+	{ "nSCSI", Bool_Tag, &ConfigureParams.System.nSCSI },
+	{ "nRTC", Bool_Tag, &ConfigureParams.System.nRTC },
+
 	{ "nCpuLevel", Int_Tag, &ConfigureParams.System.nCpuLevel },
 	{ "nCpuFreq", Int_Tag, &ConfigureParams.System.nCpuFreq },
 	{ "bCompatibleCpu", Bool_Tag, &ConfigureParams.System.bCompatibleCpu },
@@ -293,41 +297,41 @@ static const struct Config_Tag configs_System[] =
 	{ "nDSPType", Int_Tag, &ConfigureParams.System.nDSPType },
 	{ "bDSPMemoryExpansion", Bool_Tag, &ConfigureParams.System.bDSPMemoryExpansion },
 	{ "bRealTimeClock", Bool_Tag, &ConfigureParams.System.bRealTimeClock },
-    { "n_FPUType", Int_Tag, &ConfigureParams.System.n_FPUType },
-    { "bCompatibleFPU", Bool_Tag, &ConfigureParams.System.bCompatibleFPU },
-    { "bMMU", Bool_Tag, &ConfigureParams.System.bMMU },
-    { NULL , Error_Tag, NULL }
+	{ "n_FPUType", Int_Tag, &ConfigureParams.System.n_FPUType },
+	{ "bCompatibleFPU", Bool_Tag, &ConfigureParams.System.bCompatibleFPU },
+	{ "bMMU", Bool_Tag, &ConfigureParams.System.bMMU },
+	{ NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save nextdimension options */
 static const struct Config_Tag configs_Dimension[] =
 {
-    { "bI860Thread",       Bool_Tag, &ConfigureParams.Dimension.bI860Thread },
-    { "bMainDisplay",      Bool_Tag, &ConfigureParams.Dimension.bMainDisplay },
-    { "nMainDisplay",      Int_Tag,  &ConfigureParams.Dimension.nMainDisplay },
+	{ "bI860Thread",       Bool_Tag, &ConfigureParams.Dimension.bI860Thread },
+	{ "bMainDisplay",      Bool_Tag, &ConfigureParams.Dimension.bMainDisplay },
+	{ "nMainDisplay",      Int_Tag,  &ConfigureParams.Dimension.nMainDisplay },
 
-    { "bEnabled0",         Bool_Tag, &ConfigureParams.Dimension.board[0].bEnabled },
-    { "nMemoryBankSize00", Int_Tag,  &ConfigureParams.Dimension.board[0].nMemoryBankSize[0] },
-    { "nMemoryBankSize01", Int_Tag,  &ConfigureParams.Dimension.board[0].nMemoryBankSize[1] },
-    { "nMemoryBankSize02", Int_Tag,  &ConfigureParams.Dimension.board[0].nMemoryBankSize[2] },
-    { "nMemoryBankSize03", Int_Tag,  &ConfigureParams.Dimension.board[0].nMemoryBankSize[3] },
-    { "szRomFileName0", String_Tag,  ConfigureParams.Dimension.board[0].szRomFileName },
-    
-    { "bEnabled1",         Bool_Tag, &ConfigureParams.Dimension.board[1].bEnabled },
-    { "nMemoryBankSize10", Int_Tag,  &ConfigureParams.Dimension.board[1].nMemoryBankSize[0] },
-    { "nMemoryBankSize11", Int_Tag,  &ConfigureParams.Dimension.board[1].nMemoryBankSize[1] },
-    { "nMemoryBankSize12", Int_Tag,  &ConfigureParams.Dimension.board[1].nMemoryBankSize[2] },
-    { "nMemoryBankSize13", Int_Tag,  &ConfigureParams.Dimension.board[1].nMemoryBankSize[3] },
-    { "szRomFileName1", String_Tag,  ConfigureParams.Dimension.board[1].szRomFileName },
+	{ "bEnabled0",         Bool_Tag, &ConfigureParams.Dimension.board[0].bEnabled },
+	{ "nMemoryBankSize00", Int_Tag,  &ConfigureParams.Dimension.board[0].nMemoryBankSize[0] },
+	{ "nMemoryBankSize01", Int_Tag,  &ConfigureParams.Dimension.board[0].nMemoryBankSize[1] },
+	{ "nMemoryBankSize02", Int_Tag,  &ConfigureParams.Dimension.board[0].nMemoryBankSize[2] },
+	{ "nMemoryBankSize03", Int_Tag,  &ConfigureParams.Dimension.board[0].nMemoryBankSize[3] },
+	{ "szRomFileName0", String_Tag,  ConfigureParams.Dimension.board[0].szRomFileName },
 
-    { "bEnabled2",         Bool_Tag, &ConfigureParams.Dimension.board[2].bEnabled },
-    { "nMemoryBankSize20", Int_Tag,  &ConfigureParams.Dimension.board[2].nMemoryBankSize[0] },
-    { "nMemoryBankSize21", Int_Tag,  &ConfigureParams.Dimension.board[2].nMemoryBankSize[1] },
-    { "nMemoryBankSize22", Int_Tag,  &ConfigureParams.Dimension.board[2].nMemoryBankSize[2] },
-    { "nMemoryBankSize23", Int_Tag,  &ConfigureParams.Dimension.board[2].nMemoryBankSize[3] },
-    { "szRomFileName2", String_Tag,  ConfigureParams.Dimension.board[2].szRomFileName },
+	{ "bEnabled1",         Bool_Tag, &ConfigureParams.Dimension.board[1].bEnabled },
+	{ "nMemoryBankSize10", Int_Tag,  &ConfigureParams.Dimension.board[1].nMemoryBankSize[0] },
+	{ "nMemoryBankSize11", Int_Tag,  &ConfigureParams.Dimension.board[1].nMemoryBankSize[1] },
+	{ "nMemoryBankSize12", Int_Tag,  &ConfigureParams.Dimension.board[1].nMemoryBankSize[2] },
+	{ "nMemoryBankSize13", Int_Tag,  &ConfigureParams.Dimension.board[1].nMemoryBankSize[3] },
+	{ "szRomFileName1", String_Tag,  ConfigureParams.Dimension.board[1].szRomFileName },
 
-    { NULL , Error_Tag, NULL }
+	{ "bEnabled2",         Bool_Tag, &ConfigureParams.Dimension.board[2].bEnabled },
+	{ "nMemoryBankSize20", Int_Tag,  &ConfigureParams.Dimension.board[2].nMemoryBankSize[0] },
+	{ "nMemoryBankSize21", Int_Tag,  &ConfigureParams.Dimension.board[2].nMemoryBankSize[1] },
+	{ "nMemoryBankSize22", Int_Tag,  &ConfigureParams.Dimension.board[2].nMemoryBankSize[2] },
+	{ "nMemoryBankSize23", Int_Tag,  &ConfigureParams.Dimension.board[2].nMemoryBankSize[3] },
+	{ "szRomFileName2", String_Tag,  ConfigureParams.Dimension.board[2].szRomFileName },
+
+	{ NULL , Error_Tag, NULL }
 };
 
 /*-----------------------------------------------------------------------*/
@@ -346,86 +350,93 @@ void Configuration_SetDefault(void)
 	/* Clear parameters */
 	memset(&ConfigureParams, 0, sizeof(CNF_PARAMS));
 
-
 	/* Set defaults for logging and tracing */
 	strcpy(ConfigureParams.Log.sLogFileName, "stderr");
 	strcpy(ConfigureParams.Log.sTraceFileName, "stderr");
-	ConfigureParams.Log.nTextLogLevel = LOG_TODO;
+	ConfigureParams.Log.nTextLogLevel = LOG_INFO;
 	ConfigureParams.Log.nAlertDlgLogLevel = LOG_ERROR;
 	ConfigureParams.Log.bConfirmQuit = true;
-    
-    /* Set defaults for config dialog */
+	ConfigureParams.Log.bConsoleWindow = false;
+
+	/* Set defaults for config dialog */
 	ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = true;
 
 	/* Set defaults for debugger */
+	/* Set defaults for debugger */
 	ConfigureParams.Debugger.nNumberBase = 10;
-	ConfigureParams.Debugger.nDisasmLines = 8;
-	ConfigureParams.Debugger.nMemdumpLines = 8;
-	ConfigureParams.Debugger.nDisasmOptions = 0;
+	ConfigureParams.Debugger.nSymbolLines = -1; /* <0: use terminal size */
+	ConfigureParams.Debugger.nMemdumpLines = -1; /* <0: use terminal size */
+	ConfigureParams.Debugger.nDisasmLines = -1; /* <0: use terminal size */
+	ConfigureParams.Debugger.nBacktraceLines = 0; /* <=0: show all */
+	/* external one has nicer output, but isn't as complete as UAE one */
 	ConfigureParams.Debugger.bDisasmUAE = true;
+	ConfigureParams.Debugger.nDisasmOptions = Disasm_GetOptions();
+	Disasm_Init();
 
-    /* Set defaults for Boot options */
-    ConfigureParams.Boot.nBootDevice = BOOT_ROM;
-    ConfigureParams.Boot.bEnableDRAMTest = false;
-    ConfigureParams.Boot.bEnablePot = true;
-    ConfigureParams.Boot.bEnableSoundTest = true;
-    ConfigureParams.Boot.bEnableSCSITest = true;
-    ConfigureParams.Boot.bLoopPot = false;
-    ConfigureParams.Boot.bVerbose = true;
-    ConfigureParams.Boot.bExtendedPot = false;
-    
+	/* Set defaults for Boot options */
+	ConfigureParams.Boot.nBootDevice = BOOT_ROM;
+	ConfigureParams.Boot.bEnableDRAMTest = false;
+	ConfigureParams.Boot.bEnablePot = true;
+	ConfigureParams.Boot.bEnableSoundTest = true;
+	ConfigureParams.Boot.bEnableSCSITest = true;
+	ConfigureParams.Boot.bLoopPot = false;
+	ConfigureParams.Boot.bVerbose = true;
+	ConfigureParams.Boot.bExtendedPot = false;
+
 	/* Set defaults for SCSI disks */
-    for (i = 0; i < ESP_MAX_DEVS; i++) {
-        strcpy(ConfigureParams.SCSI.target[i].szImageName, psWorkingDir);
-        ConfigureParams.SCSI.target[i].nDeviceType = DEVTYPE_NONE;
-        ConfigureParams.SCSI.target[i].bDiskInserted = false;
-        ConfigureParams.SCSI.target[i].bWriteProtected = false;
-    }
-    ConfigureParams.SCSI.nWriteProtection = WRITEPROT_OFF;
-    
-    /* Set defaults for MO drives */
-    for (i = 0; i < MO_MAX_DRIVES; i++) {
-        strcpy(ConfigureParams.MO.drive[i].szImageName, psWorkingDir);
-        ConfigureParams.MO.drive[i].bDriveConnected = false;
-        ConfigureParams.MO.drive[i].bDiskInserted = false;
-        ConfigureParams.MO.drive[i].bWriteProtected = false;
-    }
-    
-    /* Set defaults for floppy drives */
-    for (i = 0; i < FLP_MAX_DRIVES; i++) {
-        strcpy(ConfigureParams.Floppy.drive[i].szImageName, psWorkingDir);
-        ConfigureParams.Floppy.drive[i].bDriveConnected = false;
-        ConfigureParams.Floppy.drive[i].bDiskInserted = false;
-        ConfigureParams.Floppy.drive[i].bWriteProtected = false;
-    }
-    
-    /* Set defaults for Ethernet */
-    ConfigureParams.Ethernet.bEthernetConnected = false;
-    ConfigureParams.Ethernet.bTwistedPair = false;
-    ConfigureParams.Ethernet.nHostInterface = ENET_SLIRP;
-    strcpy(ConfigureParams.Ethernet.szInterfaceName, "");
-    strcpy(ConfigureParams.Ethernet.szNFSroot, "⁨");
+	for (i = 0; i < ESP_MAX_DEVS; i++) {
+		strcpy(ConfigureParams.SCSI.target[i].szImageName, psWorkingDir);
+		ConfigureParams.SCSI.target[i].nDeviceType = DEVTYPE_NONE;
+		ConfigureParams.SCSI.target[i].bDiskInserted = false;
+		ConfigureParams.SCSI.target[i].bWriteProtected = false;
+	}
+	ConfigureParams.SCSI.nWriteProtection = WRITEPROT_OFF;
+
+	/* Set defaults for MO drives */
+	for (i = 0; i < MO_MAX_DRIVES; i++) {
+		strcpy(ConfigureParams.MO.drive[i].szImageName, psWorkingDir);
+		ConfigureParams.MO.drive[i].bDriveConnected = false;
+		ConfigureParams.MO.drive[i].bDiskInserted = false;
+		ConfigureParams.MO.drive[i].bWriteProtected = false;
+	}
+
+	/* Set defaults for floppy drives */
+	for (i = 0; i < FLP_MAX_DRIVES; i++) {
+		strcpy(ConfigureParams.Floppy.drive[i].szImageName, psWorkingDir);
+		ConfigureParams.Floppy.drive[i].bDriveConnected = false;
+		ConfigureParams.Floppy.drive[i].bDiskInserted = false;
+		ConfigureParams.Floppy.drive[i].bWriteProtected = false;
+	}
+
+	/* Set defaults for Ethernet */
+	ConfigureParams.Ethernet.bEthernetConnected = false;
+	ConfigureParams.Ethernet.bTwistedPair = false;
+	ConfigureParams.Ethernet.nHostInterface = ENET_SLIRP;
+	strcpy(ConfigureParams.Ethernet.szInterfaceName, "");
+	File_MakePathBuf(ConfigureParams.Ethernet.szNFSroot,
+	                 sizeof(ConfigureParams.Ethernet.szNFSroot),
+	                 psHomeDir, "", NULL);
 
 	/* Set defaults for Keyboard */
-    ConfigureParams.Keyboard.bSwapCmdAlt = false;
+	ConfigureParams.Keyboard.bSwapCmdAlt = false;
 	ConfigureParams.Keyboard.nKeymapType = KEYMAP_SCANCODE;
 	strcpy(ConfigureParams.Keyboard.szMappingFileName, "");
 
-    /* Set defaults for Mouse */
-    ConfigureParams.Mouse.fLinSpeedNormal = 1.0;
-    ConfigureParams.Mouse.fLinSpeedLocked = 1.0;
-    ConfigureParams.Mouse.fExpSpeedNormal = 1.0;
-    ConfigureParams.Mouse.fExpSpeedLocked = 1.0;
-    ConfigureParams.Mouse.bEnableAutoGrab = true;
+	/* Set defaults for Mouse */
+	ConfigureParams.Mouse.fLinSpeedNormal = 1.0;
+	ConfigureParams.Mouse.fLinSpeedLocked = 1.0;
+	ConfigureParams.Mouse.fExpSpeedNormal = 1.0;
+	ConfigureParams.Mouse.fExpSpeedLocked = 1.0;
+	ConfigureParams.Mouse.bEnableAutoGrab = true;
 
 	/* Set defaults for Shortcuts */
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS]    = SDLK_F12;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_FULLSCREEN] = SDLK_F11;
-    
+
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_PAUSE]         = SDLK_p;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG_M68K]    = SDLK_d;
-    ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG_I860]    = SDLK_i;
-    
+	ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG_I860]    = SDLK_i;
+
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS]       = SDLK_o;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN]    = SDLK_f;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_MOUSEGRAB]     = SDLK_m;
@@ -439,47 +450,51 @@ void Configuration_SetDefault(void)
 
 	/* Set defaults for Memory */
 	memset(ConfigureParams.Memory.nMemoryBankSize, 16, 
-           sizeof(ConfigureParams.Memory.nMemoryBankSize)); /* 64 MiB */
-    ConfigureParams.Memory.nMemorySpeed = MEMORY_100NS;
+	       sizeof(ConfigureParams.Memory.nMemoryBankSize)); /* 64 MiB */
+	ConfigureParams.Memory.nMemorySpeed = MEMORY_100NS;
 
 	/* Set defaults for Printer */
 	ConfigureParams.Printer.bPrinterConnected = false;
 	ConfigureParams.Printer.nPaperSize = PAPER_A4;
-	sprintf(ConfigureParams.Printer.szPrintToFileName, "%s%c",
-	        psHomeDir, PATHSEP);
+	File_MakePathBuf(ConfigureParams.Printer.szPrintToFileName,
+	                 sizeof(ConfigureParams.Printer.szPrintToFileName),
+	                 psHomeDir, "", NULL);
 
 	/* Set defaults for Screen */
 	ConfigureParams.Screen.bFullScreen = false;
 	ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
-    ConfigureParams.Screen.nMonitorNum = 0;
+	ConfigureParams.Screen.nMonitorNum = 0;
 	ConfigureParams.Screen.bShowStatusbar = true;
 	ConfigureParams.Screen.bShowDriveLed = false;
 
 	/* Set defaults for Sound */
-    ConfigureParams.Sound.bEnableMicrophone = true;
+	ConfigureParams.Sound.bEnableMicrophone = true;
 	ConfigureParams.Sound.bEnableSound = true;
 
 	/* Set defaults for Rom */
-    sprintf(ConfigureParams.Rom.szRom030FileName, "%s%cRev_1.0_v41.BIN",
-            Paths_GetWorkingDir(), PATHSEP);
-    sprintf(ConfigureParams.Rom.szRom040FileName, "%s%cRev_2.5_v66.BIN",
-            Paths_GetWorkingDir(), PATHSEP);
-    sprintf(ConfigureParams.Rom.szRomTurboFileName, "%s%cRev_3.3_v74.BIN",
-            Paths_GetWorkingDir(), PATHSEP);
-    
-    ConfigureParams.Rom.bUseCustomMac = false;
-    memset(ConfigureParams.Rom.nRomCustomMac, 0,
-           sizeof(ConfigureParams.Rom.nRomCustomMac));
-    ConfigureParams.Rom.nRomCustomMac[2] = 0x0f;
+	File_MakePathBuf(ConfigureParams.Rom.szRom030FileName,
+					 sizeof(ConfigureParams.Rom.szRom030FileName),
+					 psWorkingDir, "Rev_1.0_v41", "BIN");
+	File_MakePathBuf(ConfigureParams.Rom.szRom040FileName,
+					 sizeof(ConfigureParams.Rom.szRom040FileName),
+					 psWorkingDir, "Rev_2.5_v66", "BIN");
+	File_MakePathBuf(ConfigureParams.Rom.szRomTurboFileName,
+					 sizeof(ConfigureParams.Rom.szRomTurboFileName),
+					 psWorkingDir, "Rev_3.3_v74", "BIN");
+
+	ConfigureParams.Rom.bUseCustomMac = false;
+	memset(ConfigureParams.Rom.nRomCustomMac, 0,
+	       sizeof(ConfigureParams.Rom.nRomCustomMac));
+	ConfigureParams.Rom.nRomCustomMac[2] = 0x0f;
 
 	/* Set defaults for System */
-    ConfigureParams.System.nMachineType = NEXT_CUBE030;
-    ConfigureParams.System.bColor = false;
-    ConfigureParams.System.bTurbo = false;
-    ConfigureParams.System.bNBIC = true;
-    ConfigureParams.System.nSCSI = NCR53C90;
-    ConfigureParams.System.nRTC = MC68HC68T1;
-    
+	ConfigureParams.System.nMachineType = NEXT_CUBE030;
+	ConfigureParams.System.bColor = false;
+	ConfigureParams.System.bTurbo = false;
+	ConfigureParams.System.bNBIC = true;
+	ConfigureParams.System.nSCSI = NCR53C90;
+	ConfigureParams.System.nRTC = MC68HC68T1;
+
 	ConfigureParams.System.nCpuLevel = 3;
 	ConfigureParams.System.nCpuFreq = 25;
 	ConfigureParams.System.bCompatibleCpu = false;
@@ -487,36 +502,31 @@ void Configuration_SetDefault(void)
 	ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
 	ConfigureParams.System.bDSPMemoryExpansion = false;
 	ConfigureParams.System.bRealTimeClock = true;
-    ConfigureParams.System.n_FPUType = FPU_68882;
-    ConfigureParams.System.bCompatibleFPU = true;
-    ConfigureParams.System.bMMU = true;
-    
-    /* Set defaults for Dimension */
-    ConfigureParams.Dimension.bI860Thread  = host_num_cpus() != 1;
-    ConfigureParams.Dimension.bMainDisplay = false;
-    ConfigureParams.Dimension.nMainDisplay = 0;
-    for (i = 0; i < ND_MAX_BOARDS; i++) {
-        ConfigureParams.Dimension.board[i].bEnabled           = false;
-        ConfigureParams.Dimension.board[i].nMemoryBankSize[0] = 4;
-        ConfigureParams.Dimension.board[i].nMemoryBankSize[1] = 4;
-        ConfigureParams.Dimension.board[i].nMemoryBankSize[2] = 4;
-        ConfigureParams.Dimension.board[i].nMemoryBankSize[3] = 4;
-        sprintf(ConfigureParams.Dimension.board[i].szRomFileName, "%s%cdimension_eeprom.bin",
-                Paths_GetWorkingDir(), PATHSEP);
-    }
+	ConfigureParams.System.n_FPUType = FPU_68882;
+	ConfigureParams.System.bCompatibleFPU = true;
+	ConfigureParams.System.bMMU = true;
+
+	/* Set defaults for Dimension */
+	ConfigureParams.Dimension.bI860Thread  = host_num_cpus() != 1;
+	ConfigureParams.Dimension.bMainDisplay = false;
+	ConfigureParams.Dimension.nMainDisplay = 0;
+	for (i = 0; i < ND_MAX_BOARDS; i++) {
+		ConfigureParams.Dimension.board[i].bEnabled           = false;
+		ConfigureParams.Dimension.board[i].nMemoryBankSize[0] = 4;
+		ConfigureParams.Dimension.board[i].nMemoryBankSize[1] = 4;
+		ConfigureParams.Dimension.board[i].nMemoryBankSize[2] = 4;
+		ConfigureParams.Dimension.board[i].nMemoryBankSize[3] = 4;
+		File_MakePathBuf(ConfigureParams.Dimension.board[i].szRomFileName,
+						 sizeof(ConfigureParams.Dimension.board[i].szRomFileName),
+						 psWorkingDir, "dimension_eeprom", "bin");
+	}
 
 	/* Initialize the configuration file name */
-	if (strlen(psHomeDir) < sizeof(sConfigFileName)-13)
-		sprintf(sConfigFileName, "%s%cprevious.cfg", psHomeDir, PATHSEP);
-	else
+	if (File_MakePathBuf(sConfigFileName, sizeof(sConfigFileName),
+	                     psHomeDir, "previous", "cfg"))
+	{
 		strcpy(sConfigFileName, "previous.cfg");
-
-#if defined(__AMIGAOS4__)
-	/* Fix default path names on Amiga OS */
-	sprintf(ConfigureParams.Rom.szRom030FileName, "%sRev_1.0_v41.BIN", Paths_GetWorkingDir());
-    sprintf(ConfigureParams.Rom.szRom040FileName, "%sRev_2.5_v66.BIN", Paths_GetWorkingDir());
-    sprintf(ConfigureParams.Rom.szRom040FileName, "%sRev_3.3_v74.BIN", Paths_GetWorkingDir());
-#endif
+	}
 }
 
 
@@ -527,10 +537,10 @@ void Configuration_SetDefault(void)
  */
 static void Configuration_CheckFloatMinMax(float *val, float min, float max)
 {
-    if (*val<min)
-        *val=min;
-    if (*val>max)
-        *val=max;
+	if (*val<min)
+		*val=min;
+	if (*val>max)
+		*val=max;
 }
 
 
@@ -539,56 +549,58 @@ static void Configuration_CheckFloatMinMax(float *val, float min, float max)
  * Copy details from configuration structure into global variables for system,
  * clean file names, etc...  Called from main.c and dialog.c files.
  */
-void Configuration_Apply(bool bReset) {
-    int i;
+void Configuration_Apply(bool bReset)
+{
+	int i;
 
-    /* Mouse settings */
-    Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fLinSpeedNormal,MOUSE_LIN_MIN,MOUSE_LIN_MAX);
-    Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fLinSpeedLocked,MOUSE_LIN_MIN,MOUSE_LIN_MAX);
-    Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fExpSpeedNormal,MOUSE_EXP_MIN,MOUSE_EXP_MAX);
-    Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fExpSpeedLocked,MOUSE_EXP_MIN,MOUSE_EXP_MAX);
-    
-    /* Check/constrain CPU settings and change corresponding
-     * UAE cpu_level & cpu_compatible variables */
-    M68000_CheckCpuSettings();
-    
-    /* Check memory size for each bank and change to supported values */
-    Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize);
-	
+	/* Mouse settings */
+	Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fLinSpeedNormal,MOUSE_LIN_MIN,MOUSE_LIN_MAX);
+	Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fLinSpeedLocked,MOUSE_LIN_MIN,MOUSE_LIN_MAX);
+	Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fExpSpeedNormal,MOUSE_EXP_MIN,MOUSE_EXP_MAX);
+	Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fExpSpeedLocked,MOUSE_EXP_MIN,MOUSE_EXP_MAX);
+
+	/* Check/constrain CPU settings and change corresponding
+	 * cpu_model/cpu_compatible/cpu_cycle_exact/... variables
+	 */
+	M68000_CheckCpuSettings();
+
+	/* Check memory size for each bank and change to supported values */
+	Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize);
+
  	/* Check nextdimension memory size and screen options */
-    for (i = 0; i < ND_MAX_BOARDS; i++) {
-        Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[i].nMemoryBankSize);
-    }
+	for (i = 0; i < ND_MAX_BOARDS; i++) {
+		Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[i].nMemoryBankSize);
+	}
 	Configuration_CheckDimensionSettings();
-    
-    /* Make sure twisted pair ethernet is disabled on 68030 Cube */
-    Configuration_CheckEthernetSettings();
-    
-    /* Make sure we start with statusbar enabled (required for proper screen init) */
-    ConfigureParams.Screen.bShowStatusbar = true;
-	
-	/* Clean file and directory names */    
-    File_MakeAbsoluteName(ConfigureParams.Rom.szRom030FileName);
-    File_MakeAbsoluteName(ConfigureParams.Rom.szRom040FileName);
-    File_MakeAbsoluteName(ConfigureParams.Rom.szRomTurboFileName);
-    File_MakeAbsoluteName(ConfigureParams.Printer.szPrintToFileName);
 
-    for (i = 0; i < ND_MAX_BOARDS; i++) {
-        File_MakeAbsoluteName(ConfigureParams.Dimension.board[i].szRomFileName);
-    }
-    
-    for (i = 0; i < ESP_MAX_DEVS; i++) {
-        File_MakeAbsoluteName(ConfigureParams.SCSI.target[i].szImageName);
-    }
-    
-    for (i = 0; i < MO_MAX_DRIVES; i++) {
-        File_MakeAbsoluteName(ConfigureParams.MO.drive[i].szImageName);
-    }
-    
-    for (i = 0; i < FLP_MAX_DRIVES; i++) {
-        File_MakeAbsoluteName(ConfigureParams.Floppy.drive[i].szImageName);
-    }
-    
+	/* Make sure twisted pair ethernet is disabled on 68030 Cube */
+	Configuration_CheckEthernetSettings();
+
+	/* Make sure we start with statusbar enabled (required for proper screen init) */
+	ConfigureParams.Screen.bShowStatusbar = true;
+
+	/* Clean file and directory names */
+	File_MakeAbsoluteName(ConfigureParams.Rom.szRom030FileName);
+	File_MakeAbsoluteName(ConfigureParams.Rom.szRom040FileName);
+	File_MakeAbsoluteName(ConfigureParams.Rom.szRomTurboFileName);
+	File_MakeAbsoluteName(ConfigureParams.Printer.szPrintToFileName);
+
+	for (i = 0; i < ND_MAX_BOARDS; i++) {
+		File_MakeAbsoluteName(ConfigureParams.Dimension.board[i].szRomFileName);
+	}
+
+	for (i = 0; i < ESP_MAX_DEVS; i++) {
+		File_MakeAbsoluteName(ConfigureParams.SCSI.target[i].szImageName);
+	}
+
+	for (i = 0; i < MO_MAX_DRIVES; i++) {
+		File_MakeAbsoluteName(ConfigureParams.MO.drive[i].szImageName);
+	}
+
+	for (i = 0; i < FLP_MAX_DRIVES; i++) {
+		File_MakeAbsoluteName(ConfigureParams.Floppy.drive[i].szImageName);
+	}
+
 	/* make path names absolute, but handle special file names */
 	File_MakeAbsoluteSpecialName(ConfigureParams.Log.sLogFileName);
 	File_MakeAbsoluteSpecialName(ConfigureParams.Log.sTraceFileName);
@@ -600,77 +612,77 @@ void Configuration_Apply(bool bReset) {
  * Set defaults depending on selected machine type.
  */
 void Configuration_SetSystemDefaults(void) {
-    switch (ConfigureParams.System.nMachineType) {
-        case NEXT_CUBE030:
-            ConfigureParams.System.bTurbo = false;
-            ConfigureParams.System.bColor = false;
-            ConfigureParams.System.nCpuLevel = 3;
-            ConfigureParams.System.nCpuFreq = 25;
-            ConfigureParams.System.n_FPUType = FPU_68882;
-            ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
-            ConfigureParams.System.bDSPMemoryExpansion = false;
-            ConfigureParams.System.nSCSI = NCR53C90;
-            ConfigureParams.System.nRTC = MC68HC68T1;
-            ConfigureParams.System.bNBIC = true;
-            break;
-            
-        case NEXT_CUBE040:
-            ConfigureParams.System.bColor = false;
-            ConfigureParams.System.nCpuLevel = 4;
-            if (ConfigureParams.System.bTurbo) {
-                ConfigureParams.System.nCpuFreq = 33;
-                ConfigureParams.System.nRTC = MCCS1850;
-            } else {
-                ConfigureParams.System.nCpuFreq = 25;
-                ConfigureParams.System.nRTC = MC68HC68T1;
-            }
-            ConfigureParams.System.n_FPUType = FPU_CPU;
-            ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
-            ConfigureParams.System.bDSPMemoryExpansion = true;
-            ConfigureParams.System.nSCSI = NCR53C90A;
-            ConfigureParams.System.bNBIC = true;
-            break;
-            
-        case NEXT_STATION:
-            ConfigureParams.System.nCpuLevel = 4;
-            if (ConfigureParams.System.bTurbo) {
-                ConfigureParams.System.nCpuFreq = 33;
-                ConfigureParams.System.nRTC = MCCS1850;
-            } else {
-                ConfigureParams.System.nCpuFreq = 25;
-                ConfigureParams.System.nRTC = MC68HC68T1;
-            }
-            ConfigureParams.System.n_FPUType = FPU_CPU;
-            ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
-            ConfigureParams.System.bDSPMemoryExpansion = true;
-            ConfigureParams.System.nSCSI = NCR53C90A;
-            ConfigureParams.System.bNBIC = false;
-            break;
-        default:
-            break;
-    }
-    
-    if (ConfigureParams.System.bTurbo) {
-        ConfigureParams.Memory.nMemoryBankSize[0] = 32;
-        ConfigureParams.Memory.nMemoryBankSize[1] = 32;
-        ConfigureParams.Memory.nMemoryBankSize[2] = 32;
-        ConfigureParams.Memory.nMemoryBankSize[3] = 32;
-    } else if (ConfigureParams.System.bColor) {
-        ConfigureParams.Memory.nMemoryBankSize[0] = 8;
-        ConfigureParams.Memory.nMemoryBankSize[1] = 8;
-        ConfigureParams.Memory.nMemoryBankSize[2] = 8;
-        ConfigureParams.Memory.nMemoryBankSize[3] = 8;
-    } else {
-        ConfigureParams.Memory.nMemoryBankSize[0] = 16;
-        ConfigureParams.Memory.nMemoryBankSize[1] = 16;
-        if (ConfigureParams.System.nMachineType==NEXT_STATION) {
-            ConfigureParams.Memory.nMemoryBankSize[2] = 0;
-            ConfigureParams.Memory.nMemoryBankSize[3] = 0;
-        } else {
-            ConfigureParams.Memory.nMemoryBankSize[2] = 16;
-            ConfigureParams.Memory.nMemoryBankSize[3] = 16;
-        }
-    }
+	switch (ConfigureParams.System.nMachineType) {
+		case NEXT_CUBE030:
+			ConfigureParams.System.bTurbo = false;
+			ConfigureParams.System.bColor = false;
+			ConfigureParams.System.nCpuLevel = 3;
+			ConfigureParams.System.nCpuFreq = 25;
+			ConfigureParams.System.n_FPUType = FPU_68882;
+			ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
+			ConfigureParams.System.bDSPMemoryExpansion = false;
+			ConfigureParams.System.nSCSI = NCR53C90;
+			ConfigureParams.System.nRTC = MC68HC68T1;
+			ConfigureParams.System.bNBIC = true;
+			break;
+
+		case NEXT_CUBE040:
+			ConfigureParams.System.bColor = false;
+			ConfigureParams.System.nCpuLevel = 4;
+			if (ConfigureParams.System.bTurbo) {
+				ConfigureParams.System.nCpuFreq = 33;
+				ConfigureParams.System.nRTC = MCCS1850;
+			} else {
+				ConfigureParams.System.nCpuFreq = 25;
+				ConfigureParams.System.nRTC = MC68HC68T1;
+			}
+			ConfigureParams.System.n_FPUType = FPU_CPU;
+			ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
+			ConfigureParams.System.bDSPMemoryExpansion = true;
+			ConfigureParams.System.nSCSI = NCR53C90A;
+			ConfigureParams.System.bNBIC = true;
+			break;
+
+		case NEXT_STATION:
+			ConfigureParams.System.nCpuLevel = 4;
+			if (ConfigureParams.System.bTurbo) {
+				ConfigureParams.System.nCpuFreq = 33;
+				ConfigureParams.System.nRTC = MCCS1850;
+			} else {
+				ConfigureParams.System.nCpuFreq = 25;
+				ConfigureParams.System.nRTC = MC68HC68T1;
+			}
+			ConfigureParams.System.n_FPUType = FPU_CPU;
+			ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
+			ConfigureParams.System.bDSPMemoryExpansion = true;
+			ConfigureParams.System.nSCSI = NCR53C90A;
+			ConfigureParams.System.bNBIC = false;
+			break;
+		default:
+			break;
+	}
+
+	if (ConfigureParams.System.bTurbo) {
+		ConfigureParams.Memory.nMemoryBankSize[0] = 32;
+		ConfigureParams.Memory.nMemoryBankSize[1] = 32;
+		ConfigureParams.Memory.nMemoryBankSize[2] = 32;
+		ConfigureParams.Memory.nMemoryBankSize[3] = 32;
+	} else if (ConfigureParams.System.bColor) {
+		ConfigureParams.Memory.nMemoryBankSize[0] = 8;
+		ConfigureParams.Memory.nMemoryBankSize[1] = 8;
+		ConfigureParams.Memory.nMemoryBankSize[2] = 8;
+		ConfigureParams.Memory.nMemoryBankSize[3] = 8;
+	} else {
+		ConfigureParams.Memory.nMemoryBankSize[0] = 16;
+		ConfigureParams.Memory.nMemoryBankSize[1] = 16;
+		if (ConfigureParams.System.nMachineType==NEXT_STATION) {
+			ConfigureParams.Memory.nMemoryBankSize[2] = 0;
+			ConfigureParams.Memory.nMemoryBankSize[3] = 0;
+		} else {
+			ConfigureParams.Memory.nMemoryBankSize[2] = 16;
+			ConfigureParams.Memory.nMemoryBankSize[3] = 16;
+		}
+	}
 }
 
 
@@ -682,135 +694,135 @@ void Configuration_SetSystemDefaults(void) {
 #define SAFE_MEMCHECK        1 /* Disable configurations that crash */
 
 int Configuration_CheckMemory(int *banksize) {
-    int i;
-    
+	int i;
+
 #if RESTRICTIVE_MEMCHECK
-    /* To boot we need at least 4 MB in bank0 */
-    if (banksize[0]<4) {
-        banksize[0]=4;
-    }
+	/* To boot we need at least 4 MB in bank0 */
+	if (banksize[0]<4) {
+		banksize[0]=4;
+	}
 #endif
-    
-    if (ConfigureParams.System.bTurbo) {
-        for (i=0; i<4; i++) {
-            if (banksize[i]<=0)
-                banksize[i]=0;
-            else if (banksize[i]<=2)
-                banksize[i]=2;
-            else if (banksize[i]<=8)
-                banksize[i]=8;
-            else if (banksize[i]<=32)
-                banksize[i]=32;
-            else
-                banksize[i]=32;
-        }
-    } else if (ConfigureParams.System.bColor) {
-        for (i=0; i<4; i++) {
-            if (banksize[i]<=0)
-                banksize[i]=0;
-            else if (banksize[i]<=2)
-                banksize[i]=2;
-            else if (banksize[i]<=8)
-                banksize[i]=8;
-            else
-                banksize[i]=8;
-        }
-    } else {
-        for (i=0; i<4; i++) {
-            if (banksize[i]<=0)
-                banksize[i]=0;
-            else if (banksize[i]<=1)
-                banksize[i]=1;
-            else if (banksize[i]<=4)
-                banksize[i]=4;
-            else if (banksize[i]<=16)
-                banksize[i]=16;
-            else
-                banksize[i]=16;
-        }
-        /* Non-Turbo monochrome Slab: Only first two banks are physically accessible */
-        if (ConfigureParams.System.nMachineType==NEXT_STATION) {
-            banksize[2]=0;
-            banksize[3]=0;
-        }
-    }
-    return (banksize[0]+banksize[1]+banksize[2]+banksize[3]);
+
+	if (ConfigureParams.System.bTurbo) {
+		for (i=0; i<4; i++) {
+			if (banksize[i]<=0)
+				banksize[i]=0;
+			else if (banksize[i]<=2)
+				banksize[i]=2;
+			else if (banksize[i]<=8)
+				banksize[i]=8;
+			else if (banksize[i]<=32)
+				banksize[i]=32;
+			else
+				banksize[i]=32;
+		}
+	} else if (ConfigureParams.System.bColor) {
+		for (i=0; i<4; i++) {
+			if (banksize[i]<=0)
+				banksize[i]=0;
+			else if (banksize[i]<=2)
+				banksize[i]=2;
+			else if (banksize[i]<=8)
+				banksize[i]=8;
+			else
+				banksize[i]=8;
+		}
+	} else {
+		for (i=0; i<4; i++) {
+			if (banksize[i]<=0)
+				banksize[i]=0;
+			else if (banksize[i]<=1)
+				banksize[i]=1;
+			else if (banksize[i]<=4)
+				banksize[i]=4;
+			else if (banksize[i]<=16)
+				banksize[i]=16;
+			else
+				banksize[i]=16;
+		}
+		/* Non-Turbo monochrome Slab: Only first two banks are physically accessible */
+		if (ConfigureParams.System.nMachineType==NEXT_STATION) {
+			banksize[2]=0;
+			banksize[3]=0;
+		}
+	}
+	return (banksize[0]+banksize[1]+banksize[2]+banksize[3]);
 }
 
 int Configuration_CheckDimensionMemory(int *banksize) {
-    int i;
-    
+	int i;
+
 #if RESTRICTIVE_MEMCHECK
-    /* To boot we need at least 4 MB in bank0 */
-    if (banksize[0]<4) {
-        banksize[0]=4;
-    }
+	/* To boot we need at least 4 MB in bank0 */
+	if (banksize[0]<4) {
+		banksize[0]=4;
+	}
 #endif
 #if SAFE_MEMCHECK
-    /* No memory in bank 0 while other banks have memory causes kernel panic on boot. */
-    for (i=3; i>0; i--) {
-        if (banksize[0]<=0) {
-            if (banksize[i]>0) {
-                banksize[0]=banksize[i];
-                banksize[i]=0;
-                break;
-            }
-        } else {
-            break;
-        }
-    }
+	/* No memory in bank 0 while other banks have memory causes kernel panic on boot. */
+	for (i=3; i>0; i--) {
+		if (banksize[0]<=0) {
+			if (banksize[i]>0) {
+				banksize[0]=banksize[i];
+				banksize[i]=0;
+				break;
+			}
+		} else {
+			break;
+		}
+	}
 #endif
-    for (i=0; i<4; i++) {
-        if (banksize[i]<=0)
-            banksize[i]=0;
-        else if (banksize[i]<=4)
-            banksize[i]=4;
-        else if (banksize[i]<=16)
-            banksize[i]=16;
-        else
-            banksize[i]=16;
-    }
-    return (banksize[0]+banksize[1]+banksize[2]+banksize[3]);
+	for (i=0; i<4; i++) {
+		if (banksize[i]<=0)
+			banksize[i]=0;
+		else if (banksize[i]<=4)
+			banksize[i]=4;
+		else if (banksize[i]<=16)
+			banksize[i]=16;
+		else
+			banksize[i]=16;
+	}
+	return (banksize[0]+banksize[1]+banksize[2]+banksize[3]);
 }
 
 void Configuration_CheckDimensionSettings(void) {
-    int i;
-    bool enabled = false;
-    
-    for (i = 0; i < ND_MAX_BOARDS; i++) {
-        if (ConfigureParams.System.nMachineType==NEXT_STATION) {
-            ConfigureParams.Dimension.board[i].bEnabled = false;
-        }
-        if (ConfigureParams.Dimension.board[i].bEnabled) {
-            enabled = true;
-        } else if (ConfigureParams.Dimension.bMainDisplay) {
-            if (ConfigureParams.Dimension.nMainDisplay == i) {
-                ConfigureParams.Dimension.bMainDisplay = false;
-                ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
-            }
-        }
-    }
-    if (enabled) {
-        ConfigureParams.System.bNBIC = true;
-    } else {
-        ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
-    }
-    if ((ConfigureParams.Dimension.nMainDisplay >= ND_MAX_BOARDS) ||
-        (ConfigureParams.Dimension.nMainDisplay < 0)) {
-        ConfigureParams.Dimension.nMainDisplay = 0;
-    }
-    if ((ConfigureParams.Screen.nMonitorNum >= ND_MAX_BOARDS) ||
-        (ConfigureParams.Screen.nMonitorNum < 0)) {
-        ConfigureParams.Screen.nMonitorNum = 0;
-    }
-    
-    ConfigureParams.Dimension.bI860Thread = host_num_cpus() != 1;
+	int i;
+	bool enabled = false;
+
+	for (i = 0; i < ND_MAX_BOARDS; i++) {
+		if (ConfigureParams.System.nMachineType==NEXT_STATION) {
+			ConfigureParams.Dimension.board[i].bEnabled = false;
+		}
+		if (ConfigureParams.Dimension.board[i].bEnabled) {
+			enabled = true;
+		} else if (ConfigureParams.Dimension.bMainDisplay) {
+			if (ConfigureParams.Dimension.nMainDisplay == i) {
+				ConfigureParams.Dimension.bMainDisplay = false;
+				ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
+			}
+		}
+	}
+	if (enabled) {
+		ConfigureParams.System.bNBIC = true;
+	} else {
+		ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
+	}
+	if ((ConfigureParams.Dimension.nMainDisplay >= ND_MAX_BOARDS) ||
+		(ConfigureParams.Dimension.nMainDisplay < 0)) {
+		ConfigureParams.Dimension.nMainDisplay = 0;
+	}
+	if ((ConfigureParams.Screen.nMonitorNum >= ND_MAX_BOARDS) ||
+		(ConfigureParams.Screen.nMonitorNum < 0)) {
+		ConfigureParams.Screen.nMonitorNum = 0;
+	}
+
+	ConfigureParams.Dimension.bI860Thread = host_num_cpus() != 1;
 }
 
 void Configuration_CheckEthernetSettings(void) {
-    if (ConfigureParams.System.nMachineType == NEXT_CUBE030) {
-        ConfigureParams.Ethernet.bTwistedPair = false;
-    }
+	if (ConfigureParams.System.nMachineType == NEXT_CUBE030) {
+		ConfigureParams.Ethernet.bTwistedPair = false;
+	}
 }
 
 
@@ -825,7 +837,7 @@ static int Configuration_LoadSection(const char *pFilename, const struct Config_
 	ret = input_config(pFilename, configs, pSection);
 
 	if (ret < 0)
-		fprintf(stderr, "Can not load configuration file %s (section %s).\n",
+		Log_Printf(LOG_ERROR, "cannot load configuration file %s (section %s).\n",
 		        pFilename, pSection);
 
 	return ret;
@@ -849,24 +861,24 @@ void Configuration_Load(const char *psFileName)
 	}
 
 	Configuration_LoadSection(psFileName, configs_Log, "[Log]");
-    Configuration_LoadSection(psFileName, configs_ConfigDialog, "[ConfigDialog]");
+	Configuration_LoadSection(psFileName, configs_ConfigDialog, "[ConfigDialog]");
 	Configuration_LoadSection(psFileName, configs_Debugger, "[Debugger]");
 	Configuration_LoadSection(psFileName, configs_Screen, "[Screen]");
 	Configuration_LoadSection(psFileName, configs_Keyboard, "[Keyboard]");
 	Configuration_LoadSection(psFileName, configs_ShortCutWithMod, "[ShortcutsWithModifiers]");
 	Configuration_LoadSection(psFileName, configs_ShortCutWithoutMod, "[ShortcutsWithoutModifiers]");
-    Configuration_LoadSection(psFileName, configs_Mouse, "[Mouse]");
+	Configuration_LoadSection(psFileName, configs_Mouse, "[Mouse]");
 	Configuration_LoadSection(psFileName, configs_Sound, "[Sound]");
 	Configuration_LoadSection(psFileName, configs_Memory, "[Memory]");
-    Configuration_LoadSection(psFileName, configs_Boot, "[Boot]");
+	Configuration_LoadSection(psFileName, configs_Boot, "[Boot]");
 	Configuration_LoadSection(psFileName, configs_SCSI, "[HardDisk]");
-    Configuration_LoadSection(psFileName, configs_MO, "[MagnetoOptical]");
-    Configuration_LoadSection(psFileName, configs_Floppy, "[Floppy]");
-    Configuration_LoadSection(psFileName, configs_Ethernet, "[Ethernet]");
+	Configuration_LoadSection(psFileName, configs_MO, "[MagnetoOptical]");
+	Configuration_LoadSection(psFileName, configs_Floppy, "[Floppy]");
+	Configuration_LoadSection(psFileName, configs_Ethernet, "[Ethernet]");
 	Configuration_LoadSection(psFileName, configs_Rom, "[ROM]");
 	Configuration_LoadSection(psFileName, configs_Printer, "[Printer]");
 	Configuration_LoadSection(psFileName, configs_System, "[System]");
-    Configuration_LoadSection(psFileName, configs_Dimension, "[Dimension]");
+	Configuration_LoadSection(psFileName, configs_Dimension, "[Dimension]");
 }
 
 
@@ -881,7 +893,8 @@ static int Configuration_SaveSection(const char *pFilename, const struct Config_
 	ret = update_config(pFilename, configs, pSection);
 
 	if (ret < 0)
-		fprintf(stderr, "Error while updating section %s in %s\n", pSection, pFilename);
+		Log_Printf(LOG_ERROR, "cannot save configuration file %s (section %s)\n",
+			   pFilename, pSection);
 
 	return ret;
 }
@@ -898,23 +911,22 @@ void Configuration_Save(void)
 		Log_AlertDlg(LOG_ERROR, "Error saving config file.");
 		return;
 	}
-    Configuration_SaveSection(sConfigFileName, configs_ConfigDialog, "[ConfigDialog]");
+	Configuration_SaveSection(sConfigFileName, configs_ConfigDialog, "[ConfigDialog]");
 	Configuration_SaveSection(sConfigFileName, configs_Debugger, "[Debugger]");
 	Configuration_SaveSection(sConfigFileName, configs_Screen, "[Screen]");
 	Configuration_SaveSection(sConfigFileName, configs_Keyboard, "[Keyboard]");
 	Configuration_SaveSection(sConfigFileName, configs_ShortCutWithMod, "[ShortcutsWithModifiers]");
 	Configuration_SaveSection(sConfigFileName, configs_ShortCutWithoutMod, "[ShortcutsWithoutModifiers]");
-    Configuration_SaveSection(sConfigFileName, configs_Mouse, "[Mouse]");
+	Configuration_SaveSection(sConfigFileName, configs_Mouse, "[Mouse]");
 	Configuration_SaveSection(sConfigFileName, configs_Sound, "[Sound]");
 	Configuration_SaveSection(sConfigFileName, configs_Memory, "[Memory]");
-    Configuration_SaveSection(sConfigFileName, configs_Boot, "[Boot]");
+	Configuration_SaveSection(sConfigFileName, configs_Boot, "[Boot]");
 	Configuration_SaveSection(sConfigFileName, configs_SCSI, "[HardDisk]");
-    Configuration_SaveSection(sConfigFileName, configs_MO, "[MagnetoOptical]");
-    Configuration_SaveSection(sConfigFileName, configs_Floppy, "[Floppy]");
-    Configuration_SaveSection(sConfigFileName, configs_Ethernet, "[Ethernet]");
+	Configuration_SaveSection(sConfigFileName, configs_MO, "[MagnetoOptical]");
+	Configuration_SaveSection(sConfigFileName, configs_Floppy, "[Floppy]");
+	Configuration_SaveSection(sConfigFileName, configs_Ethernet, "[Ethernet]");
 	Configuration_SaveSection(sConfigFileName, configs_Rom, "[ROM]");
 	Configuration_SaveSection(sConfigFileName, configs_Printer, "[Printer]");
 	Configuration_SaveSection(sConfigFileName, configs_System, "[System]");
-    Configuration_SaveSection(sConfigFileName, configs_Dimension, "[Dimension]");
+	Configuration_SaveSection(sConfigFileName, configs_Dimension, "[Dimension]");
 }
-
