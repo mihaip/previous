@@ -738,6 +738,7 @@ private:
 };
 
 /* disassembler */
+#define DISASM_BUF_SIZE 256
 int i860_disassembler(UINT32 pc, UINT32 insn, char* buffer);
 
 #endif /* __I860_H__ */

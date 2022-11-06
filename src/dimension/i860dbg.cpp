@@ -208,7 +208,7 @@ UINT32 i860_cpu_device::disasm (UINT32 addr, int len)
 	UINT32 insn;
 	int j;
 	for (j = 0; j < len; j++) {
-		char buf[256];
+		char buf[DISASM_BUF_SIZE];
 		/* Note that we print the incoming (possibly virtual) address as the
 		   PC rather than the translated address.  */
 		fprintf (stderr, " [i860] %08X: ", addr);
