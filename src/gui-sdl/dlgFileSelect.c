@@ -727,7 +727,7 @@ char* SDLGui_FileSelect(const char *title, const char *path_and_name, char **zip
 	if (pReadOnly)
 	{
 		fsdlg[SGFSDLG_READONLY].type = SGCHECKBOX;
-		sprintf(dlgreadonly, "Write protected");
+		snprintf(dlgreadonly, sizeof(dlgreadonly), "Write protected");
 		if (*pReadOnly)
 			fsdlg[SGFSDLG_READONLY].state |= SG_SELECTED;
 		else
@@ -736,7 +736,7 @@ char* SDLGui_FileSelect(const char *title, const char *path_and_name, char **zip
 	else
 	{
 		fsdlg[SGFSDLG_READONLY].type = SGTEXT;
-		sprintf(dlgreadonly, "");
+		snprintf(dlgreadonly, sizeof(dlgreadonly), "");
 	}
 
 	/* Prepare the path and filename variables */

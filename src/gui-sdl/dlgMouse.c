@@ -112,11 +112,11 @@ void Dialog_MouseDlg(void)
 	if (ConfigureParams.Mouse.bEnableAutoGrab)
 		mousedlg[DLGMOUSE_AUTOLOCK].state |= SG_SELECTED;
 	
-	sprintf(lin_normal, "%#.1f", ConfigureParams.Mouse.fLinSpeedNormal);
-	sprintf(lin_locked, "%#.1f", ConfigureParams.Mouse.fLinSpeedLocked);
+	snprintf(lin_normal, sizeof(lin_normal), "%#.1f", ConfigureParams.Mouse.fLinSpeedNormal);
+	snprintf(lin_locked, sizeof(exp_normal), "%#.1f", ConfigureParams.Mouse.fLinSpeedLocked);
 	
-	sprintf(exp_normal, "%#.2f", ConfigureParams.Mouse.fExpSpeedNormal);
-	sprintf(exp_locked, "%#.2f", ConfigureParams.Mouse.fExpSpeedLocked);
+	snprintf(exp_normal, sizeof(exp_normal), "%#.2f", ConfigureParams.Mouse.fExpSpeedNormal);
+	snprintf(exp_locked, sizeof(exp_locked), "%#.2f", ConfigureParams.Mouse.fExpSpeedLocked);
 	
 	/* Draw and process the dialog */
 	

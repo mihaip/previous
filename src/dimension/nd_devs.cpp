@@ -196,7 +196,7 @@ static const char* decodeBits(const char** bits, uae_u32 val) {
             *--result = 0;
     }
     else
-        sprintf(buffer, "%08X", val);
+        snprintf(buffer, sizeof(buffer), "%08X", val);
     return buffer;
 }
 

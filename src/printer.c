@@ -28,13 +28,13 @@ static const char *lp_get_filename(void) {
     int lp_duplicate_count = 0;
     
     if (File_DirExists(ConfigureParams.Printer.szPrintToFileName)) {
-        sprintf(lp_filename, "%05d_next_printer", lp_pagecount);
+        snprintf(lp_filename, sizeof(lp_filename), "%05d_next_printer", lp_pagecount);
         
         do {
             if (lp_duplicate_count) {
-                sprintf(lp_extension, "%i.png",lp_duplicate_count);
+                snprintf(lp_extension, sizeof(lp_extension), "%i.png",lp_duplicate_count);
             } else {
-                sprintf(lp_extension, ".png");
+                snprintf(lp_extension, sizeof(lp_extension), ".png");
             }
             lp_outfile = File_MakePath(ConfigureParams.Printer.szPrintToFileName,
                                        lp_filename, lp_extension);

@@ -88,8 +88,9 @@ void DlgRom_Main(void)
 		switch (but)
 		{
 			case DLGROM_ROM030_DEFAULT:
-				sprintf(ConfigureParams.Rom.szRom030FileName, "%s%cRev_1.0_v41.BIN",
-						Paths_GetWorkingDir(), PATHSEP);
+				File_MakePathBuf(ConfigureParams.Rom.szRom030FileName,
+								 sizeof(ConfigureParams.Rom.szRom030FileName),
+								 Paths_GetWorkingDir(), "Rev_1.0_v41", "BIN");
 				File_ShrinkName(szDlgRom030Name, ConfigureParams.Rom.szRom030FileName, sizeof(szDlgRom030Name)-1);
 				break;
 				
@@ -102,8 +103,9 @@ void DlgRom_Main(void)
 				break;
 				
 			case DLGROM_ROM040_DEFAULT:
-				sprintf(ConfigureParams.Rom.szRom040FileName, "%s%cRev_2.5_v66.BIN",
-						Paths_GetWorkingDir(), PATHSEP);
+				File_MakePathBuf(ConfigureParams.Rom.szRom040FileName,
+								 sizeof(ConfigureParams.Rom.szRom040FileName),
+								 Paths_GetWorkingDir(), "Rev_2.5_v66", "BIN");
 				File_ShrinkName(szDlgRom040Name, ConfigureParams.Rom.szRom040FileName, sizeof(szDlgRom040Name)-1);
 				break;
 				
@@ -116,8 +118,9 @@ void DlgRom_Main(void)
 				break;
 				
 			case DLGROM_ROMTURBO_DEFAULT:
-				sprintf(ConfigureParams.Rom.szRomTurboFileName, "%s%cRev_3.3_v74.BIN",
-						Paths_GetWorkingDir(), PATHSEP);
+				File_MakePathBuf(ConfigureParams.Rom.szRomTurboFileName,
+								 sizeof(ConfigureParams.Rom.szRomTurboFileName),
+								 Paths_GetWorkingDir(), "Rev_3.3_v74", "BIN");
 				File_ShrinkName(szDlgRomTurboName, ConfigureParams.Rom.szRomTurboFileName, sizeof(szDlgRomTurboName)-1);
 				break;
 				

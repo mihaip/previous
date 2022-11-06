@@ -125,7 +125,7 @@ int CNetInfoProg::procedureSTATISTICS() {
     map<string, string> result;
     
     static char buf[32];
-    sprintf(buf, "%u", mRoot.checksum());
+    snprintf(buf, sizeof(buf), "%u", mRoot.checksum());
     result["checksum"] = buf;
     
     write_ni_proplist(m_out, result);

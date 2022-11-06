@@ -362,7 +362,6 @@ void Configuration_SetDefault(void)
 	ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = true;
 
 	/* Set defaults for debugger */
-	/* Set defaults for debugger */
 	ConfigureParams.Debugger.nNumberBase = 10;
 	ConfigureParams.Debugger.nSymbolLines = -1; /* <0: use terminal size */
 	ConfigureParams.Debugger.nMemdumpLines = -1; /* <0: use terminal size */

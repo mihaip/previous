@@ -138,7 +138,7 @@ static void Dialog_AdvancedDlg_MemDraw(void) {
 	int i;
 	int memsum, memsize;
 
-	sprintf(custom_memory, "Customize");
+	snprintf(custom_memory, sizeof(custom_memory), "Customize");
 
 	for (i = DLGADV_CUSTOM; i <= DLGADV_128MB; i++)
 	{
@@ -182,7 +182,7 @@ static void Dialog_AdvancedDlg_MemDraw(void) {
 			break;
 		default:
 			advanceddlg[DLGADV_CUSTOM].state |= SG_SELECTED;
-			sprintf(custom_memory, "Custom");
+			snprintf(custom_memory, sizeof(custom_memory), "Custom");
 			break;
 	}
 
@@ -370,7 +370,7 @@ void Dialog_AdvancedDlg(void) {
 					memcpy(ConfigureParams.Memory.nMemoryBankSize, defmemsize[0],
 						   sizeof(ConfigureParams.Memory.nMemoryBankSize));
 				}
-				sprintf(custom_memory, "Customize");
+				snprintf(custom_memory, sizeof(custom_memory), "Customize");
 				break;
 			case DLGADV_16MB:
 				if (ConfigureParams.System.bColor || ConfigureParams.System.bTurbo) {
@@ -380,7 +380,7 @@ void Dialog_AdvancedDlg(void) {
 					memcpy(ConfigureParams.Memory.nMemoryBankSize, defmemsize[2],
 						   sizeof(ConfigureParams.Memory.nMemoryBankSize));
 				}
-				sprintf(custom_memory, "Customize");
+				snprintf(custom_memory, sizeof(custom_memory), "Customize");
 				break;
 			case DLGADV_32MB:
 				if (ConfigureParams.System.bColor || ConfigureParams.System.bTurbo) {
@@ -390,7 +390,7 @@ void Dialog_AdvancedDlg(void) {
 					memcpy(ConfigureParams.Memory.nMemoryBankSize, defmemsize[4],
 						   sizeof(ConfigureParams.Memory.nMemoryBankSize));
 				}
-				sprintf(custom_memory, "Customize");
+				snprintf(custom_memory, sizeof(custom_memory), "Customize");
 				break;
 			case DLGADV_64MB:
 				if (ConfigureParams.System.bTurbo) {
@@ -400,12 +400,12 @@ void Dialog_AdvancedDlg(void) {
 					memcpy(ConfigureParams.Memory.nMemoryBankSize, defmemsize[6],
 						   sizeof(ConfigureParams.Memory.nMemoryBankSize));
 				}
-				sprintf(custom_memory, "Customize");
+				snprintf(custom_memory, sizeof(custom_memory), "Customize");
 				break;
 			case DLGADV_128MB:
 				memcpy(ConfigureParams.Memory.nMemoryBankSize, defmemsize[8],
 					   sizeof(ConfigureParams.Memory.nMemoryBankSize));
-				sprintf(custom_memory, "Customize");
+				snprintf(custom_memory, sizeof(custom_memory), "Customize");
 				break;
 			case DLGADV_CUSTOM:
 				Dialog_MemAdvancedDlg(ConfigureParams.Memory.nMemoryBankSize);

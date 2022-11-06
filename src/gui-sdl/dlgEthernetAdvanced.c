@@ -80,7 +80,7 @@ bool DlgEthernetAdvanced_ConfigurePCAP(void)
 			File_ShrinkName(pcap_list, name, PCAP_LIST_LEN);
 			bNone = false;
 		} else {
-			sprintf(pcap_list, "no interface found");
+			snprintf(pcap_list, sizeof(pcap_list), "no interface found");
 			bNone = true;
 		}
 
@@ -194,7 +194,7 @@ void DlgEthernetAdvanced_ConfigureMAC(Uint8 *mac)
 	
 	/* Set values from ROM or preferences */
 	for (i = 0; i < 6; i++) {
-		sprintf(mac_input[i], "%02x", mac[i]);
+		snprintf(mac_input[i], sizeof(mac_input[0]), "%02x", mac[i]);
 	}
 	
 	do

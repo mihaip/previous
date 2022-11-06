@@ -139,7 +139,7 @@ void DlgEthernet_Main(void)
 		snprintf(pcap_interface, PCAP_INTERFACE_LEN, "PCAP: %.12s", ConfigureParams.Ethernet.szInterfaceName);
 	} else {
 		enetdlg[DLGENET_SLIRP].state |= SG_SELECTED;
-		sprintf(pcap_interface, "PCAP");
+		snprintf(pcap_interface, sizeof(pcap_interface), "PCAP");
 	}
 #endif
 	
@@ -152,8 +152,8 @@ void DlgEthernet_Main(void)
 	{
 		DlgEthernetAdvanced_GetMAC(mac_addr);
 		
-		sprintf(mac_addr_string, "%02x:%02x:%02x:%02x:%02x:%02x",mac_addr[0],
-				mac_addr[1],mac_addr[2],mac_addr[3],mac_addr[4],mac_addr[5]);
+		snprintf(mac_addr_string, sizeof(mac_addr_string), "%02x:%02x:%02x:%02x:%02x:%02x",
+		         mac_addr[0],mac_addr[1],mac_addr[2],mac_addr[3],mac_addr[4],mac_addr[5]);
 
 		but = SDLGui_DoDialog(enetdlg);
 		
@@ -179,15 +179,15 @@ void DlgEthernet_Main(void)
 #if HAVE_PCAP
 			case DLGENET_PCAP:
 				if (DlgEthernetAdvanced_ConfigurePCAP()) {
-					snprintf(pcap_interface, PCAP_INTERFACE_LEN, "PCAP: %.12s", ConfigureParams.Ethernet.szInterfaceName);
+					snprintf(pcap_interface, sizeof(pcap_interface), "PCAP: %.12s", ConfigureParams.Ethernet.szInterfaceName);
 				} else {
-					sprintf(pcap_interface, "PCAP");
+					snprintf(pcap_interface, sizeof(pcap_interface), "PCAP");
 					enetdlg[DLGENET_PCAP].state &= ~SG_SELECTED;
 					enetdlg[DLGENET_SLIRP].state |= SG_SELECTED;
 				}
 				break;
 			case DLGENET_SLIRP:
-				sprintf(pcap_interface, "PCAP");
+				snprintf(pcap_interface, sizeof(pcap_interface), "PCAP");
 				break;
 #endif
 			case DLGENET_MAC:

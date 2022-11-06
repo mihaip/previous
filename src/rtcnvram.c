@@ -983,14 +983,14 @@ char * get_rtc_ram_info(void) {
     int i;
     int ni_vol_l,ni_vol_r,ni_brightness;
     int ni_hw_pwd;
-    sprintf(buf,"Rtc info:\n");
+    snprintf(buf,sizeof(buf),"Rtc info:\n");
     strcpy(rtc_ram_info,buf);
     
     // struct nvram_info {
     // #define	NI_RESET	9
     // 	u_int	ni_reset : 4,
     
-    sprintf(buf,"RTC RESET:x%1X ",rtc.ram[0]>>4);
+    snprintf(buf,sizeof(buf),"RTC RESET:x%1X ",rtc.ram[0]>>4);
     strcat(rtc_ram_info,buf);
     
     // #define	SCC_ALT_CONS	0x08000000
@@ -1015,7 +1015,7 @@ char * get_rtc_ram_info(void) {
     ni_brightness=(((rtc.ram[1]&0xF)<<2)|((rtc.ram[2]&0xC0)>>6));
     ni_vol_l=((rtc.ram[2]&0x3F)<<2);
     ni_hw_pwd=(rtc.ram[3]&0xF0)>>4;
-    sprintf(buf,"VOL_R:x%1X BRIGHT:x%1X HWPWD:x%1X VOL_L:x%1X",ni_vol_r,ni_brightness,ni_vol_l,ni_hw_pwd);
+    snprintf(buf,sizeof(buf),"VOL_R:x%1X BRIGHT:x%1X HWPWD:x%1X VOL_L:x%1X",ni_vol_r,ni_brightness,ni_vol_l,ni_hw_pwd);
     strcat(rtc_ram_info,buf);
     
     if (rtc.ram[3]&0x08) strcat(rtc_ram_info,"SPK_ENABLE ");
@@ -1028,21 +1028,21 @@ char * get_rtc_ram_info(void) {
     // #define	NVRAM_HW_PASSWD	6
     // 	u_char ni_ep[NVRAM_HW_PASSWD];
     
-    sprintf(buf,"NVRAM_HW_PASSWD:%2X %2X %2X %2X %2X %2X ",rtc.ram[4],rtc.ram[5],rtc.ram[6],rtc.ram[7],rtc.ram[8],rtc.ram[9]);
+    snprintf(buf,sizeof(buf),"NVRAM_HW_PASSWD:%2X %2X %2X %2X %2X %2X ",rtc.ram[4],rtc.ram[5],rtc.ram[6],rtc.ram[7],rtc.ram[8],rtc.ram[9]);
     strcat(rtc_ram_info,buf);
     // #define	ni_enetaddr	ni_ep
     // #define	ni_hw_passwd	ni_ep
     // 	u_short ni_simm;		/* 4 SIMMs, 4 bits per SIMM */
-    sprintf(buf,"SIMM:%1X %1X %1X %1X ",rtc.ram[10]>>4,rtc.ram[10]&0x0F,rtc.ram[11]>>4,rtc.ram[11]&0x0F);
+    snprintf(buf,sizeof(buf),"SIMM:%1X %1X %1X %1X ",rtc.ram[10]>>4,rtc.ram[10]&0x0F,rtc.ram[11]>>4,rtc.ram[11]&0x0F);
     strcat(rtc_ram_info,buf);
     
     
     // 	char ni_adobe[2];
-    sprintf(buf,"ADOBE:%2X %2X ",rtc.ram[12],rtc.ram[13]);
+    snprintf(buf,sizeof(buf),"ADOBE:%2X %2X ",rtc.ram[12],rtc.ram[13]);
     strcat(rtc_ram_info,buf);
     
     // 	u_char ni_pot[3];
-    sprintf(buf,"POT:%2X %2X %2X ",rtc.ram[14],rtc.ram[15],rtc.ram[16]);
+    snprintf(buf,sizeof(buf),"POT:%2X %2X %2X ",rtc.ram[14],rtc.ram[15],rtc.ram[16]);
     strcat(rtc_ram_info,buf);
     
     // 	u_char	ni_new_clock_chip : 1,
@@ -1055,7 +1055,7 @@ char * get_rtc_ram_info(void) {
     if (rtc.ram[17]&0x40) strcat(rtc_ram_info,"AUTO_POWERON ");
     if (rtc.ram[17]&0x20) strcat(rtc_ram_info,"CONSOLE_SLOT ");
     
-    sprintf(buf,"console_slot:%X ",(rtc.ram[17]&0x18)>>3);
+    snprintf(buf,sizeof(buf),"console_slot:%X ",(rtc.ram[17]&0x18)>>3);
     strcat(rtc_ram_info,buf);
     
     if (rtc.ram[17]&0x04) strcat(rtc_ram_info,"USE_PARITY ");
@@ -1064,13 +1064,13 @@ char * get_rtc_ram_info(void) {
     strcat(rtc_ram_info,"boot_command:");
     for (i=0;i<12;i++) {
         if ((rtc.ram[18+i]>=0x20) && (rtc.ram[18+i]<=0x7F)) {
-            sprintf(buf,"%c",rtc.ram[18+i]);
+            snprintf(buf,sizeof(buf),"%c",rtc.ram[18+i]);
             strcat(rtc_ram_info,buf);
         }
     }
     
     strcat(rtc_ram_info," ");
-    sprintf(buf,"CKSUM:%2X %2X ",rtc.ram[30],rtc.ram[31]);
+    snprintf(buf,sizeof(buf),"CKSUM:%2X %2X ",rtc.ram[30],rtc.ram[31]);
     strcat(rtc_ram_info,buf);
     
     
@@ -1084,7 +1084,7 @@ char * get_rtc_ram_info(void) {
     
     sum=0xFFFF-sum;
     
-    sprintf(buf,"CALC_CKSUM:%04X ",sum&0xFFFF);
+    snprintf(buf,sizeof(buf),"CALC_CKSUM:%04X ",sum&0xFFFF);
     strcat(rtc_ram_info,buf);
     
     // #define	NVRAM_BOOTCMD	12

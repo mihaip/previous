@@ -159,7 +159,7 @@ bool Dialog_MemDlg(void)
 					memcpy(ConfigureParams.Memory.nMemoryBankSize, defsize[0],
 						   sizeof(ConfigureParams.Memory.nMemoryBankSize));
 				}
-				sprintf(custom_memsize, "Customize");
+				snprintf(custom_memsize, sizeof(custom_memsize), "Customize");
 				break;
 			case DLGMEM_16MB:
 				if (ConfigureParams.System.bColor || ConfigureParams.System.bTurbo) {
@@ -169,7 +169,7 @@ bool Dialog_MemDlg(void)
 					memcpy(ConfigureParams.Memory.nMemoryBankSize, defsize[2],
 						   sizeof(ConfigureParams.Memory.nMemoryBankSize));
 				}
-				sprintf(custom_memsize, "Customize");
+				snprintf(custom_memsize, sizeof(custom_memsize), "Customize");
 				break;
 			case DLGMEM_32MB:
 				if (ConfigureParams.System.bColor || ConfigureParams.System.bTurbo) {
@@ -179,7 +179,7 @@ bool Dialog_MemDlg(void)
 					memcpy(ConfigureParams.Memory.nMemoryBankSize, defsize[4],
 						   sizeof(ConfigureParams.Memory.nMemoryBankSize));
 				}
-				sprintf(custom_memsize, "Customize");
+				snprintf(custom_memsize, sizeof(custom_memsize), "Customize");
 				break;
 			case DLGMEM_64MB:
 				if (ConfigureParams.System.bTurbo) {
@@ -189,12 +189,12 @@ bool Dialog_MemDlg(void)
 					memcpy(ConfigureParams.Memory.nMemoryBankSize, defsize[6],
 						   sizeof(ConfigureParams.Memory.nMemoryBankSize));
 				}
-				sprintf(custom_memsize, "Customize");
+				snprintf(custom_memsize, sizeof(custom_memsize), "Customize");
 				break;
 			case DLGMEM_128MB:
 				memcpy(ConfigureParams.Memory.nMemoryBankSize, defsize[8],
 					   sizeof(ConfigureParams.Memory.nMemoryBankSize));
-				sprintf(custom_memsize, "Customize");
+				snprintf(custom_memsize, sizeof(custom_memsize), "Customize");
 				break;
 			case DLGMEM_CUSTOM:
 				Dialog_MemAdvancedDlg(ConfigureParams.Memory.nMemoryBankSize);
@@ -245,7 +245,7 @@ void Dialog_MemDlgDraw(void) {
 	int i;
 	int memsum, memsize;
 	
-	sprintf(custom_memsize, "Customize");
+	snprintf(custom_memsize, sizeof(custom_memsize), "Customize");
 	
 	for (i = DLGMEM_8MB; i <= DLGMEM_128MB; i++)
 	{
@@ -289,7 +289,7 @@ void Dialog_MemDlgDraw(void) {
 			break;
 		default:
 			memorydlg[DLGMEM_CUSTOM].state |= SG_SELECTED;
-			sprintf(custom_memsize, "Custom (%i MB)", memsum);
+			snprintf(custom_memsize, sizeof(custom_memsize), "Custom (%i MB)", memsum);
 			break;
 	}
 	

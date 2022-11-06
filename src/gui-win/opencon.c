@@ -20,7 +20,7 @@
 
 void Win_OpenCon(void)
 {
-	if (1)
+	if (ConfigureParams.Log.bConsoleWindow)
 	{
 		AllocConsole();
 		freopen("CON", "w", stdout);

@@ -416,7 +416,7 @@ static void clean_dir(const HostPath& path) {
         cout << "directory " << path << " is a mount point, using as-is" << endl;
     } else if(::access(path.c_str(), F_OK | R_OK | W_OK) == 0) {
         char tmp[32];
-        sprintf(tmp, ".%08X", rand());
+        snprintf(tmp, sizeof(tmp), ".%08X", rand());
         string newName = path.string();
         newName += tmp;
         cout << "directory " << path << " still exists. trying to rename it to " << newName << endl;

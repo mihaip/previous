@@ -202,14 +202,14 @@ void Dialog_GraphicsDlg(void)
 		}
 		
 		if (ConfigureParams.Dimension.bMainDisplay) {
-			sprintf(maindisplay, "Console on NeXTdimension (Slot %i)", ConfigureParams.Dimension.nMainDisplay*2+2);
+			snprintf(maindisplay, sizeof(maindisplay), "Console on NeXTdimension (Slot %i)", ConfigureParams.Dimension.nMainDisplay*2+2);
 			graphicsdlg[GDLG_DISPLAY].txt = maindisplay;
 		} else {
 			graphicsdlg[GDLG_DISPLAY].txt = "Console on NeXTdimension";
 		}
 		
 		if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DIMENSION) {
-			sprintf(colordisplay, "Color (Slot %i)", ConfigureParams.Screen.nMonitorNum*2+2);
+			snprintf(colordisplay, sizeof(colordisplay), "Color (Slot %i)", ConfigureParams.Screen.nMonitorNum*2+2);
 			graphicsdlg[GDLG_COLOR].txt = colordisplay;
 		} else {
 			graphicsdlg[GDLG_COLOR].txt = "Color";

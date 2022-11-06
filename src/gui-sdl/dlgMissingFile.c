@@ -96,7 +96,7 @@ void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *
 	SDLGui_CenterDlg(missingromdlg);
 	
 	/* Set up dialog to actual values: */
-	sprintf(missingrom_alert, "%s: ROM file not found!", type);
+	snprintf(missingrom_alert, sizeof(missingrom_alert), "%s: ROM file not found!", type);
 	missingromdlg[DLGMISROM_ALERT].txt = missingrom_alert;
 	
 	File_ShrinkName(dlgname_missingrom, imgname, missingromdlg[DLGMISROM_NAME].w);
@@ -125,7 +125,7 @@ void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *
 									  NULL, false);
 				break;
 			case DLGMISROM_DEFAULT:
-				sprintf(imgname, "%s",defname);
+				snprintf(imgname, sizeof(imgname), "%s",defname);
 				File_ShrinkName(dlgname_missingrom, imgname, missingromdlg[DLGMISROM_NAME].w);
 				break;
 			case DLGMISROM_REMOVE:
@@ -167,10 +167,10 @@ void DlgMissing_Disk(const char* type, int num, char *imgname, bool *inserted, b
 	SDLGui_CenterDlg(missingdiskdlg);
 	
 	/* Set up dialog to actual values: */
-	sprintf(missingdisk_alert, "%s drive %i: disk image not found!", type, num);
+	snprintf(missingdisk_alert, sizeof(missingdisk_alert), "%s drive %i: disk image not found!", type, num);
 	missingdiskdlg[DLGMISDSK_ALERT].txt = missingdisk_alert;
 	
-	sprintf(missingdisk_disk, "%s %i:", type, num);
+	snprintf(missingdisk_disk, sizeof(missingdisk_disk), "%s %i:", type, num);
 	missingdiskdlg[DLGMISDSK_DRIVE].txt = missingdisk_disk;
 	
 	File_ShrinkName(dlgname_missingdisk, imgname, missingdiskdlg[DLGMISDSK_NAME].w);

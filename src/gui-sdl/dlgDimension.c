@@ -62,7 +62,8 @@ void Dialog_NDMemDlg(int *membank);
 
 /* Function to print system overview */
 void print_nd_overview(int n) {
-	sprintf(dimension_memory, "%i MB", Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[n].nMemoryBankSize));
+	snprintf(dimension_memory, sizeof(dimension_memory), "%i MB",
+	         Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[n].nMemoryBankSize));
 }
 
 /* Function to get default values for each system */
@@ -93,7 +94,7 @@ void Dialog_DimensionDlg(int n)
  
 	/* Set up dialog from actual values: */
 	
-	sprintf(dimension_slot, "%i:", n*2+2);
+	snprintf(dimension_slot, sizeof(dimension_slot), "%i:", n*2+2);
 
 	File_ShrinkName(dlgname_ndrom, ConfigureParams.Dimension.board[n].szRomFileName,
 						dimensiondlg[DLGND_NAME].w);

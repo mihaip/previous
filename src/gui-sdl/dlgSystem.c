@@ -91,69 +91,69 @@ static SGOBJ systemdlg[] =
 void print_system_overview(void) {
 	switch (ConfigureParams.System.nCpuLevel) {
 		case 0:
-			sprintf(cpu_type, "68000"); break;
+			snprintf(cpu_type, sizeof(cpu_type), "68000"); break;
 		case 1:
-			sprintf(cpu_type, "68010"); break;
+			snprintf(cpu_type, sizeof(cpu_type), "68010"); break;
 		case 2:
-			sprintf(cpu_type, "68020"); break;
+			snprintf(cpu_type, sizeof(cpu_type), "68020"); break;
 		case 3:
-			sprintf(cpu_type, "68030"); break;
+			snprintf(cpu_type, sizeof(cpu_type), "68030"); break;
 		case 4:
-			sprintf(cpu_type, "68040"); break;
+			snprintf(cpu_type, sizeof(cpu_type), "68040"); break;
 		case 5:
-			sprintf(cpu_type, "68060"); break;
+			snprintf(cpu_type, sizeof(cpu_type), "68060"); break;
 		default: break;
 	}
 	
-	if(ConfigureParams.System.bRealtime) sprintf(cpu_clock, "Variable");
-	else                                 sprintf(cpu_clock, "%i MHz", ConfigureParams.System.nCpuFreq);
+	if(ConfigureParams.System.bRealtime) snprintf(cpu_clock, sizeof(cpu_clock), "Variable");
+	else                                 snprintf(cpu_clock, sizeof(cpu_clock), "%i MHz", ConfigureParams.System.nCpuFreq);
 	
-	sprintf(main_memory, "%i MB", Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
+	snprintf(main_memory, sizeof(main_memory), "%i MB", Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
 	
-	sprintf(dsp_memory, "%i kB", ConfigureParams.System.bDSPMemoryExpansion?96:24);
+	snprintf(dsp_memory, sizeof(dsp_memory), "%i kB", ConfigureParams.System.bDSPMemoryExpansion?96:24);
 	
 	switch (ConfigureParams.System.n_FPUType) {
 		case FPU_NONE:
-			sprintf(fpu_type, "none"); break;
+			snprintf(fpu_type, sizeof(fpu_type), "none"); break;
 		case FPU_68881:
-			sprintf(fpu_type, "68881"); break;
+			snprintf(fpu_type, sizeof(fpu_type), "68881"); break;
 		case FPU_68882:
-			sprintf(fpu_type, "68882"); break;
+			snprintf(fpu_type, sizeof(fpu_type), "68882"); break;
 		case FPU_CPU:
-			sprintf(fpu_type, "68040"); break;
+			snprintf(fpu_type, sizeof(fpu_type), "68040"); break;
 		default: break;
 	}
 	
 	switch (ConfigureParams.System.nDSPType) {
 		case DSP_TYPE_NONE:
 		case DSP_TYPE_DUMMY:
-			sprintf(dsp_type, "none"); break;
+			snprintf(dsp_type, sizeof(dsp_type), "none"); break;
 		case DSP_TYPE_EMU:
-			sprintf(dsp_type, "56001"); break;
+			snprintf(dsp_type, sizeof(dsp_type), "56001"); break;
 			
 		default: break;
 	}
 	
 	switch (ConfigureParams.System.nSCSI) {
 		case NCR53C90:
-			sprintf(scsi_controller, "NCR53C90"); break;
+			snprintf(scsi_controller, sizeof(scsi_controller), "NCR53C90"); break;
 		case NCR53C90A:
-			sprintf(scsi_controller, "NCR53C90A"); break;
+			snprintf(scsi_controller, sizeof(scsi_controller), "NCR53C90A"); break;
 		default: break;
 	}
 	
 	switch (ConfigureParams.System.nRTC) {
 		case MC68HC68T1:
-			sprintf(rtc_chip, "MC68HC68T1"); break;
+			snprintf(rtc_chip, sizeof(rtc_chip), "MC68HC68T1"); break;
 		case MCCS1850:
-			sprintf(rtc_chip, "MCCS1850"); break;
+			snprintf(rtc_chip, sizeof(rtc_chip), "MCCS1850"); break;
 		default: break;
 	}
 	
 	if (ConfigureParams.System.bNBIC) {
-		sprintf(nbic_present, "present");
+		snprintf(nbic_present, sizeof(nbic_present), "present");
 	} else {
-		sprintf(nbic_present, "none");
+		snprintf(nbic_present, sizeof(nbic_present), "none");
 	}
 	
 	update_system_selection();
