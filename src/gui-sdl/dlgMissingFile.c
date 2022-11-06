@@ -125,7 +125,7 @@ void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *
 									  NULL, false);
 				break;
 			case DLGMISROM_DEFAULT:
-				snprintf(imgname, sizeof(imgname), "%s",defname);
+				snprintf(imgname, FILENAME_MAX, "%s",defname);
 				File_ShrinkName(dlgname_missingrom, imgname, missingromdlg[DLGMISROM_NAME].w);
 				break;
 			case DLGMISROM_REMOVE:

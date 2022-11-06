@@ -659,7 +659,7 @@ int tcp_emu(struct socket *so, struct mbuf *m)
 						}
 					}
 				}
-				so_rcv->sb_cc = sprintf(so_rcv->sb_data, "%d,%d\r\n", n1, n2);
+				so_rcv->sb_cc = snprintf(so_rcv->sb_data, so_rcv->sb_datalen, "%d,%d\r\n", n1, n2);
 				so_rcv->sb_rptr = so_rcv->sb_data;
 				so_rcv->sb_wptr = so_rcv->sb_data + so_rcv->sb_cc;
 			}
@@ -993,8 +993,9 @@ do_prompt:
 			n4 =  (laddr & 0xff);
 			
 			m->m_len = bptr - m->m_data; /* Adjust length */
-			m->m_len += sprintf(bptr,"ORT %d,%d,%d,%d,%d,%d\r\n%s", 
-					    n1, n2, n3, n4, n5, n6, x==7?buff:"");
+			m->m_len += snprintf(bptr, m->m_hdr.mh_size - m->m_len,
+			                     "ORT %d,%d,%d,%d,%d,%d\r\n%s",
+			                     n1, n2, n3, n4, n5, n6, x==7?buff:"");
 			return 1;
 		} else if ((bptr = (char *)strstr(m->m_data, "27 Entering")) != NULL) {
 			/*
@@ -1024,8 +1025,9 @@ do_prompt:
 			n4 =  (laddr & 0xff);
 			
 			m->m_len = bptr - m->m_data; /* Adjust length */
-			m->m_len += sprintf(bptr,"27 Entering Passive Mode (%d,%d,%d,%d,%d,%d)\r\n%s",
-					    n1, n2, n3, n4, n5, n6, x==7?buff:"");
+			m->m_len += snprintf(bptr, m->m_hdr.mh_size - m->m_len,
+			                     "27 Entering Passive Mode (%d,%d,%d,%d,%d,%d)\r\n%s",
+			                     n1, n2, n3, n4, n5, n6, x==7?buff:"");
 			
 			return 1;
 		}
@@ -1048,7 +1050,8 @@ do_prompt:
 		}
 		if (m->m_data[m->m_len-1] == '\0' && lport != 0 &&
 		    (so = solisten(0, so->so_laddr.s_addr, htons(lport), SS_FACCEPTONCE)) != NULL)
-			m->m_len = sprintf(m->m_data, "%d", ntohs(so->so_fport))+1;
+			m->m_len = snprintf(m->m_data, m->m_hdr.mh_size, "%d",
+			                    ntohs(so->so_fport)) + 1;
 		return 1;
 		
 	 case EMU_IRC:
@@ -1065,25 +1068,28 @@ do_prompt:
 				return 1;
 			
 			m->m_len = bptr - m->m_data; /* Adjust length */
-			m->m_len += sprintf(bptr, "DCC CHAT chat %lu %u%c\n",
-			     (unsigned long)ntohl(so->so_faddr.s_addr),
-			     ntohs(so->so_fport), 1);
+			m->m_len += snprintf(bptr, m->m_hdr.mh_size,
+			                     "DCC CHAT chat %lu %u%c\n",
+			                     (unsigned long)ntohl(so->so_faddr.s_addr),
+			                     ntohs(so->so_fport), 1);
 		} else if (sscanf(bptr, "DCC SEND %256s %u %u %u", buff, &laddr, &lport, &n1) == 4) {
 			if ((so = solisten(0, htonl(laddr), htons(lport), SS_FACCEPTONCE)) == NULL)
 				return 1;
 			
 			m->m_len = bptr - m->m_data; /* Adjust length */
-			m->m_len += sprintf(bptr, "DCC SEND %s %lu %u %u%c\n", 
-			      buff, (unsigned long)ntohl(so->so_faddr.s_addr),
-			      ntohs(so->so_fport), n1, 1);
+			m->m_len += snprintf(bptr, m->m_hdr.mh_size,
+								 "DCC SEND %s %lu %u %u%c\n", buff,
+			                     (unsigned long)ntohl(so->so_faddr.s_addr),
+			                     ntohs(so->so_fport), n1, 1);
 		} else if (sscanf(bptr, "DCC MOVE %256s %u %u %u", buff, &laddr, &lport, &n1) == 4) {
 			if ((so = solisten(0, htonl(laddr), htons(lport), SS_FACCEPTONCE)) == NULL)
 				return 1;
 			
 			m->m_len = bptr - m->m_data; /* Adjust length */
-			m->m_len += sprintf(bptr, "DCC MOVE %s %lu %u %u%c\n",
-			      buff, (unsigned long)ntohl(so->so_faddr.s_addr),
-			      ntohs(so->so_fport), n1, 1);
+			m->m_len += snprintf(bptr, m->m_hdr.mh_size,
+								 "DCC MOVE %s %lu %u %u%c\n", buff,
+			                     (unsigned long)ntohl(so->so_faddr.s_addr),
+			                     ntohs(so->so_fport), n1, 1);
 		}
 		return 1;
 
@@ -1269,8 +1275,8 @@ int tcp_ctl(struct socket *so)
 		
 		/* FALLTHROUGH */
 	case CTL_ALIAS:
-	  sb->sb_cc = sprintf(sb->sb_wptr,
-			      "Error: No application configured.\r\n");
+	  sb->sb_cc = snprintf(sb->sb_wptr, sb->sb_datalen - (sb->sb_wptr - sb->sb_data),
+	                       "Error: No application configured.\r\n");
 	  sb->sb_wptr += sb->sb_cc;
 	  return(0);
 

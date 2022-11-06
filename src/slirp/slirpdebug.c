@@ -304,7 +304,7 @@ sockstats()
 			
 	for (so = tcb.so_next; so != &tcb; so = so->so_next) {
 		
-		n = sprintf(buff, "tcp[%s]", so->so_tcpcb?tcpstates[so->so_tcpcb->t_state]:"NONE");
+		n = snprintf(buff, sizeof(buff), "tcp[%s]", so->so_tcpcb?tcpstates[so->so_tcpcb->t_state]:"NONE");
 		while (n < 17)
 		   buff[n++] = ' ';
 		buff[17] = 0;
@@ -320,7 +320,7 @@ sockstats()
 		   
 	for (so = udb.so_next; so != &udb; so = so->so_next) {
 		
-		n = sprintf(buff, "udp[%d sec]", (so->so_expire - curtime) / 1000);
+		n = snprintf(buff, sizeof(buff), "udp[%d sec]", (so->so_expire - curtime) / 1000);
 		while (n < 17)
 		   buff[n++] = ' ';
 		buff[17] = 0;

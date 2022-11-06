@@ -188,11 +188,11 @@ static void bootp_reply(struct bootp_t *bp)
 
     char path[TFTP_FILENAME_MAX];
     
-    sprintf(path, "%s%s", tftp_root, kernel_next);
+    snprintf(path, sizeof(path), "%s%s", tftp_root, kernel_next);
     
     if (memcmp(bp->bp_file, path, strlen(path)+1)) {
         if (bp->bp_file[0]) {
-            sprintf(path, "%s%s", tftp_root, bp->bp_file);
+            snprintf(path, sizeof(path), "%s%s", tftp_root, bp->bp_file);
         }
     }
     memcpy(rbp->bp_file, path, strlen(path)+1);

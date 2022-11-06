@@ -423,10 +423,10 @@ int fork_exec(struct socket *so, char *ex, int do_pty)
 #if 0
 		if (x_port >= 0) {
 #ifdef HAVE_SETENV
-			sprintf(buff, "%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
+			snprintf(buff, sizeof(buff), "%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
 			setenv("DISPLAY", buff, 1);
 #else
-			sprintf(buff, "DISPLAY=%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
+			snprintf(buff, sizeof(buff), "DISPLAY=%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
 			putenv(buff);
 #endif
 		}
@@ -462,7 +462,7 @@ int fork_exec(struct socket *so, char *ex, int do_pty)
 		  {
 			  char buff[256];
 			  
-			  sprintf(buff, "Error: execvp of %s failed: %s\n", 
+			  snprintf(buff, sizeof(buff), "Error: execvp of %s failed: %s\n",
 				  argv[0], strerror(errno));
 			  write(2, buff, strlen(buff)+1);
 		  }
@@ -535,7 +535,7 @@ void snooze_hup(int num)
 		sock_in.sin_port = htons(slirp_socket_port);
 		if (connect(s, (struct sockaddr *)&sock_in, sizeof(sock_in)) != 0)
 		   slirp_exit(1); /* just exit...*/
-		sprintf(buff, "kill %s:%d", slirp_socket_passwd, slirp_socket_unit);
+		snprintf(buff, sizeof(buff), "kill %s:%d", slirp_socket_passwd, slirp_socket_unit);
 		write(s, buff, strlen(buff)+1);
 	}
 #ifndef NO_UNIX_SOCKETS
@@ -548,7 +548,7 @@ void snooze_hup(int num)
 		if (connect(s, (struct sockaddr *)&sock_un,
 			      sizeof(sock_un.sun_family) + sizeof(sock_un.sun_path)) != 0)
 		   slirp_exit(1);
-		sprintf(buff, "kill none:%d", slirp_socket_unit);
+		snprintf(buff, sizeof(buff), "kill none:%d", slirp_socket_unit);
 		write(s, buff, strlen(buff)+1);
 	}
 #endif
@@ -907,10 +907,10 @@ int rsh_exec(struct socket *so, struct socket *ns,
 		/* Set the DISPLAY */
            if (x_port >= 0) {
 #ifdef HAVE_SETENV
-             sprintf(buff, "%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
+             snprintf(buff, sizeof(buff), "%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
              setenv("DISPLAY", buff, 1);
 #else
-             sprintf(buff, "DISPLAY=%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
+             snprintf(buff, sizeof(buff), "DISPLAY=%s:%d.%d", inet_ntoa(our_addr), x_port, x_screen);
              putenv(buff);
 #endif
            }
@@ -925,7 +925,7 @@ int rsh_exec(struct socket *so, struct socket *ns,
            
            /* Ooops, failed, let's tell the user why */
            
-           sprintf(buff, "Error: execlp of %s failed: %s\n", 
+           snprintf(buff, sizeof(buff), "Error: execlp of %s failed: %s\n", 
                    "rsh", strerror(errno));
            write(2, buff, strlen(buff)+1);
            close(0); close(1); close(2); /* XXX */

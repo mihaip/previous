@@ -91,12 +91,12 @@ const char* Main_SpeedMsg() {
     speedMsg[0] = 0;
     if(speedFactor > 0) {
         if(ConfigureParams.System.bRealtime) {
-            sprintf(speedMsg, "%dMHz/", (int)(ConfigureParams.System.nCpuFreq * speedFactor + 0.5));
+            snprintf(speedMsg, sizeof(speedMsg), "%dMHz/", (int)(ConfigureParams.System.nCpuFreq * speedFactor + 0.5));
         } else {
             if ((speedFactor < 0.9) || (speedFactor > 1.1))
-                sprintf(speedMsg, "%.1fx%dMHz/", speedFactor, ConfigureParams.System.nCpuFreq);
+                snprintf(speedMsg, sizeof(speedMsg), "%.1fx%dMHz/", speedFactor, ConfigureParams.System.nCpuFreq);
             else
-                sprintf(speedMsg, "%dMHz/",                   ConfigureParams.System.nCpuFreq);
+                snprintf(speedMsg, sizeof(speedMsg), "%dMHz/",                   ConfigureParams.System.nCpuFreq);
         }
     }
     return speedMsg;

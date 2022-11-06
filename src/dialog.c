@@ -93,23 +93,23 @@ void Dialog_CheckFiles(void) {
     switch (ConfigureParams.System.nMachineType) {
         case NEXT_CUBE030:
             szMissingFile = ConfigureParams.Rom.szRom030FileName;
-            sprintf(szMachine, "NeXT Computer");
-            sprintf(szDefault, "%s%cRev_1.0_v41.BIN", Paths_GetWorkingDir(), PATHSEP);
+            snprintf(szMachine, sizeof(szMachine), "NeXT Computer");
+            snprintf(szDefault, sizeof(szDefault), "%s%cRev_1.0_v41.BIN", Paths_GetWorkingDir(), PATHSEP);
             break;
         case NEXT_CUBE040:
         case NEXT_STATION:
             if (ConfigureParams.System.bTurbo) {
                 szMissingFile = ConfigureParams.Rom.szRomTurboFileName;
-                sprintf(szMachine, "%s Turbo %s",
-                        (ConfigureParams.System.nMachineType==NEXT_CUBE040)?"NeXTcube":"NeXTstation",
-                        (ConfigureParams.System.bColor)?"Color":"");
-                sprintf(szDefault, "%s%cRev_3.3_v74.BIN", Paths_GetWorkingDir(), PATHSEP);
+                snprintf(szMachine, sizeof(szMachine), "%s Turbo %s",
+                         (ConfigureParams.System.nMachineType==NEXT_CUBE040)?"NeXTcube":"NeXTstation",
+                         (ConfigureParams.System.bColor)?"Color":"");
+                snprintf(szDefault, sizeof(szDefault), "%s%cRev_3.3_v74.BIN", Paths_GetWorkingDir(), PATHSEP);
             } else {
                 szMissingFile = ConfigureParams.Rom.szRom040FileName;
-                sprintf(szMachine, "%s %s",
-                        (ConfigureParams.System.nMachineType==NEXT_CUBE040)?"NeXTcube":"NeXTstation",
-                        (ConfigureParams.System.bColor)?"Color":"");
-                sprintf(szDefault, "%s%cRev_2.5_v66.BIN", Paths_GetWorkingDir(), PATHSEP);
+                snprintf(szMachine, sizeof(szMachine), "%s %s",
+                         (ConfigureParams.System.nMachineType==NEXT_CUBE040)?"NeXTcube":"NeXTstation",
+                         (ConfigureParams.System.bColor)?"Color":"");
+                snprintf(szDefault, sizeof(szDefault), "%s%cRev_2.5_v66.BIN", Paths_GetWorkingDir(), PATHSEP);
             }
             break;
             
@@ -126,8 +126,8 @@ void Dialog_CheckFiles(void) {
     }
     for (i = 0; i < ND_MAX_BOARDS; i++) {
         while (ConfigureParams.Dimension.board[i].bEnabled && !File_Exists(ConfigureParams.Dimension.board[i].szRomFileName)) {
-            sprintf(szMachine, "NeXTdimension at slot %i", i*2+2);
-            sprintf(szDefault, "%s%cdimension_eeprom.bin", Paths_GetWorkingDir(), PATHSEP);
+            snprintf(szMachine, sizeof(szMachine), "NeXTdimension at slot %i", i*2+2);
+            snprintf(szDefault, sizeof(szDefault), "%s%cdimension_eeprom.bin", Paths_GetWorkingDir(), PATHSEP);
             DlgMissing_Rom(szMachine, ConfigureParams.Dimension.board[i].szRomFileName,
                            szDefault, &ConfigureParams.Dimension.board[i].bEnabled);
             if (bQuitProgram) {

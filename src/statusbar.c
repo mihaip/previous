@@ -395,10 +395,11 @@ void Statusbar_UpdateInfo(void)
 	/* Message for NeXTdimension */
 	if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
 		end = Statusbar_AddString(end, "33MHz/i860XR/");
-		sprintf(memsize, "%iMB/",Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[ConfigureParams.Screen.nMonitorNum].nMemoryBankSize));
+		snprintf(memsize, sizeof(memsize), "%iMB/",
+		         Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[ConfigureParams.Screen.nMonitorNum].nMemoryBankSize));
 		end = Statusbar_AddString(end, memsize);
 		end = Statusbar_AddString(end, "NeXTdimension/");
-        sprintf(slot, "Slot%i", ND_SLOT(ConfigureParams.Screen.nMonitorNum));
+        snprintf(slot, sizeof(slot), "Slot%i", ND_SLOT(ConfigureParams.Screen.nMonitorNum));
         end = Statusbar_AddString(end, slot);
         *end = '\0';
 		assert(end - DefaultMessage.msg < MAX_MESSAGE_LEN);
@@ -428,7 +429,8 @@ void Statusbar_UpdateInfo(void)
 	}
 
 	/* amount of memory */
-    sprintf(memsize, "%iMB/", Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
+    snprintf(memsize, sizeof(memsize), "%iMB/",
+	         Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
     end = Statusbar_AddString(end, memsize);
 
 	/* machine type */
