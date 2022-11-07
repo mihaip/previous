@@ -2495,7 +2495,7 @@ static void MakeFromSR_x(int t0trace)
 				regs.ipl[0] = 0;
 			}
 		} else {
-			if (regs.ipl[0] <= regs.intmask && regs.ipl_pin > newimask) {
+			if (regs.ipl_pin <= regs.intmask && regs.ipl_pin > newimask) {
 				set_special(SPCFLAG_INT);
 			}
 		}
@@ -3134,7 +3134,9 @@ kludge_me_do:
 		return;
 	}
 #ifdef JIT
-	set_special (SPCFLAG_END_COMPILE);
+	if (currprefs.cachesize) {
+		set_special(SPCFLAG_END_COMPILE);
+	}
 #endif
 	exception_check_trace(nr);
 
@@ -3501,7 +3503,9 @@ static void Exception_normal (int nr)
 						}
 						m68k_setpc (newpc);
 #ifdef JIT
-						set_special (SPCFLAG_END_COMPILE);
+						if (currprefs.cachesize) {
+							set_special(SPCFLAG_END_COMPILE);
+						}
 #endif
 						exception_check_trace (nr);
 						return;
@@ -3687,7 +3691,9 @@ kludge_me_do:
 	CycInt_Process();
 #endif
 #ifdef JIT
-	set_special (SPCFLAG_END_COMPILE);
+	if (currprefs.cachesize) {
+		set_special(SPCFLAG_END_COMPILE);
+	}
 #endif
 	branch_stack_push(currpc, nextpc);
 	regs.ipl_pin = intlev();
@@ -4950,10 +4956,12 @@ void doint(void)
 		}
 		return;
 	}
-	if (currprefs.cpu_compatible && currprefs.cpu_model < 68020)
-		set_special (SPCFLAG_INT);
-	else
-		set_special (SPCFLAG_DOINT);
+	if (regs.ipl_pin > regs.intmask) {
+		if (currprefs.cpu_compatible && currprefs.cpu_model < 68020)
+			set_special(SPCFLAG_INT);
+		else
+			set_special(SPCFLAG_DOINT);
+	}
 #endif // WINUAE_FOR_PREVIOUS
 }
 
@@ -5541,7 +5549,9 @@ static int do_specialties_thread(void)
 		return 1;
 
 #ifdef JIT
-	unset_special(SPCFLAG_END_COMPILE);   /* has done its job */
+	if (currprefs.cachesize) {
+		unset_special(SPCFLAG_END_COMPILE);
+	}
 #endif
 
 	if (regs.spcflags & SPCFLAG_DOTRACE)
