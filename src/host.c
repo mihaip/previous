@@ -157,8 +157,6 @@ void host_reset(void) {
     
     host_report_limits();
     host_check_unix_time();
-
-    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 }
 
 const char DARKMATTER[] = "darkmatter";

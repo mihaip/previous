@@ -535,9 +535,7 @@ static void statusBarUpdate(void) {
     if(shieldStatusBarUpdate) return;
     SDL_LockSurface(sdlscrn);
     memcpy(&((uint8_t*)uiBuffer)[statusBar.y*sdlscrn->pitch], &((uint8_t*)sdlscrn->pixels)[statusBar.y*sdlscrn->pitch], statusBar.h * sdlscrn->pitch);
-    blitUI = true;
     SDL_UnlockSurface(sdlscrn);
-	Screen_Update();
 }
 
 /*
@@ -552,9 +550,7 @@ static void uiUpdate(void) {
     // poor man's green-screen - would be nice if SDL had more blending modes...
     for(int i = count; --i >= 0; src++)
         *dst++ = *src == mask ? 0 : *src;
-    blitUI = true;
     SDL_UnlockSurface(sdlscrn);
-	Screen_Update();
 }
 
 void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects) {
@@ -570,6 +566,10 @@ void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects) {
                 statusBarUpdate();
             }
         }
+    }
+    blitUI = true;
+    if (!bEmulationActive) {
+        Screen_Update();
     }
 }
 

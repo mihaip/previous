@@ -47,7 +47,6 @@ const char Main_fileid[] = "Hatari main.c";
 int nFrameSkips;
 
 volatile bool   bQuitProgram = false;            /* Flag to quit program cleanly */
-
 volatile bool   bEmulationActive = true;         /* Run emulation when started */
 static bool     bAccurateDelays;                 /* Host system has an accurate SDL_Delay()? */
 static bool     bIgnoreNextMouseMotion = false;  /* Next mouse motion will be ignored (needed after SDL_WarpMouse) */
@@ -495,7 +494,7 @@ static void Main_Loop(void) {
 	while (!bQuitProgram) {
 		Main_EventHandler();
 		SDL_Delay(5);
-        if (++i > 200) {
+        if (++i > 10) {
             Statusbar_Update(sdlscrn);
             i = 0;
         }

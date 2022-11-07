@@ -68,6 +68,7 @@ enum {
 extern volatile int mainPauseEmulation;
 
 extern volatile bool bQuitProgram;
+extern volatile bool bEmulationActive;
 
 extern bool Main_PauseEmulation(bool visualize);
 extern bool Main_UnPauseEmulation(void);
