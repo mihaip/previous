@@ -174,7 +174,7 @@ void Statusbar_SetDspLed(bool state) {
 }
 
 void Statusbar_SetNdLed(int state) {
-    nOldNdLed = state;
+	nOldNdLed = state;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -220,17 +220,17 @@ void Statusbar_Init(SDL_Surface *surf)
 	/* dark green and light green for leds themselves */
 	LedColorOff  = SDL_MapRGB(surf->format, 0x00, 0x40, 0x00);
 	LedColorOn   = SDL_MapRGB(surf->format, 0x00, 0xe0, 0x00);
-    LedColorOnWP = SDL_MapRGB(surf->format, 0xFF, 0xe0, 0x00);
+	LedColorOnWP = SDL_MapRGB(surf->format, 0xFF, 0xe0, 0x00);
 	LedColorBg   = SDL_MapRGB(surf->format, 0x00, 0x00, 0x00);
 	SysColorOff  = SDL_MapRGB(surf->format, 0x40, 0x00, 0x00);
 	SysColorOn   = SDL_MapRGB(surf->format, 0xe0, 0x00, 0x00);
 	DspColorOff  = SDL_MapRGB(surf->format, 0x00, 0x00, 0x40);
 	DspColorOn   = SDL_MapRGB(surf->format, 0x00, 0x00, 0xe0);
-    NdColorOff   = SDL_MapRGB(surf->format, 0x00, 0x00, 0x40);
-    NdColorCS8   = SDL_MapRGB(surf->format, 0xe0, 0x00, 0x00);
-    NdColorOn    = SDL_MapRGB(surf->format, 0x00, 0x00, 0xe0);
+	NdColorOff   = SDL_MapRGB(surf->format, 0x00, 0x00, 0x40);
+	NdColorCS8   = SDL_MapRGB(surf->format, 0xe0, 0x00, 0x00);
+	NdColorOn    = SDL_MapRGB(surf->format, 0x00, 0x00, 0xe0);
 	GrayBg       = SDL_MapRGB(surf->format, 0xb5, 0xb7, 0xaa);
-    
+
 	/* disable leds */
 	for (i = 0; i < NUM_DEVICE_LEDS; i++) {
 		Led[i].state = Led[i].oldstate = false;
@@ -295,21 +295,21 @@ void Statusbar_Init(SDL_Surface *surf)
 		Led[i].offset = offset;
 		offset += LedRect.w + fontw;
 	}
-    MessageRect.x = offset + fontw;
+	MessageRect.x = offset + fontw;
 	MessageRect.w = MAX_MESSAGE_LEN * fontw;
 	MessageRect.h = fonth;
 	for (item = MessageList; item; item = item->next) {
 		item->shown = false;
 	}
-    
-    /* draw i860 led box */
-    NdLedRect = LedRect;
-    NdLedRect.x = surf->w - 15*fontw - NdLedRect.w;
-    ledbox.x = NdLedRect.x - 1;
-    SDLGui_Text(ledbox.x - 3*fontw - fontw/2, MessageRect.y, "ND:");
-    SDL_FillRect(surf, &ledbox, LedColorBg);
-    SDL_FillRect(surf, &NdLedRect, NdColorOff);
-    nOldNdLed = 0;
+
+	/* draw i860 led box */
+	NdLedRect = LedRect;
+	NdLedRect.x = surf->w - 15*fontw - NdLedRect.w;
+	ledbox.x = NdLedRect.x - 1;
+	SDLGui_Text(ledbox.x - 3*fontw - fontw/2, MessageRect.y, "ND:");
+	SDL_FillRect(surf, &ledbox, LedColorBg);
+	SDL_FillRect(surf, &NdLedRect, NdColorOff);
+	nOldNdLed = 0;
 
 	/* draw dsp led box */
 	DspLedRect = LedRect;
@@ -390,7 +390,7 @@ void Statusbar_UpdateInfo(void)
 {
 	char *end = DefaultMessage.msg;
 	char memsize[16];
-    char slot[16];
+	char slot[16];
 	
 	/* Message for NeXTdimension */
 	if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
@@ -399,68 +399,68 @@ void Statusbar_UpdateInfo(void)
 		         Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[ConfigureParams.Screen.nMonitorNum].nMemoryBankSize));
 		end = Statusbar_AddString(end, memsize);
 		end = Statusbar_AddString(end, "NeXTdimension/");
-        snprintf(slot, sizeof(slot), "Slot%i", ND_SLOT(ConfigureParams.Screen.nMonitorNum));
-        end = Statusbar_AddString(end, slot);
-        *end = '\0';
+		snprintf(slot, sizeof(slot), "Slot%i", ND_SLOT(ConfigureParams.Screen.nMonitorNum));
+		end = Statusbar_AddString(end, slot);
+		*end = '\0';
 		assert(end - DefaultMessage.msg < MAX_MESSAGE_LEN);
 		DefaultMessage.shown = false;
 		return;
 	}
 	
 	/* CPU MHz */
-    end = Statusbar_AddString(end, Main_SpeedMsg());
+	end = Statusbar_AddString(end, Main_SpeedMsg());
 
 	/* CPU type */
 	if(ConfigureParams.System.nCpuLevel > 0) {
-        *end++ = '6';
-        *end++ = '8';
+		*end++ = '6';
+		*end++ = '8';
 		*end++ = '0';
-        switch (ConfigureParams.System.nCpuLevel) {
-            case 0: *end++ = '0'; break;
-            case 1: *end++ = '1'; break;
-            case 2: *end++ = '2'; break;
-            case 3: *end++ = '3'; break;
-            case 4: *end++ = '4'; break;
-            case 5: *end++ = '6'; break;
-            default: break;
-        }
+		switch (ConfigureParams.System.nCpuLevel) {
+			case 0: *end++ = '0'; break;
+			case 1: *end++ = '1'; break;
+			case 2: *end++ = '2'; break;
+			case 3: *end++ = '3'; break;
+			case 4: *end++ = '4'; break;
+			case 5: *end++ = '6'; break;
+			default: break;
+		}
 		*end++ = '0';
 		*end++ = '/';
 	}
 
 	/* amount of memory */
-    snprintf(memsize, sizeof(memsize), "%iMB/",
+	snprintf(memsize, sizeof(memsize), "%iMB/",
 	         Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
-    end = Statusbar_AddString(end, memsize);
+	end = Statusbar_AddString(end, memsize);
 
 	/* machine type */
-    switch (ConfigureParams.System.nMachineType) {
-        case NEXT_CUBE030:
-            end = Statusbar_AddString(end, "NeXT Computer");
-            break;
-        case NEXT_CUBE040:
-            end = Statusbar_AddString(end, "NeXTcube");
-            break;
-        case NEXT_STATION:
-            end = Statusbar_AddString(end, "NeXTstation");
-            break;
-            
-        default:
-            break;
-    }
-    if (ConfigureParams.System.bTurbo) {
-        end = Statusbar_AddString(end, (ConfigureParams.System.nCpuFreq==40)?" Nitro":" Turbo");		
+	switch (ConfigureParams.System.nMachineType) {
+		case NEXT_CUBE030:
+			end = Statusbar_AddString(end, "NeXT Computer");
+			break;
+		case NEXT_CUBE040:
+			end = Statusbar_AddString(end, "NeXTcube");
+			break;
+		case NEXT_STATION:
+			end = Statusbar_AddString(end, "NeXTstation");
+			break;
+			
+		default:
+			break;
+	}
+	if (ConfigureParams.System.bTurbo) {
+		end = Statusbar_AddString(end, (ConfigureParams.System.nCpuFreq==40)?" Nitro":" Turbo");
 	}
 
-    if (ConfigureParams.System.bColor) {
-        end = Statusbar_AddString(end, " Color");		
+	if (ConfigureParams.System.bColor) {
+		end = Statusbar_AddString(end, " Color");
 	}
 
 	*end = '\0';
 
 	assert(end - DefaultMessage.msg < MAX_MESSAGE_LEN);
 	DEBUGPRINT(("Set default message: '%s'\n", DefaultMessage.msg));
-    /* make sure default message gets (re-)drawn when next checked */
+	/* make sure default message gets (re-)drawn when next checked */
 	DefaultMessage.shown = false;
 }
 
@@ -601,7 +601,7 @@ static void Statusbar_OverlayDraw(SDL_Surface *surf)
 				Led[i].state = false;
 				continue;
 			}
-            Statusbar_OverlayDrawLed(surf, ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON && i == DEVICE_LED_SCSI ? LedColorOnWP : LedColorOn);
+			Statusbar_OverlayDrawLed(surf, ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON && i == DEVICE_LED_SCSI ? LedColorOnWP : LedColorOn);
 			break;
 		}
 	}
@@ -655,7 +655,7 @@ void Statusbar_Update(SDL_Surface *surf) {
 		}
 		Led[i].oldstate = Led[i].state;
 		if (Led[i].state) {
-            color = ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON  && i == DEVICE_LED_SCSI ? LedColorOnWP : LedColorOn;
+			color = ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON  && i == DEVICE_LED_SCSI ? LedColorOnWP : LedColorOn;
 		} else {
 			color = LedColorOff;
 		}
@@ -675,22 +675,22 @@ void Statusbar_Update(SDL_Surface *surf) {
 	SDL_FillRect(surf, &DspLedRect, color);
 	Screen_UpdateRects(surf, 1, &DspLedRect);
 
-    /* Draw scr2 LED */
-    if (bOldSystemLed) {
-        color = SysColorOn;
-    } else {
-        color = SysColorOff;
-    }
-    SDL_FillRect(surf, &SystemLedRect, color);
-    Screen_UpdateRects(surf, 1, &SystemLedRect);
-    
-    /* Draw NeXTdimension LED */
-    switch(nOldNdLed) {
-        case 0:  color = NdColorOff; break;
-        case 1:  color = NdColorCS8;  break;
-        case 2:  color = NdColorOn;  break;
+	/* Draw scr2 LED */
+	if (bOldSystemLed) {
+		color = SysColorOn;
+	} else {
+		color = SysColorOff;
+	}
+	SDL_FillRect(surf, &SystemLedRect, color);
+	Screen_UpdateRects(surf, 1, &SystemLedRect);
+
+	/* Draw NeXTdimension LED */
+	switch(nOldNdLed) {
+		case 0:  color = NdColorOff; break;
+		case 1:  color = NdColorCS8;  break;
+		case 2:  color = NdColorOn;  break;
 		default: color = NdColorOff; break;
-    }
-    SDL_FillRect(surf, &NdLedRect, color);
-    Screen_UpdateRects(surf, 1, &NdLedRect);
+	}
+	SDL_FillRect(surf, &NdLedRect, color);
+	Screen_UpdateRects(surf, 1, &NdLedRect);
 }

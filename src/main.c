@@ -59,8 +59,8 @@ volatile int mainPauseEmulation;
 typedef const char* (*report_func)(uint64_t realTime, uint64_t hostTime);
 
 typedef struct {
-    const char*       label;
-    const report_func report;
+	const char*       label;
+	const report_func report;
 } report_t;
 
 static uint64_t lastRT;
@@ -69,42 +69,42 @@ static double   speedFactor;
 static char     speedMsg[32];
 
 static void Main_Speed(uint64_t realTime, uint64_t hostTime) {
-    uint64_t dRT  = realTime - lastRT;
-    speedFactor   = (nCyclesMainCounter - lastCycles);
-    speedFactor  /= ConfigureParams.System.nCpuFreq;
-    speedFactor  /= dRT;
-    lastRT        = realTime;
-    lastCycles    = nCyclesMainCounter;
+	uint64_t dRT  = realTime - lastRT;
+	speedFactor   = (nCyclesMainCounter - lastCycles);
+	speedFactor  /= ConfigureParams.System.nCpuFreq;
+	speedFactor  /= dRT;
+	lastRT        = realTime;
+	lastCycles    = nCyclesMainCounter;
 }
 
 void Main_SpeedReset(void) {
-    uint64_t realTime, hostTime;
-    host_time(&realTime, &hostTime);
-    lastRT     = realTime;
-    lastCycles = nCyclesMainCounter;
-    
-    Log_Printf(LOG_WARN, "Realtime mode %s.\n", ConfigureParams.System.bRealtime ? "enabled" : "disabled");
+	uint64_t realTime, hostTime;
+	host_time(&realTime, &hostTime);
+	lastRT     = realTime;
+	lastCycles = nCyclesMainCounter;
+
+	Log_Printf(LOG_WARN, "Realtime mode %s.\n", ConfigureParams.System.bRealtime ? "enabled" : "disabled");
 }
 
 const char* Main_SpeedMsg() {
-    speedMsg[0] = 0;
-    if(speedFactor > 0) {
-        if(ConfigureParams.System.bRealtime) {
-            snprintf(speedMsg, sizeof(speedMsg), "%dMHz/", (int)(ConfigureParams.System.nCpuFreq * speedFactor + 0.5));
-        } else {
-            if ((speedFactor < 0.9) || (speedFactor > 1.1))
-                snprintf(speedMsg, sizeof(speedMsg), "%.1fx%dMHz/", speedFactor, ConfigureParams.System.nCpuFreq);
-            else
-                snprintf(speedMsg, sizeof(speedMsg), "%dMHz/",                   ConfigureParams.System.nCpuFreq);
-        }
-    }
-    return speedMsg;
+	speedMsg[0] = 0;
+	if(speedFactor > 0) {
+		if(ConfigureParams.System.bRealtime) {
+			snprintf(speedMsg, sizeof(speedMsg), "%dMHz/", (int)(ConfigureParams.System.nCpuFreq * speedFactor + 0.5));
+		} else {
+			if ((speedFactor < 0.9) || (speedFactor > 1.1))
+				snprintf(speedMsg, sizeof(speedMsg), "%.1fx%dMHz/", speedFactor, ConfigureParams.System.nCpuFreq);
+			else
+				snprintf(speedMsg, sizeof(speedMsg), "%dMHz/",                   ConfigureParams.System.nCpuFreq);
+		}
+	}
+	return speedMsg;
 }
 
 #if ENABLE_TESTING
 static const report_t reports[] = {
-    {"ND",    nd_reports},
-    {"Host",  host_report},
+	{"ND",    nd_reports},
+	{"Host",  host_report},
 };
 #endif
 
@@ -261,9 +261,9 @@ static void Main_PutEvent(SDL_Event* event) {
 
 static bool Main_GetEvent(SDL_Event* event) {
 	bool valid;
-    
+
 	SDL_AtomicLock(&mainEventLock);
-    valid = mainEventValid;
+	valid = mainEventValid;
 	if (valid) {
 		*event         = mainEvent;
 		mainEventValid = false;
@@ -366,24 +366,24 @@ static int statusBarUpdate;
  * Here we process the SDL events (keyboard, mouse, ...)
  */
 void Main_EventHandler(void) {
-    bool bContinueProcessing;
-    SDL_Event event;
-    int events;
-        
-    do {
-        bContinueProcessing = false;
-        
-        /* check remote process control from different thread (e.g. i860) */
-        switch(mainPauseEmulation) {
-            case PAUSE_EMULATION:
-                mainPauseEmulation = PAUSE_NONE;
-                Main_PauseEmulation(true);
-                break;
-            case UNPAUSE_EMULATION:
-                mainPauseEmulation = PAUSE_NONE;
-                Main_UnPauseEmulation();
-                break;
-        }
+	bool bContinueProcessing;
+	SDL_Event event;
+	int events;
+
+	do {
+		bContinueProcessing = false;
+		
+		/* check remote process control from different thread (e.g. i860) */
+		switch(mainPauseEmulation) {
+			case PAUSE_EMULATION:
+				mainPauseEmulation = PAUSE_NONE;
+				Main_PauseEmulation(true);
+				break;
+			case UNPAUSE_EMULATION:
+				mainPauseEmulation = PAUSE_NONE;
+				Main_UnPauseEmulation();
+				break;
+		}
 
 		ShortCut_ActKey();
 
@@ -399,69 +399,69 @@ void Main_EventHandler(void) {
 			 */
 			continue;
 		}
-        switch (event.type) {
-            case SDL_WINDOWEVENT:
-                switch(event.window.event) {
-                    case SDL_WINDOWEVENT_CLOSE:
-                        SDL_FlushEvent(SDL_QUIT); // remove SDL_Quit if pending
-                        Main_RequestQuit();
-                        break;
-                    case SDL_WINDOWEVENT_RESIZED:
-                        Screen_SizeChanged();
-                        break;
-                    default:
-                        break;
-                }
-                continue;
+		switch (event.type) {
+			case SDL_WINDOWEVENT:
+				switch(event.window.event) {
+					case SDL_WINDOWEVENT_CLOSE:
+						SDL_FlushEvent(SDL_QUIT); // remove SDL_Quit if pending
+						Main_RequestQuit();
+						break;
+					case SDL_WINDOWEVENT_RESIZED:
+						Screen_SizeChanged();
+						break;
+					default:
+						break;
+				}
+				continue;
 
-            case SDL_QUIT:
-                Main_RequestQuit();
-                break;
-                
-            case SDL_MOUSEMOTION:               /* Read/Update internal mouse position */
-                Main_HandleMouseMotion(event);
-                bContinueProcessing = false;
-                break;
-                
-            case SDL_MOUSEBUTTONDOWN:
-                if (event.button.button == SDL_BUTTON_LEFT) {
-                    if (bGrabMouse) {
-                        if (SDL_GetModState() & KMOD_CTRL) {
-                            bGrabMouse = false;
-                            Main_SetMouseGrab(bGrabMouse);
-                            break;
-                        }
-                    } else {
-                        if (ConfigureParams.Mouse.bEnableAutoGrab) {
-                            bGrabMouse = true;
-                            Main_SetMouseGrab(bGrabMouse);
-                            break;
-                        }
-                    }
-                    
+			case SDL_QUIT:
+				Main_RequestQuit();
+				break;
+
+			case SDL_MOUSEMOTION:               /* Read/Update internal mouse position */
+				Main_HandleMouseMotion(event);
+				bContinueProcessing = false;
+				break;
+
+			case SDL_MOUSEBUTTONDOWN:
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					if (bGrabMouse) {
+						if (SDL_GetModState() & KMOD_CTRL) {
+							bGrabMouse = false;
+							Main_SetMouseGrab(bGrabMouse);
+							break;
+						}
+					} else {
+						if (ConfigureParams.Mouse.bEnableAutoGrab) {
+							bGrabMouse = true;
+							Main_SetMouseGrab(bGrabMouse);
+							break;
+						}
+					}
+
 					Main_PutEvent(&event);
-                }
-                else if (event.button.button == SDL_BUTTON_RIGHT)
-                {
+				}
+				else if (event.button.button == SDL_BUTTON_RIGHT)
+				{
 					Main_PutEvent(&event);
-                }
-                break;
-                
-            case SDL_MOUSEBUTTONUP:
-                if (event.button.button == SDL_BUTTON_LEFT) {
+				}
+				break;
+
+			case SDL_MOUSEBUTTONUP:
+				if (event.button.button == SDL_BUTTON_LEFT) {
 					Main_PutEvent(&event);
-                }
-                else if (event.button.button == SDL_BUTTON_RIGHT)
-                {
+				}
+				else if (event.button.button == SDL_BUTTON_RIGHT)
+				{
 					Main_PutEvent(&event);
-                }
-                break;
-                
-            case SDL_MOUSEWHEEL:
+				}
+				break;
+
+			case SDL_MOUSEWHEEL:
 				Main_PutEvent(&event);
-                break;
-                
-            case SDL_KEYDOWN:
+				break;
+
+			case SDL_KEYDOWN:
 				if (ShortCut_CheckKeys(event.key.keysym.mod, event.key.keysym.sym, 1)) {
 					ShortCut_ActKey();
 					break;
@@ -470,34 +470,33 @@ void Main_EventHandler(void) {
 					break;
 				}
 				Main_PutEvent(&event);
-                break;
-                
-            case SDL_KEYUP:
+				break;
+
+			case SDL_KEYUP:
 				if (ShortCut_CheckKeys(event.key.keysym.mod, event.key.keysym.sym, 0)) {
 					break;
 				}
-                Main_PutEvent(&event);
-                break;
-                
-                
-            default:
-                /* don't let unknown events delay event processing */
-                bContinueProcessing = true;
-                break;
-        }
-    } while (bContinueProcessing || !(bEmulationActive || bQuitProgram));
+				Main_PutEvent(&event);
+				break;
+
+			default:
+				/* don't let unknown events delay event processing */
+				bContinueProcessing = true;
+				break;
+		}
+	} while (bContinueProcessing || !(bEmulationActive || bQuitProgram));
 }
 
 static void Main_Loop(void) {
-    int i = 0;
-    
+	int i = 0;
+
 	while (!bQuitProgram) {
 		Main_EventHandler();
 		SDL_Delay(5);
-        if (++i > 10) {
-            Statusbar_Update(sdlscrn);
-            i = 0;
-        }
+		if (++i > 10) {
+			Statusbar_Update(sdlscrn);
+			i = 0;
+		}
 		Screen_Update();
 	}
 }
@@ -522,7 +521,7 @@ void Main_EventHandlerInterrupt(void) {
 	SDL_Event event;
 	int64_t time_offset;
 	
-    CycInt_AcknowledgeInterrupt();
+	CycInt_AcknowledgeInterrupt();
 	
 	if (!bEmulationActive) {
 		SDL_SemPost(pauseFlag);
@@ -602,10 +601,10 @@ void Main_EventHandlerInterrupt(void) {
  * Set Previous window title. Use NULL for default
  */
 void Main_SetTitle(const char *title) {
-    if (title)
-        SDL_SetWindowTitle(sdlWindow, title);
-    else
-        SDL_SetWindowTitle(sdlWindow, PROG_NAME);
+	if (title)
+		SDL_SetWindowTitle(sdlWindow, title);
+	else
+		SDL_SetWindowTitle(sdlWindow, PROG_NAME);
 }
 
 
@@ -660,7 +659,7 @@ static void Main_Init(void) {
 	
 	pauseFlag  = SDL_CreateSemaphore(0);
 	
-    /* Start emulator thread */
+	/* Start emulator thread */
 	nextThread = SDL_CreateThread(Main_Thread, "[Previous] 68k at slot 0", NULL);
 }
 
@@ -753,9 +752,9 @@ static void Main_StatusbarSetup(void) {
  */
 static void Main_SetSignalHandlers(void) {
 #ifndef _WIN32
-    signal(SIGPIPE, SIG_IGN);
+	signal(SIGPIPE, SIG_IGN);
 #endif
-    signal(SIGFPE, SIG_IGN);
+	signal(SIGFPE, SIG_IGN);
 }
 
 
@@ -770,8 +769,8 @@ int main(int argc, char *argv[])
 	/* Generate random seed */
 	srand(time(NULL));
 
-    /* Set signal handlers */
-    Main_SetSignalHandlers();
+	/* Set signal handlers */
+	Main_SetSignalHandlers();
 
 	/* Initialize directory strings */
 	Paths_Init(argv[0]);

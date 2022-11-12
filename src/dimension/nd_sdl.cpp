@@ -69,7 +69,7 @@ void NDSDL::start_interrupts(void) {
 // called from m68k thread
 void NDSDL::copy(uint8_t* vram) {
     SDL_AtomicLock(&bufferLock);
-    memcpy(buffer, vram, ND_VRAM_SIZE);
+    memcpy(buffer, vram, ND_VBUF_SIZE);
     SDL_AtomicSet(&blitNDFB, 1);
     SDL_AtomicUnlock(&bufferLock);
 }
@@ -85,7 +85,7 @@ void nd_vbl_handler(void)       {
                     nd->sdl.copy(nd->vram);
                 } else if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DIMENSION) {
                     if (ConfigureParams.Screen.nMonitorNum == ND_NUM(slot)) {
-                        Screen_CopyBuffer(nd->vram, ND_VRAM_SIZE);
+                        Screen_CopyBuffer(nd->vram, ND_VBUF_SIZE);
                     }
                 }
             }
