@@ -132,6 +132,8 @@ extern uint64_t LogTraceFlags;
 
 #if ENABLE_TRACING
 
+#define LOG_TRACE_DIRECT_INIT(...)
+
 #ifndef _VCWIN_
 #define	LOG_TRACE(level, args...) \
 	if (unlikely(LogTraceFlags & level)) fprintf(TraceFile, args)

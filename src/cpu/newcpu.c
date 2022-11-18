@@ -5236,7 +5236,8 @@ static void m68k_run_1 (void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 				}
 #endif
@@ -5380,7 +5381,8 @@ static void m68k_run_1_ce (void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 				}
 #endif
@@ -5978,7 +5980,8 @@ static void m68k_run_jit(void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 				}
 #endif
@@ -6129,7 +6132,8 @@ static void m68k_run_mmu060 (void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 				}
 #endif
@@ -6446,7 +6450,8 @@ static void m68k_run_3ce (void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 				}
 				currcycle = CYCLE_UNIT / 2;	/* Assume at least 1 cycle per instruction */
@@ -6544,7 +6549,8 @@ static void m68k_run_3p(void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 				}
 #endif
@@ -6683,7 +6689,8 @@ static void m68k_run_2ce (void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 #if 0
 // logs to debug data cache issues
@@ -6883,7 +6890,8 @@ static void m68k_run_2p (void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 				}
 #endif
@@ -7081,7 +7089,8 @@ static void m68k_run_2_000(void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(stderr, m68k_getpc (), NULL, m68k_getpc (), 1);
 				}
 #endif
@@ -7174,7 +7183,8 @@ static void m68k_run_2_020(void)
 				{
 					int FrameCycles, HblCounterVideo, LineCycles;
 					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+					LOG_TRACE_DIRECT_INIT ();
+					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 				}
 #endif
@@ -7251,7 +7261,8 @@ static void m68k_run_mmu (void)
 		{
 			int FrameCycles, HblCounterVideo, LineCycles;
 			Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-			LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
+			LOG_TRACE_DIRECT_INIT ();
+			LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
 			m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
 		}
 #endif
@@ -8995,7 +9006,7 @@ static void fill_icache020 (uae_u32 addr, bool opcode)
 		// cache hit
 		regs.cacheholdingaddr020 = addr;
 		regs.cacheholdingdata020 = c->data;
-		regs.cacheholdingdata_valid = true;
+		regs.cacheholdingdata_valid = 1;
 #ifndef WINUAE_FOR_PREVIOUS
 		CpuInstruction.I_Cache_hit++;
 #endif
@@ -9027,7 +9038,7 @@ static void fill_icache020 (uae_u32 addr, bool opcode)
 	}
 	regs.cacheholdingaddr020 = addr;
 	regs.cacheholdingdata020 = data;
-	regs.cacheholdingdata_valid = true;
+	regs.cacheholdingdata_valid = 1;
 #ifndef WINUAE_FOR_PREVIOUS
 	CpuInstruction.I_Cache_miss++;
 #endif
@@ -10769,7 +10780,7 @@ static void write_dcache040(uae_u32 addr, uae_u32 val, int size, void (*store)(u
 	// Cache miss
 	// 040+ always caches whole line
 	// Writes misses in write-through mode don't allocate new cache lines
-	if (!(cs & CACHE_ENABLE_DATA) || (cs & CACHE_DISABLE_MMU) || (cs & CACHE_DISABLE_ALLOCATE) || !(cs & CACHE_ENABLE_COPYBACK) || (regs.cacr & 0x400000000)) {
+	if (!(cs & CACHE_ENABLE_DATA) || (cs & CACHE_DISABLE_MMU) || (cs & CACHE_DISABLE_ALLOCATE) || !(cs & CACHE_ENABLE_COPYBACK) || (regs.cacr & 0x40000000)) {
 nocache:
 		store(addr_o, val);
 		return;
