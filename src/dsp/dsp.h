@@ -23,8 +23,6 @@
 #ifndef DSP_H
 #define DSP_H
 
-#define ENABLE_DSP_EMU 1
-
 #if ENABLE_DSP_EMU
 # include "dsp_core.h"
 #endif

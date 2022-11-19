@@ -3,7 +3,9 @@ if(Readline_FOUND)
 	include_directories(${READLINE_INCLUDE_DIR})
 endif(Readline_FOUND)
 
-set(DSPDBG_C debugdsp.c)
+if(ENABLE_DSP_EMU)
+	set(DSPDBG_C debugdsp.c)
+endif(ENABLE_DSP_EMU)
 
 include_directories(${SDL2_INCLUDE_DIRS})
 

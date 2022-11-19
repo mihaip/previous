@@ -93,6 +93,9 @@
 /* Relative path from bindir to datadir */
 #define BIN2DATADIR "@BIN2DATADIR@"
 
+/* Define to 1 to enable DSP 56k emulation */
+#cmakedefine ENABLE_DSP_EMU 1
+
 /* Define to 1 to enable trace logs - undefine to slightly increase speed */
 #cmakedefine ENABLE_TRACING 1
 

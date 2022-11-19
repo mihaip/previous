@@ -24,6 +24,8 @@ endif(NOT CMAKE_BUILD_TYPE)
 # Conditional build features
 # ##########################
 
+set(ENABLE_DSP_EMU 1
+    CACHE BOOL "Enable DSP 56k emulator")
 set(ENABLE_TRACING 1
     CACHE BOOL "Enable tracing messages for debugging")
 

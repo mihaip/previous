@@ -34,7 +34,12 @@ extern void DebugCpu_InitSession(void);
 
 extern bool DebugUI_ParseFile(const char *path, bool reinit);
 
+#ifdef ENABLE_DSP_EMU
 extern int DebugDsp_Init(const dbgcommand_t **table);
 extern void DebugDsp_InitSession(void);
+#else /* !ENABLE_DSP_EMU */
+static inline int DebugDsp_Init(const dbgcommand_t **t) { *t = NULL; return 0; }
+#define DebugDsp_InitSession()
+#endif /* !ENABLE_DSP_EMU */
 
 #endif /* HATARI_DEBUG_PRIV_H */

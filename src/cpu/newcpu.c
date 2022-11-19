@@ -5032,10 +5032,10 @@ static inline void run_other_MPUs(void)
 
 	ndCycles += cpu_cycles;
 	// bundle some 68k cycles for MPUs
-	
+#if ENABLE_DSP_EMU
 	if(dsp_core.running)
 		DSP_Run(cpu_cycles);
-	
+#endif
 	if(ndCycles > 100) {
 		i860_Run(ndCycles);
 		ndCycles = 0;
