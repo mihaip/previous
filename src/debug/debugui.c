@@ -34,9 +34,12 @@ const char DebugUI_fileid[] = "Hatari debugui.c";
 #include "debug_priv.h"
 #include "breakcond.h"
 #include "debugcpu.h"
+#include "debugdsp.h"
+#include "68kDisass.h"
 #include "debugInfo.h"
 #include "debugui.h"
 #include "evaluate.h"
+#include "profile.h"
 #include "symbols.h"
 
 FILE *debugOutput;
@@ -941,7 +944,7 @@ void DebugUI_Init(void)
 	/* if you want disassembly or memdumping to start/continue from
 	 * specific address, you can set them in these functions.
 	 */
-	dspcmds = 0; //DebugDsp_Init(&dspcmd);
+	dspcmds = DebugDsp_Init(&dspcmd);
 	cpucmds = DebugCpu_Init(&cpucmd);
 
 	/* on first time copy the command structures to a single table */
@@ -1042,7 +1045,7 @@ void DebugUI(debug_reason_t reason)
 		welcome = NULL;
 	}
 	DebugCpu_InitSession();
-//	DebugDsp_InitSession();
+	DebugDsp_InitSession();
 	DebugInfo_ShowSessionInfo();
 
 	/* override paused message so that user knows to look into console
@@ -1080,7 +1083,7 @@ void DebugUI(debug_reason_t reason)
 	Log_SetAlertLevel(alertLevel);
 
 	DebugCpu_SetDebugging();
-//	DebugDsp_SetDebugging();
+	DebugDsp_SetDebugging();
 
 	recursing = false;
 }
@@ -1183,7 +1186,7 @@ bool DebugUI_ParseFile(const char *path, bool reinit)
 		if (reinit)
 		{
 			DebugCpu_SetDebugging();
-//			DebugDsp_SetDebugging();
+			DebugDsp_SetDebugging();
 		}
 	}
 	return true;
@@ -1210,7 +1213,34 @@ bool DebugUI_ParseLine(const char *input)
 		free(expanded);
 
 		DebugCpu_SetDebugging();
-//		DebugDsp_SetDebugging();
+		DebugDsp_SetDebugging();
 	}
 	return (ret == DEBUGGER_CMDDONE);
+}
+
+/**
+ * Debugger invocation based on exception
+ */
+void DebugUI_Exceptions(int nr, long pc)
+{
+	static struct {
+		int flag;
+		const char *name;
+	} ex[] = {
+		{ EXCEPT_BUS,       "Bus error" },              /* 2 */
+		{ EXCEPT_ADDRESS,   "Address error" },          /* 3 */
+		{ EXCEPT_ILLEGAL,   "Illegal instruction" },	/* 4 */
+		{ EXCEPT_ZERODIV,   "Div by zero" },		/* 5 */
+		{ EXCEPT_CHK,       "CHK" },			/* 6 */
+		{ EXCEPT_TRAPV,     "TRAPV" },			/* 7 */
+		{ EXCEPT_PRIVILEGE, "Privilege violation" },	/* 8 */
+		{ EXCEPT_TRACE,     "Trace" }			/* 9 */
+	};
+	nr -= 2;
+	if (nr < 0  || nr >= ARRAY_SIZE(ex))
+		return;
+	if (!(ExceptionDebugMask & ex[nr].flag))
+		return;
+	fprintf(stderr,"%s exception at 0x%lx!\n", ex[nr].name, pc);
+	DebugUI(REASON_CPU_EXCEPTION);
 }

@@ -40,7 +40,19 @@ typedef struct {
 static flagname_t ExceptionFlags[] = {
 	{ EXCEPT_NONE,      "none" },
 
+	{ EXCEPT_BUS,       "bus" },
+	{ EXCEPT_ADDRESS,   "address" },
+	{ EXCEPT_ILLEGAL,   "illegal" },
+	{ EXCEPT_ZERODIV,   "zerodiv" },
+	{ EXCEPT_CHK,       "chk" },
+	{ EXCEPT_TRAPV,     "trapv" },
+	{ EXCEPT_PRIVILEGE, "privilege" },
+	{ EXCEPT_TRACE,     "trace" },
+	{ EXCEPT_NOHANDLER, "nohandler" },
+
 	{ EXCEPT_DSP,       "dsp" },
+
+	{ EXCEPT_AUTOSTART, "autostart" },
 
 	{ EXCEPT_ALL,       "all" }
 };

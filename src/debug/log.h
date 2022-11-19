@@ -18,11 +18,31 @@ extern "C" {
  * -------------------
  */
 
-/* DSP exception flags (dummy) */
-#define EXCEPT_DSP 0
+/* CPU exception flags
+ * is catching needed also for: traps 0, 3-12, 15? (MonST catches them)
+ */
+#define	EXCEPT_BUS	 (1<<0)
+#define	EXCEPT_ADDRESS 	 (1<<1)
+#define	EXCEPT_ILLEGAL	 (1<<2)
+#define	EXCEPT_ZERODIV	 (1<<3)
+#define	EXCEPT_CHK	 (1<<4)
+#define	EXCEPT_TRAPV	 (1<<5)
+#define	EXCEPT_PRIVILEGE (1<<6)
+#define	EXCEPT_TRACE     (1<<7)
+#define	EXCEPT_NOHANDLER (1<<8)
+
+/* DSP exception flags */
+#define EXCEPT_DSP	 (1<<9)
+
+/* whether to enable exception debugging on autostart */
+#define EXCEPT_AUTOSTART (1<<10)
+
+/* general flags */
 #define	EXCEPT_NONE	 (0)
-#define	EXCEPT_ALL	 (~0)
-#define DEFAULT_EXCEPTIONS (EXCEPT_DSP)
+#define	EXCEPT_ALL	 (~EXCEPT_AUTOSTART)
+
+/* defaults are same as with earlier -D option */
+#define DEFAULT_EXCEPTIONS (EXCEPT_BUS|EXCEPT_ADDRESS|EXCEPT_DSP)
 
 extern int ExceptionDebugMask;
 extern const char* Log_SetExceptionDebugMask(const char *OptionsStr);

@@ -3,6 +3,8 @@ if(Readline_FOUND)
 	include_directories(${READLINE_INCLUDE_DIR})
 endif(Readline_FOUND)
 
+set(DSPDBG_C debugdsp.c)
+
 include_directories(${SDL2_INCLUDE_DIRS})
 
 add_library(Debug
