@@ -579,6 +579,29 @@ static int DebugUI_ParseCommand(const char *input_orig)
 /* See "info:readline" e.g. in Konqueror for readline usage. */
 
 /**
+ * Generic readline match callback helper.
+ * STATE = 0 -> different text from previous one.
+ * Return next match or NULL if no matches.
+ */
+char *DebugUI_MatchHelper(const char **strings, int items, const char *text, int state)
+{
+	static int i, len;
+	
+	if (!state)
+	{
+		/* first match */
+		len = strlen(text);
+		i = 0;
+	}
+	/* next match */
+	while (i < items) {
+		if (strncasecmp(strings[i++], text, len) == 0)
+			return (strdup(strings[i-1]));
+	}
+	return NULL;
+}
+
+/**
  * Readline match callback for long command name completion.
  * STATE = 0 -> different text from previous one.
  * Return next match or NULL if no matches.
@@ -728,7 +751,38 @@ static char *DebugUI_GetCommand(char *input)
 	return Str_Trim(readline("> "));
 }
 
+/**
+ * Get readlines idea of the terminal size
+ */
+static void DebugUI_GetScreenSize(int *rows, int *cols)
+{
+	rl_get_screen_size(rows, cols);
+}
+
 #else /* !HAVE_LIBREADLINE */
+
+/**
+ * Free Command input string
+ */
+static void DebugUI_FreeCommand(char *input)
+{
+	free(input);
+}
+
+/**
+ * Get number of lines/columns for terminal output
+ */
+static void DebugUI_GetScreenSize(int *rows, int *cols)
+{
+	const char *p;
+
+	*rows = 24;
+	*cols = 80;
+	if ((p = getenv("LINES")) != NULL)
+		*rows = (int)strtol(p, NULL, 0);
+	if ((p = getenv("COLUMNS")) != NULL)
+		*cols = (int)strtol(p, NULL, 0);
+}
 
 /**
  * Read a command line from the keyboard and return a pointer to the string.
@@ -756,6 +810,29 @@ static char *DebugUI_GetCommand(char *input)
 }
 
 #endif /* !HAVE_LIBREADLINE */
+
+/**
+ * How many lines to "page" when user invokes calling command.
+ *
+ * If config value is >=0, use that.  If it's negative, get number of lines
+ * from screensize. If even that's not defined, fall back to default value.
+ *
+ * @return Number of lines to output at the time.
+ */
+int DebugUI_GetPageLines(int config, int defvalue)
+{
+	int rows, cols;
+
+	if (config >= 0) {
+		return config;
+	}
+	DebugUI_GetScreenSize(&rows, &cols);
+	/* leave 1 line for pager prompt */
+	if (--rows > 0) {
+		return rows;
+	}
+	return defvalue;
+}
 
 
 static const dbgcommand_t uicommand[] =
