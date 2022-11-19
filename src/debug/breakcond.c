@@ -323,7 +323,7 @@ static int BreakCond_MatchBreakPoints(bc_breakpoint_t *bp, int count, const char
                 DebugInfo_ShowSessionInfo();
             }
             if (bp->options.filename) {
-                DebugUI_ParseFile(bp->options.filename);
+                DebugUI_ParseFile(bp->options.filename, true);
             }
             if (bp->options.trace) {
                 return 0;

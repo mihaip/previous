@@ -46,6 +46,7 @@ typedef struct
   int nMemdumpLines;
   int nDisasmLines;
   int nBacktraceLines;
+  int nExceptionDebugMask;
   int nDisasmOptions;
   bool bDisasmUAE;
 } CNF_DEBUGGER;

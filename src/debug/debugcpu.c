@@ -178,32 +178,6 @@ static int DebugCpu_SaveBin(int nArgc, char *psArgs[])
 
 
 /**
- * Check whether given address matches any CPU symbol and whether
- * there's profiling information available for it.  If yes, show it.
- */
-static void DebugCpu_ShowAddressInfo(uint32_t addr)
-{
-    uint32_t count, cycles;
-    const char *symbol;
-    bool shown = false;
-
-    symbol = Symbols_GetByCpuAddress(addr);
-	if (symbol)
-    {
-        fprintf(debugOutput, "%s", symbol);
-        shown = true;
-    }
-    if (Profile_CpuAddressData(addr, &count, &cycles))
-    {
-        fprintf(debugOutput, "%s%d/%d times/cycles",
-                (shown ? ", " : ""), count, cycles);
-        shown = true;
-    }
-    if (shown)
-        fprintf(debugOutput, ":\n");
-}
-
-/**
  * Dissassemble - arg = starting address, or PC.
  */
 int DebugCpu_DisAsm(int nArgc, char *psArgs[])
@@ -255,7 +229,12 @@ int DebugCpu_DisAsm(int nArgc, char *psArgs[])
 	/* output a range */
 	for (insts = 0; insts < max_insts && disasm_addr < disasm_upper; insts++)
 	{
-        DebugCpu_ShowAddressInfo(disasm_addr);
+		const char *symbol;
+		symbol = Symbols_GetByCpuAddress(disasm_addr);
+		if (symbol)
+		{
+			fprintf(debugOutput, "%s:\n", symbol);
+		}
         Disasm(debugOutput, (uaecptr)disasm_addr, &nextpc, 1);
 		disasm_addr = nextpc;
 	}
@@ -565,18 +544,21 @@ void DebugCpu_Check(void)
     }
 	if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 	{
-		DebugCpu_ShowAddressInfo(M68000_GetPC());
+		const char *symbol;
+		symbol = Symbols_GetByCpuAddress(M68000_GetPC());
+		if (symbol)
+			LOG_TRACE_PRINT("%s\n", symbol);
 	}
 	if (nCpuActiveCBs)
 	{
 		if (BreakCond_MatchCpu())
-			DebugUI();
+			DebugUI(REASON_CPU_BREAKPOINT);
 	}
 	if (nCpuSteps)
 	{
 		nCpuSteps -= 1;
 		if (nCpuSteps == 0)
-			DebugUI();
+			DebugUI(REASON_CPU_STEPS);
 	}
 }
 

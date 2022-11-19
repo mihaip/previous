@@ -504,9 +504,6 @@ static void Main_Loop(void) {
 static int Main_Thread(void* unused) {
 	SDL_SetThreadPriority(SDL_THREAD_PRIORITY_NORMAL);
 
-	/* done as last, needs CPU & DSP running... */
-	DebugUI_Init();
-
 	while (!bQuitProgram) {
 		CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_EVENT_LOOP);
 		M68000_Start();               /* Start emulation */
@@ -656,7 +653,10 @@ static void Main_Init(void) {
 
 	/* Call menu at startup */
 	Main_StartMenu();
-	
+
+	/* done as last, needs CPU & DSP running... */
+	DebugUI_Init();
+
 	pauseFlag  = SDL_CreateSemaphore(0);
 	
 	/* Start emulator thread */
@@ -682,6 +682,7 @@ static void Main_UnInit(void) {
 	SDL_Quit();
 
 	/* Close debug log file */
+	DebugUI_UnInit();
 	Log_UnInit();
 
 	Paths_UnInit();

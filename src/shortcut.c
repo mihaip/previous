@@ -77,7 +77,7 @@ void ShortCut_Debug_M68K(void)
 
 	running = Main_PauseEmulation(true);
     /* Call the debugger */
-	DebugUI();
+	DebugUI(REASON_USER);
 	if (running)
 		Main_UnPauseEmulation();
 }

@@ -1,14 +1,14 @@
 /*
   Hatari - debugui.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   debugui.c - this is the code for the mini-debugger. When the pause button is
   pressed, the emulator is (hopefully) halted and this little CLI can be used
   (in the terminal box) for debugging tasks like memory and register dumps.
 */
-const char DebugUI_fileid[] = "Hatari debugui.c : " __DATE__ " " __TIME__;
+const char DebugUI_fileid[] = "Hatari debugui.c";
 
 #include <ctype.h>
 #include <stdio.h>
@@ -39,9 +39,7 @@ const char DebugUI_fileid[] = "Hatari debugui.c : " __DATE__ " " __TIME__;
 #include "evaluate.h"
 #include "symbols.h"
 
-int bExceptionDebugging;
-
-FILE *debugOutput = NULL;
+FILE *debugOutput;
 
 static dbgcommand_t *debugCommand;
 static int debugCommands;
@@ -49,7 +47,12 @@ static int debugCommands;
 /* stores last 'e' command result as hex, used for TAB-completion */
 static char lastResult[10];
 
-static const char *parseFileName;
+/* array of files from which to read debugger commands after debugger is initialized */
+static char **parseFileNames;
+static int parseFiles;
+
+/* to which directory to change after (potentially recursed) scripts parsing finishes */
+static char *finalDir;
 
 
 /**
@@ -59,8 +62,7 @@ void DebugUI_MemorySnapShot_Capture(const char *path, bool bSave)
 {
 	char *filename;
 
-	filename = malloc(strlen(path) + strlen(".debug") + 1);
-	assert(filename);
+	filename = Str_Alloc(strlen(path) + strlen(".debug"));
 	strcpy(filename, path);
 	strcat(filename, ".debug");
 	
@@ -78,7 +80,7 @@ void DebugUI_MemorySnapShot_Capture(const char *path, bool bSave)
 		if (File_Exists(filename))
 		{
 			/* and parse back the saved breakpoints */
-			DebugUI_ParseFile(filename);
+			DebugUI_ParseFile(filename, true);
 		}
 	}
 	free(filename);
@@ -107,17 +109,25 @@ static void DebugUI_SetLogDefault(void)
  */
 static int DebugUI_SetLogFile(int nArgc, char *psArgs[])
 {
-	File_Close(debugOutput);
-	debugOutput = NULL;
+	if (debugOutput != stderr)
+	{
+		fprintf(stderr, "Debug log closed.\n");
+		File_Close(debugOutput);
+	}
+	debugOutput = stderr;
 
 	if (nArgc > 1)
-		debugOutput = File_Open(psArgs[1], "w");
-
-	if (debugOutput)
-		fprintf(stderr, "Debug log '%s' opened.\n", psArgs[1]);
-	else
-		debugOutput = stderr;
-
+	{
+		if ((debugOutput = File_Open(psArgs[1], "w")))
+		{
+			fprintf(stderr, "Debug log '%s' opened.\n", psArgs[1]);
+		}
+		else
+		{
+			fprintf(stderr, "Debug log '%s' opening FAILED.\n", psArgs[1]);
+			debugOutput = stderr;
+		}
+	}
 	return DEBUGGER_CMDDONE;
 }
 
@@ -134,7 +144,7 @@ static void DebugUI_PrintValue(uint32_t value)
 	ones = false;
 	for (bit = 31; bit >= 0; bit--)
 	{
-		one = value & (1<<bit);
+		one = value & (1U << bit);
 		if (one || ones)
 		{
 			fputc(one ? '1':'0', stderr);
@@ -153,7 +163,7 @@ static void DebugUI_PrintValue(uint32_t value)
 
 
 /**
- * Commmand: Evaluate an expression with CPU reg and symbol parsing.
+ * Command: Evaluate an expression with CPU reg and symbol parsing.
  */
 static int DebugUI_Evaluate(int nArgc, char *psArgs[])
 {
@@ -163,8 +173,7 @@ static int DebugUI_Evaluate(int nArgc, char *psArgs[])
 
 	if (nArgc < 2)
 	{
-		DebugUI_PrintCmdHelp(psArgs[0]);
-		return DEBUGGER_CMDDONE;
+		return DebugUI_PrintCmdHelp(psArgs[0]);
 	}
 
 	errstr = Eval_Expression(expression, &result, &offset, false);
@@ -184,38 +193,47 @@ static int DebugUI_Evaluate(int nArgc, char *psArgs[])
  */
 static bool DebugUI_IsForDsp(const char *cmd)
 {
-	return ((cmd[0] == 'd' && cmd[1] && !cmd[2])
-		|| strncmp(cmd, "dsp", 3) == 0);
+	return ((cmd[0] == 'd' && isalpha((unsigned char)cmd[1])
+	                       && !isalpha((unsigned char)cmd[2]))
+	        || strncmp(cmd, "dsp", 3) == 0);
 }
 
 /**
- * Evaluate everything include within "" and replace them with the result.
- * Caller needs to free the returned string separately if its address
- * doesn't match the given input string.
+ * Evaluate everything include within single or double quotes ("" or '')
+ * and replace them with the result.
+ * Caller needs to free the returned string separately.
  * 
- * Return string with expressions (potentially) expanded, or
+ * Return new string with expressions (potentially) expanded, or
  * NULL when there's an error in the expression.
  */
-static char *DebugUI_EvaluateExpressions(char *input)
+static char *DebugUI_EvaluateExpressions(const char *initial)
 {
-  	int offset, count, diff, inputlen;
-    char *end, *start, *initial;
+	int offset, count, diff, inputlen;
+	char *end, *start, *input;
 	const char *errstr;
 	char valuestr[12];
 	uint32_t value;
 	bool fordsp;
 
 	/* input is split later on, need to save len here */
+	input = strdup(initial);
+	if (!input)
+	{
+		perror("ERROR: Input string alloc failed\n");
+		return NULL;
+	}
 	fordsp = DebugUI_IsForDsp(input);
 	inputlen = strlen(input);
-	initial = start = input;
-	
-	while ((start = strchr(start, '"')))
+	start = input;
+
+	while ((count = strcspn(start, "\"'")) && *(start+count))
 	{
-		end = strchr(start+1, '"');
+		start += count;
+		end = strchr(start+1, *start);
 		if (!end)
 		{
-			fprintf(stderr, "ERROR: matching '\"' missing from '%s'!\n", start);
+			fprintf(stderr, "ERROR: matching '%c' missing from '%s'!\n", *start, start);
+			free(input);
 			return NULL;
 		}
 		
@@ -229,15 +247,16 @@ static char *DebugUI_EvaluateExpressions(char *input)
 		*end = '\0';
 		errstr = Eval_Expression(start+1, &value, &offset, fordsp);
 		if (errstr) {
-			*end = '"';
+			*end = *start; /* restore expression mark */
 			fprintf(stderr, "Expression ERROR:\n'%s'\n%*c-%s\n",
 				input, (int)(start-input)+offset+3, '^', errstr);
+			free(input);
 			return NULL;
 		}
 		end++;
-		
+
 		count = sprintf(valuestr, "$%x", value);
-		fprintf(stderr, "- \"%s\" -> %s\n", start+1, valuestr);
+		fprintf(stderr, "- '%s' -> %s\n", start+1, valuestr);
 
 		diff = end-start;
 		if (count < diff)
@@ -253,6 +272,7 @@ static char *DebugUI_EvaluateExpressions(char *input)
 			if (!tmp)
 			{
 				perror("ERROR: Input string alloc failed\n");
+				free(input);
 				return NULL;
 			}
 
@@ -262,14 +282,14 @@ static char *DebugUI_EvaluateExpressions(char *input)
 			start += count;
 			memcpy(start, end, strlen(end) + 1);
 
-            if (input != initial)
-                free(input);
-            input = tmp;
+			free(input);
+			input = tmp;
 		}
 	}
 	/* no (more) expressions to evaluate */
 	return input;
 }
+
 
 /**
  * Command: Set command line and debugger options
@@ -290,11 +310,10 @@ static int DebugUI_SetOptions(int argc, char *argv[])
 	
 	if (argc < 2)
 	{
-		DebugUI_PrintCmdHelp(argv[0]);
-		return DEBUGGER_CMDDONE;
+		return DebugUI_PrintCmdHelp(argv[0]);
 	}
 	arg = argv[1];
-	
+
 	for (i = 0; i < ARRAY_SIZE(bases); i++)
 	{
 		if (strcasecmp(bases[i].name, arg) == 0)
@@ -312,24 +331,8 @@ static int DebugUI_SetOptions(int argc, char *argv[])
 		}
 	}
 
-	/* get configuration changes */
-	current = ConfigureParams;
-#if 0
-	/* Parse and apply options */
-	if (Opt_ParseParameters(argc, (const char * const *)argv))
-	{
-		ConfigureParams.Screen.bFullScreen = false;
-		Change_CopyChangedParamsToConfiguration(&current, &ConfigureParams, false);
-	}
-	else
-#endif
-	{
-		ConfigureParams = current;
-	}
-
 	return DEBUGGER_CMDDONE;
 }
-
 
 /**
  * Command: Set tracing
@@ -339,8 +342,7 @@ static int DebugUI_SetTracing(int argc, char *argv[])
 	const char *errstr;
 	if (argc != 2)
 	{
-		DebugUI_PrintCmdHelp(argv[0]);
-		return DEBUGGER_CMDDONE;
+		return DebugUI_PrintCmdHelp(argv[0]);
 	}
 	errstr = Log_SetTraceOptions(argv[1]);
 	if (errstr && errstr[0])
@@ -349,20 +351,26 @@ static int DebugUI_SetTracing(int argc, char *argv[])
 	return DEBUGGER_CMDDONE;
 }
 
-
 /**
  * Command: Change Hatari work directory
  */
 static int DebugUI_ChangeDir(int argc, char *argv[])
 {
+	if (argc == 3 && strcmp("-f", argv[2]) == 0)
+	{
+		if (finalDir)
+			free(finalDir);
+		finalDir = strdup(argv[1]);
+		fprintf(stderr, "Will switch to '%s' dir after all scripts have finished.\n", argv[1]);
+		return DEBUGGER_CMDDONE;
+	}
 	if (argc == 2)
 	{
 		if (chdir(argv[1]) == 0)
 			return DEBUGGER_CMDDONE;
 		perror("ERROR");
 	}
-	DebugUI_PrintCmdHelp(argv[0]);
-	return DEBUGGER_CMDDONE;
+	return DebugUI_PrintCmdHelp(argv[0]);
 }
 
 
@@ -372,7 +380,7 @@ static int DebugUI_ChangeDir(int argc, char *argv[])
 static int DebugUI_CommandsFromFile(int argc, char *argv[])
 {
 	if (argc == 2)
-		DebugUI_ParseFile(argv[1]);
+		DebugUI_ParseFile(argv[1], true);
 	else
 		DebugUI_PrintCmdHelp(argv[0]);
 	return DEBUGGER_CMDDONE;
@@ -384,8 +392,18 @@ static int DebugUI_CommandsFromFile(int argc, char *argv[])
  */
 static int DebugUI_QuitEmu(int nArgc, char *psArgv[])
 {
-	bQuitProgram = true;
-	M68000_SetSpecial(SPCFLAG_BRK);   /* Assure that CPU core shuts down */
+	int exitval;
+
+	if (nArgc > 2)
+		return DebugUI_PrintCmdHelp(psArgv[0]);
+
+	if (nArgc == 2)
+		exitval = atoi(psArgv[1]);
+	else
+		exitval = 0;
+
+	ConfigureParams.Log.bConfirmQuit = false;
+	Main_RequestQuit();
 	return DEBUGGER_END;
 }
 
@@ -393,7 +411,7 @@ static int DebugUI_QuitEmu(int nArgc, char *psArgv[])
 /**
  * Print help text for one command
  */
-void DebugUI_PrintCmdHelp(const char *psCmd)
+int DebugUI_PrintCmdHelp(const char *psCmd)
 {
 	dbgcommand_t *cmd;
 	int i;
@@ -424,11 +442,12 @@ void DebugUI_PrintCmdHelp(const char *psCmd)
 			fprintf(stderr, "Usage:  %s %s\n",
 				bShort ? cmd->sShortName : cmd->sLongName,
 				cmd->sUsage);
-			return;
+			return DEBUGGER_CMDDONE;
 		}
 	}
 
 	fprintf(stderr, "Unknown command '%s'\n", psCmd);
+	return DEBUGGER_CMDDONE;
 }
 
 
@@ -441,8 +460,7 @@ static int DebugUI_Help(int nArgc, char *psArgs[])
 
 	if (nArgc > 1)
 	{
-		DebugUI_PrintCmdHelp(psArgs[1]);
-		return DEBUGGER_CMDDONE;
+		return DebugUI_PrintCmdHelp(psArgs[1]);
 	}
 
 	for (i = 0; i < debugCommands; i++)
@@ -485,7 +503,7 @@ static int DebugUI_ParseCommand(const char *input_orig)
 	int nArgc, cmd = -1;
 	int i, retval;
 
-    input = strdup(input_orig);
+	input = strdup(input_orig);
 	psArgs[0] = strtok(input, " \t");
 
 	if (psArgs[0] == NULL)
@@ -493,10 +511,10 @@ static int DebugUI_ParseCommand(const char *input_orig)
 		if (strlen(sLastCmd) > 0)
 			psArgs[0] = sLastCmd;
 		else
-        {
-            free(input);
-            return DEBUGGER_CMDDONE;
-        }
+		{
+			free(input);
+			return DEBUGGER_CMDDONE;
+		}
 	}
 
 	/* Search the command ... */
@@ -516,7 +534,7 @@ static int DebugUI_ParseCommand(const char *input_orig)
 		fprintf(stderr, "Command '%s' not found.\n"
 			"Use 'help' to view a list of available commands.\n",
 			psArgs[0]);
-        free(input);
+		free(input);
 		return DEBUGGER_CMDDONE;
 	}
 
@@ -532,23 +550,28 @@ static int DebugUI_ParseCommand(const char *input_orig)
 		if (psArgs[nArgc] == NULL)
 			break;
 	}
-
-	if (!debugOutput) {
-		/* make sure also calls from control.c work */
-		DebugUI_SetLogDefault();
-	}
-
-	/* ... and execute the function */
-	retval = debugCommand[i].pFunction(nArgc, psArgs);
-	/* Save commando string if it can be repeated */
-	if (retval == DEBUGGER_CMDCONT)
+	if (nArgc >= ARRAY_SIZE(psArgs))
 	{
-		strncpy(sLastCmd, psArgs[0], sizeof(sLastCmd) - 1);
-		sLastCmd[sizeof(sLastCmd) - 1] = '\0';
+		fprintf(stderr, "Error: too many arguments (currently up to %d supported)\n",
+			ARRAY_SIZE(psArgs));
+		retval = DEBUGGER_CMDCONT;
+	}
+	else
+	{
+		/* ... and execute the function */
+		retval = debugCommand[i].pFunction(nArgc, psArgs);
+	}
+	/* Save commando string if it can be repeated */
+	if (retval == DEBUGGER_CMDCONT || retval == DEBUGGER_ENDCONT)
+	{
+		if (psArgs[0] != sLastCmd)
+			Str_Copy(sLastCmd, psArgs[0], sizeof(sLastCmd));
+		if (retval == DEBUGGER_ENDCONT)
+			retval = DEBUGGER_END;
 	}
 	else
 		sLastCmd[0] = '\0';
-    free(input);
+	free(input);
 	return retval;
 }
 
@@ -604,10 +627,10 @@ static char **DebugUI_Completion(const char *text, int a, int b)
 	size_t len;
 
 	/* check where's the first word (ignore white space) */
-	while (start < rl_point && isspace(rl_line_buffer[start]))
+	while (start < rl_point && isspace((unsigned char)rl_line_buffer[start]))
 		start++;
 	end = start;
-	while (end < rl_point && !isspace(rl_line_buffer[end]))
+	while (end < rl_point && !isspace((unsigned char)rl_line_buffer[end]))
 		end++;
 
 	if (end >= rl_point)
@@ -664,32 +687,44 @@ static char **DebugUI_Completion(const char *text, int a, int b)
 		return rl_completion_matches(text, rl_filename_completion_function);
 }
 
+/**
+ * Add non-repeated command to readline history
+ * and free the given string
+ */
+static void DebugUI_FreeCommand(char *input)
+{
+	if (input && *input)
+	{
+		HIST_ENTRY *hist = history_get(history_length);
+		/* don't store duplicate successive entries */
+		if (!hist || !hist->line || strcmp(hist->line, input) != 0)
+		{
+			add_history(input);
+		}
+		free(input);
+	}
+}
 
 /**
  * Read a command line from the keyboard and return a pointer to the string.
  * Only string returned by this function can be given for it as argument!
  * The string will be stored into command history buffer.
- * @return	Pointer to the string which should be deallocated after
- *              use or given back to this function for re-use/history.
- *              Returns NULL when error occured.
+ * @return	Pointer to the string which should be given back to this
+ *              function or DebugUI_FreeCommand() for re-use/history.
+ *              Returns NULL when error occurred.
  */
 static char *DebugUI_GetCommand(char *input)
 {
+	/* We need this indirection for libedit's rl_readline_name which is
+	 * not declared as "const char *" (i.e. this is necessary for macOS) */
+	static char previous_readline_name[] = "Previous";
+
 	/* Allow conditional parsing of the ~/.inputrc file. */
-	rl_readline_name = "Hatari";
+	rl_readline_name = previous_readline_name;
 	
 	/* Tell the completer that we want a crack first. */
 	rl_attempted_completion_function = DebugUI_Completion;
-
-    if (input && *input)
-    {
-        HIST_ENTRY *hist = previous_history();
-        /* don't store successive duplicate entries */
-        if (!hist || !hist->line || strcmp(hist->line, input) != 0)
-            add_history(input);
-        free(input);
-    }
-
+	DebugUI_FreeCommand(input);
 	return Str_Trim(readline("> "));
 }
 
@@ -698,18 +733,19 @@ static char *DebugUI_GetCommand(char *input)
 /**
  * Read a command line from the keyboard and return a pointer to the string.
  * Only string returned by this function can be given for it as argument!
- * @return	Pointer to the string which should be deallocated after
- *              use or given back to this function for re-use.
- *              Returns NULL when error occured.
+ * @return	Pointer to the string which should be given back to this
+ *              function or DebugUI_FreeCommand() for re-use/freeing.
+ *              Returns NULL when error occurred.
  */
 static char *DebugUI_GetCommand(char *input)
 {
 	fprintf(stderr, "> ");
 	if (!input)
-    {
-        input = malloc(256);
-        assert(input);
-    }
+	{
+		input = malloc(256);
+		if (!input)
+			return NULL;
+	}
 	input[0] = '\0';
 	if (fgets(input, 256, stdin) == NULL)
 	{
@@ -741,9 +777,9 @@ static const dbgcommand_t uicommand[] =
 	  "\tby their values. Supported operators in expressions are,\n"
 	  "\tin the decending order of precedence:\n"
 	  "\t\t(), +, -, ~, *, /, +, -, >>, <<, ^, &, |\n"
-      "\tParenthesis will fetch a _long_ value from the address\n"
-      "\tto what the value inside it evaluates to. Prefixes can be\n"
-      "\tused only in start of line or parenthesis.\n"
+	  "\tParenthesis will fetch a _long_ value from the address\n"
+	  "\tto what the value inside it evaluates to. Prefixes can be\n"
+	  "\tused only in start of line or parenthesis.\n"
 	  "\tFor example:\n"
 	  "\t\t~%101 & $f0f0f ^ (d0 + 0x21)\n"
 	  "\tResult value is shown as binary, decimal and hexadecimal.\n"
@@ -764,10 +800,10 @@ static const dbgcommand_t uicommand[] =
 	  false },
 	{ DebugInfo_Command, DebugInfo_MatchLock,
 	  "lock", "",
-      "specify information to show on entering the debugger",
-      "[subject [args]]\n"
-      "\tLock what information should be shown every time debugger\n"
-      "\tis entered, or list available options if no subject's given.",
+	  "specify information to show on entering the debugger",
+	  "[subject [args]]\n"
+	  "\tLock what information should be shown every time debugger\n"
+	  "\tis entered, or list available options if no subject's given.",
 	  false },
 	{ DebugUI_SetLogFile, NULL,
 	  "logfile", "f",
@@ -795,9 +831,9 @@ static const dbgcommand_t uicommand[] =
 	  "trace", "t",
 	  "select Hatari tracing settings",
 	  "[set1,set2...]\n"
-      "\tSelect Hatari tracing settings. 'help' shows all the available\n"
-      "\tsettings.  For example, to enable CPU disassembly and VBL\n"
-      "\ttracing, use:\n\t\ttrace cpu_disasm",
+	  "\tSelect Hatari tracing settings. 'help' shows all the available\n"
+	  "\tsettings.  For example, to enable CPU disassembly and VBL\n"
+	  "\ttracing, use:\n\t\ttrace cpu_disasm",
 	  false },
 	{ DebugUI_QuitEmu, NULL,
 	  "quit", "q",
@@ -813,70 +849,113 @@ static const dbgcommand_t uicommand[] =
  */
 void DebugUI_Init(void)
 {
-    const dbgcommand_t *cpucmd;
-    int cpucmds;
+	const dbgcommand_t *cpucmd, *dspcmd;
+	int cpucmds, dspcmds;
 
-    if(!(debugOutput)){
-        debugOutput = stderr;		
-	} 
-        
-	/* already intialized? */
+	Log_ResetMsgRepeat();
+
+	/* already initialized? */
 	if (debugCommands)
 		return;
+
+	if (!debugOutput)
+		DebugUI_SetLogDefault();
 
 	/* if you want disassembly or memdumping to start/continue from
 	 * specific address, you can set them in these functions.
 	 */
-//	dspcmds = DebugDsp_Init(&dspcmd);
+	dspcmds = 0; //DebugDsp_Init(&dspcmd);
 	cpucmds = DebugCpu_Init(&cpucmd);
 
 	/* on first time copy the command structures to a single table */
 	debugCommands = ARRAY_SIZE(uicommand);
-	debugCommand = malloc(sizeof(dbgcommand_t) * (cpucmds + debugCommands));
+	debugCommand = malloc(sizeof(dbgcommand_t) * (dspcmds + cpucmds + debugCommands));
 	assert(debugCommand);
 	
 	memcpy(debugCommand, uicommand, sizeof(dbgcommand_t) * debugCommands);
 	memcpy(&debugCommand[debugCommands], cpucmd, sizeof(dbgcommand_t) * cpucmds);
 	debugCommands += cpucmds;
-//	memcpy(&debugCommand[debugCommands], dspcmd, sizeof(dbgcommand_t) * dspcmds);
-//	debugCommands += dspcmds;
+	memcpy(&debugCommand[debugCommands], dspcmd, sizeof(dbgcommand_t) * dspcmds);
+	debugCommands += dspcmds;
 
-	if (parseFileName)
-		DebugUI_ParseFile(parseFileName);
+
+	if (parseFiles)
+	{
+		int i;
+		for (i = 0; i < parseFiles; i++)
+		{
+			DebugUI_ParseFile(parseFileNames[i], true);
+			free(parseFileNames[i]);
+		}
+		free(parseFileNames);
+		parseFileNames = NULL;
+		parseFiles = 0;
+	}
+}
+
+/**
+ * Debugger user interface de-initialization / free.
+ */
+void DebugUI_UnInit(void)
+{
+	Log_ResetMsgRepeat();
+	free(debugCommand);
+	debugCommands = 0;
 }
 
 
 /**
- * Set debugger commands file during Hatari startup before things
+ * Add debugger command files during Hatari startup before things
  * needed by the debugger are initialized so that it can be parsed
  * when debugger itself gets initialized.
- * Return true if file exists, false otherwise.
+ * Return true if file exists and it could be added, false otherwise.
  */
-bool DebugUI_SetParseFile(const char *path)
+bool DebugUI_AddParseFile(const char *path)
 {
-	if (File_Exists(path))
+	if (!File_Exists(path))
 	{
-		parseFileName = path;
-		return true;
+		fprintf(stderr, "ERROR: debugger input file '%s' missing.\n", path);
+		return false;
 	}
-	//fprintf(stderr, "ERROR: debugger input file '%s' missing.\n", path);
-	return false;
+	parseFileNames = realloc(parseFileNames, (parseFiles+1)*sizeof(char*));
+	if (!parseFileNames)
+	{
+		perror("DebugUI_AddParseFile");
+		return false;
+	}
+	parseFileNames[parseFiles++] = strdup(path);
+	return true;
 }
 
 
 /**
  * Debugger user interface main function.
  */
-void DebugUI(void)
+void DebugUI(debug_reason_t reason)
 {
 	int cmdret, alertLevel;
 	char *expCmd, *psCmd = NULL;
 	static const char *welcome =
 		"\n----------------------------------------------------------------------"
 		"\nYou have entered debug mode. Type c to continue emulation, h for help.\n";
-	
+	static bool recursing;
+
+	if (recursing)
+	{
+		fprintf(stderr, "WARNING: recursive call to DebugUI (through profiler debug option?)!\n");
+		recursing = false;
+		return;
+	}
+	recursing = true;
+
 	if (bInFullScreen)
 		Screen_ReturnFromFullScreen();
+
+	/* Make sure mouse isn't grabbed regardless of where
+	 * this is invoked from.  E.g. returning from fullscreen
+	 * enables grab if that was enabled on windowed mode.
+	 */
+	SDL_SetRelativeMouseMode(false);
 
 	DebugUI_Init();
 
@@ -901,43 +980,46 @@ void DebugUI(void)
 	cmdret = DEBUGGER_CMDDONE;
 	do
 	{
-        /* Read command from the keyboard and give previous
-         * command for freeing / adding to history
-         */
-        psCmd = DebugUI_GetCommand(psCmd);
+		/* Read command from the keyboard and give previous
+		 * command for freeing / adding to history
+		 */
+		psCmd = DebugUI_GetCommand(psCmd);
 		if (!psCmd)
 			break;
 
-        /* returns new string if expressions needed expanding! */
-        if (!(expCmd = DebugUI_EvaluateExpressions(psCmd)))
+		/* returns new expression expanded string */
+		if (!(expCmd = DebugUI_EvaluateExpressions(psCmd)))
 			continue;
 
 		/* Parse and execute the command string */
-        cmdret = DebugUI_ParseCommand(expCmd);
-        if (expCmd != psCmd)
-            free(expCmd);
+		cmdret = DebugUI_ParseCommand(expCmd);
+		free(expCmd);
 	}
 	while (cmdret != DEBUGGER_END);
-    
-    /* free (and ignore) exit command */
-    if (psCmd) {
-       free(psCmd);		
-	}
- 
+
+	/* free exit command */
+	DebugUI_FreeCommand(psCmd);
+
 	Log_SetAlertLevel(alertLevel);
-	DebugUI_SetLogDefault();
 
 	DebugCpu_SetDebugging();
+//	DebugDsp_SetDebugging();
+
+	recursing = false;
 }
 
 
 /**
- * Read debugger commands from a file.
- * return false for error, true for success.
+ * Read debugger commands from a file.  If 'reinit' is set
+ * (as it normally should), reinitialize breakpoints etc.
+ * afterwards. return false for error, true for success.
  */
-bool DebugUI_ParseFile(const char *path)
+bool DebugUI_ParseFile(const char *path, bool reinit)
 {
-	char *olddir, *dir, *cmd, *input, *expanded, *slash;
+	int recurse;
+	static int recursing;
+	char *olddir, *dir, *cmd, *expanded, *slash;
+	char input[256];
 	FILE *fp;
 
 	fprintf(stderr, "Reading debugger commands from '%s'...\n", path);
@@ -948,88 +1030,110 @@ bool DebugUI_ParseFile(const char *path)
 	}
 
 	/* change to directory where the debugger file resides */
-    olddir = NULL;
+	olddir = NULL;
 	dir = strdup(path);
 	slash = strrchr(dir, PATHSEP);
 	if (slash)
 	{
-        olddir = malloc(FILENAME_MAX);
-        if (olddir)
-        {
-            if (!getcwd(olddir, FILENAME_MAX))
-                strcpy(olddir, ".");
-        }
+		olddir = malloc(FILENAME_MAX);
+		if (olddir)
+		{
+			if (!getcwd(olddir, FILENAME_MAX))
+				strcpy(olddir, ".");
+		}
 		*slash = '\0';
 		if (chdir(dir) != 0)
 		{
 			perror("ERROR");
-            if (olddir)
-                free(olddir);
+			free(olddir);
 			free(dir);
+			fclose(fp);
 			return false;
 		}
-        fprintf(stderr, "Changed to input file dir '%s'.\n", dir);
+		fprintf(stderr, "Changed to input file dir '%s'.\n", dir);
 	}
 	free(dir);
 
-	input = NULL;
-	for (;;)
-	{
-		if (!input)
-		{
-			input = malloc(256);
-			assert(input);
-		}
-		if (!fgets(input, 256, fp))
-			break;
+	recurse = recursing;
+	recursing = true;
 
-        /* ignore empty and comment lines */
-        cmd = Str_Trim(input);
-        if (!*cmd || *cmd == '#')
+	while (fgets(input, sizeof(input), fp) != NULL)
+	{
+		/* ignore empty and comment lines */
+		cmd = Str_Trim(input);
+		if (!*cmd || *cmd == '#')
 			continue;
 
-        /* returns new string if input needed expanding! */
-        expanded = DebugUI_EvaluateExpressions(input);
-        if (!expanded)
-            continue;
+		/* returns new string if input needed expanding! */
+		expanded = DebugUI_EvaluateExpressions(input);
+		if (!expanded)
+			continue;
 
-        cmd = Str_Trim(expanded);
-        fprintf(stderr, "> %s\n", cmd);
-        DebugUI_ParseCommand(cmd);
-        if (expanded != input)
-            free(expanded);
+		cmd = Str_Trim(expanded);
+		fprintf(stderr, "> %s\n", cmd);
+		DebugUI_ParseCommand(cmd);
+		free(expanded);
+	}
+	recursing = false;
+
+	fclose(fp);
+
+	if (olddir)
+	{
+		if (chdir(olddir) != 0)
+			perror("ERROR");
+		else
+			fprintf(stderr, "Changed back to '%s' dir.\n", olddir);
+		free(olddir);
 	}
 
-	free(input);
-    if (olddir)
-    {
-        if (chdir(olddir) != 0)
-            perror("ERROR");
-        else
-            fprintf(stderr, "Changed back to '%s' dir.\n", olddir);
-        free(olddir);
-    }
-
-	DebugCpu_SetDebugging();
-//	DebugDsp_SetDebugging();
+	if (!recurse)
+	{
+		/* current script (or something called by it) specified final dir */
+		if (finalDir)
+		{
+			if (chdir(finalDir) != 0)
+				perror("ERROR");
+			else
+				fprintf(stderr, "Delayed change to '%s' dir.\n", finalDir);
+			free(finalDir);
+			finalDir = NULL;
+		}
+		/* only top-level (non-recursed) call has valid re-init info,
+		 * as that's the only one that can get directly called from
+		 * breakpoints
+		 */
+		if (reinit)
+		{
+			DebugCpu_SetDebugging();
+//			DebugDsp_SetDebugging();
+		}
+	}
 	return true;
 }
 
 
 /**
- * Remote/parallel debugger usage API.
+ * Remote/parallel debugger line usage API.
  * Return false for failed command, true for success.
  */
-bool DebugUI_RemoteParse(char *input)
+bool DebugUI_ParseLine(const char *input)
 {
-	int ret;
+	char *expanded;
+	int ret = 0;
 
 	DebugUI_Init();
-	
-	ret = DebugUI_ParseCommand(input);
 
-	DebugCpu_SetDebugging();
-//	DebugDsp_SetDebugging();
+	/* returns new string if input needed expanding! */
+	expanded = DebugUI_EvaluateExpressions(input);
+	if (expanded)
+	{
+		fprintf(stderr, "> %s\n", expanded);
+		ret = DebugUI_ParseCommand(expanded);
+		free(expanded);
 
+		DebugCpu_SetDebugging();
+//		DebugDsp_SetDebugging();
+	}
 	return (ret == DEBUGGER_CMDDONE);
 }
