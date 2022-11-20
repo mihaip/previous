@@ -3903,7 +3903,7 @@ static void m68k_reset2(bool hardreset)
 	regs.halted = 0;
 #ifndef WINUAE_FOR_HATARI
 	gui_data.cpu_halted = 0;
-	gui_led (LED_CPU, 0, -1);
+	gui_led(LED_CPU, 0, -1);
 #endif
 
 	regs.spcflags = 0;
@@ -3922,9 +3922,9 @@ static void m68k_reset2(bool hardreset)
 
 
 #ifdef SAVESTATE
-	if (isrestore ()) {
+	if (isrestore()) {
 		m68k_reset_sr();
-		m68k_setpc_normal (regs.pc);
+		m68k_setpc_normal(regs.pc);
 		return;
 	} else {
 		m68k_reset_delay = currprefs.reset_delay;
@@ -3936,10 +3936,10 @@ static void m68k_reset2(bool hardreset)
 	if (currprefs.cpuboard_type) {
 		uaecptr stack;
 		v = cpuboard_get_reset_pc(&stack);
-		m68k_areg (regs, 7) = stack;
+		m68k_areg(regs, 7) = stack;
 	} else {
-		v = get_long (4);
-		m68k_areg (regs, 7) = get_long (0);
+		v = get_long(4);
+		m68k_areg(regs, 7) = get_long(0);
 	}
 #else
 	v = get_long (4);
@@ -3951,21 +3951,21 @@ static void m68k_reset2(bool hardreset)
 	regs.stopped = 0;
 	regs.t1 = 0;
 	regs.t0 = 0;
-	SET_ZFLG (0);
-	SET_XFLG (0);
-	SET_CFLG (0);
-	SET_VFLG (0);
-	SET_NFLG (0);
+	SET_ZFLG(0);
+	SET_XFLG(0);
+	SET_CFLG(0);
+	SET_VFLG(0);
+	SET_NFLG(0);
 	regs.intmask = 7;
 	regs.vbr = regs.sfc = regs.dfc = 0;
 	regs.irc = 0xffff;
 #ifdef FPUEMU
-	fpu_reset ();
+	fpu_reset();
 #endif
 	regs.caar = regs.cacr = 0;
 	regs.itt0 = regs.itt1 = regs.dtt0 = regs.dtt1 = 0;
 	regs.tcr = regs.mmusr = regs.urp = regs.srp = regs.buscr = 0;
-	mmu_tt_modified (); 
+	mmu_tt_modified(); 
 	if (currprefs.cpu_model == 68020) {
 		regs.cacr |= 8;
 		set_cpu_caches (false);
@@ -3979,11 +3979,11 @@ static void m68k_reset2(bool hardreset)
 		set_cpu_caches(false);
 	}
 	if (currprefs.mmu_model >= 68040) {
-		mmu_reset ();
-		mmu_set_tc (regs.tcr);
-		mmu_set_super (regs.s != 0);
+		mmu_reset();
+		mmu_set_tc(regs.tcr);
+		mmu_set_super(regs.s != 0);
 	} else if (currprefs.mmu_model == 68030) {
-		mmu030_reset (hardreset || regs.halted);
+		mmu030_reset(hardreset || regs.halted);
 	} else {
 #ifndef WINUAE_FOR_HATARI
 		a3000_fakekick (0);
@@ -4011,7 +4011,7 @@ static void m68k_reset2(bool hardreset)
 //	regs.ce020memcycles = 0;
 	regs.ce020startcycle = regs.ce020endcycle = 0;
 
-	fill_prefetch ();
+	fill_prefetch();
 //fprintf ( stderr,"m68k_reset2 out pc=%x\n" , regs.pc );
 }
 
@@ -5048,7 +5048,16 @@ static int do_specialties (int cycles)
 
 	if (regs.spcflags & SPCFLAG_MODE_CHANGE)
 		return 1;
-	
+
+#ifndef WINUAE_FOR_PREVIOUS
+	while ((regs.spcflags & SPCFLAG_CPUINRESET)) {
+		x_do_cycles(4 * CYCLE_UNIT);
+		if ((regs.spcflags & SPCFLAG_BRK) || (regs.spcflags & SPCFLAG_MODE_CHANGE)) {
+			break;
+		}
+	}
+#endif // WINUAE_FOR_PREVIOUS
+
 	if (regs.spcflags & SPCFLAG_DOTRACE)
 		Exception(9);
 
@@ -6077,13 +6086,21 @@ static void check_halt(void)
 		do_specialties (0);
 }
 
-void cpu_halt (int id)
+void cpu_inreset(void)
+{
+	set_special(SPCFLAG_CPUINRESET);
+	regs.s = 1;
+	regs.intmask = 7;
+	MakeSR();
+}
+
+void cpu_halt(int id)
 {
 #ifndef WINUAE_FOR_HATARI
 	// id < 0: m68k halted, PPC active.
 	// id > 0: emulation halted.
 	if (!regs.halted) {
-		write_log (_T("CPU halted: reason = %d PC=%08x\n"), id, M68K_GETPC);
+		write_log(_T("CPU halted: reason = %d PC=%08x\n"), id, M68K_GETPC);
 		if (currprefs.crash_auto_reset) {
 			write_log(_T("Forcing hard reset\n"));
 			uae_reset(true, false);
@@ -6096,8 +6113,8 @@ void cpu_halt (int id)
 		gui_led(LED_CPU, 0, -1);
 		if (id >= 0) {
 			regs.intmask = 7;
-			MakeSR ();
-			audio_deactivate ();
+			MakeSR();
+			audio_deactivate();
 			if (debugging)
 				activate_debugger();
 		}
@@ -8717,6 +8734,7 @@ bool cpureset (void)
 	maybe_disable_fpu();
 	m68k_reset_delay = currprefs.reset_delay;
 	set_special(SPCFLAG_CHECK);
+	unset_special(SPCFLAG_CPUINRESET);
 #ifndef WINUAE_FOR_HATARI
 	send_internalevent(INTERNALEVENT_CPURESET);
 	if (cpuboard_forced_hardreset()) {
