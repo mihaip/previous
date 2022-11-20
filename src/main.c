@@ -383,6 +383,15 @@ void Main_EventHandler(void) {
 				mainPauseEmulation = PAUSE_NONE;
 				Main_UnPauseEmulation();
 				break;
+			case HALT_EMULATION:
+				mainPauseEmulation = PAUSE_NONE;
+				Main_PauseEmulation(true);
+				SDL_PumpEvents();
+				SDL_FlushEvent(SDL_KEYUP); // flushing key up events to avoid unintendedly exiting the alert dialog
+				bQuitProgram = !DlgAlert_Query("Fatal error: CPU halted!\n\nPress OK to restart CPU or cancel to quit.");
+				M68000_Stop();
+				Main_UnPauseEmulation();
+				continue;
 		}
 
 		ShortCut_ActKey();
