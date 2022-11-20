@@ -328,8 +328,9 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		Dialog_CheckFiles();
 		if (bQuitProgram)
 		{
-			SDL_Quit();
-			exit(-2);
+			ConfigureParams.Log.bConfirmQuit = false;
+			Main_RequestQuit();
+			return;
 		}
 
 		Dprintf("- reset\n");
