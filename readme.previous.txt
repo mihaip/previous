@@ -311,6 +311,7 @@ Previous v2.6:
 Previous v2.7 (unreleased):
   > Adds ability to unlock the mouse cursor with control-click.
   > Improves behavior of file selection dialog in certain situations.
+  > Improves behavior of user interface in some edge cases.
   > Fixes bug that caused Daydream to hang on start up.
   > Fixes bug that caused NeXTdimension window to start with wrong size.
 

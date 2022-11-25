@@ -62,6 +62,9 @@ bool Dialog_DoProperty(void)
 		                           "the emulator?");
 	}
 
+	if (bQuitProgram)
+		Main_RequestQuit(true);
+
 	/* Copy details to configuration */
 	if (bOKDialog) {
 		Change_CopyChangedParamsToConfiguration(&current, &ConfigureParams, bForceReset);
@@ -70,8 +73,8 @@ bool Dialog_DoProperty(void)
 	}
 
 	if (bQuitProgram)
-		Main_RequestQuit(true);
-	
+		Main_RequestQuit(false);
+
 	if (bWasActive)
 		Main_UnPauseEmulation();
  
