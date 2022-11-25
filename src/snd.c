@@ -22,66 +22,51 @@ uint8_t*      snd_buffer = NULL;
 int           snd_buffer_len = 0;
 
 static void sound_init(void) {
-    if(snd_buffer)
-        free(snd_buffer);
-    snd_buffer = NULL;
-    snd_buffer_len = 0;
     if (!sndout_inited && ConfigureParams.Sound.bEnableSound) {
         Log_Printf(LOG_WARN, "[Sound] Initializing output device.");
         Audio_Output_Init();
-        sndout_inited=true;
+        sndout_inited = true;
+    }
+    if (!sndin_inited && sound_input_active && ConfigureParams.Sound.bEnableSound) {
+        Log_Printf(LOG_WARN, "[Sound] Initializing input device.");
+        Audio_Input_Init();
+        sndin_inited = true;
+    }
+    if (sound_output_active && sndout_inited) {
+        Log_Printf(LOG_WARN, "[Sound] Starting output.");
+        Audio_Output_Enable(true);
+    }
+    if (sound_input_active && sndin_inited) {
+        Log_Printf(LOG_WARN, "[Sound] Starting input.");
+        Audio_Input_Enable(true);
     }
 }
 
 static void sound_uninit(void) {
-    if(snd_buffer)
-        free(snd_buffer);
-    snd_buffer = NULL;
-    snd_buffer_len = 0;
-    if(sndout_inited) {
+    if (sndout_inited) {
         Log_Printf(LOG_WARN, "[Sound] Uninitializing output device.");
-        sndout_inited=false;
+        sndout_inited = false;
         Audio_Output_UnInit();
+    }
+    if (sndin_inited) {
+        Log_Printf(LOG_WARN, "[Sound] Uninitializing input device.");
+        sndin_inited = false;
+        Audio_Input_UnInit();
     }
 }
 
 void Sound_Reset(void) {
-    sound_uninit();
-    sound_init();
-    if (sound_output_active && sndout_inited) {
-        Audio_Output_Enable(true);
-    }
+    if (snd_buffer)
+        free(snd_buffer);
+    snd_buffer = NULL;
+    snd_buffer_len = 0;
 }
 
 void Sound_Pause(bool pause) {
     if (pause) {
-        if (sndout_inited) {
-            Log_Printf(LOG_WARN, "[Sound] Uninitializing output device (pause).");
-            sndout_inited=false;
-            Audio_Output_UnInit();
-        }
-        if (sndin_inited) {
-            Log_Printf(LOG_WARN, "[Sound] Uninitializing input device (pause).");
-            sndin_inited=false;
-            Audio_Input_UnInit();
-        }
+        sound_uninit();
     } else {
-        if (!sndout_inited && ConfigureParams.Sound.bEnableSound) {
-            Log_Printf(LOG_WARN, "[Sound] Initializing output device (resume).");
-            Audio_Output_Init();
-            sndout_inited=true;
-        }
-        if (!sndin_inited && sound_input_active && ConfigureParams.Sound.bEnableSound) {
-            Log_Printf(LOG_WARN, "[Sound] Initializing input device (resume).");
-            Audio_Input_Init();
-            sndin_inited=true;
-        }
-        if (sound_output_active && sndout_inited) {
-            Audio_Output_Enable(true);
-        }
-        if (sound_input_active && sndin_inited) {
-            Audio_Input_Enable(true);
-        }
+        sound_init();
     }
 }
 

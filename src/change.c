@@ -327,11 +327,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		/* Check if all necessary files exist */
 		Dialog_CheckFiles();
 		if (bQuitProgram)
-		{
-			ConfigureParams.Log.bConfirmQuit = false;
-			Main_RequestQuit();
 			return;
-		}
 
 		Dprintf("- reset\n");
 		Reset_Cold();

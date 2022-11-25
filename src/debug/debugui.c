@@ -405,8 +405,7 @@ static int DebugUI_QuitEmu(int nArgc, char *psArgv[])
 	else
 		exitval = 0;
 
-	ConfigureParams.Log.bConfirmQuit = false;
-	Main_RequestQuit();
+	Main_RequestQuit(false);
 	return DEBUGGER_END;
 }
 

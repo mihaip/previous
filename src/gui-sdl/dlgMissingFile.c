@@ -143,7 +143,7 @@ void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *
 	while (but != DLGMISROM_SELECT && but != DLGMISROM_REMOVE &&
 		   but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
 	
-	
+	Screen_UpdateRect(sdlscrn, 0, 0, 0, 0);
 	SDL_ShowCursor(bOldMouseVisibility);
 }
 

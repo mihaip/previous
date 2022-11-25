@@ -43,7 +43,7 @@ static SDL_Renderer* sdlRenderer;
 static SDL_Texture*  uiTexture;
 static SDL_Texture*  fbTexture;
 static SDL_atomic_t  blitFB;
-static bool          blitUI;
+static SDL_atomic_t  blitUI;
 static bool          doUIblit;
 static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen. Used to restore window size & position. */
 static MONITORTYPE   saveMonitorType;  /* Save monitor type to restore on return from fullscreen */
@@ -230,11 +230,10 @@ void Screen_Update(void) {
 	}
 	
 	// Copy UI surface to texture
-	if (blitUI) {
+	if (SDL_AtomicSet(&blitUI, 0)) {
 		// update full UI texture
 		SDL_UpdateTexture(uiTexture, NULL, uiBuffer, sdlscrn->pitch);
 		updateFB = true;
-		blitUI = false;
 	}
 	
 	if (updateFB) {
@@ -242,14 +241,13 @@ void Screen_Update(void) {
 		// Render NeXT framebuffer texture
 		SDL_RenderCopy(sdlRenderer, fbTexture, NULL, &screenRect);
 		SDL_RenderCopy(sdlRenderer, uiTexture, NULL, &screenRect);
-		// SDL_RenderPresent sleeps until next VSYNC because of SDL_RENDERER_PRESENTVSYNC in ScreenInit
 		SDL_RenderPresent(sdlRenderer);
 	}
 }
 
 /*-----------------------------------------------------------------------*/
 /**
- * Init Screen, creates window and starts repaint thread
+ * Init Screen, creates window, renderer and textures
  */
 void Screen_Init(void) {
 	uint32_t r, g, b, a;
@@ -299,19 +297,19 @@ void Screen_Init(void) {
 		exit(-1);
 	}
 
+	sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_ACCELERATED);
+	if (!sdlRenderer) {
+		fprintf(stderr,"Failed to create renderer: %s!\n", SDL_GetError());
+		exit(-1);
+	}
+
 	SDL_GetWindowSizeInPixels(sdlWindow, &nWindowWidth, &nWindowHeight);
 	if (nWindowWidth > 0) {
 		dpiFactor = (float)width / nWindowWidth;
 		fprintf(stderr,"SDL screen scale: %.3f\n", dpiFactor);
 	} else {
-		fprintf(stderr,"Failed to set screen scale\n");
 		dpiFactor = 1.0;
-	}
-
-	sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_ACCELERATED);
-	if (!sdlRenderer) {
-		fprintf(stderr,"Failed to create renderer: %s!\n", SDL_GetError());
-		exit(-1);
+		fprintf(stderr,"Failed to set screen scale\n");
 	}
 
 	SDL_RenderSetLogicalSize(sdlRenderer, width, height);
@@ -411,7 +409,7 @@ void Screen_EnterFullScreen(void) {
 		Main_SetMouseGrab(true);
 
 		/* Make sure screen is painted in case emulation is paused */
-		blitUI = true;
+		SDL_AtomicSet(&blitUI, 1);
 	}
 }
 
@@ -447,7 +445,7 @@ void Screen_ReturnFromFullScreen(void) {
 		Main_SetMouseGrab(bGrabMouse);
 
 		/* Make sure screen is painted in case emulation is paused */
-		blitUI = true;
+		SDL_AtomicSet(&blitUI, 1);
 	}
 }
 
@@ -466,7 +464,7 @@ void Screen_SizeChanged(void) {
 	}
 
 	/* Make sure screen is painted in case emulation is paused */
-	blitUI = true;
+	SDL_AtomicSet(&blitUI, 1);
 }
 
 
@@ -520,7 +518,7 @@ void Screen_StatusbarChanged(void) {
 	}
 
 	/* Make sure screen is painted in case emulation is paused */
-	blitUI = true;
+	SDL_AtomicSet(&blitUI, 1);
 }
 
 
@@ -567,7 +565,7 @@ void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects) {
 			}
 		}
 	}
-	blitUI = true;
+	SDL_AtomicSet(&blitUI, 1);
 	if (!bEmulationActive) {
 		Screen_Update();
 	}

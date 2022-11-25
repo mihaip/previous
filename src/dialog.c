@@ -33,11 +33,12 @@ const char Dialog_fileid[] = "Hatari dialog.c : " __DATE__ " " __TIME__;
 bool Dialog_DoProperty(void)
 {
 	bool bOKDialog;  /* Did user 'OK' dialog? */
+	bool bWasActive;
 	bool bForceReset;
 	bool bLoadedSnapshot;
 	CNF_PARAMS current;
 
-	Main_PauseEmulation(true);
+	bWasActive = Main_PauseEmulation(true);
 	bForceReset = false;
 
 	/* Copy details (this is so can restore if 'Cancel' dialog) */
@@ -67,11 +68,12 @@ bool Dialog_DoProperty(void)
 	} else {
 		ConfigureParams = current;
 	}
-
-	Main_UnPauseEmulation();
     
 	if (bQuitProgram)
-		Main_RequestQuit();
+		Main_RequestQuit(true);
+	
+	if (bWasActive)
+		Main_UnPauseEmulation();
  
 	return bOKDialog;
 }
@@ -119,9 +121,7 @@ void Dialog_CheckFiles(void) {
     while (!File_Exists(szMissingFile)) {
         DlgMissing_Rom(szMachine, szMissingFile, szDefault, &bEnable);
         if (bQuitProgram) {
-            Main_RequestQuit();
-            if (bQuitProgram)
-                return;
+			return;
         }
     }
     for (i = 0; i < ND_MAX_BOARDS; i++) {
@@ -131,9 +131,7 @@ void Dialog_CheckFiles(void) {
             DlgMissing_Rom(szMachine, ConfigureParams.Dimension.board[i].szRomFileName,
                            szDefault, &ConfigureParams.Dimension.board[i].bEnabled);
             if (bQuitProgram) {
-                Main_RequestQuit();
-                if (bQuitProgram)
-                    return;
+				return;
             }
         }
     }
@@ -147,14 +145,12 @@ void Dialog_CheckFiles(void) {
                             ConfigureParams.SCSI.target[i].szImageName,
                             &ConfigureParams.SCSI.target[i].bDiskInserted,
                             &ConfigureParams.SCSI.target[i].bWriteProtected);
+            if (bQuitProgram) {
+				return;
+            }
             if (ConfigureParams.SCSI.target[i].nDeviceType==DEVTYPE_HARDDISK &&
                 !ConfigureParams.SCSI.target[i].bDiskInserted) {
                 ConfigureParams.SCSI.target[i].nDeviceType=DEVTYPE_NONE;
-            }
-            if (bQuitProgram) {
-                Main_RequestQuit();
-                if (bQuitProgram)
-                    return;
             }
         }
     }
@@ -169,9 +165,7 @@ void Dialog_CheckFiles(void) {
                             &ConfigureParams.MO.drive[i].bDiskInserted,
                             &ConfigureParams.MO.drive[i].bWriteProtected);
             if (bQuitProgram) {
-                Main_RequestQuit();
-                if (bQuitProgram)
-                    return;
+				return;
             }
         }
     }
@@ -186,9 +180,7 @@ void Dialog_CheckFiles(void) {
                             &ConfigureParams.Floppy.drive[i].bDiskInserted,
                             &ConfigureParams.Floppy.drive[i].bWriteProtected);
             if (bQuitProgram) {
-                Main_RequestQuit();
-                if (bQuitProgram)
-                    return;
+				return;
             }
         }
     }
@@ -196,5 +188,8 @@ void Dialog_CheckFiles(void) {
 
 void Dialog_HaltDlg(void) {
     Log_Printf(LOG_WARN, "Fatal error: CPU halted!");
+	if (mainPauseEmulation == HALT_EMULATION) {
+		Log_Printf(LOG_WARN, "Fatal error: Double fault on start! Check ROM files.");
+	}
     mainPauseEmulation = HALT_EMULATION;
 }

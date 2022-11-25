@@ -51,7 +51,6 @@ void NDSDL::init(void) {
                 exit(-1);
             }
             SDL_RenderSetLogicalSize(ndRenderer, r.w, r.h);
-            
             ndTexture = SDL_CreateTexture(ndRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, r.w, r.h);
         }
 

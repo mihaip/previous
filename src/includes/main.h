@@ -73,7 +73,7 @@ extern volatile bool bEmulationActive;
 
 extern bool Main_PauseEmulation(bool visualize);
 extern bool Main_UnPauseEmulation(void);
-extern void Main_RequestQuit(void);
+extern void Main_RequestQuit(bool confirm);
 extern void Main_WarpMouse(int x, int y);
 extern void Main_SetMouseGrab(bool grab);
 extern void Main_EventHandler(void);
