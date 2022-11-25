@@ -13,6 +13,7 @@ class NDSDL {
     SDL_Renderer* ndRenderer;
     SDL_Texture*  ndTexture;
     SDL_atomic_t  blitNDFB;
+
     SDL_SpinLock  bufferLock;
     uint32_t      buffer[1024*1024];
 public:

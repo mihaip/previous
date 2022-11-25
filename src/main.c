@@ -46,10 +46,10 @@ const char Main_fileid[] = "Hatari main.c";
 
 int nFrameSkips;
 
-volatile bool   bQuitProgram = false;            /* Flag to quit program cleanly */
-volatile bool   bEmulationActive = false;        /* Do not run emulation during initialization */
-static bool     bAccurateDelays;                 /* Host system has an accurate SDL_Delay()? */
-static bool     bIgnoreNextMouseMotion = false;  /* Next mouse motion will be ignored (needed after SDL_WarpMouse) */
+volatile bool bQuitProgram = false;            /* Flag to quit program cleanly */
+volatile bool bEmulationActive = false;        /* Do not run emulation during initialization */
+static bool   bAccurateDelays;                 /* Host system has an accurate SDL_Delay()? */
+static bool   bIgnoreNextMouseMotion = false;  /* Next mouse motion will be ignored (needed after SDL_WarpMouse) */
 
 static SDL_Thread* nextThread;
 static SDL_sem*    pauseFlag;
@@ -292,21 +292,19 @@ static bool Main_GetEvent(SDL_Event* event) {
 /**
  * Handle mouse motion event.
  */
-static void Main_HandleMouseMotion(SDL_Event event) {
+static void Main_HandleMouseMotion(SDL_Event *pEvent) {
 	SDL_Event mouse_event[100];
 
 	int nEvents;
 
-	static bool  bSavedLeft   = false;
-	static bool  bSavedUp     = false;
 	static float fSavedDeltaX = 0.0;
 	static float fSavedDeltaY = 0.0;
 	
-	bool  bLeft = false;
-	bool  bUp   = false;
 	float fDeltaX;
 	float fDeltaY;
-	
+	int   nDeltaX;
+	int   nDeltaY;
+
 	float fExp = bGrabMouse ? ConfigureParams.Mouse.fExpSpeedLocked : ConfigureParams.Mouse.fExpSpeedNormal;
 	float fLin = bGrabMouse ? ConfigureParams.Mouse.fLinSpeedLocked : ConfigureParams.Mouse.fLinSpeedNormal;
 
@@ -315,63 +313,156 @@ static void Main_HandleMouseMotion(SDL_Event event) {
 		return;
 	}
 
+	nDeltaX = pEvent->motion.xrel;
+	nDeltaY = pEvent->motion.yrel;
+
 	/* get all mouse event to clean the queue and sum them */
 	nEvents = SDL_PeepEvents(mouse_event, 100, SDL_GETEVENT, SDL_MOUSEMOTION, SDL_MOUSEMOTION);
 
 	for (int i = 0; i < nEvents; i++) {
-		event.motion.xrel += mouse_event[i].motion.xrel;
-		event.motion.yrel += mouse_event[i].motion.yrel;
+		nDeltaX += mouse_event[i].motion.xrel;
+		nDeltaY += mouse_event[i].motion.yrel;
 	}
 
-	if (event.motion.xrel || event.motion.yrel) {
-		/* Remove the sign */
-		if (event.motion.xrel < 0) {
-			event.motion.xrel = -event.motion.xrel;
-			bLeft = true;
-		}
-		if (event.motion.yrel < 0) {
-			event.motion.yrel = -event.motion.yrel;
-			bUp   = true;
-		}
+	if (nDeltaX || nDeltaY) {
 		/* Exponential adjustmend */
-		fDeltaX = pow(event.motion.xrel, fExp);
-		fDeltaY = pow(event.motion.yrel, fExp);
+		if (fExp != 1.0) {
+			fDeltaX = (nDeltaX < 0) ? -pow(-nDeltaX, fExp) : pow(nDeltaX, fExp);
+			fDeltaY = (nDeltaY < 0) ? -pow(-nDeltaY, fExp) : pow(nDeltaY, fExp);
+		}
 
 		/* Linear adjustment */
-		fDeltaX *= fLin;
-		fDeltaY *= fLin;
+		if (fLin != 1.0) {
+			fDeltaX *= fLin;
+			fDeltaY *= fLin;
+		}
 
 		/* Add residuals */
-		if (bLeft == bSavedLeft) {
+		if ((fDeltaX < 0.0) == (fSavedDeltaX < 0.0)) {
 			fSavedDeltaX += fDeltaX;
 		} else {
 			fSavedDeltaX  = fDeltaX;
-			bSavedLeft    = bLeft;
 		}
-		if (bUp == bSavedUp) {
+		if ((fDeltaY < 0.0) == (fSavedDeltaY < 0.0)) {
 			fSavedDeltaY += fDeltaY;
 		} else {
 			fSavedDeltaY  = fDeltaY;
-			bSavedUp      = bUp;
 		}
 
 		/* Convert to integer and save residuals */
-		event.motion.xrel = fSavedDeltaX;
-		fSavedDeltaX -= event.motion.xrel;
-		event.motion.yrel = fSavedDeltaY;
-		fSavedDeltaY -= event.motion.yrel;
-
-		/* Re-add signs */
-		if (bLeft) {
-			event.motion.xrel = -event.motion.xrel;
-		}
-		if (bUp) {
-			event.motion.yrel = -event.motion.yrel;
-		}
+		nDeltaX = fSavedDeltaX;
+		fSavedDeltaX -= nDeltaX;
+		nDeltaY = fSavedDeltaY;
+		fSavedDeltaY -= nDeltaY;
 
 		/* Done */
-		Main_PutEvent(&event);
+		pEvent->motion.xrel = nDeltaX;
+		pEvent->motion.yrel = nDeltaY;
+
+		Main_PutEvent(pEvent);
 	}
+}
+
+
+/* ----------------------------------------------------------------------- */
+/**
+ * Emulator message handler. Called from emulator thread.
+ */
+void Main_EventHandlerInterrupt(void) {
+	static int statusBarUpdate = 0;
+	SDL_Event event;
+	int64_t time_offset;
+	
+	CycInt_AcknowledgeInterrupt();
+	
+	if (!bEmulationActive) {
+		SDL_SemPost(pauseFlag);
+		do {
+			host_sleep_ms(20);
+		} while(!bEmulationActive);
+	}
+	if (++statusBarUpdate > 400) {
+		uint64_t vt;
+		uint64_t rt;
+		host_time(&rt, &vt);
+#if ENABLE_TESTING
+		fprintf(stderr, "[reports]");
+		for(int i = 0; i < ARRAY_SIZE(reports); i++) {
+			const char* msg = reports[i].report(rt, vt);
+			if(msg[0]) fprintf(stderr, " %s:%s", reports[i].label, msg);
+		}
+		fprintf(stderr, "\n");
+		fflush(stderr);
+#endif
+		Main_Speed(rt, vt);
+		Statusbar_UpdateInfo();
+		statusBarUpdate = 0;
+	}
+
+	if (Main_GetEvent(&event)) {
+		switch (event.type) {
+			case SDL_MOUSEMOTION:
+				Keymap_MouseMove(event.motion.xrel, event.motion.yrel);
+				break;
+
+			case SDL_MOUSEBUTTONDOWN:
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					Keymap_MouseDown(true);
+				}
+				else if (event.button.button == SDL_BUTTON_RIGHT) {
+					Keymap_MouseDown(false);
+				}
+				break;
+
+			case SDL_MOUSEBUTTONUP:
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					Keymap_MouseUp(true);
+				}
+				else if (event.button.button == SDL_BUTTON_RIGHT) {
+					Keymap_MouseUp(false);
+				}
+				break;
+
+			case SDL_MOUSEWHEEL:
+				Keymap_MouseWheel(&event.wheel);
+				break;
+
+			case SDL_KEYDOWN:
+				Keymap_KeyDown(&event.key.keysym);
+				break;
+
+			case SDL_KEYUP:
+				Keymap_KeyUp(&event.key.keysym);
+				break;
+
+			default:
+				break;
+		}
+	}
+
+	time_offset = host_real_time_offset();
+	if (time_offset > 0) {
+		host_sleep_us(time_offset);
+	}
+
+	CycInt_AddRelativeInterruptUs((1000*1000)/200, 0, INTERRUPT_EVENT_LOOP); // poll events with 200 Hz
+}
+
+/* ----------------------------------------------------------------------- */
+/**
+ * Emulator thread. Start emulation and keep it running.
+ */
+static int Main_Thread(void* unused) {
+	SDL_SetThreadPriority(SDL_THREAD_PRIORITY_NORMAL);
+
+	while (!bQuitProgram) {
+		CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_EVENT_LOOP);
+		M68000_Start();               /* Start emulation */
+	}
+
+	bEmulationActive = false;
+
+	return 0;
 }
 
 
@@ -387,7 +478,7 @@ void Main_EventHandler(void) {
 
 	do {
 		bContinueProcessing = false;
-		
+
 		/* check remote process control from different thread (e.g. i860) */
 		switch(mainPauseEmulation) {
 			case PAUSE_EMULATION:
@@ -444,7 +535,7 @@ void Main_EventHandler(void) {
 				break;
 
 			case SDL_MOUSEMOTION:               /* Read/Update internal mouse position */
-				Main_HandleMouseMotion(event);
+				Main_HandleMouseMotion(&event);
 				bContinueProcessing = false;
 				break;
 
@@ -532,107 +623,6 @@ static void Main_Loop(void) {
 	}
 }
 
-/* ----------------------------------------------------------------------- */
-/**
- * Emulator thread. Start emulation and keep it running.
- */
-static int Main_Thread(void* unused) {
-	SDL_SetThreadPriority(SDL_THREAD_PRIORITY_NORMAL);
-
-	while (!bQuitProgram) {
-		CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_EVENT_LOOP);
-		M68000_Start();               /* Start emulation */
-	}
-
-	bEmulationActive = false;
-
-	return 0;
-}
-
-/* ----------------------------------------------------------------------- */
-/**
- * Emulator message handler. Called from emulator thread.
- */
-void Main_EventHandlerInterrupt(void) {
-	static int statusBarUpdate = 0;
-	SDL_Event event;
-	int64_t time_offset;
-	
-	CycInt_AcknowledgeInterrupt();
-	
-	if (!bEmulationActive) {
-		SDL_SemPost(pauseFlag);
-		do {
-			host_sleep_ms(20);
-		} while(!bEmulationActive);
-	}
-	if (++statusBarUpdate > 400) {
-		uint64_t vt;
-		uint64_t rt;
-		host_time(&rt, &vt);
-#if ENABLE_TESTING
-		fprintf(stderr, "[reports]");
-		for(int i = 0; i < ARRAY_SIZE(reports); i++) {
-			const char* msg = reports[i].report(rt, vt);
-			if(msg[0]) fprintf(stderr, " %s:%s", reports[i].label, msg);
-		}
-		fprintf(stderr, "\n");
-		fflush(stderr);
-#endif
-		Main_Speed(rt, vt);
-		Statusbar_UpdateInfo();
-		statusBarUpdate = 0;
-	}
-
-	if (Main_GetEvent(&event)) {
-		switch (event.type) {
-			case SDL_MOUSEMOTION:
-				Keymap_MouseMove(event.motion.xrel, event.motion.yrel);
-				break;
-
-			case SDL_MOUSEBUTTONDOWN:
-				if (event.button.button == SDL_BUTTON_LEFT) {
-					Keymap_MouseDown(true);
-				}
-				else if (event.button.button == SDL_BUTTON_RIGHT) {
-					Keymap_MouseDown(false);
-				}
-				break;
-
-			case SDL_MOUSEBUTTONUP:
-				if (event.button.button == SDL_BUTTON_LEFT) {
-					Keymap_MouseUp(true);
-				}
-				else if (event.button.button == SDL_BUTTON_RIGHT) {
-					Keymap_MouseUp(false);
-				}
-				break;
-
-			case SDL_MOUSEWHEEL:
-				Keymap_MouseWheel(&event.wheel);
-				break;
-
-			case SDL_KEYDOWN:
-				Keymap_KeyDown(&event.key.keysym);
-				break;
-
-			case SDL_KEYUP:
-				Keymap_KeyUp(&event.key.keysym);
-				break;
-
-			default:
-				break;
-		}
-	}
-
-	time_offset = host_real_time_offset();
-	if (time_offset > 0) {
-		host_sleep_us(time_offset);
-	}
-
-	CycInt_AddRelativeInterruptUs((1000*1000)/200, 0, INTERRUPT_EVENT_LOOP); // poll events with 200 Hz
-}
-
 /*-----------------------------------------------------------------------*/
 /**
  * Set Previous window title. Use NULL for default
@@ -697,9 +687,8 @@ static bool Main_Init(void) {
 	if (Main_StartMenu()) {
 		Reset_Cold();
 
-		pauseFlag  = SDL_CreateSemaphore(0);
-
 		/* Start emulator thread */
+		pauseFlag  = SDL_CreateSemaphore(0);
 		nextThread = SDL_CreateThread(Main_Thread, "[Previous] 68k at slot 0", NULL);
 
 		return true;
@@ -849,7 +838,7 @@ int main(int argc, char *argv[])
 		/* Check if SDL_Delay is accurate */
 		Main_CheckForAccurateDelays();
 		
-		/* Run emulation */		
+		/* Run emulation */
 		Main_Loop();
 	}
 

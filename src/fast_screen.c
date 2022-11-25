@@ -47,10 +47,10 @@ static SDL_atomic_t  blitUI;
 static bool          doUIblit;
 static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen. Used to restore window size & position. */
 static MONITORTYPE   saveMonitorType;  /* Save monitor type to restore on return from fullscreen */
+static uint32_t      mask;             /* green screen mask for transparent UI areas */
 static void*         uiBuffer;         /* uiBuffer used for user interface texture */
 static uint8_t*      fbBuffer;         /* fbBuffer used for frame buffer texture */
 static SDL_SpinLock  fbBufferLock;     /* Lock fbBuffer used by 68k and main thread */
-static uint32_t      mask;             /* green screen mask for transparent UI areas */
 static SDL_Rect      statusBar;
 static SDL_Rect      screenRect;
 
@@ -250,8 +250,7 @@ void Screen_Update(void) {
  * Init Screen, creates window, renderer and textures
  */
 void Screen_Init(void) {
-	uint32_t r, g, b, a;
-	uint32_t format;
+	uint32_t format, r, g, b, a;
 	int      d;
 
 	/* Set initial window resolution */
@@ -313,17 +312,36 @@ void Screen_Init(void) {
 	}
 
 	SDL_RenderSetLogicalSize(sdlRenderer, width, height);
-	
+
 	uiTexture = SDL_CreateTexture(sdlRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, width, height);
 	SDL_SetTextureBlendMode(uiTexture, SDL_BLENDMODE_BLEND);
-	
+
 	fbTexture = SDL_CreateTexture(sdlRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, width, height);
 	SDL_SetTextureBlendMode(fbTexture, SDL_BLENDMODE_NONE);
-	
+
 	SDL_QueryTexture(uiTexture, &format, &d, &d, &d);
 	SDL_PixelFormatEnumToMasks(format, &d, &r, &g, &b, &a);
+
+	sdlscrn = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, r, g, b, a);
+
+	/* Exit if we can not open a screen */
+	if (!sdlscrn) {
+		fprintf(stderr, "Could not set video mode:\n %s\n", SDL_GetError() );
+		SDL_Quit();
+		exit(-2);
+	}
+
+	/* Clear UI with mask */
 	mask = g | a;
-	
+	SDL_FillRect(sdlscrn, NULL, mask);
+
+	/* Allocate buffers for copy routines */
+	uiBuffer = malloc(sdlscrn->h * sdlscrn->pitch);
+	fbBuffer = malloc(4*1024*1024);
+
+	/* Initialize statusbar */
+	Statusbar_Init(sdlscrn);
+
 	/* Setup lookup tables */
 	SDL_PixelFormat* pformat = SDL_AllocFormat(format);
 	/* initialize BW lookup table */
@@ -336,24 +354,6 @@ void Screen_Init(void) {
 	/* initialize color lookup table */
 	for(int i = 0; i < 0x10000; i++)
 		COL2RGB[SDL_BYTEORDER == SDL_BIG_ENDIAN ? i : SDL_Swap16(i)] = col2rgb(pformat, i);
-	
-	sdlscrn = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, r, g, b, a);
-	
-	/* Exit if we can not open a screen */
-	if (!sdlscrn) {
-		fprintf(stderr, "Could not set video mode:\n %s\n", SDL_GetError() );
-		SDL_Quit();
-		exit(-2);
-	}
-
-	fbBuffer = malloc(4*1024*1024);
-	uiBuffer = malloc(sdlscrn->h * sdlscrn->pitch);
-	
-	/* Clear UI with mask */
-	SDL_FillRect(sdlscrn, NULL, mask);
-	
-	/* Initialize statusbar */
-	Statusbar_Init(sdlscrn);
 
 	/* Configure some SDL stuff: */
 	SDL_ShowCursor(SDL_DISABLE);
