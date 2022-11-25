@@ -99,7 +99,7 @@ void Dialog_CheckFiles(void) {
 		case NEXT_CUBE030:
 			szMissingFile = ConfigureParams.Rom.szRom030FileName;
 			snprintf(szMachine, sizeof(szMachine), "NeXT Computer");
-			snprintf(szDefault, sizeof(szDefault), "%s%cRev_1.0_v41.BIN", Paths_GetWorkingDir(), PATHSEP);
+			File_MakePathBuf(szDefault, sizeof(szDefault), Paths_GetHatariHome(), "Rev_1.0_v41", "BIN");
 			break;
 		case NEXT_CUBE040:
 		case NEXT_STATION:
@@ -108,13 +108,13 @@ void Dialog_CheckFiles(void) {
 				snprintf(szMachine, sizeof(szMachine), "%s Turbo %s",
 				         (ConfigureParams.System.nMachineType==NEXT_CUBE040)?"NeXTcube":"NeXTstation",
 				         (ConfigureParams.System.bColor)?"Color":"");
-				snprintf(szDefault, sizeof(szDefault), "%s%cRev_3.3_v74.BIN", Paths_GetWorkingDir(), PATHSEP);
+				File_MakePathBuf(szDefault, sizeof(szDefault), Paths_GetHatariHome(), "Rev_3.3_v74", "BIN");
 			} else {
 				szMissingFile = ConfigureParams.Rom.szRom040FileName;
 				snprintf(szMachine, sizeof(szMachine), "%s %s",
 				         (ConfigureParams.System.nMachineType==NEXT_CUBE040)?"NeXTcube":"NeXTstation",
 				         (ConfigureParams.System.bColor)?"Color":"");
-				snprintf(szDefault, sizeof(szDefault), "%s%cRev_2.5_v66.BIN", Paths_GetWorkingDir(), PATHSEP);
+				File_MakePathBuf(szDefault, sizeof(szDefault), Paths_GetHatariHome(), "Rev_2.5_v66", "BIN");
 			}
 			break;
 
@@ -130,7 +130,7 @@ void Dialog_CheckFiles(void) {
 	for (i = 0; i < ND_MAX_BOARDS; i++) {
 		while (ConfigureParams.Dimension.board[i].bEnabled && !File_Exists(ConfigureParams.Dimension.board[i].szRomFileName)) {
 			snprintf(szMachine, sizeof(szMachine), "NeXTdimension at slot %i", i*2+2);
-			snprintf(szDefault, sizeof(szDefault), "%s%cdimension_eeprom.bin", Paths_GetWorkingDir(), PATHSEP);
+			File_MakePathBuf(szDefault, sizeof(szDefault), Paths_GetHatariHome(), "ND_step1_v43", "BIN");
 			DlgMissing_Rom(szMachine, ConfigureParams.Dimension.board[i].szRomFileName,
 			               szDefault, &ConfigureParams.Dimension.board[i].bEnabled);
 			if (bQuitProgram) {

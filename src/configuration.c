@@ -416,7 +416,7 @@ void Configuration_SetDefault(void)
 	strcpy(ConfigureParams.Ethernet.szInterfaceName, "");
 	File_MakePathBuf(ConfigureParams.Ethernet.szNFSroot,
 	                 sizeof(ConfigureParams.Ethernet.szNFSroot),
-	                 psHomeDir, "", NULL);
+	                 Paths_GetUserHome(), "", NULL);
 
 	/* Set defaults for Keyboard */
 	ConfigureParams.Keyboard.bSwapCmdAlt = false;
@@ -459,7 +459,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Printer.nPaperSize = PAPER_A4;
 	File_MakePathBuf(ConfigureParams.Printer.szPrintToFileName,
 	                 sizeof(ConfigureParams.Printer.szPrintToFileName),
-	                 psHomeDir, "", NULL);
+	                 Paths_GetUserHome(), "", NULL);
 
 	/* Set defaults for Screen */
 	ConfigureParams.Screen.bFullScreen = false;
@@ -474,14 +474,14 @@ void Configuration_SetDefault(void)
 
 	/* Set defaults for Rom */
 	File_MakePathBuf(ConfigureParams.Rom.szRom030FileName,
-					 sizeof(ConfigureParams.Rom.szRom030FileName),
-					 psWorkingDir, "Rev_1.0_v41", "BIN");
+	                 sizeof(ConfigureParams.Rom.szRom030FileName),
+	                 psHomeDir, "Rev_1.0_v41", "BIN");
 	File_MakePathBuf(ConfigureParams.Rom.szRom040FileName,
-					 sizeof(ConfigureParams.Rom.szRom040FileName),
-					 psWorkingDir, "Rev_2.5_v66", "BIN");
+	                 sizeof(ConfigureParams.Rom.szRom040FileName),
+	                 psHomeDir, "Rev_2.5_v66", "BIN");
 	File_MakePathBuf(ConfigureParams.Rom.szRomTurboFileName,
-					 sizeof(ConfigureParams.Rom.szRomTurboFileName),
-					 psWorkingDir, "Rev_3.3_v74", "BIN");
+	                 sizeof(ConfigureParams.Rom.szRomTurboFileName),
+	                 psHomeDir, "Rev_3.3_v74", "BIN");
 
 	ConfigureParams.Rom.bUseCustomMac = false;
 	memset(ConfigureParams.Rom.nRomCustomMac, 0,
@@ -518,8 +518,8 @@ void Configuration_SetDefault(void)
 		ConfigureParams.Dimension.board[i].nMemoryBankSize[2] = 4;
 		ConfigureParams.Dimension.board[i].nMemoryBankSize[3] = 4;
 		File_MakePathBuf(ConfigureParams.Dimension.board[i].szRomFileName,
-						 sizeof(ConfigureParams.Dimension.board[i].szRomFileName),
-						 psWorkingDir, "dimension_eeprom", "bin");
+		                 sizeof(ConfigureParams.Dimension.board[i].szRomFileName),
+		                 psHomeDir, "ND_step1_v43", "BIN");
 	}
 
 	/* Initialize the configuration file name */

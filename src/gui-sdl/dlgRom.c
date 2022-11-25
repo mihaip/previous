@@ -32,29 +32,29 @@ const char DlgRom_fileid[] = "Previous dlgRom.c";
 /* The ROM dialog: */
 static SGOBJ romdlg[] =
 {
-	{ SGBOX, 0, 0, 0,0, 52,28, NULL },
-	{ SGTEXT, 0, 0, 22,1, 9,1, "ROM setup" },
+	{ SGBOX, 0, 0, 0,0, 63,27, NULL },
+	{ SGTEXT, 0, 0, 27,1, 9,1, "ROM setup" },
 
-	{ SGBOX, 0, 0, 1,4, 50,5, NULL },
-	{ SGTEXT, 0, 0, 2,5, 30,1, "ROM for 68030 based systems:" },
-	{ SGBUTTON, 0, 0, 32,5, 9,1, "Default" },
-	{ SGBUTTON, 0, 0, 42,5, 8,1, "Browse" },
-	{ SGTEXT, 0, 0, 2,7, 46,1, NULL },
+	{ SGBOX, 0, 0, 2,3, 59,5, NULL },
+	{ SGTEXT, 0, 0, 3,4, 28,1, "ROM for 68030 based systems:" },
+	{ SGBUTTON, 0, 0, 40,4, 9,1, "Default" },
+	{ SGBUTTON, 0, 0, 51,4, 8,1, "Browse" },
+	{ SGTEXT, 0, 0, 3,6, 56,1, NULL },
 	
-	{ SGBOX, 0, 0, 1,10, 50,5, NULL },
-	{ SGTEXT, 0, 0, 2,11, 30,1, "ROM for 68040 based systems:" },
-	{ SGBUTTON, 0, 0, 32,11, 9,1, "Default" },
-	{ SGBUTTON, 0, 0, 42,11, 8,1, "Browse" },
-	{ SGTEXT, 0, 0, 2,13, 46,1, NULL },
+	{ SGBOX, 0, 0, 2,9, 59,5, NULL },
+	{ SGTEXT, 0, 0, 3,10, 28,1, "ROM for 68040 based systems:" },
+	{ SGBUTTON, 0, 0, 40,10, 9,1, "Default" },
+	{ SGBUTTON, 0, 0, 51,10, 8,1, "Browse" },
+	{ SGTEXT, 0, 0, 3,12, 56,1, NULL },
 	
-	{ SGBOX, 0, 0, 1,16, 50,5, NULL },
-	{ SGTEXT, 0, 0, 2,17, 30,1, "ROM for Turbo systems:" },
-	{ SGBUTTON, 0, 0, 32,17, 9,1, "Default" },
-	{ SGBUTTON, 0, 0, 42,17, 8,1, "Browse" },
-	{ SGTEXT, 0, 0, 2,19, 46,1, NULL },
+	{ SGBOX, 0, 0, 2,15, 59,5, NULL },
+	{ SGTEXT, 0, 0, 3,16, 28,1, "ROM for 68040 Turbo systems:" },
+	{ SGBUTTON, 0, 0, 40,16, 9,1, "Default" },
+	{ SGBUTTON, 0, 0, 51,16, 8,1, "Browse" },
+	{ SGTEXT, 0, 0, 3,18, 56,1, NULL },
 	
-	{ SGTEXT, 0, 0, 2,23, 25,1, "A reset is needed after changing these options." },
-	{ SGBUTTON, SG_DEFAULT, 0, 15,25, 21,1, "Back to main menu" },
+	{ SGTEXT, 0, 0, 8,21, 47,1, "A reset is needed after changing these options." },
+	{ SGBUTTON, SG_DEFAULT, 0, 21,24, 21,1, "Back to main menu" },
 	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -66,9 +66,9 @@ static SGOBJ romdlg[] =
  */
 void DlgRom_Main(void)
 {
-	char szDlgRom030Name[47];
-	char szDlgRom040Name[47];
-	char szDlgRomTurboName[47];
+	char szDlgRom030Name[57];
+	char szDlgRom040Name[57];
+	char szDlgRomTurboName[57];
 	int but;
 
 	SDLGui_CenterDlg(romdlg);
@@ -89,51 +89,51 @@ void DlgRom_Main(void)
 		{
 			case DLGROM_ROM030_DEFAULT:
 				File_MakePathBuf(ConfigureParams.Rom.szRom030FileName,
-								 sizeof(ConfigureParams.Rom.szRom030FileName),
-								 Paths_GetWorkingDir(), "Rev_1.0_v41", "BIN");
+				                 sizeof(ConfigureParams.Rom.szRom030FileName),
+				                 Paths_GetHatariHome(), "Rev_1.0_v41", "BIN");
 				File_ShrinkName(szDlgRom030Name, ConfigureParams.Rom.szRom030FileName, sizeof(szDlgRom030Name)-1);
 				break;
 				
 			case DLGROM_ROM030_BROWSE:
 				/* Show and process the file selection dlg */
 				SDLGui_FileConfSelect(szDlgRom030Name,
-									  ConfigureParams.Rom.szRom030FileName,
-									  sizeof(szDlgRom030Name)-1,
-									  NULL, false);
+				                      ConfigureParams.Rom.szRom030FileName,
+				                      sizeof(szDlgRom030Name)-1,
+				                      NULL, false);
 				break;
 				
 			case DLGROM_ROM040_DEFAULT:
 				File_MakePathBuf(ConfigureParams.Rom.szRom040FileName,
-								 sizeof(ConfigureParams.Rom.szRom040FileName),
-								 Paths_GetWorkingDir(), "Rev_2.5_v66", "BIN");
+				                 sizeof(ConfigureParams.Rom.szRom040FileName),
+				                 Paths_GetHatariHome(), "Rev_2.5_v66", "BIN");
 				File_ShrinkName(szDlgRom040Name, ConfigureParams.Rom.szRom040FileName, sizeof(szDlgRom040Name)-1);
 				break;
 				
 			case DLGROM_ROM040_BROWSE:
 				/* Show and process the file selection dlg */
 				SDLGui_FileConfSelect(szDlgRom040Name,
-									  ConfigureParams.Rom.szRom040FileName,
-									  sizeof(szDlgRom040Name)-1,
-									  NULL, false);
+				                      ConfigureParams.Rom.szRom040FileName,
+				                      sizeof(szDlgRom040Name)-1,
+				                      NULL, false);
 				break;
 				
 			case DLGROM_ROMTURBO_DEFAULT:
 				File_MakePathBuf(ConfigureParams.Rom.szRomTurboFileName,
-								 sizeof(ConfigureParams.Rom.szRomTurboFileName),
-								 Paths_GetWorkingDir(), "Rev_3.3_v74", "BIN");
+				                 sizeof(ConfigureParams.Rom.szRomTurboFileName),
+				                 Paths_GetHatariHome(), "Rev_3.3_v74", "BIN");
 				File_ShrinkName(szDlgRomTurboName, ConfigureParams.Rom.szRomTurboFileName, sizeof(szDlgRomTurboName)-1);
 				break;
 				
 			case DLGROM_ROMTURBO_BROWSE:
 				/* Show and process the file selection dlg */
 				SDLGui_FileConfSelect(szDlgRomTurboName,
-									  ConfigureParams.Rom.szRomTurboFileName,
-									  sizeof(szDlgRomTurboName)-1,
-									  NULL, false);
+				                      ConfigureParams.Rom.szRomTurboFileName,
+				                      sizeof(szDlgRomTurboName)-1,
+				                      NULL, false);
 				break;
 
 		}
 	}
 	while (but != DLGROM_EXIT && but != SDLGUI_QUIT
-		   && but != SDLGUI_ERROR && !bQuitProgram);
+	       && but != SDLGUI_ERROR && !bQuitProgram);
 }
