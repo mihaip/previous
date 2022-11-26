@@ -17,7 +17,7 @@ NDSDL::NDSDL(int slot) : slot(slot), ndWindow(NULL), ndRenderer(NULL), ndTexture
 
 void NDSDL::repaint(void) {
     if (SDL_AtomicSet(&blitNDFB, 0)) {
-        blitDimension(buffer, &bufferLock, ndTexture);
+        Screen_BlitDimension(buffer, &bufferLock, ndTexture);
         SDL_RenderClear(ndRenderer);
         SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
         SDL_RenderPresent(ndRenderer);
@@ -45,7 +45,6 @@ void NDSDL::init(void) {
     if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
         if (!ndRenderer) {
             ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED);
-            
             if (!ndRenderer) {
                 fprintf(stderr,"[ND] Slot %i: Failed to create renderer! (%s)\n", slot, SDL_GetError());
                 exit(-1);
@@ -73,7 +72,7 @@ void NDSDL::copy(uint8_t* vram) {
     SDL_AtomicUnlock(&bufferLock);
 }
 
-// called from 68k thread
+// called from m68k thread
 void nd_vbl_handler(void)       {
     CycInt_AcknowledgeInterrupt();
 

@@ -21,10 +21,10 @@ public:
     static volatile bool ndVideoVBLtoggle;
 
     NDSDL(int slot);
+    void    repaint(void);
     void    init(void);
     void    uninit(void);
     void    copy(uint8_t* vram);
-    void    repaint(void);
     void    resize(float scale);
     void    destroy(void);
     void    start_interrupts();

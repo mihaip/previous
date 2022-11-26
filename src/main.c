@@ -126,6 +126,7 @@ bool Main_PauseEmulation(bool visualize) {
 		Log_Printf(LOG_WARN, "Warning: Pause flag timeout!");
 
 	host_pause_time(true);
+	Screen_Pause(true);
 	Sound_Pause(true);
 	NextBus_Pause(true);
 
@@ -157,6 +158,7 @@ bool Main_UnPauseEmulation(void) {
 
 	NextBus_Pause(false);
 	Sound_Pause(false);
+	Screen_Pause(false);
 	host_pause_time(false);
 
 	/* Set mouse pointer to the middle of the screen and hide it */
@@ -284,7 +286,7 @@ static bool Main_GetEvent(SDL_Event* event) {
 		mainEventValid = false;
 	}
 	SDL_AtomicUnlock(&mainEventLock);
-	
+
 	return valid;
 }
 
@@ -366,15 +368,15 @@ static void Main_HandleMouseMotion(SDL_Event *pEvent) {
 
 /* ----------------------------------------------------------------------- */
 /**
- * Emulator message handler. Called from emulator thread.
+ * Emulator message handler. Called from emulator.
  */
 void Main_EventHandlerInterrupt(void) {
 	static int statusBarUpdate = 0;
 	SDL_Event event;
 	int64_t time_offset;
-	
+
 	CycInt_AcknowledgeInterrupt();
-	
+
 	if (!bEmulationActive) {
 		SDL_SemPost(pauseFlag);
 		do {
@@ -468,7 +470,7 @@ static int Main_Thread(void* unused) {
 
 /* ----------------------------------------------------------------------- */
 /**
- * SDL message handler. Called from main loop.
+ * SDL message handler.
  * Here we process the SDL events (keyboard, mouse, ...)
  */
 void Main_EventHandler(void) {
@@ -554,7 +556,6 @@ void Main_EventHandler(void) {
 							break;
 						}
 					}
-
 					Main_PutEvent(&event);
 				}
 				else if (event.button.button == SDL_BUTTON_RIGHT)
@@ -605,7 +606,7 @@ void Main_EventHandler(void) {
 
 /* ----------------------------------------------------------------------- */
 /**
- * Main loop. Get SDL events and messages from emulator, draw the screen.
+ * Main loop. Start emulation and loop.
  */
 static void Main_Loop(void) {
 	int i = 0;
@@ -686,11 +687,9 @@ static bool Main_Init(void) {
 	/* Call menu at startup */
 	if (Main_StartMenu()) {
 		Reset_Cold();
-
 		/* Start emulator thread */
 		pauseFlag  = SDL_CreateSemaphore(0);
 		nextThread = SDL_CreateThread(Main_Thread, "[Previous] 68k at slot 0", NULL);
-
 		return true;
 	}
 	return false;
@@ -703,11 +702,10 @@ static bool Main_Init(void) {
  */
 static void Main_UnInit(void) {
 	int d;
-
 	/* Make sure emulator thread exits */
 	bEmulationActive = true;
-
 	SDL_WaitThread(nextThread, &d);
+	SDL_DestroySemaphore(pauseFlag);
 
 	Screen_ReturnFromFullScreen();
 	IoMem_UnInit();

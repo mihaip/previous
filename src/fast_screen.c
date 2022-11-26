@@ -45,14 +45,14 @@ static SDL_Texture*  fbTexture;
 static SDL_atomic_t  blitFB;
 static SDL_atomic_t  blitUI;
 static bool          doUIblit;
+static SDL_Rect      statusBar;
+static SDL_Rect      screenRect;
 static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen. Used to restore window size & position. */
 static MONITORTYPE   saveMonitorType;  /* Save monitor type to restore on return from fullscreen */
 static uint32_t      mask;             /* green screen mask for transparent UI areas */
 static void*         uiBuffer;         /* uiBuffer used for user interface texture */
 static uint8_t*      fbBuffer;         /* fbBuffer used for frame buffer texture */
 static SDL_SpinLock  fbBufferLock;     /* Lock fbBuffer used by 68k and main thread */
-static SDL_Rect      statusBar;
-static SDL_Rect      screenRect;
 
 
 static uint32_t BW2RGB[0x400];
@@ -122,7 +122,7 @@ static void blitColor(SDL_Texture* tex) {
 /*
  Dimension format is 8bit per pixel, big-endian: RRGGBBAA
  */
-void blitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) {
+void Screen_BlitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) {
 #if ND_STEP
 	uint32_t* src = &fb[0];
 #else
@@ -140,8 +140,8 @@ void blitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) {
 				uint32_t* dst = (uint32_t*)pixels;
 
 				/* fallback to SDL_MapRGB */
-				SDL_AtomicLock(fbLock);
 				SDL_PixelFormat* pformat = SDL_AllocFormat(format);
+				SDL_AtomicLock(fbLock);
 				for(int y = NeXT_SCRN_HEIGHT; --y >= 0;) {
 					for(int x = NeXT_SCRN_WIDTH; --x >= 0;) {
 						uint32_t v = *src++;
@@ -194,7 +194,7 @@ void blitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) {
 static bool blitScreen(SDL_Texture* tex) {
 	if (fbBuffer) {
 		if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
-			blitDimension((uint32_t*)fbBuffer, &fbBufferLock, tex);
+			Screen_BlitDimension((uint32_t*)fbBuffer, &fbBufferLock, tex);
 		} else if (ConfigureParams.System.bColor) {
 			blitColor(tex);
 		} else {
@@ -206,7 +206,7 @@ static bool blitScreen(SDL_Texture* tex) {
 }
 
 /*
- Copy VRAM to buffer for use by main thread. Called by 68k thread.
+ Copies VRAM to buffer for use by main thread. Called by 68k thread.
  */
 void Screen_CopyBuffer(uint8_t* vram, int size) {
 	SDL_AtomicLock(&fbBufferLock);
@@ -228,14 +228,14 @@ void Screen_Update(void) {
 		// Blit the NeXT framebuffer to texture
 		updateFB = blitScreen(fbTexture);
 	}
-	
+
 	// Copy UI surface to texture
 	if (SDL_AtomicSet(&blitUI, 0)) {
 		// update full UI texture
 		SDL_UpdateTexture(uiTexture, NULL, uiBuffer, sdlscrn->pitch);
 		updateFB = true;
 	}
-	
+
 	if (updateFB) {
 		SDL_RenderClear(sdlRenderer);
 		// Render NeXT framebuffer texture
@@ -243,6 +243,13 @@ void Screen_Update(void) {
 		SDL_RenderCopy(sdlRenderer, uiTexture, NULL, &screenRect);
 		SDL_RenderPresent(sdlRenderer);
 	}
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Pause Screen, pauses or resumes drawing of NeXT framebuffer
+ */
+void Screen_Pause(bool pause) {
 }
 
 /*-----------------------------------------------------------------------*/
@@ -337,7 +344,7 @@ void Screen_Init(void) {
 
 	/* Allocate buffers for copy routines */
 	uiBuffer = malloc(sdlscrn->h * sdlscrn->pitch);
-	fbBuffer = malloc(4*1024*1024);
+	fbBuffer = malloc(ND_VBUF_SIZE);
 
 	/* Initialize statusbar */
 	Statusbar_Init(sdlscrn);
