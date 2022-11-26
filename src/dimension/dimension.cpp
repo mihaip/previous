@@ -326,10 +326,11 @@ extern "C" {
         }
         return "";
     }
-    
-    void nd_vram_for_slot(uint8_t* vram, int slot) {
-        IF_NEXT_DIMENSION(slot, nd) {
-            memcpy(vram, nd->vram, ND_VBUF_SIZE);
-        }
+
+    uint32_t* nd_vram_for_slot(int slot) {
+        IF_NEXT_DIMENSION(slot, nd)
+            return (uint32_t*)nd->vram;
+        else
+            return NULL;
     }
 }

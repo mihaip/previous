@@ -19,7 +19,7 @@ extern "C" {
     extern i860_run_func i860_Run;
     void nd_start_debugger(void);
     const char* nd_reports(uint64_t realTime, uint64_t hostTime);
-    void nd_vram_for_slot(uint8_t* vram, int slot);
+    uint32_t* nd_vram_for_slot(int slot);
     
 #define ND_LOG_IO_RD LOG_NONE
 #define ND_LOG_IO_WR LOG_NONE
