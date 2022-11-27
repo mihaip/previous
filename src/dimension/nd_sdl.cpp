@@ -13,15 +13,13 @@
 volatile bool NDSDL::ndVBLtoggle;
 volatile bool NDSDL::ndVideoVBLtoggle;
 
-NDSDL::NDSDL(int slot) : slot(slot), ndWindow(NULL), ndRenderer(NULL), ndTexture(NULL) {}
+NDSDL::NDSDL(int slot, uint32_t* vram) : slot(slot), vram(vram), ndWindow(NULL), ndRenderer(NULL), ndTexture(NULL) {}
 
 void NDSDL::repaint(void) {
-    if (SDL_AtomicSet(&blitNDFB, 0)) {
-        Screen_BlitDimension(buffer, &bufferLock, ndTexture);
-        SDL_RenderClear(ndRenderer);
-        SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
-        SDL_RenderPresent(ndRenderer);
-    }
+    Screen_BlitDimension(vram, ndTexture);
+    SDL_RenderClear(ndRenderer);
+    SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
+    SDL_RenderPresent(ndRenderer);
 }
 
 void NDSDL::init(void) {
@@ -60,16 +58,17 @@ void NDSDL::init(void) {
 }
 
 void NDSDL::start_interrupts(void) {
-    CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VBL);
     CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VIDEO_VBL);
 }
 
-// called from m68k thread
-void NDSDL::copy(uint8_t* vram) {
-    SDL_AtomicLock(&bufferLock);
-    memcpy(buffer, vram, ND_VBUF_SIZE);
-    SDL_AtomicSet(&blitNDFB, 1);
-    SDL_AtomicUnlock(&bufferLock);
+// called from m68k vbl handler
+void nd_vbl_state_handler(bool state) {
+    FOR_EACH_SLOT(slot) {
+        IF_NEXT_DIMENSION(slot, nd) {
+            host_blank(nd->slot, ND_DISPLAY, state);
+            nd->i860.i860cycles = (1000*1000*33)/136;
+        }
+    }
 }
 
 // called from m68k thread
@@ -78,15 +77,6 @@ void nd_vbl_handler(void)       {
 
     FOR_EACH_SLOT(slot) {
         IF_NEXT_DIMENSION(slot, nd) {
-            if (NDSDL::ndVBLtoggle) {
-                if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
-                    nd->sdl.copy(nd->vram);
-                } else if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DIMENSION) {
-                    if (ConfigureParams.Screen.nMonitorNum == ND_NUM(slot)) {
-                        Screen_CopyBuffer(nd->vram, ND_VBUF_SIZE);
-                    }
-                }
-            }
             host_blank(nd->slot, ND_DISPLAY, NDSDL::ndVBLtoggle);
             nd->i860.i860cycles = (1000*1000*33)/136;
         }
@@ -115,6 +105,9 @@ void nd_video_vbl_handler(void) {
 
 void NDSDL::uninit(void) {
     SDL_HideWindow(ndWindow);
+}
+
+void NDSDL::pause(bool pause) {
 }
 
 void NDSDL::resize(float scale) {
@@ -150,6 +143,7 @@ void nd_sdl_show(void) {
 void nd_sdl_hide(void) {
     FOR_EACH_SLOT(slot) {
         IF_NEXT_DIMENSION(slot, nd) {
+            nd->sdl.pause(true);
             nd->sdl.uninit();
         }
     }

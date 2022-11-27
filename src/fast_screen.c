@@ -20,6 +20,7 @@ const char Screen_fileid[] = "Previous fast_screen.c : " __DATE__ " " __TIME__;
 #include "screen.h"
 #include "statusbar.h"
 #include "video.h"
+#include "m68000.h"
 
 #include <SDL.h>
 
@@ -51,8 +52,7 @@ static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen.
 static MONITORTYPE   saveMonitorType;  /* Save monitor type to restore on return from fullscreen */
 static uint32_t      mask;             /* green screen mask for transparent UI areas */
 static void*         uiBuffer;         /* uiBuffer used for user interface texture */
-static uint8_t*      fbBuffer;         /* fbBuffer used for frame buffer texture */
-static SDL_SpinLock  fbBufferLock;     /* Lock fbBuffer used by 68k and main thread */
+static SDL_SpinLock  uiBufferLock;     /* Lock for concurrent access to UI buffer between m68k thread and repainter */
 
 
 static uint32_t BW2RGB[0x400];
@@ -86,15 +86,13 @@ static void blitBW(SDL_Texture* tex) {
 	uint32_t* dst = (uint32_t*)pixels;
 	for(int y = 0; y < NeXT_SCRN_HEIGHT; y++) {
 		int src     = y * pitch;
-		SDL_AtomicLock(&fbBufferLock);
 		for(int x = 0; x < NeXT_SCRN_WIDTH/4; x++, src++) {
-			int idx = fbBuffer[src] * 4;
+			int idx = NEXTVideo[src] * 4;
 			*dst++  = BW2RGB[idx+0];
 			*dst++  = BW2RGB[idx+1];
 			*dst++  = BW2RGB[idx+2];
 			*dst++  = BW2RGB[idx+3];
 		}
-		SDL_AtomicUnlock(&fbBufferLock);
 	}
 	SDL_UnlockTexture(tex);
 }
@@ -108,25 +106,23 @@ static void blitColor(SDL_Texture* tex) {
 	int pitch = NeXT_SCRN_WIDTH + (ConfigureParams.System.bTurbo ? 0 : 32);
 	SDL_LockTexture(tex, NULL, &pixels, &d);
 	uint32_t* dst = (uint32_t*)pixels;
-	SDL_AtomicLock(&fbBufferLock);
 	for(int y = 0; y < NeXT_SCRN_HEIGHT; y++) {
-		uint16_t* src = (uint16_t*)fbBuffer + (y*pitch);
+		uint16_t* src = (uint16_t*)NEXTVideo + (y*pitch);
 		for(int x = 0; x < NeXT_SCRN_WIDTH; x++) {
 			*dst++ = COL2RGB[*src++];
 		}
 	}
-	SDL_AtomicUnlock(&fbBufferLock);
 	SDL_UnlockTexture(tex);
 }
 
 /*
  Dimension format is 8bit per pixel, big-endian: RRGGBBAA
  */
-void Screen_BlitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) {
+void Screen_BlitDimension(uint32_t* vram, SDL_Texture* tex) {
 #if ND_STEP
-	uint32_t* src = &fb[0];
+	uint32_t* src = &vram[0];
 #else
-	uint32_t* src = &fb[16];
+	uint32_t* src = &vram[16];
 #endif
 	int       d;
 	uint32_t  format;
@@ -141,7 +137,6 @@ void Screen_BlitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) 
 
 				/* fallback to SDL_MapRGB */
 				SDL_PixelFormat* pformat = SDL_AllocFormat(format);
-				SDL_AtomicLock(fbLock);
 				for(int y = NeXT_SCRN_HEIGHT; --y >= 0;) {
 					for(int x = NeXT_SCRN_WIDTH; --x >= 0;) {
 						uint32_t v = *src++;
@@ -149,7 +144,6 @@ void Screen_BlitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) 
 					}
 					src += 32;
 				}
-				SDL_AtomicUnlock(fbLock);
 				SDL_FreeFormat(pformat);
 				SDL_UnlockTexture(tex);
 				break;
@@ -159,9 +153,7 @@ void Screen_BlitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) 
 		/* Add little-endian accelerated blit loops as needed here */
 		switch (format) {
 			case SDL_PIXELFORMAT_ARGB8888: {
-				SDL_AtomicLock(fbLock);
 				SDL_UpdateTexture(tex, NULL, src, (NeXT_SCRN_WIDTH+32)*4);
-				SDL_AtomicUnlock(fbLock);
 				break;
 			}
 			default: {
@@ -171,7 +163,6 @@ void Screen_BlitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) 
 
 				/* fallback to SDL_MapRGB */
 				SDL_PixelFormat* pformat = SDL_AllocFormat(format);
-				SDL_AtomicLock(fbLock);
 				for(int y = NeXT_SCRN_HEIGHT; --y >= 0;) {
 					for(int x = NeXT_SCRN_WIDTH; --x >= 0;) {
 						uint32_t v = *src++;
@@ -179,7 +170,6 @@ void Screen_BlitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) 
 					}
 					src += 32;
 				}
-				SDL_AtomicUnlock(fbLock);
 				SDL_FreeFormat(pformat);
 				SDL_UnlockTexture(tex);
 				break;
@@ -192,40 +182,36 @@ void Screen_BlitDimension(uint32_t* fb, SDL_SpinLock* fbLock, SDL_Texture* tex) 
  Blit NeXT framebuffer to texture.
  */
 static bool blitScreen(SDL_Texture* tex) {
-	if (fbBuffer) {
-		if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
-			Screen_BlitDimension((uint32_t*)fbBuffer, &fbBufferLock, tex);
-		} else if (ConfigureParams.System.bColor) {
-			blitColor(tex);
-		} else {
-			blitBW(tex);
+	if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
+		uint32_t* vram = nd_vram_for_slot(ND_SLOT(ConfigureParams.Screen.nMonitorNum));
+		if (vram) {
+			Screen_BlitDimension(vram, tex);
+			return true;
 		}
-		return true;
+	} else {
+		if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DUAL) {
+			nd_sdl_repaint();
+		}
+		if (NEXTVideo) {
+			if (ConfigureParams.System.bColor) {
+				blitColor(tex);
+			} else {
+				blitBW(tex);
+			}
+			return true;
+		}
 	}
 	return false;
 }
 
 /*
- Copies VRAM to buffer for use by main thread. Called by 68k thread.
- */
-void Screen_CopyBuffer(uint8_t* vram, int size) {
-	SDL_AtomicLock(&fbBufferLock);
-	memcpy(fbBuffer, vram, size);
-	SDL_AtomicSet(&blitFB, 1);
-	SDL_AtomicUnlock(&fbBufferLock);
-}
-
-/*
- Blits the NeXT framebuffer to the fbTexture, blends with the GUI surface and
- shows it.
+ Blits the NeXT framebuffer to the fbTexture, blends with the GUI surface and shows it.
  */
 void Screen_Update(void) {
 	bool updateFB = false;
 
-	nd_sdl_repaint();
-
-	if (SDL_AtomicSet(&blitFB, 0)) {
-		// Blit the NeXT framebuffer to texture
+	// Blit the NeXT framebuffer to texture
+	if (bEmulationActive) {
 		updateFB = blitScreen(fbTexture);
 	}
 
@@ -344,7 +330,6 @@ void Screen_Init(void) {
 
 	/* Allocate buffers for copy routines */
 	uiBuffer = malloc(sdlscrn->h * sdlscrn->pitch);
-	fbBuffer = malloc(ND_VBUF_SIZE);
 
 	/* Initialize statusbar */
 	Statusbar_Init(sdlscrn);
@@ -539,8 +524,10 @@ static bool shieldStatusBarUpdate;
 static void statusBarUpdate(void) {
 	if(shieldStatusBarUpdate) return;
 	SDL_LockSurface(sdlscrn);
+	SDL_AtomicLock(&uiBufferLock);
 	memcpy(&((uint8_t*)uiBuffer)[statusBar.y*sdlscrn->pitch], &((uint8_t*)sdlscrn->pixels)[statusBar.y*sdlscrn->pitch], statusBar.h * sdlscrn->pitch);
 	SDL_AtomicSet(&blitUI, 1);
+	SDL_AtomicUnlock(&uiBufferLock);
 	SDL_UnlockSurface(sdlscrn);
 }
 
@@ -553,10 +540,12 @@ static void uiUpdate(void) {
 	int     count = sdlscrn->w * sdlscrn->h;
 	uint32_t* dst = (uint32_t*)uiBuffer;
 	uint32_t* src = (uint32_t*)sdlscrn->pixels;
+	SDL_AtomicLock(&uiBufferLock);
 	// poor man's green-screen - would be nice if SDL had more blending modes...
 	for(int i = count; --i >= 0; src++)
 		*dst++ = *src == mask ? 0 : *src;
 	SDL_AtomicSet(&blitUI, 1);
+	SDL_AtomicUnlock(&uiBufferLock);
 	SDL_UnlockSurface(sdlscrn);
 }
 

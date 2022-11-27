@@ -7,6 +7,7 @@
 */
 const char Video_fileid[] = "Hatari video.c";
 
+#include "main.h"
 #include "host.h"
 #include "configuration.h"
 #include "cycInt.h"
@@ -27,7 +28,6 @@ const char Video_fileid[] = "Hatari video.c";
 /*-----------------------------------------------------------------------*/
 /**
  * Reset video chip and start VBL interrupt
-
  */
 
 #define NEXT_VBL_FREQ 68
@@ -56,11 +56,16 @@ static void Video_InterruptHandler(void) {
  * reset counters, ...
  */
 void Video_InterruptHandler_VBL(void) {
+	static bool bBlankToggle = false;
+
 	CycInt_AcknowledgeInterrupt();
-	host_blank(0, MAIN_DISPLAY, true);
-	if (ConfigureParams.Screen.nMonitorType != MONITOR_TYPE_DIMENSION) {
-		Screen_CopyBuffer(NEXTVideo, ConfigureParams.System.bColor?(2*1024*1024):(256*1024));
+	bBlankToggle = !bBlankToggle;
+	if (bBlankToggle) {
+		Video_InterruptHandler();
+		host_blank(0, MAIN_DISPLAY, true);
+	} else {
+		Main_HandleBlankEvent();
 	}
-	Video_InterruptHandler();
-	CycInt_AddRelativeInterruptUs((1000*1000)/NEXT_VBL_FREQ, 0, INTERRUPT_VIDEO_VBL);
+	nd_vbl_state_handler(bBlankToggle);
+	CycInt_AddRelativeInterruptUs((1000*1000)/(2*NEXT_VBL_FREQ), 0, INTERRUPT_VIDEO_VBL);
 }

@@ -71,6 +71,7 @@ extern volatile int mainPauseEmulation;
 extern volatile bool bQuitProgram;
 extern volatile bool bEmulationActive;
 
+extern void Main_HandleBlankEvent(void);
 extern bool Main_PauseEmulation(bool visualize);
 extern bool Main_UnPauseEmulation(void);
 extern void Main_RequestQuit(bool confirm);
@@ -78,6 +79,7 @@ extern void Main_WarpMouse(int x, int y);
 extern void Main_SetMouseGrab(bool grab);
 extern void Main_EventHandler(void);
 extern void Main_EventHandlerInterrupt(void);
+extern void Main_UpdateStatusbar(void);
 extern void Main_SetTitle(const char *title);
 extern void Main_SpeedReset(void);
 extern const char* Main_SpeedMsg(void);

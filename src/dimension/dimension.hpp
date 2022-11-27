@@ -6,8 +6,6 @@
 /* NeXTdimension memory controller revision (0 and 1 allowed) */
 #define ND_STEP 1
 
-#define ND_VBUF_SIZE (4*1024*1024)
-
 #define ND_SLOT(num) ((num)*2+2)
 #define ND_NUM(slot) ((slot)/2-1)
 

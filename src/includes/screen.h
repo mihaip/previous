@@ -29,9 +29,8 @@ extern void Screen_ModeChanged(void);
 extern void Screen_StatusbarChanged(void);
 extern void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects);
 extern void Screen_UpdateRect(SDL_Surface *screen, int32_t x, int32_t y, int32_t w, int32_t h);
-extern void Screen_BlitDimension(uint32_t* vram, SDL_SpinLock* lock, SDL_Texture* tex);
+extern void Screen_BlitDimension(uint32_t* vram, SDL_Texture* tex);
 extern void Screen_Update(void);
-extern void Screen_CopyBuffer(uint8_t* vram, int size);
 
 #ifdef __cplusplus
 }

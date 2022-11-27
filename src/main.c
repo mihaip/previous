@@ -53,6 +53,7 @@ static bool   bIgnoreNextMouseMotion = false;  /* Next mouse motion will be igno
 
 static SDL_Thread* nextThread;
 static SDL_sem*    pauseFlag;
+static Uint32      BLANK_EVENT;
 
 volatile int mainPauseEmulation;
 
@@ -257,18 +258,40 @@ void Main_SetMouseGrab(bool grab) {
 /**
  * Save an event and make it available to the emulator thread.
  **/
-static SDL_Event    mainEvent;
+#define MAX_EVENTS  16
+static SDL_Event    mainEvent[MAX_EVENTS];
 static SDL_SpinLock mainEventLock;
-static bool         mainEventValid;
+static int          mainEventWrite;
+static int          mainEventRead;
+static int          mainEventNext;
+
+/* ----------------------------------------------------------------------- */
+/**
+ * Initialize event queue.
+ **/
+static void Main_InitEvents(void) {
+	mainEventRead = mainEventWrite = 0;
+}
 
 /* ----------------------------------------------------------------------- */
 /**
  * Save an event. Called from main loop.
  **/
 static void Main_PutEvent(SDL_Event* event) {
+	if (!bEmulationActive)
+		return;
+
 	SDL_AtomicLock(&mainEventLock);
-	mainEvent      = *event;
-	mainEventValid = true;
+	mainEventNext = mainEventWrite + 1;
+	if (mainEventNext >= MAX_EVENTS) {
+		mainEventNext = 0;
+	}
+	if (mainEventNext == mainEventRead) {
+		Log_Printf(LOG_WARN, "Events queue overflow!");
+	} else {
+		mainEvent[mainEventWrite] = *event;
+		mainEventWrite = mainEventNext;
+	}
 	SDL_AtomicUnlock(&mainEventLock);
 }
 
@@ -277,17 +300,31 @@ static void Main_PutEvent(SDL_Event* event) {
  * Get saved event. Called from emulator thread.
  **/
 static bool Main_GetEvent(SDL_Event* event) {
-	bool valid;
+	bool valid = false;
 
 	SDL_AtomicLock(&mainEventLock);
-	valid = mainEventValid;
-	if (valid) {
-		*event         = mainEvent;
-		mainEventValid = false;
+	if (mainEventWrite != mainEventRead) {
+		mainEventNext = mainEventRead + 1;
+		if (mainEventNext >= MAX_EVENTS) {
+			mainEventNext = 0;
+		}
+		*event = mainEvent[mainEventRead];
+		valid = true;
+		mainEventRead = mainEventNext;
 	}
 	SDL_AtomicUnlock(&mainEventLock);
 
 	return valid;
+}
+
+/* ----------------------------------------------------------------------- */
+/**
+ * Send blank event. Called from emulator thread.
+ **/
+void Main_HandleBlankEvent(void) {
+	SDL_Event event;
+	event.type = BLANK_EVENT;
+	SDL_PushEvent(&event);
 }
 
 /* ----------------------------------------------------------------------- */
@@ -504,13 +541,8 @@ void Main_EventHandler(void) {
 				continue;
 		}
 
-		ShortCut_ActKey();
+		events = SDL_WaitEventTimeout(&event, 100);
 
-		if (bEmulationActive) {
-			events = SDL_PollEvent(&event);
-		} else {
-			events = SDL_WaitEvent(&event);
-		}
 		if (!events) {
 			/* no events -> if emulation is active or
 			 * user is quitting -> return from function.
@@ -597,6 +629,11 @@ void Main_EventHandler(void) {
 				break;
 
 			default:
+				if (event.type == BLANK_EVENT) {
+					Main_UpdateStatusbar();
+					Screen_Update();
+					break;
+				}
 				/* don't let unknown events delay event processing */
 				bContinueProcessing = true;
 				break;
@@ -609,18 +646,27 @@ void Main_EventHandler(void) {
  * Main loop. Start emulation and loop.
  */
 static void Main_Loop(void) {
-	int i = 0;
+	/* Get an event ID for our blank event */
+	BLANK_EVENT = SDL_RegisterEvents(1);
 
+	Main_InitEvents();
 	Main_UnPauseEmulation();
 
 	while (!bQuitProgram) {
 		Main_EventHandler();
-		SDL_Delay(5);
-		if (++i > 10) {
-			Statusbar_Update(sdlscrn);
-			i = 0;
-		}
-		Screen_Update();
+	}
+}
+
+/* ----------------------------------------------------------------------- */
+/**
+ * Statusbar update with reduced update frequency to save CPU cycles.
+ * Call this on emulated machine VBL.
+ */
+void Main_UpdateStatusbar(void) {
+	static int i = 0;
+	if (++i > 9) {
+		Statusbar_Update(sdlscrn);
+		i = 0;
 	}
 }
 
