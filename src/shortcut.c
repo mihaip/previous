@@ -63,8 +63,9 @@ static void ShortCut_MouseGrab(void)
 static void ShortCut_SoundOnOff(void)
 {
     ConfigureParams.Sound.bEnableSound = !ConfigureParams.Sound.bEnableSound;
-    
-    Sound_Reset();
+    if (bEmulationActive) {
+        Sound_Pause(!ConfigureParams.Sound.bEnableSound);
+    }
 }
 
 /*-----------------------------------------------------------------------*/
@@ -86,13 +87,12 @@ void ShortCut_Debug_M68K(void)
 /**
  * Shorcut to I860 debug interface
  */
-void ShortCut_Debug_I860(void) {
-    int running;
-    
+void ShortCut_Debug_I860(void)
+{
     if (bInFullScreen)
         Screen_ReturnFromFullScreen();
 
-    running = Main_PauseEmulation(true);
+    Main_PauseEmulation(true);
     
     /* override paused message so that user knows to look into console
      * on how to continue in case he invoked the debugger by accident.
@@ -106,9 +106,6 @@ void ShortCut_Debug_I860(void) {
     /* Call the debugger */
     nd_start_debugger();
     Log_SetAlertLevel(alertLevel);
-
-    if (running)
-        Main_UnPauseEmulation();
 }
 
 /*-----------------------------------------------------------------------*/

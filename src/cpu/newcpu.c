@@ -43,7 +43,6 @@
 #include "debug.h"
 #include "m68000.h"
 #include "cycInt.h"
-#include "dialog.h"
 #include "dsp.h"
 #include "dimension.hpp"
 #include "sysReg.h"
@@ -6096,7 +6095,7 @@ void cpu_inreset(void)
 
 void cpu_halt(int id)
 {
-#ifndef WINUAE_FOR_HATARI
+#ifndef WINUAE_FOR_PREVIOUS
 	// id < 0: m68k halted, PPC active.
 	// id > 0: emulation halted.
 	if (!regs.halted) {
@@ -6121,7 +6120,7 @@ void cpu_halt(int id)
 	}
 	set_special(SPCFLAG_CHECK);
 #else
-	Dialog_HaltDlg();
+	Main_Halt();
 #endif
 }
 

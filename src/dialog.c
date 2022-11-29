@@ -188,11 +188,3 @@ void Dialog_CheckFiles(void) {
 		}
 	}
 }
-
-void Dialog_HaltDlg(void) {
-	Log_Printf(LOG_WARN, "Fatal error: CPU halted!");
-	if (mainPauseEmulation == HALT_EMULATION) {
-		Log_Printf(LOG_WARN, "Fatal error: Double fault on start! Check ROM files.");
-	}
-	mainPauseEmulation = HALT_EMULATION;
-}

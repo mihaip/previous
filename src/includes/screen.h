@@ -30,7 +30,7 @@ extern void Screen_StatusbarChanged(void);
 extern void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects);
 extern void Screen_UpdateRect(SDL_Surface *screen, int32_t x, int32_t y, int32_t w, int32_t h);
 extern void Screen_BlitDimension(uint32_t* vram, SDL_Texture* tex);
-extern void Screen_Update(void);
+extern void Screen_Repaint(void);
 
 #ifdef __cplusplus
 }

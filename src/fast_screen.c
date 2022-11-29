@@ -207,7 +207,7 @@ static bool blitScreen(SDL_Texture* tex) {
 /*
  Blits the NeXT framebuffer to the fbTexture, blends with the GUI surface and shows it.
  */
-void Screen_Update(void) {
+void Screen_Repaint(void) {
 	bool updateFB = false;
 
 	// Blit the NeXT framebuffer to texture
@@ -564,7 +564,7 @@ void Screen_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects) {
 		}
 	}
 	if (!bEmulationActive) {
-		Screen_Update();
+		Screen_Repaint();
 	}
 }
 

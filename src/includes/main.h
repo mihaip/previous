@@ -8,6 +8,9 @@
 #ifndef HATARI_MAIN_H
 #define HATARI_MAIN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
 
 /* Name and version for window title: */
 #define PROG_NAME "Previous 2.6"
@@ -58,30 +61,33 @@
 #define SIZE_WORD  2
 #define SIZE_LONG  4
 
+/* Types for special event */
 enum {
-	PAUSE_NONE,
-	PAUSE_EMULATION,
-	UNPAUSE_EMULATION,
-	HALT_EMULATION
+	MAIN_REPAINT,
+	MAIN_PAUSE,
+	MAIN_UNPAUSE,
+	MAIN_HALT
 };
-
-/* Flag for pausing m68k thread (used by i860 debugger) */
-extern volatile int mainPauseEmulation;
 
 extern volatile bool bQuitProgram;
 extern volatile bool bEmulationActive;
 
-extern void Main_HandleBlankEvent(void);
 extern bool Main_PauseEmulation(bool visualize);
 extern bool Main_UnPauseEmulation(void);
+extern void Main_Halt(void);
 extern void Main_RequestQuit(bool confirm);
 extern void Main_WarpMouse(int x, int y);
 extern void Main_SetMouseGrab(bool grab);
+extern void Main_SendSpecialEvent(int type);
 extern void Main_EventHandler(void);
 extern void Main_EventHandlerInterrupt(void);
-extern void Main_UpdateStatusbar(void);
+extern void Main_CheckStatusbarUpdate(void);
 extern void Main_SetTitle(const char *title);
 extern void Main_SpeedReset(void);
 extern const char* Main_SpeedMsg(void);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* ifndef HATARI_MAIN_H */

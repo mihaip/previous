@@ -44,8 +44,6 @@ const char Main_fileid[] = "Hatari main.c";
 #include <sys/time.h>
 #endif
 
-int nFrameSkips;
-
 volatile bool bQuitProgram = false;            /* Flag to quit program cleanly */
 volatile bool bEmulationActive = false;        /* Do not run emulation during initialization */
 static bool   bAccurateDelays;                 /* Host system has an accurate SDL_Delay()? */
@@ -53,9 +51,8 @@ static bool   bIgnoreNextMouseMotion = false;  /* Next mouse motion will be igno
 
 static SDL_Thread* nextThread;
 static SDL_sem*    pauseFlag;
-static Uint32      BLANK_EVENT;
 
-volatile int mainPauseEmulation;
+static uint32_t SPECIAL_EVENT;
 
 typedef const char* (*report_func)(uint64_t realTime, uint64_t hostTime);
 
@@ -171,6 +168,27 @@ bool Main_UnPauseEmulation(void) {
 	bEmulationActive = true;
 
 	return true;
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Pause emulation if a fatal CPU error occured and ask if user wants to 
+ * reset or quit.
+ */
+static void Main_HaltDialog(void) {
+	Main_PauseEmulation(true);
+	Log_Printf(LOG_WARN, "Fatal error: CPU halted!");
+	/* flush key up events to avoid unintendedly exiting the alert dialog */
+	SDL_ResetKeyboard();
+	SDL_PumpEvents();
+	SDL_FlushEvent(SDL_KEYUP);
+	if (!DlgAlert_Query("Fatal error: CPU halted!\n\nPress OK to restart CPU or cancel to quit.")) {
+		Main_RequestQuit(false);
+	}
+	Main_UnPauseEmulation();
+}
+void Main_Halt(void) {
+	Main_SendSpecialEvent(MAIN_HALT);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -321,9 +339,10 @@ static bool Main_GetEvent(SDL_Event* event) {
 /**
  * Send blank event. Called from emulator thread.
  **/
-void Main_HandleBlankEvent(void) {
+void Main_SendSpecialEvent(int type) {
 	SDL_Event event;
-	event.type = BLANK_EVENT;
+	event.type = SPECIAL_EVENT;
+	event.user.code = type;
 	SDL_PushEvent(&event);
 }
 
@@ -518,29 +537,6 @@ void Main_EventHandler(void) {
 	do {
 		bContinueProcessing = false;
 
-		/* check remote process control from different thread (e.g. i860) */
-		switch(mainPauseEmulation) {
-			case PAUSE_EMULATION:
-				mainPauseEmulation = PAUSE_NONE;
-				Main_PauseEmulation(true);
-				break;
-			case UNPAUSE_EMULATION:
-				mainPauseEmulation = PAUSE_NONE;
-				Main_UnPauseEmulation();
-				break;
-			case HALT_EMULATION:
-				mainPauseEmulation = PAUSE_NONE;
-				Main_PauseEmulation(true);
-				/* flush key up events to avoid unintendedly exiting the alert dialog */
-				SDL_PumpEvents();
-				SDL_FlushEvent(SDL_KEYUP);
-				if (!DlgAlert_Query("Fatal error: CPU halted!\n\nPress OK to restart CPU or cancel to quit.")) {
-					Main_RequestQuit(false);
-				}
-				Main_UnPauseEmulation();
-				continue;
-		}
-
 		events = SDL_WaitEventTimeout(&event, 100);
 
 		if (!events) {
@@ -614,7 +610,7 @@ void Main_EventHandler(void) {
 				if (event.key.repeat) {
 					break;
 				}
-				if (ShortCut_CheckKeys(event.key.keysym.mod, event.key.keysym.sym, 1)) {
+				if (ShortCut_CheckKeys(event.key.keysym.mod, event.key.keysym.sym, true)) {
 					ShortCut_ActKey();
 					break;
 				}
@@ -622,16 +618,32 @@ void Main_EventHandler(void) {
 				break;
 
 			case SDL_KEYUP:
-				if (ShortCut_CheckKeys(event.key.keysym.mod, event.key.keysym.sym, 0)) {
+				if (ShortCut_CheckKeys(event.key.keysym.mod, event.key.keysym.sym, false)) {
 					break;
 				}
 				Main_PutEvent(&event);
 				break;
 
 			default:
-				if (event.type == BLANK_EVENT) {
-					Main_UpdateStatusbar();
-					Screen_Update();
+				/* check special remote events */
+				if (event.type == SPECIAL_EVENT) {
+					switch (event.user.code) {
+						case MAIN_PAUSE:
+							Main_PauseEmulation(true);
+							break;
+						case MAIN_UNPAUSE:
+							Main_UnPauseEmulation();
+							break;
+						case MAIN_REPAINT:
+							Main_CheckStatusbarUpdate();
+							Screen_Repaint();
+							break;
+						case MAIN_HALT:
+							Main_HaltDialog();
+							break;
+						default:
+							break;
+					}
 					break;
 				}
 				/* don't let unknown events delay event processing */
@@ -646,10 +658,17 @@ void Main_EventHandler(void) {
  * Main loop. Start emulation and loop.
  */
 static void Main_Loop(void) {
-	/* Get an event ID for our blank event */
-	BLANK_EVENT = SDL_RegisterEvents(1);
+	/* Get an event ID for our special event */
+	SPECIAL_EVENT = SDL_RegisterEvents(1);
 
+	/* Initialize event queue */
 	Main_InitEvents();
+
+	/* Start emulator thread */
+	pauseFlag  = SDL_CreateSemaphore(0);
+	nextThread = SDL_CreateThread(Main_Thread, "[Previous] 68k at slot 0", NULL);
+
+	/* Run emulation */
 	Main_UnPauseEmulation();
 
 	while (!bQuitProgram) {
@@ -662,7 +681,7 @@ static void Main_Loop(void) {
  * Statusbar update with reduced update frequency to save CPU cycles.
  * Call this on emulated machine VBL.
  */
-void Main_UpdateStatusbar(void) {
+void Main_CheckStatusbarUpdate(void) {
 	static int i = 0;
 	if (++i > 9) {
 		Statusbar_Update(sdlscrn);
@@ -732,10 +751,8 @@ static bool Main_Init(void) {
 
 	/* Call menu at startup */
 	if (Main_StartMenu()) {
+		/* Reset emulated machine */
 		Reset_Cold();
-		/* Start emulator thread */
-		pauseFlag  = SDL_CreateSemaphore(0);
-		nextThread = SDL_CreateThread(Main_Thread, "[Previous] 68k at slot 0", NULL);
 		return true;
 	}
 	return false;

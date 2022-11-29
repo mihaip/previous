@@ -64,7 +64,7 @@ void Video_InterruptHandler_VBL(void) {
 		Video_InterruptHandler();
 		host_blank(0, MAIN_DISPLAY, true);
 	} else {
-		Main_HandleBlankEvent();
+		Main_SendSpecialEvent(MAIN_REPAINT);
 	}
 	nd_vbl_state_handler(bBlankToggle);
 	CycInt_AddRelativeInterruptUs((1000*1000)/(2*NEXT_VBL_FREQ), 0, INTERRUPT_VIDEO_VBL);

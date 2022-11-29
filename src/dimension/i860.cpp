@@ -23,6 +23,7 @@
 
 #include "i860.hpp"
 #include "dimension.hpp"
+#include "main.h"
 #include "log.h"
 
 extern "C" {
