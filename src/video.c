@@ -20,26 +20,22 @@ const char Video_fileid[] = "Hatari video.c";
 #include "tmc.h"
 #include "nd_sdl.hpp"
 
-/*--------------------------------------------------------------*/
-/* Local functions prototypes                                   */
-/*--------------------------------------------------------------*/
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Reset video chip and start VBL interrupt
- */
 
 #define NEXT_VBL_FREQ 68
 
+/*-----------------------------------------------------------------------*/
+/**
+ * Start VBL interrupt.
+ */
 void Video_Reset(void) {
-	CycInt_AddRelativeInterruptUs((1000*1000)/NEXT_VBL_FREQ, 0, INTERRUPT_VIDEO_VBL);
+	CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_VIDEO_VBL);
 }
 
+/*-----------------------------------------------------------------------*/
 /**
- * Generate vertical video retrace interrupt
+ * Generate vertical video retrace interrupt.
  */
-static void Video_InterruptHandler(void) {
+static void Video_Interrupt(void) {
 	if (ConfigureParams.System.bTurbo) {
 		tmc_video_interrupt();
 	} else if (ConfigureParams.System.bColor) {
@@ -49,23 +45,21 @@ static void Video_InterruptHandler(void) {
 	}
 }
 
-
 /*-----------------------------------------------------------------------*/
 /**
- * VBL interrupt : set new interrupts, draw screen, generate sound,
- * reset counters, ...
+ * Check if it is time for vertical video retrace interrupt.
  */
-void Video_InterruptHandler_VBL(void) {
+void Video_InterruptHandler(void) {
 	static bool bBlankToggle = false;
 
 	CycInt_AcknowledgeInterrupt();
-	bBlankToggle = !bBlankToggle;
 	if (bBlankToggle) {
-		Video_InterruptHandler();
+		Video_Interrupt();
 		host_blank(0, MAIN_DISPLAY, true);
 	} else {
 		Main_SendSpecialEvent(MAIN_REPAINT);
 	}
 	nd_vbl_state_handler(bBlankToggle);
+	bBlankToggle = !bBlankToggle;
 	CycInt_AddRelativeInterruptUs((1000*1000)/(2*NEXT_VBL_FREQ), 0, INTERRUPT_VIDEO_VBL);
 }

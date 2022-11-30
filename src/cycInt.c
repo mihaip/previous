@@ -54,7 +54,7 @@ int64_t nCyclesMainCounter; /* Main cycles counter, counts emulated CPU cycles s
 static void (* const pIntHandlerFunctions[MAX_INTERRUPTS])(void) =
 {
 	NULL,
-	Video_InterruptHandler_VBL,
+	Video_InterruptHandler,
 	Hardclock_InterruptHandler,
     Mouse_Handler,
     ESP_InterruptHandler,
