@@ -337,7 +337,7 @@ static bool Main_GetEvent(SDL_Event* event) {
 
 /* ----------------------------------------------------------------------- */
 /**
- * Send blank event. Called from emulator thread.
+ * Send special events. Called from emulator threads.
  **/
 void Main_SendSpecialEvent(int type) {
 	SDL_Event event;

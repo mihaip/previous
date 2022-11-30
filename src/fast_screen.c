@@ -518,11 +518,7 @@ void Screen_StatusbarChanged(void) {
 /**
  * Draw screen to window/full-screen - (SC) Just status bar updates. Screen redraw is done in repaint thread.
  */
-
-static bool shieldStatusBarUpdate;
-
 static void statusBarUpdate(void) {
-	if(shieldStatusBarUpdate) return;
 	SDL_LockSurface(sdlscrn);
 	SDL_AtomicLock(&uiBufferLock);
 	memcpy(&((uint8_t*)uiBuffer)[statusBar.y*sdlscrn->pitch], &((uint8_t*)sdlscrn->pixels)[statusBar.y*sdlscrn->pitch], statusBar.h * sdlscrn->pitch);
