@@ -163,6 +163,7 @@ bool Main_UnPauseEmulation(void) {
 	Main_WarpMouse(sdlscrn->w/2, sdlscrn->h/2);
 	SDL_ShowCursor(SDL_DISABLE);
 
+	Main_ResetKeys();
 	Main_SetMouseGrab(bGrabMouse);
 
 	bEmulationActive = true;
@@ -428,6 +429,13 @@ static void Main_HandleMouseMotion(SDL_Event *pEvent) {
 	}
 }
 
+/* ----------------------------------------------------------------------- */
+/**
+ * Sends key up events for all currently pressed keys.
+ */
+void Main_ResetKeys(void) {
+	SDL_ResetKeyboard();
+}
 
 /* ----------------------------------------------------------------------- */
 /**
@@ -469,37 +477,21 @@ void Main_EventHandlerInterrupt(void) {
 			case SDL_MOUSEMOTION:
 				Keymap_MouseMove(event.motion.xrel, event.motion.yrel);
 				break;
-
 			case SDL_MOUSEBUTTONDOWN:
-				if (event.button.button == SDL_BUTTON_LEFT) {
-					Keymap_MouseDown(true);
-				}
-				else if (event.button.button == SDL_BUTTON_RIGHT) {
-					Keymap_MouseDown(false);
-				}
+				Keymap_MouseDown(event.button.button == SDL_BUTTON_LEFT);
 				break;
-
 			case SDL_MOUSEBUTTONUP:
-				if (event.button.button == SDL_BUTTON_LEFT) {
-					Keymap_MouseUp(true);
-				}
-				else if (event.button.button == SDL_BUTTON_RIGHT) {
-					Keymap_MouseUp(false);
-				}
+				Keymap_MouseUp(event.button.button == SDL_BUTTON_LEFT);
 				break;
-
 			case SDL_MOUSEWHEEL:
 				Keymap_MouseWheel(&event.wheel);
 				break;
-
 			case SDL_KEYDOWN:
 				Keymap_KeyDown(&event.key.keysym);
 				break;
-
 			case SDL_KEYUP:
 				Keymap_KeyUp(&event.key.keysym);
 				break;
-
 			default:
 				break;
 		}

@@ -80,6 +80,7 @@ extern void Main_RequestQuit(bool confirm);
 extern void Main_WarpMouse(int x, int y);
 extern void Main_SetMouseGrab(bool grab);
 extern void Main_SendSpecialEvent(int type);
+extern void Main_ResetKeys(void);
 extern void Main_EventHandler(void);
 extern void Main_EventHandlerInterrupt(void);
 extern void Main_CheckStatusbarUpdate(void);
