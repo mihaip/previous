@@ -189,9 +189,6 @@ static bool blitScreen(SDL_Texture* tex) {
 			return true;
 		}
 	} else {
-		if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DUAL) {
-			nd_sdl_repaint();
-		}
 		if (NEXTVideo) {
 			if (ConfigureParams.System.bColor) {
 				blitColor(tex);

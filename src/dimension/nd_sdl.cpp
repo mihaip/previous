@@ -10,9 +10,6 @@
 #include <SDL.h>
 
 
-volatile bool NDSDL::ndVBLtoggle;
-volatile bool NDSDL::ndVideoVBLtoggle;
-
 NDSDL::NDSDL(int slot, uint32_t* vram) : slot(slot), vram(vram), ndWindow(NULL), ndRenderer(NULL), ndTexture(NULL) {}
 
 void NDSDL::repaint(void) {
@@ -57,54 +54,15 @@ void NDSDL::init(void) {
     }
 }
 
-void NDSDL::start_interrupts(void) {
-    CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VIDEO_VBL);
-}
-
-// called from m68k vbl handler
-void nd_vbl_state_handler(bool state) {
-    FOR_EACH_SLOT(slot) {
-        IF_NEXT_DIMENSION(slot, nd) {
-            host_blank(nd->slot, ND_DISPLAY, state);
-            nd->i860.i860cycles = (1000*1000*33)/136;
-        }
-    }
-}
-
-// called from m68k thread
-void nd_vbl_handler(void)       {
-    CycInt_AcknowledgeInterrupt();
-
-    FOR_EACH_SLOT(slot) {
-        IF_NEXT_DIMENSION(slot, nd) {
-            host_blank(nd->slot, ND_DISPLAY, NDSDL::ndVBLtoggle);
-            nd->i860.i860cycles = (1000*1000*33)/136;
-        }
-    }
-    NDSDL::ndVBLtoggle = !NDSDL::ndVBLtoggle;
-
-    // 136Hz with toggle gives 68Hz, blank time is 1/2 frame time
-    CycInt_AddRelativeInterruptUs((1000*1000)/136, 0, INTERRUPT_ND_VBL);
-}
-
-// called from m68k thread
-void nd_video_vbl_handler(void) {
-    CycInt_AcknowledgeInterrupt();
-
-    FOR_EACH_SLOT(slot) {
-        IF_NEXT_DIMENSION(slot, nd) {
-            host_blank(slot, ND_VIDEO, NDSDL::ndVideoVBLtoggle);
-            nd->i860.i860cycles = nd->i860.i860cycles; // make compiler happy
-        }
-    }
-    NDSDL::ndVideoVBLtoggle = !NDSDL::ndVideoVBLtoggle;
-
-    // 120Hz with toggle gives 60Hz NTSC, blank time is 1/2 frame time
-    CycInt_AddRelativeInterruptUs((1000*1000)/120, 0, INTERRUPT_ND_VIDEO_VBL);
-}
-
 void NDSDL::uninit(void) {
     SDL_HideWindow(ndWindow);
+}
+
+void NDSDL::destroy(void) {
+    SDL_DestroyTexture(ndTexture);
+    SDL_DestroyRenderer(ndRenderer);
+    SDL_DestroyWindow(ndWindow);
+    uninit();
 }
 
 void NDSDL::pause(bool pause) {
@@ -155,11 +113,4 @@ void nd_sdl_destroy(void) {
             nd->sdl.destroy();
         }
     }
-}
-
-void NDSDL::destroy(void) {
-    SDL_DestroyTexture(ndTexture);
-    SDL_DestroyRenderer(ndRenderer);
-    SDL_DestroyWindow(ndWindow);
-    uninit();
 }

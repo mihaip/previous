@@ -53,13 +53,12 @@ void Video_InterruptHandler(void) {
 	static bool bBlankToggle = false;
 
 	CycInt_AcknowledgeInterrupt();
+	host_blank_count(MAIN_DISPLAY, bBlankToggle);
 	if (bBlankToggle) {
 		Video_Interrupt();
-		host_blank(0, MAIN_DISPLAY, true);
-	} else {
+	} else if (ConfigureParams.Screen.nMonitorType != MONITOR_TYPE_DIMENSION) {
 		Main_SendSpecialEvent(MAIN_REPAINT);
 	}
-	nd_vbl_state_handler(bBlankToggle);
 	bBlankToggle = !bBlankToggle;
 	CycInt_AddRelativeInterruptUs((1000*1000)/(2*NEXT_VBL_FREQ), 0, INTERRUPT_VIDEO_VBL);
 }

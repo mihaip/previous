@@ -645,6 +645,9 @@ void Main_EventHandler(void) {
 							Main_CheckStatusbarUpdate();
 							Screen_Repaint();
 							break;
+						case MAIN_ND_DISPLAY:
+							nd_display_repaint();
+							break;
 						case MAIN_HALT:
 							Main_HaltDialog();
 							break;

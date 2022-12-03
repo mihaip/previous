@@ -9,24 +9,24 @@
 #define ND_SLOT(num) ((num)*2+2)
 #define ND_NUM(slot) ((slot)/2-1)
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-    
-    typedef void (*i860_run_func)(int);
-    extern i860_run_func i860_Run;
-    void nd_start_debugger(void);
-    const char* nd_reports(uint64_t realTime, uint64_t hostTime);
-    uint32_t* nd_vram_for_slot(int slot);
-    
 #define ND_LOG_IO_RD LOG_NONE
 #define ND_LOG_IO_WR LOG_NONE
 
 #ifdef __cplusplus
-}
+extern "C" {
 #endif /* __cplusplus */
+    typedef void (*i860_run_func)(int);
+    extern i860_run_func i860_Run;
 
+    extern void        nd_start_interrupts(void);
+    extern void        nd_display_vbl_handler(void);
+    extern void        nd_display_repaint(void);
+    extern void        nd_video_vbl_handler(void);
+    extern uint32_t*   nd_vram_for_slot(int slot);
+    extern void        nd_start_debugger(void);
+    extern const char* nd_reports(uint64_t realTime, uint64_t hostTime);
 #ifdef __cplusplus
+}
 
 #include "NextBus.hpp"
 #include "i860.hpp"
@@ -127,9 +127,14 @@ public:
     uint8_t*        ram;
     uint8_t*        vram;
     uint8_t*        rom;
+    uint8_t*        dmem;
     
-    uint32_t        rom_last_addr;;
+    uint8_t         rom_command;
+    uint32_t        rom_last_addr;
     uint32_t        bankmask[4];
+    
+    volatile bool   display_vbl;
+    volatile bool   video_vbl;
     
     NDSDL           sdl;
     i860_cpu_device i860;
@@ -141,9 +146,6 @@ public:
     DCSC            dcsc1;
     bt463           ramdac;
     
-    uint8_t         dmem[512];
-    uint8_t         rom_command;
-
     NextDimension(int slot);
     void mem_init(void);
     void init_mem_banks(void);

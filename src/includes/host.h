@@ -38,8 +38,8 @@ extern "C" {
     typedef SDL_mutex          mutex_t;
     
     void        host_reset(void);
-    void        host_blank(int slot, int src, bool state);
-    bool        host_blank_state(int slot, int src);
+    void        host_blank_count(int src, bool state);
+    int         host_reset_blank_counter(int src);
     uint64_t    host_time_us(void);
     uint64_t    host_time_ms(void);
     uint64_t    host_time_sec(void);

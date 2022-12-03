@@ -1,5 +1,6 @@
 #include <stdlib.h>
 
+#include "main.h"
 #include "configuration.h"
 #include "m68000.h"
 #include "dimension.hpp"
@@ -32,7 +33,11 @@ NextDimension::NextDimension(int slot) :
     ram(malloc_aligned(64*1024*1024)),
     vram(malloc_aligned(4*1024*1024)),
     rom(malloc_aligned(128*1024)),
+    dmem(malloc_aligned(512)),
+    rom_command(0),
     rom_last_addr(0),
+    display_vbl(false),
+    video_vbl(false),
     sdl(slot, (uint32_t*)vram),
     i860(this),
     nbic(slot, ND_NBIC_ID),
@@ -40,8 +45,7 @@ NextDimension::NextDimension(int slot) :
     dp(this),
     dmcd(this),
     dcsc0(this, 0),
-    dcsc1(this, 1),
-    rom_command(0)
+    dcsc1(this, 1)
 {
     host_atomic_set(&m_port, 0);
     i860.uninit();
@@ -61,12 +65,12 @@ NextDimension::~NextDimension() {
     free(ram);
     free(vram);
     free(rom);
-
+    free(dmem);
 }
 
 void NextDimension::reset(void) {
     i860.set_run_func();
-    sdl.start_interrupts();
+    nd_start_interrupts();
 }
 
 void NextDimension::pause(bool pause) {
@@ -170,7 +174,7 @@ void NextDimension::slot_bput(uint32_t addr, uint8_t b) {
 void NextDimension::send_msg(int msg) {
     int old_value, new_value;
     do {
-        old_value = m_port.value;
+        old_value = host_atomic_get(&m_port);
         new_value = old_value | msg;
         switch (msg) {
             case MSG_LOWER_INTR: new_value &= ~MSG_RAISE_INTR; break;
@@ -295,28 +299,88 @@ bool NextDimension::handle_msgs(void) {
     int msg = host_atomic_set(&m_port, 0);
     
     if(msg & MSG_DISPLAY_BLANK)
-        set_blank_state(ND_DISPLAY, host_blank_state(slot, ND_DISPLAY));
+        set_blank_state(ND_DISPLAY, display_vbl);
     if(msg & MSG_VIDEO_BLANK)
-        set_blank_state(ND_VIDEO, host_blank_state(slot, ND_VIDEO));
+        set_blank_state(ND_VIDEO, video_vbl);
 
     return i860.handle_msgs(msg);
 }
 
-void nd_start_debugger(void) {
-    FOR_EACH_SLOT(slot) {
+extern "C" {
+    void nd_start_interrupts(void) {
+        CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VBL);
+        CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VIDEO_VBL);
+    }
+
+    void nd_display_vbl_handler(void) {
+        static bool bBlankToggle = false;
+        
+        CycInt_AcknowledgeInterrupt();
+        
+        if (!bBlankToggle) {
+            switch (ConfigureParams.Screen.nMonitorType) {
+                case MONITOR_TYPE_DUAL:
+                    Main_SendSpecialEvent(MAIN_ND_DISPLAY);
+                    break;
+                case MONITOR_TYPE_DIMENSION:
+                    Main_SendSpecialEvent(MAIN_REPAINT);
+                    break;
+                default:
+                    break;
+            }
+        }
+        host_blank_count(ND_DISPLAY, bBlankToggle);
+        
+        FOR_EACH_SLOT(slot) {
+            IF_NEXT_DIMENSION(slot, nd) {
+                nd->display_vbl = bBlankToggle;
+                nd->send_msg(MSG_DISPLAY_BLANK);
+                nd->i860.i860cycles = (1000*1000*33)/136;
+            }
+        }
+        bBlankToggle = !bBlankToggle;
+        
+        // 136Hz with toggle gives 68Hz, blank time is 1/2 frame time
+        CycInt_AddRelativeInterruptUs((1000*1000)/136, 0, INTERRUPT_ND_VBL);
+    }
+
+    void nd_display_repaint(void) {
+        nd_sdl_repaint();
+    }
+
+    void nd_video_vbl_handler(void) {
+        static bool bBlankToggle = false;
+        
+        CycInt_AcknowledgeInterrupt();
+        
+        host_blank_count(ND_VIDEO, bBlankToggle);
+        
+        FOR_EACH_SLOT(slot) {
+            IF_NEXT_DIMENSION(slot, nd) {
+                nd->video_vbl = bBlankToggle;
+                nd->send_msg(MSG_VIDEO_BLANK);
+            }
+        }
+        bBlankToggle = !bBlankToggle;
+        
+        // 120Hz with toggle gives 60Hz NTSC, blank time is 1/2 frame time
+        CycInt_AddRelativeInterruptUs((1000*1000)/120, 0, INTERRUPT_ND_VIDEO_VBL);
+    }
+
+    uint32_t* nd_vram_for_slot(int slot) {
         IF_NEXT_DIMENSION(slot, nd) {
-            nd->send_msg(MSG_DBG_BREAK);
+            return (uint32_t*)nd->vram;
+        } else {
+            return NULL;
         }
     }
-}
 
-extern "C" {
-    void nd_display_blank(int slot) {
-        ((NextDimension*)nextbus[slot])->send_msg(MSG_DISPLAY_BLANK);
-    }
-
-    void nd_video_blank(int slot) {
-        ((NextDimension*)nextbus[slot])->send_msg(MSG_VIDEO_BLANK);
+    void nd_start_debugger(void) {
+        FOR_EACH_SLOT(slot) {
+            IF_NEXT_DIMENSION(slot, nd) {
+                nd->send_msg(MSG_DBG_BREAK);
+            }
+        }
     }
 
     const char* nd_reports(uint64_t realTime, uint64_t hostTime) {
@@ -326,12 +390,5 @@ extern "C" {
             }
         }
         return "";
-    }
-
-    uint32_t* nd_vram_for_slot(int slot) {
-        IF_NEXT_DIMENSION(slot, nd)
-            return (uint32_t*)nd->vram;
-        else
-            return NULL;
     }
 }

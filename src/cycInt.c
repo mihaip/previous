@@ -39,7 +39,7 @@ const char CycInt_fileid[] = "Previous cycInt.c : " __DATE__ " " __TIME__;
 #include "scc.h"
 #include "configuration.h"
 #include "main.h"
-#include "nd_sdl.hpp"
+#include "dimension.hpp"
 
 void (*PendingInterruptFunction)(void);
 int64_t PendingInterruptCounter;
@@ -70,8 +70,8 @@ static void (* const pIntHandlerFunctions[MAX_INTERRUPTS])(void) =
     Printer_IO_Handler,
     SCC_IO_Handler,
     Main_EventHandlerInterrupt,
-    nd_vbl_handler,
-    nd_video_vbl_handler,
+    nd_display_vbl_handler,
+    nd_video_vbl_handler
 };
 
 static INTERRUPTHANDLER InterruptHandlers[MAX_INTERRUPTS];

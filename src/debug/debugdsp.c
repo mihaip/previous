@@ -23,7 +23,6 @@ const char DebugDsp_fileid[] = "Hatari debugdsp.c";
 #include "debugdsp.h"
 #include "dsp.h"
 #include "evaluate.h"
-#include "history.h"
 #include "log.h"
 #include "profile.h"
 #include "str.h"

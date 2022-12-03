@@ -17,17 +17,13 @@
 #include "memory.h"
 #include "newcpu.h"
 
-/* NeXTdimension blank handling, see nd_sdl.c */
-void nd_display_blank(int num);
-void nd_video_blank(int num);
 
 #define NUM_BLANKS 3
+static SDL_atomic_t vblCounter[NUM_BLANKS];
 static const char* BLANKS[] = {
   "main","nd_main","nd_video"  
 };
 
-static volatile uint32_t blank[NUM_BLANKS];
-static uint32_t     vblCounter[NUM_BLANKS];
 static int64_t      cycleCounterStart;
 static int64_t      cycleDivisor;
 static uint64_t     perfCounterStart;
@@ -145,8 +141,7 @@ void host_reset(void) {
     saveTime          = 0;
     
     for(int i = NUM_BLANKS; --i >= 0;) {
-        vblCounter[i] = 0;
-        blank[i]      = 0;
+        host_reset_blank_counter(i);
     }
     
     cycleDivisor = ConfigureParams.System.nCpuFreq;
@@ -161,26 +156,17 @@ void host_reset(void) {
 
 const char DARKMATTER[] = "darkmatter";
 
-void host_blank(int slot, int src, bool state) {
-    int bit = 1 << slot;
-    if(state) {
-        blank[src] |=  bit;
-        vblCounter[src]++;
-    }
-    else
-        blank[src] &= ~bit;
-    switch (src) {
-        case ND_DISPLAY:   nd_display_blank(slot); break;
-        case ND_VIDEO:     nd_video_blank(slot);   break;
+void host_blank_count(int src, bool state) {
+    if (state) {
+        SDL_AtomicAdd(&vblCounter[src], 1);
     }
     
     // check first 4 bytes of version string in darkmatter/daydream kernel
     osDarkmatter = get_long(0x04000246) == do_get_mem_long((uint8_t*)DARKMATTER);
 }
 
-bool host_blank_state(int slot, int src) {
-    int bit = 1 << slot;
-    return blank[src] & bit;
+int host_reset_blank_counter(int src) {
+    return SDL_AtomicSet(&vblCounter[src], 0);
 }
 
 void host_hardclock(int expected, int actual) {
@@ -388,8 +374,7 @@ const char* host_report(uint64_t realTime, uint64_t hostTime) {
     r += sprintf(r, "[%s] hostTime:%llu hardClock:%.3fMHz", enableRealtime ? "Variable" : "CycleTime", hostTime, hardClock);
 
     for(int i = NUM_BLANKS; --i >= 0;) {
-        r += sprintf(r, " %s:%.1fHz", BLANKS[i], (double)vblCounter[i]/dVT);
-        vblCounter[i] = 0;
+        r += sprintf(r, " %s:%.1fHz", BLANKS[i], (double)host_reset_blank_counter(i)/dVT);
     }
     
     lastVT = hostTime;

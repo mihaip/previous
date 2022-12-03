@@ -64,6 +64,7 @@ extern "C" {
 /* Types for special event */
 enum {
 	MAIN_REPAINT,
+	MAIN_ND_DISPLAY,
 	MAIN_PAUSE,
 	MAIN_UNPAUSE,
 	MAIN_HALT
