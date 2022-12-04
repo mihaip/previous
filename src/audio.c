@@ -1,5 +1,5 @@
 #include "main.h"
-#include "dialog.h"
+#include "statusbar.h"
 #include "configuration.h"
 #include "m68000.h"
 #include "sysdeps.h"
@@ -12,13 +12,11 @@
 
 
 /* Sound emulation SDL interface */
-static SDL_AudioDeviceID Audio_Input_Device;
-static SDL_AudioDeviceID Audio_Output_Device;
+static SDL_AudioDeviceID Audio_Input_Device  = 0;
+static SDL_AudioDeviceID Audio_Output_Device = 0;
 
 static bool           bSoundOutputWorking = false; /* Is sound output OK */
 static bool           bSoundInputWorking  = false; /* Is sound input OK */
-static bool           bSoundOutAlertShown = false;
-static bool           bSoundInAlertShown  = false;
 static bool           bPlayingBuffer      = false; /* Is playing buffer? */
 static bool           bRecordingBuffer    = false; /* Is recording buffer? */
 #define               REC_BUFFER_SZ       16       /* Recording buffer size in power of two */
@@ -123,7 +121,7 @@ void Audio_Input_Unlock() {
 
 static bool check_audio(int requested, int granted, const char* attribute) {
     if(requested != granted)
-        Log_Printf(LOG_WARN, "[Audio] %s mismatch. Requested:%d, granted:%d", attribute, requested, granted);
+        Log_Printf(LOG_WARN, "[Audio] Device %s mismatch: requested: %d, granted: %d.", attribute, requested, granted);
     return requested == granted;
 }
 
@@ -140,7 +138,7 @@ void Audio_Output_Init(void)
     if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
         if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
             Log_Printf(LOG_WARN, "[Audio] Could not init audio output: %s\n", SDL_GetError());
-            DlgAlert_Notice("Error: Can't open SDL audio subsystem.");
+            Statusbar_AddMessage("Error: Can't open SDL audio subsystem.", 5000);
             bSoundOutputWorking = false;
             return;
         }
@@ -154,24 +152,25 @@ void Audio_Output_Init(void)
     request.userdata = NULL;
     request.samples  = SOUND_BUFFER_SAMPLES; /* buffer size in samples */
 
-    Audio_Output_Device = SDL_OpenAudioDevice(NULL, 0, &request, &granted, 0);
-    if (Audio_Output_Device==0)	/* Open audio device */ {
-        Log_Printf(LOG_WARN, "[Audio] Can't use audio: %s\n", SDL_GetError());
-        if(!bSoundOutAlertShown) {
-            DlgAlert_Notice("Error: Can't open audio output device. No sound output.");
-            bSoundOutAlertShown = true;
-        }
+    if (Audio_Output_Device == 0) {
+        Audio_Output_Device = SDL_OpenAudioDevice(NULL, 0, &request, &granted, 0);
+    }
+    if (Audio_Output_Device == 0) {
+        Log_Printf(LOG_WARN, "[Audio] Could not open audio output device: %s\n", SDL_GetError());
+        Statusbar_AddMessage("Error: Can't open audio output device. No sound output.", 5000);
         bSoundOutputWorking = false;
         return;
     }
-    bSoundOutputWorking = true;
+    bSoundOutputWorking  = true;
     bSoundOutputWorking &= check_audio(request.freq,     granted.freq,     "freq");
     bSoundOutputWorking &= check_audio(request.format,   granted.format,   "format");
     bSoundOutputWorking &= check_audio(request.channels, granted.channels, "channels");
     bSoundOutputWorking &= check_audio(request.samples,  granted.samples,  "samples");
 
-    if(!(bSoundOutputWorking)) {
-        DlgAlert_Notice("Error: Can't open audio output device. No sound output.");
+    if (!bSoundOutputWorking) {
+        SDL_CloseAudioDevice(Audio_Output_Device);
+        Audio_Output_Device = 0;
+        Statusbar_AddMessage("Error: Can't open audio output device. No sound output.", 5000);
     }
 }
 
@@ -182,8 +181,8 @@ void Audio_Input_Init(void) {
     /* Init the SDL's audio subsystem: */
     if (SDL_WasInit(SDL_INIT_AUDIO) == 0) {
         if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
-            Log_Printf(LOG_WARN, "Could not init audio input: %s\n", SDL_GetError());
-            DlgAlert_Notice("Error: Can't open SDL audio subsystem.");
+            Log_Printf(LOG_WARN, "[Audio] Could not init audio input: %s\n", SDL_GetError());
+            Statusbar_AddMessage("Error: Can't open SDL audio subsystem.", 5000);
             bSoundInputWorking = false;
             return;
         }
@@ -197,26 +196,26 @@ void Audio_Input_Init(void) {
     request.userdata = NULL;
     request.samples  = SOUND_BUFFER_SAMPLES; /* buffer size in samples */
     
-    Audio_Input_Device = SDL_OpenAudioDevice(NULL, 1, &request, &granted, 0); /* Open audio device */
-    
-    if (Audio_Input_Device==0){
-        Log_Printf(LOG_WARN, "Can't use audio: %s\n", SDL_GetError());
-        if(!bSoundInAlertShown) {
-            DlgAlert_Notice("Error: Can't open audio input device. No sound recording (will record silence instead).");
-            bSoundInAlertShown = true;
-        }
+    if (Audio_Input_Device == 0) {
+        Audio_Input_Device = SDL_OpenAudioDevice(NULL, 1, &request, &granted, 0); /* Open audio device */
+    }
+    if (Audio_Input_Device == 0) {
+        Log_Printf(LOG_WARN, "[Audio] Could not open audio input device: %s\n", SDL_GetError());
+        Statusbar_AddMessage("Error: Can't open audio input device. Recording silence.", 5000);
         bSoundInputWorking = false;
         return;
     }
     
-    bSoundInputWorking = true;
+    bSoundInputWorking  = true;
     bSoundInputWorking &= check_audio(request.freq,     granted.freq,     "freq");
     bSoundInputWorking &= check_audio(request.format,   granted.format,   "format");
     bSoundInputWorking &= check_audio(request.channels, granted.channels, "channels");
     bSoundInputWorking &= check_audio(request.samples,  granted.samples,  "samples");
 	
-	if(!(bSoundInputWorking)) {
-		DlgAlert_Notice("Error: Can't open audio input device. No sound recording (will record silence instead).");
+	if (!bSoundInputWorking) {
+        SDL_CloseAudioDevice(Audio_Input_Device);
+        Audio_Input_Device = 0;
+        Statusbar_AddMessage("Error: Can't open audio input device. Recording silence.", 5000);
 	}
 }
 
@@ -232,6 +231,7 @@ void Audio_Output_UnInit(void) {
         
         SDL_CloseAudioDevice(Audio_Output_Device);
         
+        Audio_Output_Device = 0;
         bSoundOutputWorking = false;
     }
 }
@@ -243,6 +243,7 @@ void Audio_Input_UnInit(void) {
         
         SDL_CloseAudioDevice(Audio_Input_Device);
         
+        Audio_Input_Device = 0;
         bSoundInputWorking = false;
     }
 }

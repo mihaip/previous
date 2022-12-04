@@ -350,7 +350,7 @@ static uint8_t Keymap_GetKeyFromSymbol(SDL_Keycode sdlkey)
  * This functions translates the modifieres provided by SDL to NeXT 
  * modifier bits.
  */
-static uint8_t Keymap_Keyup_GetMod(uint16_t mod)
+static uint8_t Keymap_GetModifiers(uint16_t mod)
 {
 	uint8_t modifiers = 0;
 
@@ -433,7 +433,7 @@ void Keymap_KeyDown(const SDL_Keysym *sdlkey)
 		next_key = Keymap_GetKeyFromScancode(sdlkey->scancode);
 	}
 
-	next_mod = Keymap_Keyup_GetMod(sdlkey->mod);
+	next_mod = Keymap_GetModifiers(sdlkey->mod);
 
 	Log_Printf(LOG_KEYMAP_LEVEL, "[Keymap] NeXT Keycode: $%02x, Modifiers: $%02x\n", next_key, next_mod);
 
@@ -455,7 +455,7 @@ void Keymap_KeyUp(const SDL_Keysym *sdlkey)
 		next_key = Keymap_GetKeyFromScancode(sdlkey->scancode);
 	}
 
-	next_mod = Keymap_Keyup_GetMod(sdlkey->mod);
+	next_mod = Keymap_GetModifiers(sdlkey->mod);
 
 	Log_Printf(LOG_KEYMAP_LEVEL, "[Keymap] NeXT Keycode: $%02x, Modifiers: $%02x\n", next_key, next_mod);
 

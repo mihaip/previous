@@ -337,7 +337,7 @@ extern "C" {
             IF_NEXT_DIMENSION(slot, nd) {
                 nd->display_vbl = bBlankToggle;
                 nd->send_msg(MSG_DISPLAY_BLANK);
-                nd->i860.i860cycles = (1000*1000*33)/136;
+                host_atomic_set(&nd->i860.i860cycles, (1000*1000*33)/136);
             }
         }
         bBlankToggle = !bBlankToggle;

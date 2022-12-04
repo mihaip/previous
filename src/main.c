@@ -342,7 +342,7 @@ static bool Main_GetEvent(SDL_Event* event) {
 
 	return valid;
 }
-#endif // ENABLE_RENDERING_THREAD
+#endif // !ENABLE_RENDERING_THREAD
 
 /* ----------------------------------------------------------------------- */
 /**
@@ -520,7 +520,7 @@ void Main_EventHandlerInterrupt(void) {
 	if (time_offset > 0) {
 		host_sleep_us(time_offset);
 	}
-#endif // ENABLE_RENDERING_THREAD
+#endif // !ENABLE_RENDERING_THREAD
 
 	CycInt_AddRelativeInterruptUs((1000*1000)/200, 0, INTERRUPT_EVENT_LOOP); // poll events with 200 Hz
 }
@@ -534,8 +534,11 @@ static int Main_Thread(void* unused) {
 	SDL_SetThreadPriority(SDL_THREAD_PRIORITY_NORMAL);
 
 	while (!bQuitProgram) {
+		/* Start EventHandler */
 		CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_EVENT_LOOP);
-		M68000_Start();               /* Start emulation */
+
+		/* Start emulation */
+		M68000_Start();
 	}
 
 	bEmulationActive = false;
@@ -570,7 +573,6 @@ void Main_EventHandler(void) {
 		}
 #else
 		events = SDL_WaitEventTimeout(&event, 100);
-
 #endif
 		if (!events) {
 			/* no events -> if emulation is active or
@@ -727,13 +729,14 @@ static void Main_Loop(void) {
 	/* Get an event ID for our special event */
 	SPECIAL_EVENT = SDL_RegisterEvents(1);
 
-#ifdef ENABLE_RENDERING_THREAD
-	/* Start EventHandler */
-	CycInt_AddRelativeInterruptUs(500*1000, 0, INTERRUPT_EVENT_LOOP);
-
-	/* Run emulation */
+	/* Enable emulation */
 	Main_UnPauseEmulation();
 
+#ifdef ENABLE_RENDERING_THREAD
+	/* Start EventHandler */
+	CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_EVENT_LOOP);
+
+	/* Start emulation */
 	M68000_Start();
 #else
 	/* Initialize event queue */
@@ -743,9 +746,7 @@ static void Main_Loop(void) {
 	pauseFlag  = SDL_CreateSemaphore(0);
 	nextThread = SDL_CreateThread(Main_Thread, "[Previous] 68k at slot 0", NULL);
 
-	/* Run emulation */
-	Main_UnPauseEmulation();
-
+	/* Start EventHandler */
 	while (!bQuitProgram) {
 		Main_EventHandler();
 	}

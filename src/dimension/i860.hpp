@@ -448,13 +448,13 @@ public:
     inline bool is_halted(void) {return m_halt;};
 
     /* i860 cycle counter */
-    int i860cycles;
+    atomic_int i860cycles;
     /* Run one i860 cycle */
-    void    run_cycle(void);
+    void run_cycle(void);
     /* Run the i860 thread */
     void run();
     /* i860 thread message handler */
-    bool   handle_msgs(int msg);
+    bool handle_msgs(int msg);
     
     static int thread(void* data);
     

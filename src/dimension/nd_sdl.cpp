@@ -33,7 +33,7 @@ int NDSDL::repainter(void) {
 
     return 0;
 }
-#else // ENABLE_RENDERING_THREAD
+#else // !ENABLE_RENDERING_THREAD
 NDSDL::NDSDL(int slot, uint32_t* vram) : slot(slot), vram(vram), ndWindow(NULL), ndRenderer(NULL), ndTexture(NULL) {}
 
 void NDSDL::repaint(void) {
@@ -42,7 +42,7 @@ void NDSDL::repaint(void) {
     SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
     SDL_RenderPresent(ndRenderer);
 }
-#endif // ENABLE_RENDERING_THREAD
+#endif // !ENABLE_RENDERING_THREAD
 
 void NDSDL::init(void) {
     int x, y, w, h;

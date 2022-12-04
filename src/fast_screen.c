@@ -250,7 +250,7 @@ static int repainter(void* unused) {
 	}
 	return 0;
 }
-#else // ENABLE_RENDERING_THREAD
+#else // !ENABLE_RENDERING_THREAD
 void Screen_Repaint(void) {
 	bool updateFB = false;
 
@@ -274,7 +274,7 @@ void Screen_Repaint(void) {
 		SDL_RenderPresent(sdlRenderer);
 	}
 }
-#endif // ENABLE_RENDERING_THREAD
+#endif // !ENABLE_RENDERING_THREAD
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -410,8 +410,8 @@ void Screen_Init(void) {
 	/* Start repaint thread with framebuffer blit disabled */
 	SDL_AtomicSet(&blitFB, 0);
 	repaintThread = SDL_CreateThread(repainter, "[Previous] Screen at slot 0", NULL);
-
 #endif
+
 	/* Configure some SDL stuff: */
 	SDL_ShowCursor(SDL_DISABLE);
 	Main_SetMouseGrab(bGrabMouse);

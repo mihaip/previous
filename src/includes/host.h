@@ -62,6 +62,7 @@ extern "C" {
     int         host_trylock(lock_t* lock);
     int         host_atomic_set(atomic_int* a, int newValue);
     int         host_atomic_get(atomic_int* a);
+    int         host_atomic_add(atomic_int* a, int value);
     bool        host_atomic_cas(atomic_int* a, int oldValue, int newValue);
     mutex_t*    host_mutex_create(void);
     void        host_mutex_lock(mutex_t* mutex);

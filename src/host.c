@@ -326,6 +326,10 @@ int host_atomic_get(atomic_int* a) {
     return SDL_AtomicGet(a);
 }
 
+int host_atomic_add(atomic_int* a, int value) {
+    return SDL_AtomicAdd(a, value);
+}
+
 bool host_atomic_cas(atomic_int* a, int oldValue, int newValue) {
     return SDL_AtomicCAS(a, oldValue, newValue);
 }

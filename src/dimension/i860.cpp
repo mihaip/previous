@@ -582,12 +582,12 @@ void i860_cpu_device::run() {
             continue;
         }
         
-        if (i860cycles > 0) {
+        if (host_atomic_get(&i860cycles) > 0) {
             /* Run some i860 cycles before re-checking messages */
             for(int i = 16; --i >= 0;)
                 run_cycle();
             
-            i860cycles -= 16;
+            host_atomic_add(&i860cycles, -16);
         } else {
             host_sleep_ms(1);
         }
