@@ -317,6 +317,7 @@ extern "C" {
         
         CycInt_AcknowledgeInterrupt();
         
+#ifndef ENABLE_RENDERING_THREAD
         if (!bBlankToggle) {
             switch (ConfigureParams.Screen.nMonitorType) {
                 case MONITOR_TYPE_DUAL:
@@ -329,6 +330,7 @@ extern "C" {
                     break;
             }
         }
+#endif
         host_blank_count(ND_DISPLAY, bBlankToggle);
         
         FOR_EACH_SLOT(slot) {
@@ -344,9 +346,11 @@ extern "C" {
         CycInt_AddRelativeInterruptUs((1000*1000)/136, 0, INTERRUPT_ND_VBL);
     }
 
+#ifndef ENABLE_RENDERING_THREAD
     void nd_display_repaint(void) {
         nd_sdl_repaint();
     }
+#endif
 
     void nd_video_vbl_handler(void) {
         static bool bBlankToggle = false;

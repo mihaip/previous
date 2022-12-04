@@ -99,6 +99,9 @@
 /* Define to 1 to enable trace logs - undefine to slightly increase speed */
 #cmakedefine ENABLE_TRACING 1
 
+/* Define to 1 to enable rendering threads for higher efficiency */
+#cmakedefine ENABLE_RENDERING_THREAD 1
+
 /* Define to 1 if you have the 'posix_memalign' function */
 #cmakedefine HAVE_POSIX_MEMALIGN 1
 
