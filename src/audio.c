@@ -230,8 +230,8 @@ void Audio_Output_UnInit(void) {
         Audio_Output_Enable(false);
         
         SDL_CloseAudioDevice(Audio_Output_Device);
-        
         Audio_Output_Device = 0;
+        
         bSoundOutputWorking = false;
     }
 }
@@ -242,8 +242,8 @@ void Audio_Input_UnInit(void) {
         Audio_Input_Enable(false);
         
         SDL_CloseAudioDevice(Audio_Input_Device);
-        
         Audio_Input_Device = 0;
+        
         bSoundInputWorking = false;
     }
 }
