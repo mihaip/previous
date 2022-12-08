@@ -315,6 +315,7 @@ Previous v2.7 (unreleased):
   > Improves behavior of file selection dialog in certain situations.
   > Improves behavior of user interface in some edge cases.
   > Fixes bug that caused Daydream to hang on start up.
+  > Fixes bug that caused errors when formatting floppy disks.
   > Fixes bug that prevented sound recording on newer versions of macOS.
   > Fixes bug that caused NeXTdimension window to start with wrong size.
 
