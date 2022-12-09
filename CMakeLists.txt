@@ -20,6 +20,9 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 # set(CMAKE_VERBOSE_MAKEFILE 1)
 
+find_package(PkgConfig)
+
+
 # ##########################
 # Conditional build features
 # ##########################
@@ -80,8 +83,6 @@ endif(PCAP_FOUND)
 # CPP Definitions:
 # ################
 
-add_definitions(-DCONFDIR=\"/etc\")
-
 # Test for large file support:
 execute_process(COMMAND getconf LFS_CFLAGS
                 OUTPUT_VARIABLE DETECTED_LFS_CFLAGS
@@ -92,15 +93,11 @@ if(DETECTED_LFS_CFLAGS)
 endif(DETECTED_LFS_CFLAGS)
 
 # Additional CFLAGS suggested by the SDL library:
-execute_process(COMMAND pkg-config --cflags-only-other sdl2
-		OUTPUT_VARIABLE DETECTED_SDL_CFLAGS
-		ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
-if(DETECTED_SDL_CFLAGS)
-	if(NOT WIN32)
-	add_definitions(${DETECTED_SDL_CFLAGS})
-	endif(NOT WIN32)
-	# message(STATUS "Additional CFLAGS of SDL: ${DETECTED_SDL_CFLAGS}")
-endif(DETECTED_SDL_CFLAGS)
+if(PKG_CONFIG_FOUND)
+	execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} --cflags-only-other sdl2
+			OUTPUT_VARIABLE SDL2_OTHER_CFLAGS
+			ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+endif(PKG_CONFIG_FOUND)
 
 # ###########################
 # Check for optional headers:
@@ -120,33 +117,33 @@ check_include_files(netinet/in.h HAVE_NETINET_IN_H)
 # Check for optional functions:
 # #############################
 
-check_function_exists(bswap_16 HAVE_BSWAP_16)
-check_function_exists(bswap_32 HAVE_BSWAP_32)
-check_function_exists(setenv HAVE_SETENV)
-check_function_exists(select HAVE_SELECT)
-check_function_exists(gettimeofday HAVE_GETTIMEOFDAY)
-check_function_exists(nanosleep HAVE_NANOSLEEP)
-check_function_exists(alphasort HAVE_ALPHASORT)
-check_function_exists(scandir HAVE_SCANDIR)
-check_function_exists(fseeko HAVE_FSEEKO)
-check_function_exists(ftello HAVE_FTELLO)
-check_function_exists(flock HAVE_FLOCK)
-check_function_exists(strdup HAVE_STRDUP)
-check_function_exists(lsetxattr HAVE_LXETXATTR)
-check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
-check_function_exists(aligned_alloc HAVE_ALIGNED_ALLOC)
-check_function_exists(_aligned_alloc HAVE__ALIGNED_ALLOC)
+check_symbol_exists(bswap_16 "byteswap.h" HAVE_BSWAP_16)
+check_symbol_exists(bswap_32 "byteswap.h" HAVE_BSWAP_32)
+check_symbol_exists(setenv "stdlib.h" HAVE_SETENV)
+check_symbol_exists(select "sys/select.h" HAVE_SELECT)
+check_symbol_exists(gettimeofday "sys/time.h" HAVE_GETTIMEOFDAY)
+check_symbol_exists(nanosleep "time.h" HAVE_NANOSLEEP)
+check_symbol_exists(alphasort "dirent.h" HAVE_ALPHASORT)
+check_symbol_exists(scandir "dirent.h" HAVE_SCANDIR)
+check_symbol_exists(fseeko "stdio.h" HAVE_FSEEKO)
+check_symbol_exists(ftello "stdio.h" HAVE_FTELLO)
+check_symbol_exists(flock "sys/file.h" HAVE_FLOCK)
+check_symbol_exists(strdup "string.h" HAVE_STRDUP)
+check_symbol_exists(lsetxattr "sys/xattr.h" HAVE_LXETXATTR)
+check_symbol_exists(posix_memalign "stdlib.h" HAVE_POSIX_MEMALIGN)
+check_symbol_exists(aligned_alloc "stdlib.h" HAVE_ALIGNED_ALLOC)
+check_symbol_exists(_aligned_malloc "stdlib.h" HAVE__ALIGNED_MALLOC)
 
 # ########################################
-# Check for non-POSIXness on MacOS et al.:
+# Check for non-POSIXness on macOS et al.:
 # ########################################
 message("-- The following HAVE_STRUCT_* tests are checking for non-POSIX systems such as MacOS; 'Failed' does not indicate a problem")
-CHECK_STRUCT_HAS_MEMBER("struct stat" st_atimespec.tv_nsec
+check_struct_has_member("struct stat" st_atimespec.tv_nsec
     "sys/types.h;sys/stat.h" HAVE_STRUCT_STAT_ST_ATIMESPEC)
-CHECK_STRUCT_HAS_MEMBER("struct stat" st_mtimespec.tv_nsec
+check_struct_has_member("struct stat" st_mtimespec.tv_nsec
     "sys/types.h;sys/stat.h" HAVE_STRUCT_STAT_ST_MTIMESPEC)
 # Linux glibc provides a _D_EXACT_NAMELEN macro to work around this exact issue, but other supported platforms may not
-CHECK_STRUCT_HAS_MEMBER("struct dirent" d_namelen
+check_struct_has_member("struct dirent" d_namelen
 	"dirent.h" HAVE_STRUCT_DIRENT_D_NAMELEN)
 
 
@@ -154,19 +151,36 @@ CHECK_STRUCT_HAS_MEMBER("struct dirent" d_namelen
 # Other CFLAGS:
 # #############
 
-# Warning flags:
-if(CMAKE_COMPILER_IS_GNUCC)
-	set(CMAKE_C_FLAGS "-Wcast-qual -g -O0 -Wbad-function-cast -Wpointer-arith ${CMAKE_C_FLAGS} -D__USE_MINGW_ANSI_STDIO=1")
-	set(CMAKE_C_FLAGS "-Wmissing-prototypes -Wstrict-prototypes ${CMAKE_C_FLAGS}")
-	set(CMAKE_C_FLAGS "-Wall -Wwrite-strings -Wsign-compare ${CMAKE_C_FLAGS}")
+# GCC/Clang specific flags:
+if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "Clang")
+	# We want to allow ‘for’-loop initial declarations a la for(int i=0; ...)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
+	# Warning flags:
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wcast-qual -Wbad-function-cast -Wpointer-arith")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wmissing-prototypes -Wstrict-prototypes")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wwrite-strings -Wsign-compare")
 	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wno-unused-parameter -Wno-empty-body")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wformat-security -std=gnu99")
-	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wshadow -D_FORTIFY_SOURCE=2 -Werror")
-        set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wtautological-compare -Wno-unused-parameter ${CMAKE_CXX_FLAGS}")
-endif(CMAKE_COMPILER_IS_GNUCC)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wformat-security")
+	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wshadow -D_FORTIFY_SOURCE=2")
+	# Enable and disable some warnings and flags for Previous:
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -D__USE_MINGW_ANSI_STDIO=1")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-conversion -Wno-unused -Wno-sign-compare")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-missing-field-initializers")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wtautological-compare -Wno-unused-parameter")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-sign-compare -Wno-conversion -Wno-unused")
+endif()
+
+if(ENABLE_WERROR)
+	if (ENABLE_TRACING)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
+	else()
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wno-error=unused-function")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=unused-but-set-variable")
+	endif()
+endif(ENABLE_WERROR)
 
 # -Wpointer-bool-conversion is not in GCC yet (as of 10.2)
-if (CMAKE_CXX_COMPILER_ID MATCHES ".*clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpointer-bool-conversion -Wtautological-compare -Wno-unused-parameter ${CMAKE_CXX_FLAGS}")
 endif()
 
@@ -209,6 +223,25 @@ if(NOT DOCDIR)
 	set(DOCDIR share/doc/previous)
 endif()
 
+if(NOT ETCDIR)
+	if(WIN32)
+		set(ETCDIR .)
+	else()
+		set(ETCDIR /etc)
+	endif()
+endif()
+
+if(NOT ICONDIR)
+	set(ICONDIR share/icons/hicolor)
+endif()
+
+if(ENABLE_OSX_BUNDLE)
+	# put the config files in the app's bundle
+	add_definitions(-DCONFDIR=\"../Resources\")
+else()
+	add_definitions(-DCONFDIR=\"${ETCDIR}\")
+endif()
+
 # #########################################
 # Create config.h and recurse into subdirs:
 # #########################################
@@ -217,3 +250,34 @@ configure_file(${CMAKE_SOURCE_DIR}/cmake/config-cmake.h
 		${CMAKE_BINARY_DIR}/config.h)
 
 add_subdirectory(src)
+
+# ###################################################################
+# Print a summary of the optional libraries with a short explanation:
+# ###################################################################
+
+message( "
+Libraries summary :
+-------------------
+")
+
+message("  - sdl :\tusing SDL2 ${SDL2_VERSION}")
+
+if(PNG_FOUND)
+  message( "  - png :\tfound, allows to print fo files using png" )
+else()
+  message( "  - png :\tnot found, install it to print to files using png" )
+endif(PNG_FOUND)
+
+if(PCAP_FOUND)
+  message( "  - pcap :\tfound, allows networking without NAT" )
+else()
+  message( "  - pcap :\tnot found, install it to use networking without NAT" )
+endif(PCAP_FOUND)
+
+if(HAVE_SYS_XATTR_H)
+  message( "  - xattr.h :\tfound, allows netbooting from a folder" )
+else()
+  message( "  - xattr.h :\tnot found, no netboot possible" )
+endif(HAVE_SYS_XATTR_H)
+
+message( "" )

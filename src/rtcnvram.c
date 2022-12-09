@@ -100,7 +100,7 @@ void rtc_stop_pdown_request(void) {
 void oldrtc_check_time(void);
 void newrtc_check_time(void);
 
-void rtc_check_time(void) {
+static void rtc_check_time(void) {
     switch (ConfigureParams.System.nRTC) {
         case MC68HC68T1: oldrtc_check_time(); return;
         case MCCS1850:   newrtc_check_time(); return;

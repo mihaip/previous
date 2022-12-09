@@ -141,8 +141,8 @@ static inline uint8_t* malloc_aligned(size_t size) {
 	return (uint8_t*)result;
 #elif defined(HAVE_ALIGNED_ALLOC)
 	return (uint8_t*)aligned_alloc(0x10000, size);
-#elif defined(HAVE__ALIGNED_ALLOC)
-	return (uint8_t*)_aligned_alloc(0x10000, size);
+#elif defined(HAVE__ALIGNED_MALLOC)
+	return (uint8_t*)_aligned_malloc(0x10000, size);
 #else
 	return (uint8_t*)malloc(size);
 #endif

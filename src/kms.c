@@ -443,7 +443,7 @@ void kms_mouse_button(bool left, bool down) {
     km_internal_poll(addr);
 }
 
-void kms_mouse_move_step(void) {
+static void kms_mouse_move_step(void) {
     uint8_t  addr = kms.km_addr|KM_MOUSE;
     uint16_t data = 0;
 

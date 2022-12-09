@@ -478,7 +478,7 @@ static void lp_interface_on(void) {
     }
 }
 
-void lp_interface_off(void) {
+static void lp_interface_off(void) {
     lp_copyright_sequence = 0;
     
     lp.csr.dma = 0;
@@ -624,7 +624,7 @@ static void lp_gpo(uint8_t cmd) {
     lp_gpo_access(cmd);
 }
 
-void lp_command_in(uint8_t cmd, uint32_t data) {
+static void lp_command_in(uint8_t cmd, uint32_t data) {
     if (!(lp.csr.transmit&LP_TX_EN)) {
         return;
     }

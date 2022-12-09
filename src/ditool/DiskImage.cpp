@@ -39,11 +39,11 @@ int32_t  fsv(int32_t v)  { return ntohl(v); }
 
 DiskImage::DiskImage(const string& path)
 : imf(path, ios::binary | ios::in)
-, path(path)
 , diskOffset(0)
 , blockSize(BLOCKSZ)
+, rawOptical(false)
 , sectorSize(0)
-, rawOptical(false) {
+, path(path) {
     if(!(imf)) {
         error = strerror(errno);
         return;

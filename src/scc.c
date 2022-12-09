@@ -258,7 +258,7 @@ uint8_t scc_register_pointer = 0;
 
 
 /* Interrupts */
-void scc_check_interrupt(void) {
+static void scc_check_interrupt(void) {
     if ((scc[0].rreg[R_INTBITS]&(RR3_A_IP|RR3_B_IP)) && (scc[0].wreg[W_MASTERINT]&WR9_MIE)) {
         set_interrupt(INT_SCC, SET_INT);
     } else {
@@ -266,12 +266,12 @@ void scc_check_interrupt(void) {
     }
 }
 
-void scc_set_interrupt(uint8_t intr) {
+static void scc_set_interrupt(uint8_t intr) {
     scc[0].rreg[R_INTBITS] |= intr;
     scc_check_interrupt();
 }
 
-void scc_release_interrupt(uint8_t intr) {
+static void scc_release_interrupt(uint8_t intr) {
     scc[0].rreg[R_INTBITS] &= ~intr;
     scc_check_interrupt();
 }
@@ -318,7 +318,7 @@ static void scc_hard_reset(void) {
 
 
 /* Receive and send data */
-void scc_receive(int ch, uint8_t val) {
+static void scc_receive(int ch, uint8_t val) {
     Log_Printf(LOG_SCC_IO_LEVEL,"[SCC] Channel %c: Receiving %02X\n", ch?'B':'A', val);
 
     scc[ch].data = val;
@@ -329,7 +329,7 @@ void scc_receive(int ch, uint8_t val) {
     }
 }
 
-void scc_send(int ch, uint8_t val) {
+static void scc_send(int ch, uint8_t val) {
     Log_Printf(LOG_SCC_IO_LEVEL,"[SCC] Channel %c: Sending %02X\n", ch?'B':'A', val);
 
     if (scc[ch].wreg[W_MISC]&WR14_LOOPBACK) {
@@ -343,7 +343,7 @@ void scc_send(int ch, uint8_t val) {
     }
 }
 
-void scc_send_dma(int ch, uint8_t val) {
+static void scc_send_dma(int ch, uint8_t val) {
     Log_Printf(LOG_SCC_IO_LEVEL,"[SCC] Channel %c: Sending %02X via DMA\n", ch?'B':'A', val);
     
     if (scc[ch].wreg[W_MISC]&WR14_LOOPBACK) {
@@ -381,7 +381,7 @@ void SCC_IO_Handler(void) {
     }
 }
 
-uint8_t scc_data_read(int ch) {
+static uint8_t scc_data_read(int ch) {
     Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Data read %02X\n", ch?'B':'A',scc[ch].data);
     
     scc[ch].rreg[R_STATUS] &= ~RR0_RXAVAIL;
@@ -390,7 +390,7 @@ uint8_t scc_data_read(int ch) {
     return scc[ch].data;
 }
 
-void scc_data_write(int ch, uint8_t val) {
+static void scc_data_write(int ch, uint8_t val) {
     Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Data write %02X\n", ch?'B':'A',val);
     
     scc_pio = true;
@@ -401,7 +401,7 @@ void scc_data_write(int ch, uint8_t val) {
 
 
 /* Internal register functions */
-void scc_write_mode(int ch, uint8_t val) {
+static void scc_write_mode(int ch, uint8_t val) {
     if (val&WR1_REQENABLE) {
         scc_pio = false;
         CycInt_AddRelativeInterruptCycles(50, INTERRUPT_SCC_IO);
@@ -419,7 +419,7 @@ void scc_write_mode(int ch, uint8_t val) {
     scc_check_interrupt();
 }
 
-void scc_write_masterint(uint8_t val) {
+static void scc_write_masterint(uint8_t val) {
     scc[0].wreg[W_MASTERINT] = val;
     scc_register_pointer     = 0;
     
@@ -441,7 +441,7 @@ void scc_write_masterint(uint8_t val) {
     scc_check_interrupt();
 }
 
-void scc_write_init(ch, val) {
+static void scc_write_init(ch, val) {
     switch (val&0x38) {
         case WR0_RESETTXPEND:
             scc_release_interrupt(ch?RR3_B_TXIP:RR3_A_TXIP);
@@ -454,7 +454,7 @@ void scc_write_init(ch, val) {
 
 
 /* Internal register access */
-uint8_t scc_control_read(int ch) {
+static uint8_t scc_control_read(int ch) {
     uint8_t val = 0;
     
     switch (scc_register_pointer) {
@@ -489,7 +489,7 @@ uint8_t scc_control_read(int ch) {
     return val;
 }
 
-void scc_control_write(int ch, uint8_t val) {
+static void scc_control_write(int ch, uint8_t val) {
     
     if (scc_register_pointer==W_INIT) {
         scc_register_pointer = val&7;
@@ -537,11 +537,11 @@ void scc_control_write(int ch, uint8_t val) {
     }
 }
 
-uint8_t scc_clock_read(void) {
+static uint8_t scc_clock_read(void) {
     return scc[0].clock;
 }
 
-void scc_clock_write(uint8_t val) {
+static void scc_clock_write(uint8_t val) {
     if (ConfigureParams.System.bTurbo) {
         if ((scc[0].clock&0x80) && !(val&0x80)) {
             Log_Printf(LOG_SCC_REG_LEVEL, "[SCC] System clock: Reset\n");

@@ -494,7 +494,7 @@ static void SCSI_GuessGeometry(uint32_t size, uint32_t *cylinders, uint32_t *hea
 #define SCSI_SECTOR_TIME_CD     3250   /* 150 kB/sec */
 
 
-int64_t SCSI_GetTime(uint8_t target) {
+static int64_t SCSI_GetTime(uint8_t target) {
     int64_t seektime, sectortime;
     int64_t seekoffset, disksize, sectors;
     

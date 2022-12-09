@@ -118,6 +118,10 @@ Previous with:
 If all works fine, you should get the executable "Previous" in the src/ sub-
 directory of the build tree. 
 
+Some systems do not support rendering from secondary threads. In case you get a 
+black window try compiling with rendering threads disabled. In the instructions 
+above replace "cmake .." with "../configure --disable-rendering-thread".
+
 For more detailed building instructions read the file building.previous.txt.
 
 

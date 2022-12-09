@@ -32,6 +32,7 @@ typedef enum {
 
 extern void DebugUI_Init(void);
 extern void DebugUI(debug_reason_t reason);
+extern void DebugUI_Exceptions(int nr, long pc);
 extern bool DebugUI_ParseLine(const char *input);
 extern bool DebugUI_AddParseFile(const char *input);
 extern void DebugUI_MemorySnapShot_Capture(const char *path, bool bSave);

@@ -425,7 +425,7 @@ void enet_receive(uint8_t *pkt, int len) {
     }
 }
 
-void enet_send(uint8_t *pkt, int len) {
+static void enet_send(uint8_t *pkt, int len) {
     print_packet(enet_tx_buffer.data, enet_tx_buffer.size, 1);
     if (en_state == EN_LOOPBACK) {
         /* Loop back */

@@ -58,7 +58,7 @@ static inline uint64_t real_time(void) {
 #define DAY_TO_US (1000000ULL * 60 * 60 * 24)
 
 // Report counter capacity
-void host_report_limits(void) {
+static void host_report_limits(void) {
     uint64_t cycleCounterLimit, perfCounterLimit, perfCounter;
     
     Log_Printf(LOG_WARN, "[Hosttime] Timing system reset:");
@@ -97,7 +97,7 @@ void host_report_limits(void) {
 // Check NeXT specific UNIX time limits and adjust time if needed
 #define TIME_LIMIT_SECONDS 0
 
-void host_check_unix_time(void) {
+static void host_check_unix_time(void) {
     struct tm* t = gmtime(&unixTimeStart);
     char* s = asctime(t);
     bool b = false;
@@ -154,7 +154,7 @@ void host_reset(void) {
     host_check_unix_time();
 }
 
-const char DARKMATTER[] = "darkmatter";
+static char DARKMATTER[] = "darkmatter";
 
 void host_blank_count(int src, bool state) {
     if (state) {
@@ -378,7 +378,7 @@ const char* host_report(uint64_t realTime, uint64_t hostTime) {
     r += sprintf(r, "[%s] hostTime:%llu hardClock:%.3fMHz", enableRealtime ? "Variable" : "CycleTime", hostTime, hardClock);
 
     for(int i = NUM_BLANKS; --i >= 0;) {
-        r += sprintf(r, " %s:%.1fHz", BLANKS[i], (double)host_reset_blank_counter(i)/dVT);
+        r += sprintf(r, " %s:%.1fHz", BLANKS[i], (double)(host_reset_blank_counter(i))/dVT);
     }
     
     lastVT = hostTime;

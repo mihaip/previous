@@ -185,7 +185,7 @@ bool snd_output_active() {
 #define BIAS 0x84               /* define the add-in bias for 16 bit samples */
 #define CLIP 32635
 
-uint8_t snd_make_ulaw(int16_t sample) {
+static uint8_t snd_make_ulaw(int16_t sample) {
     static int16_t exp_lut[256] = {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
