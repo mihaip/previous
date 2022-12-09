@@ -160,7 +160,7 @@ void ESP_DMA_CTRL_Write(void) {
     if (esp_dma.control&ESPCTRL_FLUSH) {
         Log_Printf(LOG_ESPDMA_LEVEL, "flush DMA buffer\n");
 		if (ConfigureParams.System.bTurbo) {
-			tdma_flush_buffer(0);
+			tdma_flush_buffer(CHANNEL_SCSI);
 		} else {
 			dma_esp_flush_buffer();
 		}

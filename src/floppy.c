@@ -278,7 +278,8 @@ void floppy_stop(void) {
 void floppy_reset(void) {
     Log_Printf(LOG_WARN,"[Floppy] Reset.");
     
-    flp.dor  = 0;
+    flp.dor = flp.sel = 0;
+    
     flp.sra &= ~(SRA_INT|SRA_STEP|SRA_HDSEL|SRA_DIR);
     flp.srb &= ~(SRB_R_TOGGLE|SRB_W_TOGGLE);
     flp.srb &= ~(SRB_MOTEN_MASK|SRB_DRVSEL0_N);
@@ -400,12 +401,11 @@ static void check_protection(int drive) {
     }
 }
 
-static void floppy_seek_track(uint8_t c, uint8_t h, int drive) {
+static void floppy_seek_track(uint8_t c, int drive) {
     flp.st[0] |= ST0_SE;
     
     flpdrv[drive].seekoffset = (flpdrv[drive].cyl < c) ? (c - flpdrv[drive].cyl) : (flpdrv[drive].cyl - c);
     flpdrv[drive].cyl = c;
-    flpdrv[drive].head = h;
 }
 
 /* Timings */
@@ -505,15 +505,18 @@ static void floppy_read(void) {
     
     flp.st[0] = flp.st[1] = flp.st[2] = 0;
     
+    /* Select head */
+    flpdrv[drive].head = head;
+
     /* If implied seek is enabled, seek track */
     if (flp.eis) {
-        floppy_seek_track(c, h, drive);
+        floppy_seek_track(c, drive);
     }
     /* Set start sector */
     flpdrv[drive].sector = s;
     
     /* Match actual track with specified track */
-    if (flpdrv[drive].cyl!=c || flpdrv[drive].head!=h || flpdrv[drive].head!=head) {
+    if (flpdrv[drive].cyl!=c || flpdrv[drive].head!=h) {
         Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Read: track mismatch!");
         flp.st[0]|=IC_ABNORMAL;
         flp.st[2]|=ST2_WC;
@@ -559,15 +562,18 @@ static void floppy_write(void) {
     
     flp.st[0] = flp.st[1] = flp.st[2] = 0;
     
+    /* Select head */
+    flpdrv[drive].head = head;
+
     /* If implied seek is enabled, seek track */
     if (flp.eis) {
-        floppy_seek_track(c, h, drive);
+        floppy_seek_track(c, drive);
     }
     /* Set start sector */
     flpdrv[drive].sector = s;
     
     /* Match actual track with specified track */
-    if (flpdrv[drive].cyl!=c || flpdrv[drive].head!=h || flpdrv[drive].head!=head) {
+    if (flpdrv[drive].cyl!=c || flpdrv[drive].head!=h) {
         Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Write: track mismatch!");
         flp.st[0]|=IC_ABNORMAL;
         flp.st[2]|=ST2_WC;
@@ -613,9 +619,14 @@ static void floppy_format(void) {
     
     flp.st[0] = flp.st[1] = flp.st[2] = 0;
     
+    /* Select head */
+    flpdrv[drive].head = head;
+    
     /* Set start sector */
     flpdrv[drive].sector = 1;
     
+    /* Validate blocksize */
+    check_blocksize(drive,bs);
     sector_size = 0x80<<bs;
     
     Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Format: Cylinder=%i, Head=%i, Sector=%i, Blocksize=%i",
@@ -642,7 +653,7 @@ static void floppy_format(void) {
         flp_sector_counter = num_sectors;
         flp_io_drv = drive;
         flp_io_state = FLP_STATE_FORMAT;
-        CycInt_AddRelativeInterruptUs(get_seek_time(drive) + get_sector_time(drive), 100, INTERRUPT_FLP_IO);
+        CycInt_AddRelativeInterruptUs(get_sector_time(drive), 100, INTERRUPT_FLP_IO);
     }
 }
 
@@ -664,7 +675,7 @@ static void floppy_read_id(void) {
     send_rw_status(drive);
     
     flp_io_state = FLP_STATE_INTERRUPT;
-    CycInt_AddRelativeInterruptUs(get_seek_time(drive), 100, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptUs(get_sector_time(drive), 100, INTERRUPT_FLP_IO);
 }
 
 static void floppy_recalibrate(void) {
@@ -676,7 +687,7 @@ static void floppy_recalibrate(void) {
         flpdrv[drive].cyl = flp.pcn = 0;
 
         flp.st[0] = flp.st[1] = flp.st[2] = 0;
-        floppy_seek_track(0, 0, drive);
+        floppy_seek_track(0, drive);
 
         /* Done */
         flp.st[0] = IC_NORMAL|ST0_SE;
@@ -692,13 +703,15 @@ static void floppy_seek(uint8_t relative) {
     int head = (cmd_data[0]&0x04)>>2;
     flp.st[0] = flp.st[1] = flp.st[2] = 0;
     
+    flpdrv[drive].head = head;
+    
     if (relative) {
         Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Relative seek: Head %i: %i cylinders",head,0);
         abort();
     } else {
         flp.st[0] = IC_NORMAL;
-
-        floppy_seek_track(cmd_data[1], head, drive);
+                
+        floppy_seek_track(cmd_data[1], drive);
         
         Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Seek: Head %i to cylinder %i",head,flpdrv[drive].cyl);
 
@@ -921,10 +934,10 @@ void floppy_dor_write(uint8_t val) {
     }
     if (changed&DOR_RESET_N) {
         if (flp.dor&DOR_RESET_N) {
-            Log_Printf(LOG_WARN,"[Floppy] Entering reset state.");
+            Log_Printf(LOG_WARN,"[Floppy] Leaving reset state.");
             floppy_start();
         } else {
-            Log_Printf(LOG_WARN,"[Floppy] Leaving reset state.");
+            Log_Printf(LOG_WARN,"[Floppy] Entering reset state.");
             floppy_stop();
         }
     }
@@ -946,7 +959,7 @@ uint8_t floppy_dor_read(void) {
     uint8_t val = flp.dor&~DOR_MOTEN_MASK;  /* clear motor bits */
     for (i=0; i<FLP_MAX_DRIVES; i++) {
         if (flpdrv[i].spinning) {           /* set motor bit if motor is on */
-            val |= 0x10<<i;
+            val |= DOR_MOT0EN<<i;
         }
     }
     return val;
