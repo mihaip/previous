@@ -1,12 +1,12 @@
-uint8_t rtc_interface_read(void);
-void rtc_interface_write(uint8_t rtdatabit);
-void rtc_interface_reset(void);
+extern uint8_t rtc_interface_read(void);
+extern void rtc_interface_write(uint8_t rtdatabit);
+extern void rtc_interface_reset(void);
 
-void rtc_request_power_down(void);
-void rtc_stop_pdown_request(void);
+extern void rtc_request_power_down(void);
+extern void rtc_stop_pdown_request(void);
 
-void nvram_init(void);
-void nvram_checksum(int force);
-char * get_rtc_ram_info(void);
+extern void nvram_init(void);
+extern void nvram_checksum(int force);
+extern void NVRAM_Info(FILE *fp, uint32_t dummy);
 
-void RTC_Reset(void);
+extern void RTC_Reset(void);

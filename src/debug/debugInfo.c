@@ -1,42 +1,33 @@
 /*
   Hatari - debuginfo.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   debuginfo.c - functions needed to show info about the atari HW & OS
    components and "lock" that info to be shown on entering the debugger.
 */
-const char DebugInfo_fileid[] = "Hatari debuginfo.c : " __DATE__ " " __TIME__;
+const char DebugInfo_fileid[] = "Hatari debuginfo.c";
 
 #include <stdio.h>
 #include <assert.h>
 #include <ctype.h>
+
 #include "main.h"
 #include "configuration.h"
 #include "debugInfo.h"
 #include "debugcpu.h"
+#include "debugdsp.h"
 #include "debugui.h"
 #include "debug_priv.h"
+#include "dsp.h"
 #include "evaluate.h"
 #include "file.h"
 #include "ioMem.h"
+#include "rtcnvram.h"
 #include "m68000.h"
-#include "screen.h"
-#include "video.h"
-
-/* ------------------------------------------------------------------
- * Next HW information
- */
-
-char* get_rtc_ram_info(void);
-
-/**
- * DebugInfo_Rtc : display the Videl registers values.
- */
-static void DebugInfo_Rtc(uint32_t dummy) {
-	fprintf(stdout,"%s",get_rtc_ram_info());
-}
+#include "newcpu.h"
+#include "68kDisass.h"
 
 /* ------------------------------------------------------------------
  * CPU and DSP information wrappers
@@ -60,28 +51,38 @@ static void DebugInfo_CallCommand(int (*func)(int, char* []), const char *comman
 	func(argc, argv);
 }
 
-static void DebugInfo_CpuRegister(uint32_t arg)
+static void DebugInfo_CpuRegister(FILE *fp, uint32_t arg)
 {
 	DebugInfo_CallCommand(DebugCpu_Register, "register", arg);
 }
-static void DebugInfo_CpuDisAsm(uint32_t arg)
+static void DebugInfo_CpuDisAsm(FILE *fp, uint32_t arg)
 {
 	DebugInfo_CallCommand(DebugCpu_DisAsm, "disasm", arg);
 }
-static void DebugInfo_CpuMemDump(uint32_t arg)
+static void DebugInfo_CpuMemDump(FILE *fp, uint32_t arg)
 {
 	DebugInfo_CallCommand(DebugCpu_MemDump, "memdump", arg);
 }
 
-static void DebugInfo_DspRegister(uint32_t arg)
+#if ENABLE_DSP_EMU
+
+static void DebugInfo_DspRegister(FILE *fp, uint32_t arg)
 {
+	DebugInfo_CallCommand(DebugDsp_Register, "dspreg", arg);
 }
-static void DebugInfo_DspDisAsm(uint32_t arg)
+static void DebugInfo_DspDisAsm(FILE *fp, uint32_t arg)
 {
+	DebugInfo_CallCommand(DebugDsp_DisAsm, "dspdisasm", arg);
 }
 
-static void DebugInfo_DspMemDump(uint32_t arg)
+static void DebugInfo_DspMemDump(FILE *fp, uint32_t arg)
 {
+	char cmdbuf[] = "dspmemdump";
+	char addrbuf[6], spacebuf[2] = "X";
+	char *argv[] = { cmdbuf, spacebuf, addrbuf };
+	spacebuf[0] = (arg>>16)&0xff;
+	sprintf(addrbuf, "$%x", (uint16_t)(arg&0xffff));
+	DebugDsp_MemDump(3, argv);
 }
 
 /**
@@ -94,7 +95,7 @@ static uint32_t DebugInfo_DspMemArgs(int argc, char *argv[])
 	if (argc != 2) {
 		return 0;
 	}
-	space = toupper(argv[0][0]);
+	space = toupper((unsigned char)argv[0][0]);
 	if ((space != 'X' && space != 'Y' && space != 'P') || argv[0][1]) {
 		fprintf(stderr, "ERROR: invalid DSP address space '%s'!\n", argv[0]);
 		return 0;
@@ -106,9 +107,66 @@ static uint32_t DebugInfo_DspMemArgs(int argc, char *argv[])
 	return ((uint32_t)space<<16) | value;
 }
 
+#endif  /* ENABLE_DSP_EMU */
 
-static void DebugInfo_RegAddr(uint32_t arg)
+
+static void DebugInfo_RegAddr(FILE *fp, uint32_t arg)
 {
+	bool forDsp;
+	char regname[3];
+	uint32_t *reg32, regvalue, mask;
+	char cmdbuf[12], addrbuf[6];
+	char *argv[] = { cmdbuf, addrbuf };
+
+	regname[0] = (arg>>24)&0xff;
+	regname[1] = (arg>>16)&0xff;
+	regname[2] = '\0';
+
+	if (DebugCpu_GetRegisterAddress(regname, &reg32)) {
+		regvalue = *reg32;
+		mask = 0xffffffff;
+		forDsp = false;
+	} else {
+		int regsize = DSP_GetRegisterAddress(regname, &reg32, &mask);
+		switch (regsize) {
+			/* currently regaddr supports only 32-bit Rx regs, but maybe later... */
+		case 16:
+			regvalue = *((uint16_t*)reg32);
+			break;
+		case 32:
+			regvalue = *reg32;
+			break;
+		default:
+			fprintf(stderr, "ERROR: invalid address/data register '%s'!\n", regname);
+			return;
+		}
+		forDsp = true;
+	}
+       	sprintf(addrbuf, "$%x", regvalue & mask);
+
+	if ((arg & 0xff) == 'D') {
+		if (forDsp) {
+#if ENABLE_DSP_EMU
+			strcpy(cmdbuf, "dd");
+			DebugDsp_DisAsm(2, argv);
+#endif
+		} else {
+			strcpy(cmdbuf, "d");
+			DebugCpu_DisAsm(2, argv);
+		}
+	} else {
+		if (forDsp) {
+#if ENABLE_DSP_EMU
+			/* use "Y" address space */
+			char cmd[] = "dm"; char space[] = "y";
+			char *dargv[] = { cmd, space, addrbuf };
+			DebugDsp_MemDump(3, dargv);
+#endif
+		} else {
+			strcpy(cmdbuf, "m");
+			DebugCpu_MemDump(2, argv);
+		}
+	}
 }
 
 /**
@@ -132,12 +190,13 @@ static uint32_t DebugInfo_RegAddrArgs(int argc, char *argv[])
 
 	if (strlen(argv[1]) != 2 ||
 	    (!DebugCpu_GetRegisterAddress(argv[1], &regaddr) &&
-	     (toupper(argv[1][0]) != 'R' || !isdigit(argv[1][1]) || argv[1][2]))) {
+	     (toupper((unsigned char)argv[1][0]) != 'R'
+	      || !isdigit((unsigned char)argv[1][1]) || argv[1][2]))) {
 		/* not CPU register or Rx DSP register */
 		fprintf(stderr, "ERROR: invalid address/data register '%s'!\n", argv[1]);
 		return 0;
 	}
-	
+
 	value |= argv[1][0] << 24;
 	value |= argv[1][1] << 16;
 	value &= 0xffff00ff;
@@ -158,13 +217,13 @@ static char *parse_filename;
 /**
  * Parse and exec commands in the previously given debugger input file
  */
-static void DebugInfo_FileParse(uint32_t dummy)
+static void DebugInfo_FileParse(FILE *fp, uint32_t dummy)
 {
-    if (parse_filename) {
-        DebugUI_ParseFile(parse_filename, true);
-    } else {
-       // fputs("ERROR: debugger input file name to parse isn't set!\n", stderr);
-    }
+	if (parse_filename) {
+		DebugUI_ParseFile(parse_filename, true);
+	} else {
+		fputs("ERROR: debugger input file name to parse isn't set!\n", stderr);
+	}
 }
 
 /**
@@ -173,19 +232,20 @@ static void DebugInfo_FileParse(uint32_t dummy)
  */
 static uint32_t DebugInfo_FileArgs(int argc, char *argv[])
 {
-    if (argc != 1) {
-        return false;
-    }
-    if (!File_Exists(argv[0])) {
-        fprintf(stderr, "ERROR: given file '%s' doesn't exist!\n", argv[0]);
-        return false;
-    }
-    if (parse_filename) {
-        free(parse_filename);
-    }
-    parse_filename = strdup(argv[0]);
-    return true;
+	if (argc != 1) {
+		return false;
+	}
+	if (!File_Exists(argv[0])) {
+		fprintf(stderr, "ERROR: given file '%s' doesn't exist!\n", argv[0]);
+		return false;
+	}
+	if (parse_filename) {
+		free(parse_filename);
+	}
+	parse_filename = strdup(argv[0]);
+	return true;
 }
+
 
 /* ------------------------------------------------------------------
  * Debugger & readline TAB completion integration
@@ -194,35 +254,42 @@ static uint32_t DebugInfo_FileArgs(int argc, char *argv[])
 /**
  * Default information on entering the debugger
  */
-static void DebugInfo_Default(uint32_t dummy)
+static void DebugInfo_Default(FILE *fp, uint32_t dummy)
 {
-	fprintf(stderr, "\nCPU=$%x, DSP=",
-		M68000_GetPC());
-		fprintf(stderr, "N/A\n");
+        uaecptr nextpc, pc = M68000_GetPC();
+	fprintf(fp, "\nCPU=$%x, DSP=", pc);
+	if (bDspEnabled)
+		fprintf(fp, "$%x\n", DSP_GetPC());
+	else
+		fprintf(fp, "N/A\n");
+
+	Disasm(fp, pc, &nextpc, 1);
 }
 
 static const struct {
 	/* if overlaps with other functionality, list only for lock command */
 	bool lock;
 	const char *name;
-	void (*func)(uint32_t arg);
+	info_func_t func;
 	/* convert args in argv into single uint32_t for func */
 	uint32_t (*args)(int argc, char *argv[]);
 	const char *info;
 } infotable[] = {
 	{ true, "default",   DebugInfo_Default,    NULL, "Show default debugger entry information" },
 	{ true, "disasm",    DebugInfo_CpuDisAsm,  NULL, "Disasm CPU from PC or given <address>" },
+#if ENABLE_DSP_EMU
 	{ true, "dspdisasm", DebugInfo_DspDisAsm,  NULL, "Disasm DSP from given <address>" },
 	{ true, "dspmemdump",DebugInfo_DspMemDump, DebugInfo_DspMemArgs, "Dump DSP memory from given <space> <address>" },
-	{ true, "dspregs",   DebugInfo_DspRegister,NULL, "Show DSP registers values" },
-    { true, "file",      DebugInfo_FileParse, DebugInfo_FileArgs, "Parse commands from given debugger input <file>" },
+	{ true, "dspregs",   DebugInfo_DspRegister,NULL, "Show DSP register contents" },
+#endif
+	{ true, "file",      DebugInfo_FileParse, DebugInfo_FileArgs, "Parse commands from given debugger input <file>" },
 	{ true, "memdump",   DebugInfo_CpuMemDump, NULL, "Dump CPU memory from given <address>" },
 	{ true, "regaddr",   DebugInfo_RegAddr, DebugInfo_RegAddrArgs, "Show <disasm|memdump> from CPU/DSP address pointed by <register>" },
-	{ true, "registers", DebugInfo_CpuRegister,NULL, "Show CPU registers values" },
-	{ false,"rtc",     DebugInfo_Rtc,      NULL, "Show Next's RTC registers" }
+	{ true, "registers", DebugInfo_CpuRegister,NULL, "Show CPU register contents" },
+	{ false,"nvram",     NVRAM_Info,           NULL, "Show parameters stored in NVRAM" }
 };
 
-static int LockedFunction = 4; /* index for the "default" function */
+static int LockedFunction = 0; /* index for the "default" function */
 static uint32_t LockedArgument;
 
 /**
@@ -231,9 +298,22 @@ static uint32_t LockedArgument;
  */
 void DebugInfo_ShowSessionInfo(void)
 {
-	infotable[LockedFunction].func(LockedArgument);
+	infotable[LockedFunction].func(stderr, LockedArgument);
 }
 
+/**
+ * Return info function matching the given name, or NULL for no match
+ */
+info_func_t DebugInfo_GetInfoFunc(const char *name)
+{
+	int i;
+	for (i = 0; i < ARRAY_SIZE(infotable); i++) {
+		if (strcmp(name, infotable[i].name) == 0) {
+			return infotable[i].func;
+		}
+	}
+	return NULL;
+}
 
 /**
  * Readline match callback for info subcommand name completion.
@@ -244,7 +324,7 @@ static char *DebugInfo_Match(const char *text, int state, bool lock)
 {
 	static int i, len;
 	const char *name;
-	
+
 	if (!state) {
 		/* first match */
 		len = strlen(text);
@@ -283,7 +363,7 @@ int DebugInfo_Command(int nArgc, char *psArgs[])
 
 	sub = -1;
 	if (nArgc > 1) {
-		cmd = psArgs[1];		
+		cmd = psArgs[1];
 		/* which subcommand? */
 		for (i = 0; i < ARRAY_SIZE(infotable); i++) {
 			if (strcmp(cmd, infotable[i].name) == 0) {
@@ -293,7 +373,7 @@ int DebugInfo_Command(int nArgc, char *psArgs[])
 		}
 	}
 
-	if (infotable[sub].args) {
+	if (sub >= 0 && infotable[sub].args) {
 		/* value needs callback specific conversion */
 		value = infotable[sub].args(nArgc-2, psArgs+2);
 		ok = !!value;
@@ -308,7 +388,7 @@ int DebugInfo_Command(int nArgc, char *psArgs[])
 	}
 
 	lock = (strcmp(psArgs[0], "lock") == 0);
-	
+
 	if (sub < 0 || !ok) {
 		/* no subcommand or something wrong with value, show info */
 		fprintf(stderr, "%s subcommands are:\n", psArgs[0]);
@@ -329,7 +409,7 @@ int DebugInfo_Command(int nArgc, char *psArgs[])
 		fprintf(stderr, "Locked %s output.\n", psArgs[1]);
 	} else {
 		/* do actual work */
-		infotable[sub].func(value);
+		infotable[sub].func(stderr, value);
 	}
 	return DEBUGGER_CMDDONE;
 }

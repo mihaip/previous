@@ -973,123 +973,40 @@ void nvram_checksum(int force) {
 }
 
 
-#if 1
-static char rtc_ram_info[1024];
-char * get_rtc_ram_info(void) {
-    char buf[256];
-    int sum;
-    int i;
-    int ni_vol_l,ni_vol_r,ni_brightness;
-    int ni_hw_pwd;
-    snprintf(buf,sizeof(buf),"Rtc info:\n");
-    strcpy(rtc_ram_info,buf);
-    
-    // struct nvram_info {
-    // #define	NI_RESET	9
-    // 	u_int	ni_reset : 4,
-    
-    snprintf(buf,sizeof(buf),"RTC RESET:x%1X ",rtc.ram[0]>>4);
-    strcat(rtc_ram_info,buf);
-    
-    // #define	SCC_ALT_CONS	0x08000000
-    // 		ni_alt_cons : 1,
-    if (rtc.ram[0]&0x08) strcat(rtc_ram_info,"ALT_CONS ");
-    // #define	ALLOW_EJECT	0x04000000
-    // 		ni_allow_eject : 1,
-    if (rtc.ram[0]&0x04) strcat(rtc_ram_info,"ALLOW_EJECT ");
-    // 		ni_vol_r : 6,
-    // 		ni_brightness : 6,
-    // #define	HW_PWD	0x6
-    // 		ni_hw_pwd : 4,
-    // 		ni_vol_l : 6,
-    // 		ni_spkren : 1,
-    // 		ni_lowpass : 1,
-    // #define	BOOT_ANY	0x00000002
-    // 		ni_boot_any : 1,
-    // #define	ANY_CMD		0x00000001
-    // 		ni_any_cmd : 1;
-    
-    ni_vol_r=(((rtc.ram[0]&0x3)<<4)|((rtc.ram[1]&0xF0)>>4));
-    ni_brightness=(((rtc.ram[1]&0xF)<<2)|((rtc.ram[2]&0xC0)>>6));
-    ni_vol_l=((rtc.ram[2]&0x3F)<<2);
-    ni_hw_pwd=(rtc.ram[3]&0xF0)>>4;
-    snprintf(buf,sizeof(buf),"VOL_R:x%1X BRIGHT:x%1X HWPWD:x%1X VOL_L:x%1X",ni_vol_r,ni_brightness,ni_vol_l,ni_hw_pwd);
-    strcat(rtc_ram_info,buf);
-    
-    if (rtc.ram[3]&0x08) strcat(rtc_ram_info,"SPK_ENABLE ");
-    if (rtc.ram[3]&0x04) strcat(rtc_ram_info,"LOW_PASS ");
-    if (rtc.ram[3]&0x02) strcat(rtc_ram_info,"BOOT_ANY ");
-    if (rtc.ram[3]&0x01) strcat(rtc_ram_info,"ANY_CMD ");
-    
-    
-    
-    // #define	NVRAM_HW_PASSWD	6
-    // 	u_char ni_ep[NVRAM_HW_PASSWD];
-    
-    snprintf(buf,sizeof(buf),"NVRAM_HW_PASSWD:%2X %2X %2X %2X %2X %2X ",rtc.ram[4],rtc.ram[5],rtc.ram[6],rtc.ram[7],rtc.ram[8],rtc.ram[9]);
-    strcat(rtc_ram_info,buf);
-    // #define	ni_enetaddr	ni_ep
-    // #define	ni_hw_passwd	ni_ep
-    // 	u_short ni_simm;		/* 4 SIMMs, 4 bits per SIMM */
-    snprintf(buf,sizeof(buf),"SIMM:%1X %1X %1X %1X ",rtc.ram[10]>>4,rtc.ram[10]&0x0F,rtc.ram[11]>>4,rtc.ram[11]&0x0F);
-    strcat(rtc_ram_info,buf);
-    
-    
-    // 	char ni_adobe[2];
-    snprintf(buf,sizeof(buf),"ADOBE:%2X %2X ",rtc.ram[12],rtc.ram[13]);
-    strcat(rtc_ram_info,buf);
-    
-    // 	u_char ni_pot[3];
-    snprintf(buf,sizeof(buf),"POT:%2X %2X %2X ",rtc.ram[14],rtc.ram[15],rtc.ram[16]);
-    strcat(rtc_ram_info,buf);
-    
-    // 	u_char	ni_new_clock_chip : 1,
-    // 		ni_auto_poweron : 1,
-    // 		ni_use_console_slot : 1,	/* Console slot was set by user. */
-    // 		ni_console_slot : 2,		/* Preferred console dev slot>>1 */
-    // 		ni_use_parity_mem : 1,	/* Use parity RAM if available? */
-    // 		: 2;
-    if (rtc.ram[17]&0x80) strcat(rtc_ram_info,"NEW_CLOCK_CHIP ");
-    if (rtc.ram[17]&0x40) strcat(rtc_ram_info,"AUTO_POWERON ");
-    if (rtc.ram[17]&0x20) strcat(rtc_ram_info,"CONSOLE_SLOT ");
-    
-    snprintf(buf,sizeof(buf),"console_slot:%X ",(rtc.ram[17]&0x18)>>3);
-    strcat(rtc_ram_info,buf);
-    
-    if (rtc.ram[17]&0x04) strcat(rtc_ram_info,"USE_PARITY ");
-    
-    
-    strcat(rtc_ram_info,"boot_command:");
-    for (i=0;i<12;i++) {
-        if ((rtc.ram[18+i]>=0x20) && (rtc.ram[18+i]<=0x7F)) {
-            snprintf(buf,sizeof(buf),"%c",rtc.ram[18+i]);
-            strcat(rtc_ram_info,buf);
-        }
-    }
-    
-    strcat(rtc_ram_info," ");
-    snprintf(buf,sizeof(buf),"CKSUM:%2X %2X ",rtc.ram[30],rtc.ram[31]);
-    strcat(rtc_ram_info,buf);
-    
-    
-    sum=0;
-    for (i=0;i<30;i+=2) {
-        sum+=(rtc.ram[i]<<8)|(rtc.ram[i+1]);
-        if (sum>=0x10000) { sum-=0x10000;
-            sum+=1;
-        }
-    }
-    
-    sum=0xFFFF-sum;
-    
-    snprintf(buf,sizeof(buf),"CALC_CKSUM:%04X ",sum&0xFFFF);
-    strcat(rtc_ram_info,buf);
-    
-    // #define	NVRAM_BOOTCMD	12
-    // 	char ni_bootcmd[NVRAM_BOOTCMD];
-    // 	u_short ni_cksum;
-    // };
-    
-    return rtc_ram_info;
+/* Print parameters stored in NVRAM (for debugger) */
+void NVRAM_Info(FILE *fp, uint32_t dummy) {
+	fprintf(fp, "Parameters stored in NVRAM\n");
+	fprintf(fp, "Reset:             %x\n", (rtc.ram[0]>>4)&0xF);
+	fprintf(fp, "Alternate console: %d\n", (rtc.ram[0]>>3)&0x1);
+	fprintf(fp, "Allow eject:       %d\n", (rtc.ram[0]>>2)&0x1);
+	fprintf(fp, "Enable HW PWD:     %x\n", (rtc.ram[2]>>2)&0xF);
+	fprintf(fp, "Brightness:        %d\n", ((rtc.ram[1]&0xF)<<2)|((rtc.ram[2]>>6)&0x3));
+	fprintf(fp, "Volume right:      %d\n", ((rtc.ram[0]&0x3)<<4)|((rtc.ram[1]>>4)&0xF));
+	fprintf(fp, "Volume left:       %d\n", ((rtc.ram[2]&0x3)<<4)|((rtc.ram[3]>>4)&0xF));
+	fprintf(fp, "Speaker enabled:   %d\n", (rtc.ram[3]>>3)&0x1);
+	fprintf(fp, "Lowpass enabled:   %d\n", (rtc.ram[3]>>2)&0x1);
+	fprintf(fp, "Any boot:          %d\n", (rtc.ram[3]>>1)&0x1);
+	fprintf(fp, "Any command:       %d\n", (rtc.ram[3])&0x1);
+	fprintf(fp, "Ethernet address:  %02x:%02x:%02x:%02x:%02x:%02x\n",
+	        rtc.ram[4], rtc.ram[5], rtc.ram[6], rtc.ram[7], rtc.ram[8], rtc.ram[9]);
+	fprintf(fp, "SIMM config:       %02x%02x\n", rtc.ram[10], rtc.ram[11]);
+	fprintf(fp, "Adobe:             %c%c\n", rtc.ram[12], rtc.ram[13]);
+	fprintf(fp, "Enable POT:        %d\n", (rtc.ram[14])&0x1);
+	fprintf(fp, "Sound test:        %d\n", (rtc.ram[14]>>6)&0x1);
+	fprintf(fp, "Boot diagnostics:  %d\n", (rtc.ram[14]>>5)&0x1);
+	fprintf(fp, "DRAM test:         %d\n", (rtc.ram[14]>>4)&0x1);
+	fprintf(fp, "Verbose test:      %d\n", (rtc.ram[14]>>3)&0x1);
+	fprintf(fp, "Loop test:         %d\n", (rtc.ram[14]>>2)&0x1);
+	fprintf(fp, "SCSI test:         %d\n", (rtc.ram[14]>>1)&0x1);
+	fprintf(fp, "Old POT error:     %X\n", rtc.ram[15]);
+	fprintf(fp, "Recent POT error:  %X\n", rtc.ram[16]);
+	fprintf(fp, "New clock chip:    %d\n", (rtc.ram[17]>>7)&0x1);
+	fprintf(fp, "Auto power-on:     %d\n", (rtc.ram[17]>>6)&0x1);
+	fprintf(fp, "Use console slot:  %d\n", (rtc.ram[17]>>5)&0x1);
+	fprintf(fp, "Console slot:      %d\n", ((rtc.ram[17]>>3)&0x3)<<1);
+	fprintf(fp, "Use parity memory: %d\n", (rtc.ram[17]>>2)&0x1);
+	fprintf(fp, "Boot command:      %c%c%c%c%c%c%c%c%c%c%c%c\n",
+	        rtc.ram[18], rtc.ram[19], rtc.ram[20], rtc.ram[21], rtc.ram[22], rtc.ram[23],
+	        rtc.ram[24], rtc.ram[25], rtc.ram[26], rtc.ram[27], rtc.ram[28], rtc.ram[29]);
+	fprintf(fp, "Checksum:          %02x%02x\n\n", rtc.ram[30], rtc.ram[31]);
 }
-#endif
