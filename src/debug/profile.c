@@ -280,7 +280,7 @@ void Profile_CpuShowCounts(unsigned int show, bool only_symbols)
 	for (end = sort_arr + active; sort_arr < end; sort_arr++) {
 
 		addr = index2address(*sort_arr);
-		name = Symbols_GetByCpuAddress(addr);
+		name = Symbols_GetByCpuAddress(addr, SYMTYPE_TEXT);
 		if (!name) {
 			continue;
 		}
@@ -654,7 +654,7 @@ void Profile_DspShowCounts(unsigned int show, bool only_symbols)
 	for (end = sort_arr + active; sort_arr < end; sort_arr++) {
 
 		addr = *sort_arr;
-		name = Symbols_GetByDspAddress(addr);
+		name = Symbols_GetByDspAddress(addr, SYMTYPE_TEXT);
 		if (!name) {
 			continue;
 		}

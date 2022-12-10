@@ -170,7 +170,7 @@ int DebugDsp_DisAsm(int nArgc, char *psArgs[])
 			shown++;
 		}
 		prev_addr = dsp_disasm_addr;
-		symbol = Symbols_GetByDspAddress(dsp_disasm_addr);
+		symbol = Symbols_GetByDspAddress(dsp_disasm_addr, SYMTYPE_ALL);
 		if (symbol)
 		{
 			fprintf(debugOutput, "%s:\n", symbol);
@@ -516,7 +516,7 @@ void DebugDsp_Check(void)
 	if (LOG_TRACE_LEVEL((TRACE_DSP_DISASM|TRACE_DSP_SYMBOLS)))
 	{
 		const char *symbol;
-		symbol = Symbols_GetByDspAddress(DSP_GetPC());
+		symbol = Symbols_GetByDspAddress(DSP_GetPC(), SYMTYPE_ALL);
 		if (symbol)
 			LOG_TRACE_PRINT("%s\n", symbol);
 	}

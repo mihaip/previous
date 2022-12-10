@@ -32,6 +32,7 @@ const char DebugCpu_fileid[] = "Hatari debugcpu.c";
 #include "cpummu.h"
 #include "cpummu030.h"
 
+
 #define MEMDUMP_COLS   16      /* memdump, number of bytes per row */
 #define NON_PRINT_CHAR '.'     /* character to display for non-printables */
 
@@ -240,7 +241,7 @@ int DebugCpu_DisAsm(int nArgc, char *psArgs[])
 			shown++;
 		}
 		prev_addr = disasm_addr;
-		symbol = Symbols_GetByCpuAddress(disasm_addr);
+		symbol = Symbols_GetByCpuAddress(disasm_addr, SYMTYPE_ALL);
 		if (symbol)
 		{
 			fprintf(debugOutput, "%s:\n", symbol);
@@ -932,7 +933,7 @@ void DebugCpu_Check(void)
 	if (LOG_TRACE_LEVEL((TRACE_CPU_DISASM|TRACE_CPU_SYMBOLS)))
 	{
 		const char *symbol;
-		symbol = Symbols_GetByCpuAddress(M68000_GetPC());
+		symbol = Symbols_GetByCpuAddress(M68000_GetPC(), SYMTYPE_ALL);
 		if (symbol)
 			LOG_TRACE_PRINT("%s\n", symbol);
 	}

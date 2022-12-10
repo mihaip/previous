@@ -663,8 +663,7 @@ static void floppy_read_id(void) {
     
     uint32_t sec_size = 0x80<<flpdrv[drive].blocksize;
     
-    if (flpdrv[drive].head!=head)
-        abort();
+    flpdrv[drive].head = head;
     
     Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Read ID: Cylinder=%i, Head=%i, Sector=%i, Blocksize=%i",
                flpdrv[drive].cyl,flpdrv[drive].head,flpdrv[drive].sector,sec_size);

@@ -395,7 +395,7 @@ static const char* Symbols_SearchByAddress(symbol_list_t* list, uint32_t addr)
  * Return symbol name if address matches, NULL otherwise.
  * Returned name is valid only until next Symbols_* function call.
  */
-const char* Symbols_GetByCpuAddress(uint32_t addr)
+const char* Symbols_GetByCpuAddress(uint32_t addr, symtype_t type)
 {
 	return Symbols_SearchByAddress(CpuSymbolsList, addr);
 }
@@ -404,7 +404,7 @@ const char* Symbols_GetByCpuAddress(uint32_t addr)
  * Return symbol name if address matches, NULL otherwise.
  * Returned name is valid only until next Symbols_* function call.
  */
-const char* Symbols_GetByDspAddress(uint32_t addr)
+const char* Symbols_GetByDspAddress(uint32_t addr, symtype_t type)
 {
 	return Symbols_SearchByAddress(DspSymbolsList, addr);
 }

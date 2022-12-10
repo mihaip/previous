@@ -11,12 +11,12 @@
 
 class NDSDL {
     int           slot;
+    uint32_t*     vram;
     SDL_Window*   ndWindow;
     SDL_Renderer* ndRenderer;
     SDL_Texture*  ndTexture;
     SDL_atomic_t  blitNDFB;
 
-    uint32_t*     vram;
 #ifdef ENABLE_RENDERING_THREAD
     volatile bool doRepaint;
     SDL_Thread*   repaintThread;

@@ -11,7 +11,7 @@
 
 
 #ifdef ENABLE_RENDERING_THREAD
-NDSDL::NDSDL(int slot, uint32_t* vram) : slot(slot), ndWindow(NULL), ndRenderer(NULL), ndTexture(NULL), vram(vram), doRepaint(true), repaintThread(NULL) {}
+NDSDL::NDSDL(int slot, uint32_t* vram) : slot(slot), vram(vram), ndWindow(NULL), ndRenderer(NULL), ndTexture(NULL), doRepaint(true), repaintThread(NULL) {}
 
 int NDSDL::repainter(void *_this) {
     return ((NDSDL*)_this)->repainter();
