@@ -13,6 +13,7 @@ const char Profile_fileid[] = "Hatari profile.c : " __DATE__ " " __TIME__;
 #include <stdio.h>
 #include "host.h"
 #include "main.h"
+#include "debugui.h"
 #include "debug_priv.h"
 #include "m68000.h"
 #include "profile.h"
@@ -88,23 +89,6 @@ static inline uint32_t address2index(uint32_t pc)
 
 
 /**
- * Get CPU cycles & count for given address.
- * Return true if data was available and non-zero, false otherwise.
- */
-bool Profile_CpuAddressData(uint32_t addr, uint32_t *count, uint32_t *cycles)
-{
-	uint32_t idx;
-	if (!cpu_profile.data) {
-		return false;
-	}
-	idx = address2index(addr);
-	*cycles = cpu_profile.data[idx].cycles;
-	*count = cpu_profile.data[idx].count;
-	return (*count > 0);
-}
-
-
-/**
  * convert sorting array profile data index to Atari memory address.
  */
 static uint32_t index2address(uint32_t idx)
@@ -151,7 +135,7 @@ static void show_cpu_area_stats(profile_area_t *area)
 /**
  * show CPU area (RAM, ROM, TOS) specific statistics.
  */
-void Profile_CpuShowStats(void)
+static void Profile_CpuShowStats(void)
 {
 //	fprintf(stderr, "Normal RAM (0-0x%X):\n", STRamEnd);
 	show_cpu_area_stats(&cpu_profile.ram);
@@ -184,7 +168,7 @@ static int profile_by_cpu_cycles(const void *p1, const void *p2)
 /**
  * Sort CPU profile data addresses by cycle counts and show the results.
  */
-void Profile_CpuShowCycles(unsigned int show)
+static void Profile_CpuShowCycles(unsigned int show)
 {
 	unsigned int active;
 	uint32_t *sort_arr, *end, addr;
@@ -236,7 +220,7 @@ static int profile_by_cpu_count(const void *p1, const void *p2)
  * If symbols are requested and symbols are loaded, show (only) addresses
  * matching a symbol.
  */
-void Profile_CpuShowCounts(unsigned int show, bool only_symbols)
+static void Profile_CpuShowCounts(unsigned int show, bool only_symbols)
 {
 	profile_item_t *data = cpu_profile.data;
 	unsigned int symbols, matched, active;
@@ -508,7 +492,7 @@ bool Profile_DspAddressData(uint16_t addr, float *percentage, uint64_t *count, u
 /**
  * show DSP specific profile statistics.
  */
-void Profile_DspShowStats(void)
+static void Profile_DspShowStats(void)
 {
 	profile_area_t *area = &dsp_profile.ram;
 	fprintf(stderr, "DSP profile statistics (0x0-0xFFFF):\n");
@@ -558,7 +542,7 @@ static int profile_by_dsp_cycles(const void *p1, const void *p2)
 /**
  * Sort DSP profile data addresses by cycle counts and show the results.
  */
-void Profile_DspShowCycles(unsigned int show)
+static void Profile_DspShowCycles(unsigned int show)
 {
 	unsigned int active;
 	uint16_t *sort_arr, *end, addr;
@@ -610,7 +594,7 @@ static int profile_by_dsp_count(const void *p1, const void *p2)
  * If symbols are requested and symbols are loaded, show (only) addresses
  * matching a symbol.
  */
-void Profile_DspShowCounts(unsigned int show, bool only_symbols)
+static void Profile_DspShowCounts(unsigned int show, bool only_symbols)
 {
 	profile_item_t *data = dsp_profile.data;
 	unsigned int symbols, matched, active;
@@ -815,14 +799,14 @@ const char Profile_Description[] =
  * Command: CPU/DSP profiling enabling, exec stats, cycle and call stats.
  * Return for succesful command and false for incorrect ones.
  */
-bool Profile_Command(int nArgc, char *psArgs[], bool bForDsp)
+int Profile_Command(int nArgc, char *psArgs[], bool bForDsp)
 {
 	static int show = 16;
 	bool *enabled;
 	
 	if (nArgc < 2) {
 		DebugUI_PrintCmdHelp(psArgs[0]);
-		return true;
+		return DEBUGGER_CMDDONE;
 	}
 	if (nArgc > 2) {
 		show = atoi(psArgs[2]);
@@ -836,12 +820,12 @@ bool Profile_Command(int nArgc, char *psArgs[], bool bForDsp)
 	if (strcmp(psArgs[1], "on") == 0) {
 		*enabled = true;
 		fprintf(stderr, "Profiling enabled.\n");
-		return true;
+		return DEBUGGER_CMDDONE;
 	}
 	if (strcmp(psArgs[1], "off") == 0) {
 		*enabled = false;
 		fprintf(stderr, "Profiling disabled.\n");
-		return true;
+		return DEBUGGER_CMDDONE;
 	}
 	
 	if (strcmp(psArgs[1], "stats") == 0) {
@@ -870,7 +854,7 @@ bool Profile_Command(int nArgc, char *psArgs[], bool bForDsp)
 		}
 	} else {
 		DebugUI_PrintCmdHelp(psArgs[0]);
-		return false;
+		return DEBUGGER_CMDDONE;
 	}
-	return true;
+	return DEBUGGER_CMDDONE;
 }

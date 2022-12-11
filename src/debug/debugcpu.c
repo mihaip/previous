@@ -23,6 +23,7 @@ const char DebugCpu_fileid[] = "Hatari debugcpu.c";
 #include "debugcpu.h"
 #include "evaluate.h"
 #include "hatari-glue.h"
+#include "history.h"
 #include "log.h"
 #include "m68000.h"
 #include "profile.h"
@@ -31,6 +32,7 @@ const char DebugCpu_fileid[] = "Hatari debugcpu.c";
 #include "68kDisass.h"
 #include "cpummu.h"
 #include "cpummu030.h"
+#include "vars.h"
 
 
 #define MEMDUMP_COLS   16      /* memdump, number of bytes per row */
@@ -486,8 +488,7 @@ static int DebugCpu_BreakCond(int nArgc, char *psArgs[])
  */
 static int DebugCpu_Profile(int nArgc, char *psArgs[])
 {
-    Profile_Command(nArgc, psArgs, false);
-    return DEBUGGER_CMDDONE;
+	return Profile_Command(nArgc, psArgs, false);
 }
 
 
@@ -961,6 +962,10 @@ void DebugCpu_Check(void)
 		if (nCpuSteps == 0)
 			DebugUI(REASON_CPU_STEPS);
 	}
+	if (History_TrackCpu())
+	{
+		History_AddCpu();
+	}
 }
 
 /**
@@ -971,10 +976,14 @@ void DebugCpu_Check(void)
 void DebugCpu_SetDebugging(void)
 {
 	bCpuProfiling = Profile_CpuStart();
-	nCpuActiveCBs = BreakCond_BreakPointCount(false);
+	nCpuActiveCBs = BreakCond_CpuBreakPointCount();
 
-	if (nCpuActiveCBs || nCpuSteps || bCpuProfiling)
+	if (nCpuActiveCBs || nCpuSteps || bCpuProfiling || History_TrackCpu()
+	    || LOG_TRACE_LEVEL((TRACE_CPU_DISASM|TRACE_CPU_SYMBOLS|TRACE_CPU_REGS)))
+	{
 		M68000_SetSpecial(SPCFLAG_DEBUGGER);
+		nCpuInstructions = 0;
+	}	
 	else
 		M68000_UnsetSpecial(SPCFLAG_DEBUGGER);
 }
@@ -989,7 +998,7 @@ static const dbgcommand_t cpucommands[] =
 	  "set CPU PC address breakpoints",
 	  BreakAddr_Description,
 	  true	},
-	{ DebugCpu_BreakCond, BreakCond_MatchCpuVariable,
+	{ DebugCpu_BreakCond, Vars_MatchCpuVariable,
 	  "breakpoint", "b",
 	  "set/remove/list conditional CPU breakpoints",
 	  BreakCond_Description,
@@ -998,8 +1007,8 @@ static const dbgcommand_t cpucommands[] =
 	  "disasm", "d",
 	  "disassemble from PC, or given address",
 	  "[<start address>[-<end address>]]\n"
-	  "\tIf no address is given, this command disassembles from the last\n"
-	  "\tposition or from current PC if no last position is available.",
+	  "\tWhen no address is given, disassemble from the last disasm\n"
+	  "\taddress, or from current PC when debugger is (re-)entered.",
 	  false },
 	{ DebugCpu_Profile, Profile_Match,
 	  "profile", "",
@@ -1010,32 +1019,36 @@ static const dbgcommand_t cpucommands[] =
 	  "cpureg", "r",
 	  "dump register values or set register to value",
 	  "[REG=value]\n"
-	  "\tSet CPU register to value or dumps all register if no parameter\n"
-	  "\thas been specified.",
+	  "\tSet CPU register to given value, or dump all registers\n"
+	  "\twhen no parameter is given.",
 	  true },
 	{ DebugCpu_MemDump, Symbols_MatchCpuDataAddress,
 	  "memdump", "m",
 	  "dump memory",
-	  "[<start address>[-<end address>]]\n"
-	  "\tdump memory at address or continue dump from previous address.",
+	  "[b|w|l] [<start address>[-<end address>| <count>]]\n"
+	  "\tdump memory at address or continue dump from previous address.\n"
+	  "\tBy default memory output is done as bytes, with 'w' or 'l'\n"
+	  "\toption, it will be done as words/longs instead.  Output amount\n"
+	  "\tcan be given either as a count or an address range.",
 	  false },
 	{ DebugCpu_MemWrite, Symbols_MatchCpuAddress,
 	  "memwrite", "w",
-	  "write bytes to memory",
-	  "address byte1 [byte2 ...]\n"
-	  "\tWrite bytes to a memory address, bytes are space separated\n"
-	  "\thexadecimals.",
+	  "write bytes/words/longs to memory",
+	  "[b|w|l] address value1 [value2 ...]\n"
+	  "\tWrite space separate values (in current number base) to given\n"
+	  "\tmemory address. By default writes are done as bytes, with\n"
+	  "\t'w' or 'l' option they will be done as words/longs instead",
 	  false },
 	{ DebugCpu_LoadBin, NULL,
 	  "loadbin", "l",
 	  "load a file into memory",
-	  "filename address\n"
+	  "<filename> <address>\n"
 	  "\tLoad the file <filename> into memory starting at <address>.",
 	  false },
 	{ DebugCpu_SaveBin, NULL,
-	  "savebin", "s",
+	  "savebin", "",
 	  "save memory to a file",
-	  "filename address length\n"
+	  "<filename> <address> <length>\n"
 	  "\tSave the memory block at <address> with given <length> to\n"
 	  "\tthe file <filename>.",
 	  false },
@@ -1043,6 +1056,21 @@ static const dbgcommand_t cpucommands[] =
 	  "symbols", "",
 	  "load CPU symbols & their addresses",
 	  Symbols_Description,
+	  false },
+	{ DebugCpu_Step, NULL,
+	  "step", "s",
+	  "single-step CPU",
+	  "\n"
+	  "\tExecute next CPU instruction (like 'c 1', but repeats on Enter).",
+	  false },
+	{ DebugCpu_Next, DebugCpu_MatchNext,
+	  "next", "n",
+	  "step CPU through subroutine calls / to given instruction type",
+	  "[instruction type]\n"
+	  "\tSame as 'step' command if there are no subroutine calls.\n"
+          "\tWhen there are, those calls are treated as one instruction.\n"
+	  "\tIf argument is given, continues until instruction of given\n"
+	  "\ttype is encountered.  Repeats on Enter.",
 	  false },
 	{ DebugCpu_Continue, NULL,
 	  "cont", "c",
@@ -1079,6 +1107,7 @@ int DebugCpu_Init(const dbgcommand_t **table)
  */
 void DebugCpu_InitSession(void)
 {
-	disasm_addr = M68000_GetPC();
+#define MAX_CPU_DISASM_OFFSET 16
+	disasm_addr = History_DisasmAddr(M68000_GetPC(), MAX_CPU_DISASM_OFFSET, false);
 	Profile_CpuStop();
 }

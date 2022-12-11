@@ -27,6 +27,7 @@ const char DebugUI_fileid[] = "Hatari debugui.c";
 #include "file.h"
 #include "log.h"
 #include "m68000.h"
+#include "reset.h"
 #include "screen.h"
 #include "statusbar.h"
 #include "str.h"
@@ -39,8 +40,10 @@ const char DebugUI_fileid[] = "Hatari debugui.c";
 #include "debugInfo.h"
 #include "debugui.h"
 #include "evaluate.h"
+#include "history.h"
 #include "profile.h"
 #include "symbols.h"
+#include "vars.h"
 
 FILE *debugOutput;
 
@@ -374,6 +377,43 @@ static int DebugUI_ChangeDir(int argc, char *argv[])
 		perror("ERROR");
 	}
 	return DebugUI_PrintCmdHelp(argv[0]);
+}
+
+/**
+ * Command: Rename file
+ */
+static int DebugUI_Rename(int argc, char *argv[])
+{
+	if (argc == 3)
+	{
+		if (rename(argv[1], argv[2]) == 0)
+			return DEBUGGER_CMDDONE;
+		perror("ERROR");
+	}
+	return DebugUI_PrintCmdHelp(argv[0]);
+}
+
+
+/**
+ * Command: Reset emulation
+ */
+static char *DebugUI_MatchReset(const char *text, int state)
+{
+	static const char* types[] = {	"cold", "hard", "soft", "warm" };
+	return DebugUI_MatchHelper(types, ARRAY_SIZE(types), text, state);
+}
+static int DebugUI_Reset(int argc, char *argv[])
+{
+	if (argc != 2)
+		return DebugUI_PrintCmdHelp(argv[0]);
+
+	if (strcmp(argv[1], "soft") == 0 || strcmp(argv[1], "warm") == 0)
+		Reset_Warm();
+	else if (strcmp(argv[1], "cold") == 0 || strcmp(argv[1], "hard") == 0)
+		Reset_Cold();
+	else
+		return DebugUI_PrintCmdHelp(argv[0]);
+	return DEBUGGER_END;
 }
 
 
@@ -844,17 +884,18 @@ static const dbgcommand_t uicommand[] =
 	{ DebugUI_ChangeDir, NULL,
 	  "cd", "",
 	  "change directory",
-	  "<directory>\n"
-	  "\tChange Hatari work directory.",
+	  "<directory> [-f]\n"
+	  "\tChange Hatari work directory. With '-f', directory is\n"
+	  "\tchanged only after all script files have been parsed.",
 	  false },
-	{ DebugUI_Evaluate, Symbols_MatchCpuAddress,
+	{ DebugUI_Evaluate, Vars_MatchCpuVariable,
 	  "evaluate", "e",
 	  "evaluate an expression",
 	  "<expression>\n"
 	  "\tEvaluate an expression and show the result.  Expression can\n"
-	  "\tinclude CPU register and symbol names, those are replaced\n"
-	  "\tby their values. Supported operators in expressions are,\n"
-	  "\tin the decending order of precedence:\n"
+	  "\tinclude CPU register & symbol and Hatari variable names.\n"
+	  "\tThose are replaced by their values. Supported operators in\n"
+	  "\texpressions are, in the descending order of precedence:\n"
 	  "\t\t(), +, -, ~, *, /, +, -, >>, <<, ^, &, |\n"
 	  "\tParenthesis will fetch a _long_ value from the address\n"
 	  "\tto what the value inside it evaluates to. Prefixes can be\n"
@@ -869,6 +910,16 @@ static const dbgcommand_t uicommand[] =
 	  "print help",
 	  "[command]\n"
 	  "\tPrint help text for available commands.",
+	  false },
+	{ History_Parse, History_Match,
+	  "history", "hi",
+	  "show last CPU/DSP PC values & executed instructions",
+	  "cpu|dsp|on|off|<count> [limit]|save <file>\n"
+	  "\t'cpu' and 'dsp' enable instruction history tracking for just given\n"
+	  "\tprocessor, 'on' tracks them both, 'off' will disable history.\n"
+	  "\tOptional 'limit' will set how many past instructions are tracked.\n"
+	  "\tGiving just count will show (at max) given number of last saved PC\n"
+	  "\tvalues and instructions currently at corresponding RAM addresses.",
 	  false },
 	{ DebugInfo_Command, DebugInfo_MatchInfo,
 	  "info", "i",
@@ -886,7 +937,7 @@ static const dbgcommand_t uicommand[] =
 	  false },
 	{ DebugUI_SetLogFile, NULL,
 	  "logfile", "f",
-	  "open or close log file",
+	  "set (memdump/disasm/registers) log file",
 	  "[filename]\n"
 	  "\tOpen log file, no argument closes the log file. Output of\n"
 	  "\tregister & memory dumps and disassembly will be written to it.",
@@ -895,16 +946,21 @@ static const dbgcommand_t uicommand[] =
 	  "parse", "p",
 	  "get debugger commands from file",
 	  "[filename]\n"
-	  "\tRead debugger commands from given file and do them.",
+	  "\tRead debugger commands from given file and do them.\n"
+	  "\tCurrent directory is script directory during this.\n"
+	  "\tTo specify directory to be used also for breakpoint\n"
+	  "\tscripts execution, use '-f' option for 'cd' command.",
 	  false },
-	{ DebugUI_SetOptions, NULL /* Opt_MatchOption */,
-	  "setopt", "o",
-	  "set Hatari command line and debugger options",
-	  "[<bin|dec|hex>|<command line options>]\n"
-	  "\tSet Hatari options. For example to enable exception catching,\n"
-	  "\tuse following command line option: 'setopt --debug'. Special\n"
-	  "\t'bin', 'dec' and 'hex' arguments change the default number base\n"
-	  "\tused in debugger.",
+	{ DebugUI_Rename, NULL,
+	  "rename", "",
+	  "rename given file",
+	  "<old> <new>\n"
+	  "\tRename file with <old> name to <new>.",
+	  false },
+	{ DebugUI_Reset, DebugUI_MatchReset,
+	  "reset", "",
+	  "reset emulation",
+	  "<soft|hard>\n",
 	  false },
 	{ DebugUI_SetTracing, Log_MatchTrace,
 	  "trace", "t",
@@ -912,7 +968,14 @@ static const dbgcommand_t uicommand[] =
 	  "[set1,set2...]\n"
 	  "\tSelect Hatari tracing settings. 'help' shows all the available\n"
 	  "\tsettings.  For example, to enable CPU disassembly and VBL\n"
-	  "\ttracing, use:\n\t\ttrace cpu_disasm",
+	  "\ttracing, use:\n\t\ttrace cpu_disasm,video_hbl",
+	  false },
+	{ Vars_List, NULL,
+	  "variables", "v",
+	  "List builtin symbols / variables",
+	  "\n"
+	  "\tList Hatari debugger builtin symbols / variables and their values.\n"
+	  "\tThey're accepted by breakpoints and evaluate command.",
 	  false },
 	{ DebugUI_QuitEmu, NULL,
 	  "quit", "q",
@@ -1026,6 +1089,8 @@ void DebugUI(debug_reason_t reason)
 		return;
 	}
 	recursing = true;
+
+	History_Mark(reason);
 
 	if (bInFullScreen)
 		Screen_ReturnFromFullScreen();

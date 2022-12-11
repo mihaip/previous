@@ -24,26 +24,26 @@ typedef enum {
 /* profile command parsing */
 extern const char Profile_Description[];
 extern char *Profile_Match(const char *text, int state);
-extern bool Profile_Command(int nArgc, char *psArgs[], bool bForDsp);
+extern int Profile_Command(int nArgc, char *psArgs[], bool bForDsp);
 
 /* CPU profile control */
+extern void Profile_CpuFree(void);
 extern bool Profile_CpuStart(void);
 extern void Profile_CpuUpdate(void);
 extern void Profile_CpuStop(void);
+
 /* CPU profile results */
-extern void Profile_CpuShowStats(void);
-extern void Profile_CpuShowCycles(unsigned int show);
-extern void Profile_CpuShowCounts(unsigned int show, bool only_symbols);
-extern bool Profile_CpuAddressData(uint32_t addr, uint32_t *count, uint32_t *cycles);
+extern bool Profile_CpuAddr_HasData(uint32_t addr);
+extern int Profile_CpuAddr_DataStr(char *buffer, int maxlen, uint32_t addr);
 
 /* DSP profile control */
+extern void Profile_DspFree(void);
 extern bool Profile_DspStart(void);
 extern void Profile_DspUpdate(void);
 extern void Profile_DspStop(void);
+
 /* DSP profile results */
-extern void Profile_DspShowStats(void);
-extern void Profile_DspShowCycles(unsigned int show);
-extern void Profile_DspShowCounts(unsigned int show, bool only_symbols);
-extern bool Profile_DspAddressData(uint16_t addr, float *percentage, uint64_t *count, uint64_t *cycles, uint16_t *cycle_diff);
+extern bool Profile_DspAddressData(uint16_t addr, float *percentage, uint64_t *count,
+                                   uint64_t *cycles, uint16_t *cycle_diff);
 
 #endif

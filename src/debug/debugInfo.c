@@ -23,6 +23,7 @@ const char DebugInfo_fileid[] = "Hatari debuginfo.c";
 #include "dsp.h"
 #include "evaluate.h"
 #include "file.h"
+#include "history.h"
 #include "ioMem.h"
 #include "rtcnvram.h"
 #include "m68000.h"
@@ -283,6 +284,7 @@ static const struct {
 	{ true, "dspregs",   DebugInfo_DspRegister,NULL, "Show DSP register contents" },
 #endif
 	{ true, "file",      DebugInfo_FileParse, DebugInfo_FileArgs, "Parse commands from given debugger input <file>" },
+	{ true, "history",   History_Show,         NULL, "Show history of last <count> instructions" },
 	{ true, "memdump",   DebugInfo_CpuMemDump, NULL, "Dump CPU memory from given <address>" },
 	{ true, "regaddr",   DebugInfo_RegAddr, DebugInfo_RegAddrArgs, "Show <disasm|memdump> from CPU/DSP address pointed by <register>" },
 	{ true, "registers", DebugInfo_CpuRegister,NULL, "Show CPU register contents" },
