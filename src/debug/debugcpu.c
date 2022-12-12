@@ -30,8 +30,6 @@ const char DebugCpu_fileid[] = "Hatari debugcpu.c";
 #include "str.h"
 #include "symbols.h"
 #include "68kDisass.h"
-#include "cpummu.h"
-#include "cpummu030.h"
 #include "vars.h"
 
 
@@ -47,53 +45,6 @@ static bool bCpuProfiling;     /* Whether CPU profiling is activated */
 static int nCpuActiveCBs = 0;  /* Amount of active conditional breakpoints */
 static int nCpuSteps = 0;      /* Amount of steps for CPU single-stepping */
 
-uint32_t DBGMemory_ReadLong(uint32_t addr) {
-    switch (ConfigureParams.System.nCpuLevel) {
-        case 3: return get_long_mmu030(addr);
-        case 4: return get_long_mmu040(addr);
-        default: return 0;
-    }
-}
-
-uint16_t DBGMemory_ReadWord(uint32_t addr) {
-    switch (ConfigureParams.System.nCpuLevel) {
-        case 3: return get_word_mmu030(addr);
-        case 4: return get_word_mmu040(addr);
-        default: return 0;
-    }
-}
-
-uint8_t DBGMemory_ReadByte(uint32_t addr) {
-    switch (ConfigureParams.System.nCpuLevel) {
-        case 3: return get_byte_mmu030(addr);
-        case 4: return get_byte_mmu040(addr);
-        default: return 0;
-    }
-}
-
-void DBGMemory_WriteLong(uint32_t addr, uint32_t val) {
-    switch (ConfigureParams.System.nCpuLevel) {
-        case 3: put_long_mmu030(addr, val); break;
-        case 4: put_long_mmu040(addr, val); break;
-        default: break;
-    }
-}
-
-void DBGMemory_WriteWord(uint32_t addr, uint16_t val) {
-    switch (ConfigureParams.System.nCpuLevel) {
-        case 3: put_word_mmu030(addr, val); break;
-        case 4: put_word_mmu040(addr, val); break;
-        default: break;
-    }
-}
-
-void DBGMemory_WriteByte(uint32_t addr, uint8_t val) {
-    switch (ConfigureParams.System.nCpuLevel) {
-        case 3: put_byte_mmu030(addr, val); break;
-        case 4: put_byte_mmu040(addr, val); break;
-        default: break;
-    }
-}
 
 /**
  * Load a binary file to a memory address.
@@ -132,7 +83,7 @@ static int DebugCpu_LoadBin(int nArgc, char *psArgs[])
 	while (!feof(fp))
 	{
 		i++;
-		DBGMemory_WriteByte(address++, c);
+		M68000_WriteByte(address++, c);
 		c = fgetc(fp);
 	}
 	fprintf(stderr,"  Read 0x%x bytes.\n", i);
@@ -177,7 +128,7 @@ static int DebugCpu_SaveBin(int nArgc, char *psArgs[])
 
 	while (i < bytes)
 	{
-		c = DBGMemory_ReadByte(address++);
+		c = M68000_ReadByte(address++);
 		fputc(c, fp);
 		i++;
 	}
@@ -576,14 +527,14 @@ int DebugCpu_MemDump(int nArgc, char *psArgs[])
 			switch (mode)
 			{
 			case 'l':
-				value = DBGMemory_ReadLong(memdump_addr);
+				value = M68000_ReadLong(memdump_addr);
 				break;
 			case 'w':
-				value = DBGMemory_ReadWord(memdump_addr);
+				value = M68000_ReadWord(memdump_addr);
 				break;
 			case 'b':
 			default:
-				value = DBGMemory_ReadByte(memdump_addr);
+				value = M68000_ReadByte(memdump_addr);
 				break;
 			}
 			fprintf(debugOutput, "%0*x ", 2*size, value);
@@ -594,7 +545,7 @@ int DebugCpu_MemDump(int nArgc, char *psArgs[])
 		fprintf(debugOutput, "  ");
 		for (i = 0; i < MEMDUMP_COLS; i++)
 		{
-			c = DBGMemory_ReadByte(memdump_addr-MEMDUMP_COLS+i);
+			c = M68000_ReadByte(memdump_addr-MEMDUMP_COLS+i);
 			if(!isprint((unsigned)c))
 				c = NON_PRINT_CHAR;             /* non-printable as dots */
 			fprintf(debugOutput,"%c", c);
@@ -709,13 +660,13 @@ static int DebugCpu_MemWrite(int nArgc, char *psArgs[])
 		switch(mode)
 		{
 		case 'b':
-			DBGMemory_WriteByte(write_addr + i, store.bytes[i]);
+			M68000_WriteByte(write_addr + i, store.bytes[i]);
 			break;
 		case 'w':
-			DBGMemory_WriteWord(write_addr + i*2, store.words[i]);
+			M68000_WriteWord(write_addr + i*2, store.words[i]);
 			break;
 		case 'l':
-			DBGMemory_WriteLong(write_addr + i*4, store.longs[i]);
+			M68000_WriteLong(write_addr + i*4, store.longs[i]);
 			break;
 		}
 	}
@@ -845,8 +796,8 @@ static int DebugCpu_Next(int nArgc, char *psArgv[])
 		if (optype == CALL_SUBROUTINE ||
 		    optype == CALL_EXCEPTION ||
 		    (optype == CALL_BRANCH &&
-		     (DBGMemory_ReadWord(M68000_GetPC()) & 0xf0f8) == 0x50c8 &&
-		     (int16_t)DBGMemory_ReadWord(M68000_GetPC() + SIZE_WORD) < 0))
+		     (M68000_ReadWord(M68000_GetPC()) & 0xf0f8) == 0x50c8 &&
+		     (int16_t)M68000_ReadWord(M68000_GetPC() + SIZE_WORD) < 0))
 		{
 			nextpc = Disasm_GetNextPC(M68000_GetPC());
 			sprintf(command, "pc=$%x :once :quiet\n", nextpc);
@@ -872,7 +823,7 @@ uint32_t DebugCpu_OpcodeType(void)
 	/* cannot use OpcodeFamily like profiler does,
 	 * as that's for previous instructions
 	 */
-	uint16_t opcode = DBGMemory_ReadWord(M68000_GetPC());
+	uint16_t opcode = M68000_ReadWord(M68000_GetPC());
 
 	if (opcode == 0x4e74 ||			/* RTD */
 	    opcode == 0x4e75 ||			/* RTS */

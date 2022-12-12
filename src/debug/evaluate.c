@@ -732,13 +732,13 @@ static long long close_bracket (long long value, char width)
 			addr = val.buf[val.idx];
 			switch (width) {
 			case 'b':
-				value = DBGMemory_ReadByte(addr);
+				value = M68000_ReadByte(addr);
 				break;
 			case 'w':
-				value = DBGMemory_ReadWord(addr);
+				value = M68000_ReadWord(addr);
 				break;
 			case 'l':
-				value = DBGMemory_ReadLong(addr);
+				value = M68000_ReadLong(addr);
 				break;
 			default:
 				id.error = CLAC_PRG_ERR;

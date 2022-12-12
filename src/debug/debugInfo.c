@@ -263,6 +263,7 @@ static void DebugInfo_Default(FILE *fp, uint32_t dummy)
 		fprintf(fp, "$%x\n", DSP_GetPC());
 	else
 		fprintf(fp, "N/A\n");
+	return; // FIXME: for now we do not disassemble. Disasm crashes if not in super user mode.
 
 	Disasm(fp, pc, &nextpc, 1);
 }

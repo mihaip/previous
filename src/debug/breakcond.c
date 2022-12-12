@@ -182,15 +182,15 @@ static uint32_t BreakCond_ReadDspMemory(uint32_t addr, const bc_value_t *bc_valu
 /**
  * Return value of given size read from given ST memory address
  */
-static uint32_t BreakCond_ReadNeXTMemory(uint32_t addr, const bc_value_t *bc_value)
+static uint32_t BreakCond_ReadCpuMemory(uint32_t addr, const bc_value_t *bc_value)
 {
 	switch (bc_value->bits) {
 	case 32:
-		return DBGMemory_ReadLong(addr);
+		return M68000_ReadLong(addr);
 	case 16:
-		return DBGMemory_ReadWord(addr);
+		return M68000_ReadWord(addr);
 	case 8:
-		return DBGMemory_ReadByte(addr);
+		return M68000_ReadByte(addr);
 	default:
 		fprintf(stderr, "ERROR: unknown address size %d!\n", bc_value->bits);
 		abort();
@@ -227,7 +227,7 @@ static uint32_t BreakCond_GetValue(const bc_value_t *bc_value)
 		if (bc_value->dsp_space) {
 			value = BreakCond_ReadDspMemory(value, bc_value);
 		} else {
-			value = BreakCond_ReadNeXTMemory(value, bc_value);
+			value = BreakCond_ReadCpuMemory(value, bc_value);
 		}
 	}
 	return (value & bc_value->mask);

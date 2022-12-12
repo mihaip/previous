@@ -22,12 +22,4 @@ extern int DebugCpu_MemDump(int nArgc, char *psArgs[]);
 extern int DebugCpu_Register(int nArgc, char *psArgs[]);
 extern int DebugCpu_GetRegisterAddress(const char *reg, uint32_t **addr);
 
-extern uint32_t DBGMemory_ReadLong(uint32_t addr);
-extern uint16_t DBGMemory_ReadWord(uint32_t addr);
-extern uint8_t  DBGMemory_ReadByte(uint32_t addr);
-
-extern void DBGMemory_WriteLong(uint32_t addr,uint32_t val);
-extern void DBGMemory_WriteWord(uint32_t addr,uint16_t val);
-extern void DBGMemory_WriteByte(uint32_t addr,uint8_t val);
-
 #endif /* HATARI_DEBUGCPU_H */
