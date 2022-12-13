@@ -692,7 +692,7 @@ void Main_EventHandler(void) {
 				if (event.type == SPECIAL_EVENT) {
 					switch (event.user.code) {
 						case MAIN_PAUSE:
-							Main_PauseEmulation(true);
+							Main_PauseEmulation(false);
 							break;
 						case MAIN_UNPAUSE:
 							Main_UnPauseEmulation();

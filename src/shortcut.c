@@ -62,10 +62,10 @@ static void ShortCut_MouseGrab(void)
  */
 static void ShortCut_SoundOnOff(void)
 {
-    ConfigureParams.Sound.bEnableSound = !ConfigureParams.Sound.bEnableSound;
-    if (bEmulationActive) {
-        Sound_Pause(!ConfigureParams.Sound.bEnableSound);
-    }
+	ConfigureParams.Sound.bEnableSound = !ConfigureParams.Sound.bEnableSound;
+	if (bEmulationActive) {
+		Sound_Pause(!ConfigureParams.Sound.bEnableSound);
+	}
 }
 
 /*-----------------------------------------------------------------------*/
@@ -74,10 +74,10 @@ static void ShortCut_SoundOnOff(void)
  */
 void ShortCut_Debug_M68K(void)
 {
-	int running;
+	bool running;
 
 	running = Main_PauseEmulation(true);
-    /* Call the debugger */
+	/* Call the debugger */
 	DebugUI(REASON_USER);
 	if (running)
 		Main_UnPauseEmulation();
@@ -89,23 +89,15 @@ void ShortCut_Debug_M68K(void)
  */
 void ShortCut_Debug_I860(void)
 {
-    if (bInFullScreen)
-        Screen_ReturnFromFullScreen();
+	if (bInFullScreen)
+		Screen_ReturnFromFullScreen();
 
-    Main_PauseEmulation(true);
-    
-    /* override paused message so that user knows to look into console
-     * on how to continue in case he invoked the debugger by accident.
-     */
-    Statusbar_AddMessage("I860 Console Debugger", 100);
-    Statusbar_Update(sdlscrn);
-    
-    /* disable normal GUI alerts while on console */
-    int alertLevel = Log_SetAlertLevel(LOG_FATAL);
-    
-    /* Call the debugger */
-    nd_start_debugger();
-    Log_SetAlertLevel(alertLevel);
+	/* i860 thread silently pauses 68k emulation if necessary */
+	Statusbar_AddMessage("I860 Console Debugger", 100);
+	Statusbar_Update(sdlscrn);
+
+	/* Call the debugger */
+	nd_start_debugger();
 }
 
 /*-----------------------------------------------------------------------*/
@@ -124,27 +116,27 @@ static void ShortCut_Pause(void)
 static void ShortCut_Dimension(void)
 {
 	if (ConfigureParams.System.nMachineType==NEXT_STATION ||
-        ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DUAL) {
+		ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DUAL) {
 		return;
 	}
-    
-    while (ConfigureParams.Screen.nMonitorNum < ND_MAX_BOARDS) {
-        if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_CPU) {
-            ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_DIMENSION;
-            ConfigureParams.Screen.nMonitorNum = 0;
-        } else {
-            ConfigureParams.Screen.nMonitorNum++;
-        }
-        if (ConfigureParams.Screen.nMonitorNum==ND_MAX_BOARDS) {
-            ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
-            ConfigureParams.Screen.nMonitorNum = 0;
-            break;
-        }
-        if (ConfigureParams.Dimension.board[ConfigureParams.Screen.nMonitorNum].bEnabled) {
-            break;
-        }
-    }
-    
+
+	while (ConfigureParams.Screen.nMonitorNum < ND_MAX_BOARDS) {
+		if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_CPU) {
+			ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_DIMENSION;
+			ConfigureParams.Screen.nMonitorNum = 0;
+		} else {
+			ConfigureParams.Screen.nMonitorNum++;
+		}
+		if (ConfigureParams.Screen.nMonitorNum==ND_MAX_BOARDS) {
+			ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
+			ConfigureParams.Screen.nMonitorNum = 0;
+			break;
+		}
+		if (ConfigureParams.Dimension.board[ConfigureParams.Screen.nMonitorNum].bEnabled) {
+			break;
+		}
+	}
+
 	Statusbar_UpdateInfo();
 }
 
@@ -153,10 +145,10 @@ static void ShortCut_Dimension(void)
  */
 static void ShortCut_StatusBar(void)
 {
-    ConfigureParams.Screen.bShowStatusbar = !ConfigureParams.Screen.bShowStatusbar;
-    ConfigureParams.Screen.bShowDriveLed  = false; /* for now unused in Previous */
-    
-    Screen_StatusbarChanged();
+	ConfigureParams.Screen.bShowStatusbar = !ConfigureParams.Screen.bShowStatusbar;
+	ConfigureParams.Screen.bShowDriveLed  = false; /* for now unused in Previous */
+
+	Screen_StatusbarChanged();
 }
 
 
