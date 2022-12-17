@@ -497,10 +497,3 @@ void IoMem_WriteWithoutInterceptionButTrace(void)
 {
 	Log_Printf(LOG_WARN,"IO write at $%08x val=%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],regs.pc);
 }
-
-/*-------------------------------------------------------------------------*/
-/* Jump into debugger upon access
- */
-void IoMem_Debug(void) {
-    ShortCut_Debug_M68K();
-}

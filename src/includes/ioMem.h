@@ -103,6 +103,5 @@ extern void IoMem_WriteWithoutInterception(void);
 extern void IoMem_ReadWithoutInterception(void);
 extern void IoMem_WriteWithoutInterceptionButTrace(void);
 extern void IoMem_ReadWithoutInterceptionButTrace(void);
-extern void IoMem_Debug(void);
 
 #endif

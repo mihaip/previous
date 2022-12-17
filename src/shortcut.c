@@ -72,7 +72,7 @@ static void ShortCut_SoundOnOff(void)
 /**
  * Shorcut to M68K debug interface
  */
-void ShortCut_Debug_M68K(void)
+static void ShortCut_Debug_M68K(void)
 {
 	bool running;
 
@@ -87,7 +87,7 @@ void ShortCut_Debug_M68K(void)
 /**
  * Shorcut to I860 debug interface
  */
-void ShortCut_Debug_I860(void)
+static void ShortCut_Debug_I860(void)
 {
 	if (bInFullScreen)
 		Screen_ReturnFromFullScreen();
@@ -230,7 +230,7 @@ bool Shortcut_Invoke(const char *shortcut)
 
 	if (ShortCutKey != SHORTCUT_NONE)
 	{
-		fprintf(stderr, "Shortcut invocation failed, shortcut already active\n");
+		fprintf(stderr, "WARNING: Shortcut invocation failed, shortcut already active\n");
 		return false;
 	}
 	for (i = 0; shortcuts[i].name; i++)
@@ -279,6 +279,9 @@ bool ShortCut_CheckKeys(int modkey, int symkey, bool press)
 {
 	SHORTCUTKEYIDX key;
 
+	if (symkey == SDLK_UNKNOWN)
+		return false;
+
 #if defined(__APPLE__)
 	if ((modkey&(KMOD_RCTRL|KMOD_LCTRL)) && (modkey&(KMOD_RALT|KMOD_LALT)))
 #else
@@ -290,9 +293,7 @@ bool ShortCut_CheckKeys(int modkey, int symkey, bool press)
 
 	if (key == SHORTCUT_NONE)
 		return false;
-	if (press) {
+	if (press)
 		ShortCutKey = key;
-		fprintf(stderr,"Short :%x\n",ShortCutKey);
-	}
 	return true;
 }
