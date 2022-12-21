@@ -193,6 +193,11 @@ void EN_Reset_Write(void) { // 0x02006006
     enet_reset();
 }
 
+void EN_CounterLo_Read(void) { // 0x02006007
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0&0xFF; /* FIXME: bit counter value */
+	Log_Printf(LOG_WARN,"[EN] TDR counter lo read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
 void EN_NodeID0_Read(void) { // 0x02006008
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.mac_addr[0];
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] MAC byte 0 read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
@@ -255,14 +260,9 @@ void EN_NodeID5_Write(void) {
     Ethernet_Reset(false);
 }
 
-void EN_CounterLo_Read(void) { // 0x02006007
-    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = ((enet_tx_buffer.limit-enet_tx_buffer.size)*8)&0xFF; /* FIXME: counter value */
- 	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver mode read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
-}
-
 void EN_CounterHi_Read(void) { // 0x0200600f
-    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = (((enet_tx_buffer.limit-enet_tx_buffer.size)*8)>>8)&0x3F; /* FIXME: counter value */
- 	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver mode read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = (0>>8)&0x3F; /* FIXME: bit counter value */
+ 	Log_Printf(LOG_WARN,"[EN] TDR counter hi read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 static void enet_tx_interrupt(uint8_t intr) {
@@ -426,20 +426,19 @@ void enet_receive(uint8_t *pkt, int len) {
 }
 
 static void enet_send(uint8_t *pkt, int len) {
-    print_packet(enet_tx_buffer.data, enet_tx_buffer.size, 1);
+    print_packet(pkt, len, 1);
     if (en_state == EN_LOOPBACK) {
         /* Loop back */
         Log_Printf(LOG_WARN, "[EN] Loopback packet.");
-        enet_receive(enet_tx_buffer.data, enet_tx_buffer.size);
+        enet_receive(pkt, len);
     } else {
         /* Send to real world network */
-        enet_input(enet_tx_buffer.data,enet_tx_buffer.size);
+        enet_input(pkt, len);
         /* Simultaneously receive packet on thin ethernet */
         if (en_state == EN_THINWIRE) {
-            enet_receive(enet_tx_buffer.data, enet_tx_buffer.size);
+            enet_receive(pkt, len);
         }
     }
-    enet_tx_buffer.size=0;
 }
 
 
@@ -567,6 +566,7 @@ static void enet_io(void) {
 						   enet_tx_buffer.data[0], enet_tx_buffer.data[1], enet_tx_buffer.data[2],
 						   enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
 				enet_send(enet_tx_buffer.data, enet_tx_buffer.size);
+				enet_tx_buffer.size=0;
 			}
 		}
 	}
@@ -579,10 +579,10 @@ static void enet_io(void) {
 #define TXMODE_TPE      0x04
 #define ENCTRL_BADTPE   0x40
 
-void EN_Turbo_RX_Status_Read(void) { // 0x02006002
+void EN_RX_NewStatus_Read(void) { // 0x02006002
     if (!(enet.tx_mode&(TXMODE_TPE|TXMODE_LOOP))) {
         if (!ConfigureParams.Ethernet.bEthernetConnected || ConfigureParams.Ethernet.bTwistedPair) {
-            Log_Printf(LOG_WARN,"[newEN] Receiver status read bus error!\n");
+            Log_Printf(LOG_WARN,"[EN] Receiver status read bus error!\n");
             M68000_BusError(IoAccessCurrentAddress, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, BUS_ERROR_ACCESS_DATA, 0);
             return;
         }
@@ -591,7 +591,7 @@ void EN_Turbo_RX_Status_Read(void) { // 0x02006002
     Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
-void EN_Turbo_Control_Read(void) { // 0x02006006
+void EN_Control_Read(void) { // 0x02006006
 	uint8_t val = enet.reset&EN_RESET;
 	if (enet.tx_mode&TXMODE_TPE) {
 		if (!ConfigureParams.Ethernet.bEthernetConnected || !ConfigureParams.Ethernet.bTwistedPair) {
@@ -599,8 +599,24 @@ void EN_Turbo_Control_Read(void) { // 0x02006006
 		}
 	}
 	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = val;
-	Log_Printf(LOG_EN_REG_LEVEL,"[newEN] Control read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Control read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
+
+void EN_RX_SavedNibble_Read(void) { // 0x02006007
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0&0x0F;
+	Log_Printf(LOG_WARN,"[EN] Receiver saved nibble read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void EN_TX_Seq_Read(void) { // 0x0200600e
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0&0x3F;
+	Log_Printf(LOG_WARN,"[EN] Transmitter sequence read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void EN_RX_Seq_Read(void) { // 0x0200600f
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0&0x7F;
+	Log_Printf(LOG_WARN,"[EN] Receiver sequence read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
 
 static int new_enet_state(void) {
 	if (enet.tx_mode&TXMODE_LOOP) {
@@ -628,12 +644,12 @@ static void new_enet_io(void) {
 		case RECV_STATE_WAITING:
 			if (enet_rx_buffer.size>0) {
 				Statusbar_BlinkLed(DEVICE_LED_ENET);
-				Log_Printf(LOG_EN_LEVEL, "[newEN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
+				Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
 						   enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
 						   enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
 				rx_chain = false;
 				if (enet_rx_buffer.size<ENET_FRAMESIZE_MIN && !(enet.rx_mode&RXMODE_ENA_SHORT)) {
-					Log_Printf(LOG_WARN, "[newEN] Received packet is short (%i byte)",enet_rx_buffer.size);
+					Log_Printf(LOG_WARN, "[EN] Received packet is short (%i byte)",enet_rx_buffer.size);
 					enet_rx_interrupt(RXSTAT_SHORT_PKT);
 					enet_rx_buffer.size = 0;
 					enet.tx_status &= ~TXSTAT_NET_BUSY;
@@ -651,7 +667,7 @@ static void new_enet_io(void) {
 				old_size = enet_rx_buffer.size;
 				dma_enet_write_memory(rx_chain);
 				if (enet_rx_buffer.size==old_size) {
-					Log_Printf(LOG_WARN, "[newEN] Receiving packet: Error! Receiver overflow (DMA disabled)!");
+					Log_Printf(LOG_WARN, "[EN] Receiving packet: Error! Receiver overflow (DMA disabled)!");
 					enet_rx_interrupt(RXSTAT_OVERFLOW);
 					enet.rx_mode &= ~RXMODE_ENABLE;
 					rx_chain = false;
@@ -661,11 +677,11 @@ static void new_enet_io(void) {
 					break; /* Go back to waiting state */
 				}
 				if (enet_rx_buffer.size>0) {
-					Log_Printf(LOG_WARN, "[newEN] Receiving packet: Transfer not complete!");
+					Log_Printf(LOG_WARN, "[EN] Receiving packet: Transfer not complete!");
 					rx_chain = true;
 					break; /* Loop in receiving state */
 				} else { /* done */
-					Log_Printf(LOG_EN_LEVEL, "[newEN] Receiving packet: Transfer complete.");
+					Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet: Transfer complete.");
 					rx_chain = false;
 					enet_rx_interrupt(RXSTAT_PKT_OK);
 					if (en_state == EN_LOOPBACK) {
@@ -685,21 +701,21 @@ static void new_enet_io(void) {
 	if (enet.tx_mode&TXMODE_ENABLE) {
 		if (enet.tx_status&TXSTAT_NET_BUSY) {
 			/* Wait until network is free */
-			Log_Printf(LOG_EN_LEVEL, "[newEN] Network is busy. Transmission delayed.");
+			Log_Printf(LOG_EN_LEVEL, "[EN] Network is busy. Transmission delayed.");
 		} else {
 			dma_enet_read_memory();
 			if (enet_tx_buffer.size>0) {
 				if (en_state == EN_DISCONNECTED) {
-					Log_Printf(LOG_EN_LEVEL, "[newEN] Ethernet disconnected. 16 collisions in a row!");
+					Log_Printf(LOG_EN_LEVEL, "[EN] Ethernet disconnected. 16 collisions in a row!");
 					enet_tx_interrupt(TXSTAT_16COLLS);
-					enet_tx_buffer.size=0;
 				} else {
 					Statusbar_BlinkLed(DEVICE_LED_ENET);
-					Log_Printf(LOG_EN_LEVEL, "[newEN] Sending packet to %02X:%02X:%02X:%02X:%02X:%02X",
+					Log_Printf(LOG_EN_LEVEL, "[EN] Sending packet to %02X:%02X:%02X:%02X:%02X:%02X",
 							   enet_tx_buffer.data[0], enet_tx_buffer.data[1], enet_tx_buffer.data[2],
 							   enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
 					enet_send(enet_tx_buffer.data, enet_tx_buffer.size);
 				}
+				enet_tx_buffer.size=0;
 				enet_tx_interrupt(TXSTAT_READY);
 			}
 		}
@@ -749,7 +765,7 @@ void Ethernet_Reset(bool hard) {
     if (hard) {
         enet.reset=EN_RESET;
         enet_rx_buffer.size=enet_tx_buffer.size=0;
-        enet_rx_buffer.limit=enet_tx_buffer.limit=64*1024;
+        enet_rx_buffer.limit=enet_tx_buffer.limit=EN_BUF_MAX;
         enet.tx_status=ConfigureParams.System.bTurbo?0:TXSTAT_READY;
     }
     

@@ -283,7 +283,7 @@ bool ShortCut_CheckKeys(int modkey, int symkey, bool press)
 		return false;
 
 #if defined(__APPLE__)
-	if ((modkey&(KMOD_RCTRL|KMOD_LCTRL)) && (modkey&(KMOD_RALT|KMOD_LALT)))
+	if ((modkey&KMOD_CTRL) && (modkey&KMOD_ALT))
 #else
 	if (modkey & (KMOD_RALT|KMOD_LGUI|KMOD_RGUI|KMOD_MODE))
 #endif
