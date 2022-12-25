@@ -799,16 +799,15 @@ void dma_printer_read_memory(void) {
 #define EN_BOP      0x40000000 /* beginning of packet */
 #define ENADDR(x)   ((x)&~(EN_EOP|EN_BOP))
 
-uint32_t saved_next_turbo = 0;
-
 static void dma_enet_interrupt(int channel) {
     int interrupt = get_interrupt_type(channel);
     
     dma[channel].csr |= DMA_COMPLETE;
     
     if (dma[channel].csr & DMA_SUPDATE) { /* if we are in chaining mode */
+        /* Save last byte count */
+        dma[channel].saved_limit = dma[channel].next;
         /* Update pointers */
-		saved_next_turbo = dma[channel].next;
         dma[channel].next = dma[channel].start;
         dma[channel].limit = dma[channel].stop;
         /* Set bits in CSR */
@@ -833,6 +832,8 @@ void dma_enet_write_memory(bool eop) {
         abort();
     }
     
+    dma[CHANNEL_EN_RX].saved_next = dma[CHANNEL_EN_RX].next;
+    
     TRY(prb) {
         while (dma[CHANNEL_EN_RX].next<dma[CHANNEL_EN_RX].limit && enet_rx_buffer.size>0) {
             put_byte(dma[CHANNEL_EN_RX].next, enet_rx_buffer.data[enet_rx_buffer.limit-enet_rx_buffer.size]);
@@ -846,11 +847,18 @@ void dma_enet_write_memory(bool eop) {
     } ENDTRY
     
     if (enet_rx_buffer.size==0) {
-        if (eop) { /* TODO: check if this is correct */
+        if (ConfigureParams.System.bTurbo) {
+            saved_nibble = dma[CHANNEL_EN_RX].next%DMA_BURST_SIZE;
+            if (!(dma[CHANNEL_EN_RX].csr&DMA_SUPDATE)) {
+                dma[CHANNEL_EN_RX].next -= saved_nibble;
+                if (dma[CHANNEL_EN_RX].next<dma[CHANNEL_EN_RX].limit) {
+                    dma[CHANNEL_EN_RX].next += DMA_BURST_SIZE;
+                }
+            }
+        } else if (eop) { /* TODO: check if this is correct */
             Log_Printf(LOG_WARN, "[DMA] Channel Ethernet Receive: Last buffer of chain done.");
             dma[CHANNEL_EN_RX].next|=EN_BOP;
         }
-        dma[CHANNEL_EN_RX].saved_limit = dma[CHANNEL_EN_RX].next;
     }
 
     dma_enet_interrupt(CHANNEL_EN_RX);
@@ -860,6 +868,8 @@ bool dma_enet_read_memory(void) {
     if (dma[CHANNEL_EN_TX].csr&DMA_ENABLE) {
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Ethernet Transmit: Read from memory at $%08x, %i bytes",
                    dma[CHANNEL_EN_TX].next,ENADDR(dma[CHANNEL_EN_TX].limit)-dma[CHANNEL_EN_TX].next);
+        
+        dma[CHANNEL_EN_TX].saved_next = dma[CHANNEL_EN_TX].next;
         
         TRY(prb) {
             while (dma[CHANNEL_EN_TX].next<ENADDR(dma[CHANNEL_EN_TX].limit) && enet_tx_buffer.size<enet_tx_buffer.limit) {
@@ -1172,9 +1182,9 @@ void TDMA_CSR_Write(void) {
     }
 }
 
-void TDMA_Saved_Next_Read(void) { // 0x02004050
-	IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, saved_next_turbo);
-	Log_Printf(LOG_DMA_LEVEL,"TDMA SNext read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, saved_next_turbo, m68k_getpc());
+void TDMA_Saved_Limit_Read(void) { // 0x02004050
+	IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma[CHANNEL_EN_RX].saved_limit);
+	Log_Printf(LOG_DMA_LEVEL,"TDMA SNext read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma[CHANNEL_EN_RX].saved_limit, m68k_getpc());
 }
 
 /* Flush DMA buffer */

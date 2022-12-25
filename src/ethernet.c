@@ -87,6 +87,7 @@ struct {
 
 
 void enet_reset(void);
+bool new_enet_buserror(void);
 
 void (*enet_output)(void);
 void (*enet_input)(uint8_t *pkt, int len);
@@ -95,6 +96,41 @@ void (*enet_stop)(void);
 
 void print_packet(uint8_t *pkt, int len, int out);
 
+
+/* Interrupt functions */
+static void enet_tx_check_interrupt(void) {
+	if (enet.tx_status&enet.tx_mask) {
+		set_interrupt(INT_EN_TX, SET_INT);
+	} else {
+		set_interrupt(INT_EN_TX, RELEASE_INT);
+	}
+}
+
+static void enet_rx_check_interrupt(void) {
+	if (enet.rx_status&enet.rx_mask) {
+		set_interrupt(INT_EN_RX, SET_INT);
+	} else {
+		set_interrupt(INT_EN_RX, RELEASE_INT);
+	}
+}
+
+static void enet_tx_interrupt(uint8_t intr) {
+	enet.tx_status|=intr;
+	enet_tx_check_interrupt();
+}
+
+static void enet_tx_release(uint8_t intr) {
+	enet.tx_status&=~intr;
+	enet_tx_check_interrupt();
+}
+
+static void enet_rx_interrupt(uint8_t intr) {
+	enet.rx_status|=intr;
+	enet_rx_check_interrupt();
+}
+
+
+/* Register access functions */
 void EN_TX_Status_Read(void) { // 0x02006000
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.tx_status;
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Transmitter status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
@@ -108,10 +144,7 @@ void EN_TX_Status_Write(void) {
 	} else {
 		enet.tx_status&=~(val&0x0F);
 	}
-	
-    if ((enet.tx_status&enet.tx_mask)==0) {
-        set_interrupt(INT_EN_TX, RELEASE_INT);
-    }
+	enet_tx_check_interrupt();
 }
 
 void EN_TX_Mask_Read(void) { // 0x02006001
@@ -124,14 +157,13 @@ void EN_TX_Mask_Write(void) {
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Transmitter masks write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
     enet.tx_mask&=ConfigureParams.System.bTurbo?0xBE:0xAF;
-    if (enet.tx_status&enet.tx_mask) {
-        set_interrupt(INT_EN_TX, SET_INT);
-    } else {
-        set_interrupt(INT_EN_TX, RELEASE_INT);
-    }
+	enet_tx_check_interrupt();
 }
 
 void EN_RX_Status_Read(void) { // 0x02006002
+	if (new_enet_buserror()) {
+		return;
+	}
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.rx_status;
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
@@ -144,10 +176,7 @@ void EN_RX_Status_Write(void) {
     } else {
         enet.rx_status&=~(val&0x8F);
     }
-    
-    if ((enet.rx_status&enet.rx_mask)==0) {
-        set_interrupt(INT_EN_RX, RELEASE_INT);
-    }
+	enet_rx_check_interrupt();
 }
 
 void EN_RX_Mask_Read(void) { // 0x02006003
@@ -160,11 +189,7 @@ void EN_RX_Mask_Write(void) {
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver masks write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     
     enet.rx_mask&=ConfigureParams.System.bTurbo?0xDF:0x9F;
-    if (enet.rx_status&enet.rx_mask) {
-        set_interrupt(INT_EN_RX, SET_INT);
-    } else {
-        set_interrupt(INT_EN_RX, RELEASE_INT);
-    }
+	enet_rx_check_interrupt();
 }
 
 void EN_TX_Mode_Read(void) { // 0x02006004
@@ -265,26 +290,6 @@ void EN_CounterHi_Read(void) { // 0x0200600f
  	Log_Printf(LOG_WARN,"[EN] TDR counter hi read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
-static void enet_tx_interrupt(uint8_t intr) {
-    enet.tx_status|=intr;
-    if (enet.tx_status&enet.tx_mask) {
-        set_interrupt(INT_EN_TX, SET_INT);
-    }
-}
-
-static void enet_tx_release(uint8_t intr) {
-    enet.tx_status&=~intr;
-    if ((enet.tx_status&enet.tx_mask)==0) {
-        set_interrupt(INT_EN_TX, RELEASE_INT);
-    }
-}
-
-static void enet_rx_interrupt(uint8_t intr) {
-    enet.rx_status|=intr;
-    if (enet.rx_status&enet.rx_mask) {
-        set_interrupt(INT_EN_RX, SET_INT);
-    }
-}
 
 /* Functions to find out if we are intended to receive a packet */
 
@@ -579,17 +584,7 @@ static void enet_io(void) {
 #define TXMODE_TPE      0x04
 #define ENCTRL_BADTPE   0x40
 
-void EN_RX_NewStatus_Read(void) { // 0x02006002
-    if (!(enet.tx_mode&(TXMODE_TPE|TXMODE_LOOP))) {
-        if (!ConfigureParams.Ethernet.bEthernetConnected || ConfigureParams.Ethernet.bTwistedPair) {
-            Log_Printf(LOG_WARN,"[EN] Receiver status read bus error!\n");
-            M68000_BusError(IoAccessCurrentAddress, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, BUS_ERROR_ACCESS_DATA, 0);
-            return;
-        }
-    }
-    IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = enet.rx_status;
-    Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
-}
+uint8_t saved_nibble = 0;
 
 void EN_Control_Read(void) { // 0x02006006
 	uint8_t val = enet.reset&EN_RESET;
@@ -603,7 +598,7 @@ void EN_Control_Read(void) { // 0x02006006
 }
 
 void EN_RX_SavedNibble_Read(void) { // 0x02006007
-	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0&0x0F;
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = saved_nibble&0x0F;
 	Log_Printf(LOG_WARN,"[EN] Receiver saved nibble read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -617,6 +612,18 @@ void EN_RX_Seq_Read(void) { // 0x0200600f
 	Log_Printf(LOG_WARN,"[EN] Receiver sequence read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
+bool new_enet_buserror(void) {
+	if (ConfigureParams.System.bTurbo) {
+		if (!(enet.tx_mode&(TXMODE_TPE|TXMODE_LOOP))) {
+			if (!ConfigureParams.Ethernet.bEthernetConnected || ConfigureParams.Ethernet.bTwistedPair) {
+				Log_Printf(LOG_WARN,"[EN] Receiver status read bus error!\n");
+				M68000_BusError(IoAccessCurrentAddress, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, BUS_ERROR_ACCESS_DATA, 0);
+				return true;
+			}
+		}
+	}
+	return false;
+}
 
 static int new_enet_state(void) {
 	if (enet.tx_mode&TXMODE_LOOP) {
@@ -719,7 +726,6 @@ static void new_enet_io(void) {
 				enet_tx_interrupt(TXSTAT_READY);
 			}
 		}
-		enet.tx_status |= TXSTAT_READY; /* really? */
 	}
 }
 

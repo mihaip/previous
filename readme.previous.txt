@@ -315,6 +315,7 @@ Previous v2.6:
 Previous v2.7 (unreleased):
   > Adds ability to unlock the mouse cursor with control-click.
   > Adds compile-time option to do all rendering from the main thread.
+  > Improves accuracy of Ethernet controller on Turbo systems.
   > Improves handling of caps lock and modifier keys when using shortcuts.
   > Improves behavior of file selection dialog in certain situations.
   > Improves behavior of user interface in some edge cases.

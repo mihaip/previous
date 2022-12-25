@@ -26,6 +26,8 @@ extern void EN_NodeID5_Write(void);
 extern void EN_CounterLo_Read(void);
 extern void EN_CounterHi_Read(void);
 
+extern uint8_t saved_nibble;
+
 #define EN_BUF_MAX (64*1024)
 
 typedef struct {
@@ -42,7 +44,6 @@ extern void Ethernet_Reset(bool hard);
 extern void enet_receive(uint8_t *pkt, int len);
 
 /* Turbo ethernet controller */
-extern void EN_RX_NewStatus_Read(void);
 extern void EN_Control_Read(void);
 extern void EN_RX_SavedNibble_Read(void);
 extern void EN_TX_Seq_Read(void);

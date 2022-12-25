@@ -58,8 +58,8 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_Turbo[] =
 	{ 0x02004048, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
 	{ 0x0200404c, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
 	
-	/* Ethernet Saved Next */
-	{ 0x02004050, SIZE_LONG, TDMA_Saved_Next_Read, IoMem_WriteWithoutInterceptionButTrace },
+	/* Ethernet Saved Limit */
+	{ 0x02004050, SIZE_LONG, TDMA_Saved_Limit_Read, IoMem_WriteWithoutInterceptionButTrace },
 
 	/* Channel Sound in */
 	{ 0x02004080, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
@@ -103,7 +103,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_Turbo[] =
 	/* Network Adapter (AT&T 7213) */
 	{ 0x02006000, SIZE_BYTE, EN_TX_Status_Read, EN_TX_Status_Write },
 	{ 0x02006001, SIZE_BYTE, EN_TX_Mask_Read, EN_TX_Mask_Write },
-	{ 0x02006002, SIZE_BYTE, EN_RX_NewStatus_Read, EN_RX_Status_Write },
+	{ 0x02006002, SIZE_BYTE, EN_RX_Status_Read, EN_RX_Status_Write },
 	{ 0x02006003, SIZE_BYTE, EN_RX_Mask_Read, EN_RX_Mask_Write },
 	{ 0x02006004, SIZE_BYTE, EN_TX_Mode_Read, EN_TX_Mode_Write },
 	{ 0x02006005, SIZE_BYTE, EN_RX_Mode_Read, EN_RX_Mode_Write },
