@@ -654,7 +654,6 @@ static void new_enet_io(void) {
 				Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
 						   enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
 						   enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
-				rx_chain = false;
 				if (enet_rx_buffer.size<ENET_FRAMESIZE_MIN && !(enet.rx_mode&RXMODE_ENA_SHORT)) {
 					Log_Printf(LOG_WARN, "[EN] Received packet is short (%i byte)",enet_rx_buffer.size);
 					enet_rx_interrupt(RXSTAT_SHORT_PKT);
@@ -672,12 +671,11 @@ static void new_enet_io(void) {
 		case RECV_STATE_RECEIVING:
 			if (enet_rx_buffer.size>0) {
 				old_size = enet_rx_buffer.size;
-				dma_enet_write_memory(rx_chain);
+				dma_enet_write_memory(false);
 				if (enet_rx_buffer.size==old_size) {
 					Log_Printf(LOG_WARN, "[EN] Receiving packet: Error! Receiver overflow (DMA disabled)!");
 					enet_rx_interrupt(RXSTAT_OVERFLOW);
 					enet.rx_mode &= ~RXMODE_ENABLE;
-					rx_chain = false;
 					enet_rx_buffer.size = 0;
 					enet.tx_status &= ~TXSTAT_NET_BUSY;
 					receiver_state = RECV_STATE_WAITING;
@@ -685,11 +683,9 @@ static void new_enet_io(void) {
 				}
 				if (enet_rx_buffer.size>0) {
 					Log_Printf(LOG_WARN, "[EN] Receiving packet: Transfer not complete!");
-					rx_chain = true;
 					break; /* Loop in receiving state */
 				} else { /* done */
 					Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet: Transfer complete.");
-					rx_chain = false;
 					enet_rx_interrupt(RXSTAT_PKT_OK);
 					if (en_state == EN_LOOPBACK) {
 						enet_tx_interrupt(TXSTAT_TX_RECVD);

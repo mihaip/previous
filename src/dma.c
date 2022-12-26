@@ -805,11 +805,12 @@ static void dma_enet_interrupt(int channel) {
     dma[channel].csr |= DMA_COMPLETE;
     
     if (dma[channel].csr & DMA_SUPDATE) { /* if we are in chaining mode */
-        /* Save last byte count */
-        dma[channel].saved_limit = dma[channel].next;
         /* Update pointers */
         dma[channel].next = dma[channel].start;
         dma[channel].limit = dma[channel].stop;
+        if (ConfigureParams.System.bTurbo) {
+            dma[channel].saved_next = dma[channel].next;
+        }
         /* Set bits in CSR */
         dma[channel].csr &= ~DMA_SUPDATE; /* 1st done */
     } else {
@@ -832,8 +833,6 @@ void dma_enet_write_memory(bool eop) {
         abort();
     }
     
-    dma[CHANNEL_EN_RX].saved_next = dma[CHANNEL_EN_RX].next;
-    
     TRY(prb) {
         while (dma[CHANNEL_EN_RX].next<dma[CHANNEL_EN_RX].limit && enet_rx_buffer.size>0) {
             put_byte(dma[CHANNEL_EN_RX].next, enet_rx_buffer.data[enet_rx_buffer.limit-enet_rx_buffer.size]);
@@ -847,6 +846,8 @@ void dma_enet_write_memory(bool eop) {
     } ENDTRY
     
     if (enet_rx_buffer.size==0) {
+        /* Save last byte count */
+        dma[CHANNEL_EN_RX].saved_limit = dma[CHANNEL_EN_RX].next;
         if (ConfigureParams.System.bTurbo) {
             saved_nibble = dma[CHANNEL_EN_RX].next%DMA_BURST_SIZE;
             if (!(dma[CHANNEL_EN_RX].csr&DMA_SUPDATE)) {
@@ -855,7 +856,8 @@ void dma_enet_write_memory(bool eop) {
                     dma[CHANNEL_EN_RX].next += DMA_BURST_SIZE;
                 }
             }
-        } else if (eop) { /* TODO: check if this is correct */
+        }
+        if (eop) { /* TODO: check if this is correct */
             Log_Printf(LOG_WARN, "[DMA] Channel Ethernet Receive: Last buffer of chain done.");
             dma[CHANNEL_EN_RX].next|=EN_BOP;
         }
@@ -868,8 +870,6 @@ bool dma_enet_read_memory(void) {
     if (dma[CHANNEL_EN_TX].csr&DMA_ENABLE) {
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Ethernet Transmit: Read from memory at $%08x, %i bytes",
                    dma[CHANNEL_EN_TX].next,ENADDR(dma[CHANNEL_EN_TX].limit)-dma[CHANNEL_EN_TX].next);
-        
-        dma[CHANNEL_EN_TX].saved_next = dma[CHANNEL_EN_TX].next;
         
         TRY(prb) {
             while (dma[CHANNEL_EN_TX].next<ENADDR(dma[CHANNEL_EN_TX].limit) && enet_tx_buffer.size<enet_tx_buffer.limit) {
