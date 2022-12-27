@@ -56,22 +56,22 @@ static void (* const pIntHandlerFunctions[MAX_INTERRUPTS])(void) =
 	NULL,
 	Video_InterruptHandler,
 	Hardclock_InterruptHandler,
-    Mouse_Handler,
-    ESP_InterruptHandler,
-    ESP_IO_Handler,
-    M2MDMA_IO_Handler,
-    MO_InterruptHandler,
-    MO_IO_Handler,
-    ECC_IO_Handler,
-    ENET_IO_Handler,
-    FLP_IO_Handler,
-    SND_Out_Handler,
-    SND_In_Handler,
-    Printer_IO_Handler,
-    SCC_IO_Handler,
-    Main_EventHandlerInterrupt,
-    nd_display_vbl_handler,
-    nd_video_vbl_handler
+	Mouse_Handler,
+	ESP_InterruptHandler,
+	ESP_IO_Handler,
+	M2MDMA_IO_Handler,
+	MO_InterruptHandler,
+	MO_IO_Handler,
+	ECC_IO_Handler,
+	ENET_IO_Handler,
+	FLP_IO_Handler,
+	SND_Out_Handler,
+	SND_In_Handler,
+	Printer_IO_Handler,
+	SCC_IO_Handler,
+	Main_EventHandlerInterrupt,
+	nd_display_vbl_handler,
+	nd_video_vbl_handler
 };
 
 static INTERRUPTHANDLER InterruptHandlers[MAX_INTERRUPTS];
@@ -88,12 +88,12 @@ void CycInt_Reset(void) {
 	int i;
 
 	/* Reset counts */
-    PendingInterrupt.time = 0;
+	PendingInterrupt.time = 0;
 	ActiveInterrupt       = 0;
 	nCyclesOver           = 0;
-    nCyclesMainCounter    = 0;
-    usCheckCycles         = 0;
-        
+	nCyclesMainCounter    = 0;
+	usCheckCycles         = 0;
+
 	/* Reset interrupt table */
 	for (i=0; i<MAX_INTERRUPTS; i++) {
 		InterruptHandlers[i].type      = CYC_INT_NONE;
@@ -111,18 +111,18 @@ void CycInt_Reset(void) {
 static void CycInt_SetNewInterrupt(void) {
 	int64_t      LowestCycleCount = INT64_MAX;
 	interrupt_id LowestInterrupt  = INTERRUPT_NULL;
-    
+
 	/* Find next interrupt to go off */
 	for(int i = INTERRUPT_NULL+1; i < MAX_INTERRUPTS; i++) {
-        /* Is interrupt pending? */
-        if(InterruptHandlers[i].type == CYC_INT_CPU && InterruptHandlers[i].time < LowestCycleCount) {
-            LowestCycleCount = InterruptHandlers[i].time;
-            LowestInterrupt  = i;
-        }
+		/* Is interrupt pending? */
+		if(InterruptHandlers[i].type == CYC_INT_CPU && InterruptHandlers[i].time < LowestCycleCount) {
+			LowestCycleCount = InterruptHandlers[i].time;
+			LowestInterrupt  = i;
+		}
 	}
 
 	/* Set new counts, active interrupt */
-    PendingInterrupt = InterruptHandlers[LowestInterrupt];
+	PendingInterrupt = InterruptHandlers[LowestInterrupt];
 	ActiveInterrupt  = LowestInterrupt;
 }
 
@@ -138,7 +138,7 @@ static void CycInt_UpdateInterrupt(void) {
 		if (InterruptHandlers[i].type == CYC_INT_CPU)
 			InterruptHandlers[i].time -= nCyclesOver;
 	}
-    nCyclesOver = 0;
+	nCyclesOver = 0;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -146,18 +146,18 @@ static void CycInt_UpdateInterrupt(void) {
  * Check all microsecond interrupt timings
  */
 bool CycInt_SetNewInterruptUs(void) {
-    int64_t now = host_time_us();
-    if (ConfigureParams.System.bRealtime) {
-        for(int i = 0; i < MAX_INTERRUPTS; i++) {
-            if (InterruptHandlers[i].type == CYC_INT_US && now > InterruptHandlers[i].time) {
-                PendingInterrupt = InterruptHandlers[i];
-                PendingInterrupt.time = -1;
-                ActiveInterrupt       = i;
-                return true;
-            }
-        }
-    }
-    return false;
+	int64_t now = host_time_us();
+	if (ConfigureParams.System.bRealtime) {
+		for(int i = 0; i < MAX_INTERRUPTS; i++) {
+			if (InterruptHandlers[i].type == CYC_INT_US && now > InterruptHandlers[i].time) {
+				PendingInterrupt = InterruptHandlers[i];
+				PendingInterrupt.time = -1;
+				ActiveInterrupt       = i;
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -201,23 +201,23 @@ void CycInt_AddRelativeInterruptCycles(int64_t CycleTime, interrupt_id Handler) 
  * Use usreal if we are in realtime mode
  */
 void CycInt_AddRelativeInterruptUs(int64_t us, int64_t usreal, interrupt_id Handler) {
-    assert(us >= 0);
-    
-    if(ConfigureParams.System.bRealtime) {
-        /* Update list cycle counts with current PendingInterruptCount before adding a new int, */
-        /* because CycInt_SetNewInterrupt can change the active int / PendingInterruptCount */
-        if ( ActiveInterrupt > 0 ) CycInt_UpdateInterrupt();
-        
-        if ( usreal > 0 ) us = usreal;
-        
-        InterruptHandlers[Handler].type = CYC_INT_US;
-        InterruptHandlers[Handler].time = host_time_us() + us;
-        
-        /* Set new active int and compute a new value for PendingInterruptCount*/
-        CycInt_SetNewInterrupt();
-    } else {
-        CycInt_AddRelativeInterruptCycles(us * ConfigureParams.System.nCpuFreq, Handler);
-    }
+	assert(us >= 0);
+
+	if(ConfigureParams.System.bRealtime) {
+		/* Update list cycle counts with current PendingInterruptCount before adding a new int, */
+		/* because CycInt_SetNewInterrupt can change the active int / PendingInterruptCount */
+		if ( ActiveInterrupt > 0 ) CycInt_UpdateInterrupt();
+
+		if ( usreal > 0 ) us = usreal;
+
+		InterruptHandlers[Handler].type = CYC_INT_US;
+		InterruptHandlers[Handler].time = host_time_us() + us;
+
+		/* Set new active int and compute a new value for PendingInterruptCount*/
+		CycInt_SetNewInterrupt();
+	} else {
+		CycInt_AddRelativeInterruptCycles(us * ConfigureParams.System.nCpuFreq, Handler);
+	}
 }
 
 /*-----------------------------------------------------------------------*/
@@ -226,12 +226,12 @@ void CycInt_AddRelativeInterruptUs(int64_t us, int64_t usreal, interrupt_id Hand
  * Use usreal if we are in realtime mode.
  */
 void CycInt_AddRelativeInterruptUsCycles(int64_t us, int64_t usreal, interrupt_id Handler) {
-    
-    if (ConfigureParams.System.bRealtime && usreal > 0) {
-       us = usreal;
-    }
 
-    CycInt_AddRelativeInterruptCycles(us * ConfigureParams.System.nCpuFreq, Handler);
+	if (ConfigureParams.System.bRealtime && usreal > 0) {
+		us = usreal;
+	}
+
+	CycInt_AddRelativeInterruptCycles(us * ConfigureParams.System.nCpuFreq, Handler);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -257,5 +257,5 @@ void CycInt_RemovePendingInterrupt(interrupt_id Handler) {
  */
 bool CycInt_InterruptActive(interrupt_id Handler)
 {
-    return InterruptHandlers[Handler].type != CYC_INT_NONE;
+	return InterruptHandlers[Handler].type != CYC_INT_NONE;
 }
