@@ -78,6 +78,8 @@ if(ENABLE_OSX_BUNDLE)
 				   ${BUNDLE_CONTENTS}/Resources/${MACOSX_BUNDLE_ICON_FILE}
 			# Copy Localized .nib to Bundle
 			COMMAND cp -R ${CMAKE_CURRENT_SOURCE_DIR}/gui-osx/*.lproj ${BUNDLE_CONTENTS}/Resources/
+			# Copy ROM Images to Bundle
+			COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/*.BIN ${BUNDLE_CONTENTS}/Resources/
 	)
 	add_dependencies(Previous osx_bundle_dirs)
 	set_source_files_properties(${GUIOSX_RSRCS} PROPERTIES
@@ -141,8 +143,9 @@ if(ENABLE_OSX_BUNDLE)
 else()
 	install(TARGETS Previous RUNTIME DESTINATION ${BINDIR})
 	install(FILES Previous-icon.bmp DESTINATION ${DATADIR})
-	install(FILES ND_step1_v43.BIN DESTINATION ${BINDIR})
-	install(FILES Rev_1.0_v41.BIN DESTINATION ${BINDIR})
-	install(FILES Rev_2.5_v66.BIN DESTINATION ${BINDIR})
-	install(FILES Rev_3.3_v74.BIN DESTINATION ${BINDIR})
+	install(FILES ND_step1_v43.BIN DESTINATION ${DATADIR})
+	install(FILES Rev_0.8_v31.BIN DESTINATION ${DATADIR})
+	install(FILES Rev_1.0_v41.BIN DESTINATION ${DATADIR})
+	install(FILES Rev_2.5_v66.BIN DESTINATION ${DATADIR})
+	install(FILES Rev_3.3_v74.BIN DESTINATION ${DATADIR})
 endif(ENABLE_OSX_BUNDLE)

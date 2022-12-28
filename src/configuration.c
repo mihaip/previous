@@ -475,13 +475,13 @@ void Configuration_SetDefault(void)
 	/* Set defaults for Rom */
 	File_MakePathBuf(ConfigureParams.Rom.szRom030FileName,
 	                 sizeof(ConfigureParams.Rom.szRom030FileName),
-	                 psHomeDir, "Rev_1.0_v41", "BIN");
+	                 Paths_GetDataDir(), "Rev_1.0_v41", "BIN");
 	File_MakePathBuf(ConfigureParams.Rom.szRom040FileName,
 	                 sizeof(ConfigureParams.Rom.szRom040FileName),
-	                 psHomeDir, "Rev_2.5_v66", "BIN");
+	                 Paths_GetDataDir(), "Rev_2.5_v66", "BIN");
 	File_MakePathBuf(ConfigureParams.Rom.szRomTurboFileName,
 	                 sizeof(ConfigureParams.Rom.szRomTurboFileName),
-	                 psHomeDir, "Rev_3.3_v74", "BIN");
+	                 Paths_GetDataDir(), "Rev_3.3_v74", "BIN");
 
 	ConfigureParams.Rom.bUseCustomMac = false;
 	memset(ConfigureParams.Rom.nRomCustomMac, 0,
@@ -519,7 +519,7 @@ void Configuration_SetDefault(void)
 		ConfigureParams.Dimension.board[i].nMemoryBankSize[3] = 4;
 		File_MakePathBuf(ConfigureParams.Dimension.board[i].szRomFileName,
 		                 sizeof(ConfigureParams.Dimension.board[i].szRomFileName),
-		                 psHomeDir, "ND_step1_v43", "BIN");
+		                 Paths_GetDataDir(), "ND_step1_v43", "BIN");
 	}
 
 	/* Initialize the configuration file name */

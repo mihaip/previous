@@ -12,7 +12,6 @@ const char DlgMissingFile_fileid[] = "Previous dlgMissingFile.c";
 #include "dialog.h"
 #include "sdlgui.h"
 #include "file.h"
-#include "paths.h"
 
 
 /* Missing ROM dialog */
