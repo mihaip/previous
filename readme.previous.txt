@@ -323,6 +323,7 @@ Previous v2.7 (unreleased):
   > Fixes bug that caused errors when formatting floppy disks.
   > Fixes bug that prevented sound recording on newer versions of macOS.
   > Fixes bug that caused NeXTdimension window to start with wrong size.
+  > Fixes bug in low-pass filter that could cause audible noise.
 
 
  7) Running Previous

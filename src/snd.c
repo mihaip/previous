@@ -350,6 +350,7 @@ void snd_send_sample(uint32_t data) {
 /* This is a third-order Butterworth low-pass filter (alpha value 0.1) */
 static int16_t snd_lowpass_filter(int16_t sample, int channel) {
     static double v[2][4] = { {0.0,0.0,0.0,0.0}, {0.0,0.0,0.0,0.0} };
+    double result;
     
     v[channel][0] = v[channel][1];
     v[channel][1] = v[channel][2];
@@ -358,8 +359,12 @@ static int16_t snd_lowpass_filter(int16_t sample, int channel) {
                   + ( 0.27805991763454640520 * v[channel][0])
                   + (-1.18289326203783096148 * v[channel][1])
                   + ( 1.76004188034316899625 * v[channel][2]);
-
-    return (int16_t)((v[channel][0] + v[channel][3]) + 3 * (v[channel][1] + v[channel][2]));
+    result = (v[channel][0] + v[channel][3]) + 3 * (v[channel][1] + v[channel][2]);
+    
+    if (result >  32767.0) return  32767;
+    if (result < -32768.0) return -32768;
+    
+    return (int16_t)result;
 }
 #endif
 
