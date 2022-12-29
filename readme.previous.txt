@@ -1,6 +1,6 @@
 
 
-                                  Previous 2.6
+                                  Previous 2.7
 
 
 
@@ -312,7 +312,7 @@ Previous v2.6:
   > Improves window resizing.
   > Fixes bug that caused problems when changing statusbar visibility.
 
-Previous v2.7 (unreleased):
+Previous v2.7:
   > Adds ability to unlock the mouse cursor with control-click.
   > Adds compile-time option to do all rendering from the main thread.
   > Improves accuracy of Ethernet controller on Turbo systems.

@@ -361,8 +361,8 @@ static int16_t snd_lowpass_filter(int16_t sample, int channel) {
                   + ( 1.76004188034316899625 * v[channel][2]);
     result = (v[channel][0] + v[channel][3]) + 3 * (v[channel][1] + v[channel][2]);
     
-    if (result >  32767.0) return  32767;
-    if (result < -32768.0) return -32768;
+    if (result > (double)INT16_MAX) return INT16_MAX;
+    if (result < (double)INT16_MIN) return INT16_MIN;
     
     return (int16_t)result;
 }

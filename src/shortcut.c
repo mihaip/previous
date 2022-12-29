@@ -282,11 +282,7 @@ bool ShortCut_CheckKeys(int modkey, int symkey, bool press)
 	if (symkey == SDLK_UNKNOWN)
 		return false;
 
-#if defined(__APPLE__)
 	if ((modkey&KMOD_CTRL) && (modkey&KMOD_ALT))
-#else
-	if (modkey & (KMOD_RALT|KMOD_LGUI|KMOD_RGUI|KMOD_MODE))
-#endif
 		key = ShortCut_CheckKey(symkey, ConfigureParams.Shortcut.withModifier);
 	else
 		key = ShortCut_CheckKey(symkey, ConfigureParams.Shortcut.withoutModifier);

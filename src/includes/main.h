@@ -13,7 +13,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 /* Name and version for window title: */
-#define PROG_NAME "Previous 2.6"
+#define PROG_NAME "Previous 2.7"
 
 /* Messages for window title: */
 #define MOUSE_LOCK_MSG "Mouse is locked. Ctrl-click to release."
