@@ -731,6 +731,7 @@ static void returncycles(int cycles)
 #ifdef WINUAE_FOR_PREVIOUS
     out ("return %d;\n", adjust_cycles(cycles));
 #else // WINUAE_FOR_PREVIOUS
+
 	if (using_nocycles) {
 		if (func_noret) {
 			out("return;\n");
@@ -7254,7 +7255,6 @@ static void gen_opcode (unsigned int opcode)
 			out("oldsr = newsr;\n");
 			makefromsr_t0();
 			out("}\n");
-			out("MakeFromSR_intmask(regs.sr, newsr);\n");
 		    out("regs.sr = newsr;\n");
 			addcycles_ce020 (4);
 			makefromsr_t0();
