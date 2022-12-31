@@ -848,7 +848,6 @@ static void Main_UnInit(void) {
 	SDL_WaitThread(nextThread, &d);
 	SDL_DestroySemaphore(pauseFlag);
 #endif
-	Screen_ReturnFromFullScreen();
 	IoMem_UnInit();
 	SDLGui_UnInit();
 	Screen_UnInit();
@@ -980,6 +979,9 @@ int main(int argc, char *argv[])
 		/* Run emulation */
 		Main_Loop();
 	}
+	
+	/* Return from full screen */
+	Screen_ReturnFromFullScreen();
 
 	/* Un-init emulation system */
 	Main_UnInit();
