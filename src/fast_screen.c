@@ -513,6 +513,17 @@ void Screen_ReturnFromFullScreen(void) {
 
 /*-----------------------------------------------------------------------*/
 /**
+ * Show main window
+ */
+void Screen_ShowMainWindow(void) {
+	if (!bInFullScreen) {
+		SDL_RestoreWindow(sdlWindow);
+		SDL_RaiseWindow(sdlWindow);
+	}
+}
+
+/*-----------------------------------------------------------------------*/
+/**
  * Force things associated with changing screen size
  */
 void Screen_SizeChanged(void) {

@@ -131,6 +131,8 @@ static bool DlgAlert_ShowDlg(const char *text)
 	int lines, i, len, offset;
 	bool bOldMouseVisibility;
 
+	Screen_ShowMainWindow();
+
 	strcpy(t, text);
 	lines = DlgAlert_FormatTextToBox(t, maxlen, &len);
 	offset = (maxlen-len)/2;

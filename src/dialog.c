@@ -41,6 +41,9 @@ bool Dialog_DoProperty(void)
 	bWasActive = Main_PauseEmulation(true);
 	bForceReset = false;
 
+	/* Show the main window */
+	Screen_ShowMainWindow();
+
 	/* Copy details (this is so can restore if 'Cancel' dialog) */
 	current = ConfigureParams;
 	ConfigureParams.Screen.bFullScreen = bInFullScreen;

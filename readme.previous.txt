@@ -325,6 +325,9 @@ Previous v2.7:
   > Fixes bug that caused NeXTdimension window to start with wrong size.
   > Fixes bug in low-pass filter that could cause audible noise.
 
+Previous v2.8 (unreleased):
+  > Adds support for showing the main window if an alert occurs.
+
 
  7) Running Previous
  -------------------
