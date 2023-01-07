@@ -33,6 +33,22 @@ other platforms you might need to also install libpcap, readline and zlib.
    possible to start and use Previous.app.
 
 
+ Special notes for Linux
+ -----------------------
+
+1. It seems that on some distributions of Linux rendering has to be done from 
+   the main thread. To make Previous render from the main thread you have to 
+   disable the rendering thread with following compile-time option:
+      ./configure --disable-rendering-thread
+      make
+
+2. Some Linux distributions have pre-installed outdated versions of SDL2. You 
+   might have to build an up-to-date version yourself. To compile against your 
+   own build of SDL2 you have to set an environment variable:
+      setenv SDL2_DIR /path/to/custom/SDL2 ; ./configure
+      make
+
+
  Building a distributable application bundle on macOS
  ----------------------------------------------------
 
@@ -80,7 +96,8 @@ replace with these steps:
 
 6. Make a package for distribution:
    Create a folder named "Previous <version>" and copy Previous.app into it. 
-   Copy the following files to the same folder:
+   Copy the following files and folders to the same folder:
+      disks
       gpl.txt
       readme.previous.txt
       networking.howto.txt
