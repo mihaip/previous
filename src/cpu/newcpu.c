@@ -2414,7 +2414,6 @@ static void m68k_set_stop(void)
 	if (regs.stopped)
 		return;
 	regs.stopped = 1;
-	set_special(SPCFLAG_STOP);
 #ifndef WINUAE_FOR_HATARI
 	if (cpu_last_stop_vpos >= 0) {
 		cpu_last_stop_vpos = vpos;
@@ -2425,7 +2424,6 @@ static void m68k_set_stop(void)
 static void m68k_unset_stop(void)
 {
 	regs.stopped = 0;
-	unset_special(SPCFLAG_STOP);
 #ifndef WINUAE_FOR_HATARI
 	if (cpu_last_stop_vpos >= 0) {
 		cpu_stopped_lines += vpos - cpu_last_stop_vpos;
@@ -6259,11 +6257,7 @@ static void m68k_run_mmu040 (void)
 				run_other_MPUs();
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
-				/* We must check for pending interrupt and call do_specialties_interrupt() only */
-				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
-				/* and prevent exiting the STOP state when calling do_specialties() after. */
-				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) ) {
+				while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) ) {
 					CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
 				}
 
@@ -6390,11 +6384,7 @@ insretry:
 				run_other_MPUs();
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
-				/* We must check for pending interrupt and call do_specialties_interrupt() only */
-				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
-				/* and prevent exiting the STOP state when calling do_specialties() after. */
-				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
-				while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) && ( ( regs.spcflags & SPCFLAG_STOP ) == 0 ) ) {
+				while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) ) {
 					CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
 				}
 				/* Previous: for now we poll the interrupt pins with every instruction.
