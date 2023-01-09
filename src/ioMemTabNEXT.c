@@ -52,6 +52,10 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x020001c0, SIZE_LONG, DMA_CSR_Read, DMA_CSR_Write },
 	
 	/* Channel SCSI */
+	{ 0x02004000, SIZE_LONG, DMA_Saved_Next_Read, DMA_Saved_Next_Write },
+	{ 0x02004004, SIZE_LONG, DMA_Saved_Limit_Read, DMA_Saved_Limit_Write },
+	{ 0x02004008, SIZE_LONG, DMA_Saved_Start_Read, DMA_Saved_Start_Write },
+	{ 0x0200400c, SIZE_LONG, DMA_Saved_Stop_Read, DMA_Saved_Stop_Write },
 	{ 0x02004010, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
 	{ 0x02004014, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
 	{ 0x02004018, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },

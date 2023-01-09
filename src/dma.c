@@ -833,6 +833,10 @@ void dma_enet_write_memory(bool eop) {
         abort();
     }
     
+    if (enet_rx_buffer.size == enet_rx_buffer.limit) {
+        dma[CHANNEL_EN_RX].saved_next = dma[CHANNEL_EN_RX].next; /* confirmed */
+    }
+    
     TRY(prb) {
         while (dma[CHANNEL_EN_RX].next<dma[CHANNEL_EN_RX].limit && enet_rx_buffer.size>0) {
             put_byte(dma[CHANNEL_EN_RX].next, enet_rx_buffer.data[enet_rx_buffer.limit-enet_rx_buffer.size]);
@@ -870,6 +874,10 @@ bool dma_enet_read_memory(void) {
     if (dma[CHANNEL_EN_TX].csr&DMA_ENABLE) {
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Ethernet Transmit: Read from memory at $%08x, %i bytes",
                    dma[CHANNEL_EN_TX].next,ENADDR(dma[CHANNEL_EN_TX].limit)-dma[CHANNEL_EN_TX].next);
+        
+        if (enet_tx_buffer.size == 0) {
+            dma[CHANNEL_EN_TX].saved_next = dma[CHANNEL_EN_TX].next;
+        }
         
         TRY(prb) {
             while (dma[CHANNEL_EN_TX].next<ENADDR(dma[CHANNEL_EN_TX].limit) && enet_tx_buffer.size<enet_tx_buffer.limit) {
