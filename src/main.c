@@ -446,7 +446,15 @@ static void Main_HandleMouseMotion(SDL_Event *pEvent) {
  * Sends key up events for all currently pressed keys.
  */
 void Main_ResetKeys(void) {
+	SDL_Event event;
+
 	SDL_ResetKeyboard();
+
+	/* Send at least one keyup event */
+	event.type                = SDL_KEYUP;
+	event.key.keysym.scancode = SDL_SCANCODE_Q;
+	event.key.keysym.sym      = SDLK_q;
+	SDL_PushEvent(&event);
 }
 
 /* ----------------------------------------------------------------------- */
