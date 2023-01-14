@@ -28,56 +28,58 @@ extern ESPDMASTATUS esp_dma;
 #define ESPSTAT_INFIFO_MSK  0x07    /* input fifo byte (inverted) */
 
 
-void ESP_DMA_CTRL_Read(void);
-void ESP_DMA_CTRL_Write(void);
-void ESP_DMA_FIFO_STAT_Read(void);
-void ESP_DMA_FIFO_STAT_Write(void);
+extern void ESP_DMA_CTRL_Read(void);
+extern void ESP_DMA_CTRL_Write(void);
+extern void ESP_DMA_FIFO_STAT_Read(void);
+extern void ESP_DMA_FIFO_STAT_Write(void);
 
-void ESP_DMA_set_status(void);
+extern void ESP_DMA_set_status(void);
 
 
+extern void ESP_TransCountL_Read(void); 
+extern void ESP_TransCountL_Write(void); 
+extern void ESP_TransCountH_Read(void);
+extern void ESP_TransCountH_Write(void); 
+extern void ESP_FIFO_Read(void);
+extern void ESP_FIFO_Write(void); 
+extern void ESP_Command_Read(void); 
+extern void ESP_Command_Write(void); 
+extern void ESP_Status_Read(void);
+extern void ESP_SelectBusID_Write(void); 
+extern void ESP_IntStatus_Read(void);
+extern void ESP_SelectTimeout_Write(void); 
+extern void ESP_SeqStep_Read(void);
+extern void ESP_SyncPeriod_Write(void); 
+extern void ESP_FIFOflags_Read(void);
+extern void ESP_SyncOffset_Write(void); 
+extern void ESP_Configuration_Read(void); 
+extern void ESP_Configuration_Write(void); 
+extern void ESP_ClockConv_Write(void);
+extern void ESP_Test_Write(void);
 
-void ESP_TransCountL_Read(void); 
-void ESP_TransCountL_Write(void); 
-void ESP_TransCountH_Read(void);
-void ESP_TransCountH_Write(void); 
-void ESP_FIFO_Read(void);
-void ESP_FIFO_Write(void); 
-void ESP_Command_Read(void); 
-void ESP_Command_Write(void); 
-void ESP_Status_Read(void);
-void ESP_SelectBusID_Write(void); 
-void ESP_IntStatus_Read(void);
-void ESP_SelectTimeout_Write(void); 
-void ESP_SeqStep_Read(void);
-void ESP_SyncPeriod_Write(void); 
-void ESP_FIFOflags_Read(void);
-void ESP_SyncOffset_Write(void); 
-void ESP_Configuration_Read(void); 
-void ESP_Configuration_Write(void); 
-void ESP_ClockConv_Write(void);
-void ESP_Test_Write(void);
+extern void ESP_Conf2_Read(void);
+extern void ESP_Conf2_Write(void);
+extern void ESP_Unknown_Read(void);
+extern void ESP_Unknown_Write(void);
 
-void ESP_Conf2_Read(void);
+extern void esp_reset_hard(void);
+extern void esp_reset_soft(void);
+extern void esp_bus_reset(void);
+extern void esp_flush_fifo(void);
 
-void esp_reset_hard(void);
-void esp_reset_soft(void);
-void esp_bus_reset(void);
-void esp_flush_fifo(void);
+extern void esp_message_accepted(void);
+extern void esp_initiator_command_complete(void);
+extern void esp_transfer_info(void);
+extern void esp_transfer_pad(void);
+extern void esp_select(bool atn);
 
-void esp_message_accepted(void);
-void esp_initiator_command_complete(void);
-void esp_transfer_info(void);
-void esp_transfer_pad(void);
-void esp_select(bool atn);
+extern void esp_raise_irq(void);
+extern void esp_lower_irq(void);
 
-void esp_raise_irq(void);
-void esp_lower_irq(void);
-
-bool esp_transfer_done(bool write);
+extern bool esp_transfer_done(bool write);
 
 
 extern uint32_t esp_counter;
 
-void ESP_InterruptHandler(void);
-void ESP_IO_Handler(void);
+extern void ESP_InterruptHandler(void);
+extern void ESP_IO_Handler(void);
