@@ -329,6 +329,8 @@ Previous v2.8 (unreleased):
   > Adds support for showing the main window if an alert occurs.
   > Improves accuracy of Ethernet DMA channel.
   > Fixes bug that caused endless loop after STOP instruction.
+  > Fixes bug that prevented correct detection of network interface.
+  > Fixes bug that could lead to incorrect SCSI controller detection.
 
 
  7) Running Previous

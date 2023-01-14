@@ -345,11 +345,11 @@ void ESP_Test_Write(void) { // 0x0201400a
 void ESP_Conf2_Read(void) { // 0x0201400b
     if (ConfigureParams.System.nSCSI == NCR53C90)
         IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = 0x00;
-    Log_Printf(LOG_ESPREG_LEVEL,"ESP Configuration 2 read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_WARN,"ESP Configuration 2 read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_Conf2_Write(void) {
-    Log_Printf(LOG_ESPREG_LEVEL,"ESP Configuration 2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_WARN,"ESP Configuration 2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_Unknown_Read(void) { // 0x0201400c to 0x0201400f

@@ -273,7 +273,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x02014009, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, ESP_ClockConv_Write },
 	{ 0x0201400a, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, ESP_Test_Write },
 	/* Additional Registers for NCR53C90A (68040) */
-	{ 0x0201400b, SIZE_BYTE, ESP_Conf2_Read, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x0201400b, SIZE_BYTE, ESP_Conf2_Read, ESP_Conf2_Write },
 	{ 0x0201400c, SIZE_BYTE, ESP_Unknown_Read, ESP_Unknown_Write },
 	{ 0x0201400d, SIZE_BYTE, ESP_Unknown_Read, ESP_Unknown_Write },
 	{ 0x0201400e, SIZE_BYTE, ESP_Unknown_Read, ESP_Unknown_Write },
