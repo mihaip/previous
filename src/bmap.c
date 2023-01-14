@@ -119,8 +119,10 @@ uae_u32 bmap_get(uae_u32 bmap_reg) {
              */
             val = NEXTbmap[BMAP_DATA_RW];
             
+            val &= ~(BMAP_HEARTBEAT | BMAP_TPE_ILBC);
+            
             if (ConfigureParams.Ethernet.bEthernetConnected && ConfigureParams.Ethernet.bTwistedPair) {
-                val &= ~BMAP_HEARTBEAT;
+                val |= BMAP_TPE_ILBC;
             } else {
                 val |= BMAP_HEARTBEAT;
             }
