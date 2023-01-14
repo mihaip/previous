@@ -42,6 +42,7 @@ static const uint8_t rfc1533_cookie[] = { RFC1533_COOKIE };
 static const uint8_t magic_next[]  = {'N','e','X','T'};
 static const char    kernel_next[] = "mach";
 static const char    tftp_root[]   = "/private/tftpboot/";
+static const char    root_path[]   = "/";
 
 static char hostname[_SC_HOST_NAME_MAX];
 
@@ -151,6 +152,7 @@ static void bootp_reply(struct bootp_t *bp)
     m->m_data += sizeof(struct udpiphdr);
     memset(rbp, 0, sizeof(struct bootp_t));
 
+#if 0
     if (dhcp_msg_type == DHCPDISCOVER) {
     new_addr:
         bc = get_new_addr(&daddr.sin_addr);
@@ -160,16 +162,15 @@ static void bootp_reply(struct bootp_t *bp)
     } else {
         bc = find_addr(&daddr.sin_addr, bp->bp_hwaddr);
         if (!bc) {
-#if 0
             /* if never assigned, behaves as if it was already
                assigned (windows fix because it remembers its address) */
             goto new_addr;
-#else
-            /* XXX: always assign same IP address for Previous */
-            daddr.sin_addr.s_addr = htonl(ntohl(special_addr.s_addr) | CTL_HOST);
-#endif
         }
     }
+#else
+    /* XXX: always assign same IP address for Previous */
+    daddr.sin_addr.s_addr = htonl(ntohl(special_addr.s_addr) | CTL_HOST);
+#endif
 
     saddr.sin_addr.s_addr = htonl(ntohl(special_addr.s_addr) | CTL_NFSD);
     saddr.sin_port        = htons(BOOTP_SERVER);
@@ -260,6 +261,12 @@ static void bootp_reply(struct bootp_t *bp)
             *q++ = RFC1533_HOSTNAME;
             *q++ = val;
             memcpy(q, hostname, val);
+            q += val;
+            
+            val = strlen(root_path);
+            *q++ = RFC1533_ROOTPATH;
+            *q++ = val;
+            memcpy(q, root_path, val);
             q += val;
         }
         *q++ = RFC1533_END;

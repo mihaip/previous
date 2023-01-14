@@ -150,7 +150,7 @@ uint8_t mode_dma;
 
 void ESP_DMA_CTRL_Read(void) {
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = esp_dma.control;
- 	Log_Printf(LOG_ESPDMA_LEVEL,"ESP DMA control read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPDMA_LEVEL,"ESP DMA control read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_DMA_CTRL_Write(void) {
@@ -159,11 +159,11 @@ void ESP_DMA_CTRL_Write(void) {
         
     if (esp_dma.control&ESPCTRL_FLUSH) {
         Log_Printf(LOG_ESPDMA_LEVEL, "flush DMA buffer\n");
-		if (ConfigureParams.System.bTurbo) {
-			tdma_flush_buffer(CHANNEL_SCSI);
-		} else {
-			dma_esp_flush_buffer();
-		}
+        if (ConfigureParams.System.bTurbo) {
+            tdma_flush_buffer(CHANNEL_SCSI);
+        } else {
+            dma_esp_flush_buffer();
+        }
     }
     if (esp_dma.control&ESPCTRL_CHIP_TYPE) {
         Log_Printf(LOG_ESPDMA_LEVEL, "SCSI controller is WD33C92\n");
@@ -213,11 +213,11 @@ void ESP_DMA_CTRL_Write(void) {
 
 void ESP_DMA_FIFO_STAT_Read(void) {
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = esp_dma.status;
- 	Log_Printf(LOG_ESPDMA_LEVEL,"ESP DMA FIFO status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPDMA_LEVEL,"ESP DMA FIFO status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_DMA_FIFO_STAT_Write(void) {
- 	Log_Printf(LOG_ESPDMA_LEVEL,"ESP DMA FIFO status write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPDMA_LEVEL,"ESP DMA FIFO status write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     esp_dma.status = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
 }
 
@@ -235,22 +235,22 @@ void ESP_DMA_set_status(void) { /* this is just a guess */
 
 void ESP_TransCountL_Read(void) { // 0x02014000
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=esp_counter&0xFF;
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP TransCountL read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP TransCountL read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_TransCountL_Write(void) {
     writetranscountl=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP TransCountL write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP TransCountL write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_TransCountH_Read(void) { // 0x02014001
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=(esp_counter>>8)&0xFF;
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP TransCoundH read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP TransCoundH read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_TransCountH_Write(void) {
     writetranscounth=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP TransCountH write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP TransCountH write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_FIFO_Read(void) { // 0x02014002
@@ -265,22 +265,22 @@ void ESP_FIFO_Write(void) {
 
 void ESP_Command_Read(void) { // 0x02014003
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=command[0];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP Command read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP Command read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_Command_Write(void) {
     esp_command_write(IoMem[IoAccessCurrentAddress & IO_SEG_MASK]);
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP Command write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP Command write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_Status_Read(void) { // 0x02014004
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=(status&STAT_MASK)|(SCSIbus.phase&STAT_PHASE);
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP Status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP Status read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_SelectBusID_Write(void) {
     selectbusid=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP SelectBusID write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP SelectBusID write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_IntStatus_Read(void) { // 0x02014005
@@ -297,47 +297,47 @@ void ESP_IntStatus_Read(void) { // 0x02014005
 
 void ESP_SelectTimeout_Write(void) {
     selecttimeout=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP SelectTimeout write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP SelectTimeout write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_SeqStep_Read(void) { // 0x02014006
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=seqstep;
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP SeqStep read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP SeqStep read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_SyncPeriod_Write(void) {
     syncperiod=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP SyncPeriod write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP SyncPeriod write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_FIFOflags_Read(void) { // 0x02014007
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=fifoflags;
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP FIFOflags read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP FIFOflags read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_SyncOffset_Write(void) {
     syncoffset=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP SyncOffset write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP SyncOffset write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_Configuration_Read(void) { // 0x02014008
     IoMem[IoAccessCurrentAddress & IO_SEG_MASK]=configuration;
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP Configuration read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP Configuration read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_Configuration_Write(void) {
     configuration=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP Configuration write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP Configuration write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_ClockConv_Write(void) { // 0x02014009
     clockconv=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP ClockConv write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP ClockConv write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 void ESP_Test_Write(void) { // 0x0201400a
     esptest=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
- 	Log_Printf(LOG_ESPREG_LEVEL,"ESP Test write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    Log_Printf(LOG_ESPREG_LEVEL,"ESP Test write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
 /* System reads this register to check if we use old or new SCSI controller.
@@ -562,7 +562,7 @@ void esp_start_command(uint8_t cmd) {
 
 /* This is the handler function for ESP delayed interrupts */
 void ESP_InterruptHandler(void) {
-	CycInt_AcknowledgeInterrupt();
+    CycInt_AcknowledgeInterrupt();
     esp_raise_irq();
 }
 

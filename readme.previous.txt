@@ -327,6 +327,8 @@ Previous v2.7:
 
 Previous v2.8 (unreleased):
   > Adds support for showing the main window if an alert occurs.
+  > Improves accuracy of Ethernet DMA channel.
+  > Fixes bug that caused endless loop after STOP instruction.
 
 
  7) Running Previous
