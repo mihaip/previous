@@ -152,7 +152,7 @@ int CRPCServer::process(int sockType, int port, XDRInput* pInStream, XDROutput* 
 		{
 			pOutStream->seek(-4, SEEK_CUR);
 			pOutStream->write(PROG_MISMATCH);
-			pOutStream->write(0);                  //lowest accepted version
+			pOutStream->write(1);                  //lowest accepted version
 			pOutStream->write(prog->getVersion()); //highest accepted version
 		}
 	}

@@ -353,7 +353,7 @@ void ESP_Conf2_Write(void) {
 }
 
 void ESP_Unknown_Read(void) { // 0x0201400c to 0x0201400f
-    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = 0x00;
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = 0x01; // confirmed for 0x0201400c
     Log_Printf(LOG_WARN,"ESP Unknown read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
