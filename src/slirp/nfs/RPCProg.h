@@ -18,8 +18,7 @@ enum
 {
 	PRC_OK,
 	PRC_FAIL,
-	PRC_NOTIMP,
-	PRC_MISMATCH
+	PRC_NOTIMP
 };
 
 typedef struct

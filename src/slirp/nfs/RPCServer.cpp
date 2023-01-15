@@ -132,22 +132,28 @@ int CRPCServer::process(int sockType, int port, XDRInput* pInStream, XDROutput* 
             }
         }
         prog->setup(pInStream, pOutStream, &param);
-		nResult = prog->process();
-
-		if (nResult == PRC_NOTIMP)  //procedure is not implemented
+        
+		if (prog->getVersion() == 0 || prog->getVersion() >= param.version)
 		{
-			pOutStream->seek(-4, SEEK_CUR);
-			pOutStream->write(PROC_UNAVAIL);
+			nResult = prog->process();
+			
+			if (nResult == PRC_NOTIMP)  //procedure is not implemented
+			{
+				pOutStream->seek(-4, SEEK_CUR);
+				pOutStream->write(PROC_UNAVAIL);
+			}
+			else if (nResult == PRC_FAIL)  //input data is truncated
+			{
+				pOutStream->seek(-4, SEEK_CUR);
+				pOutStream->write(GARBAGE_ARGS);
+			}
 		}
-		else if (nResult == PRC_MISMATCH)  //program version mismatch
+		else //program version mismatch
 		{
 			pOutStream->seek(-4, SEEK_CUR);
 			pOutStream->write(PROG_MISMATCH);
-		}
-		else if (nResult == PRC_FAIL)  //input data is truncated
-		{
-			pOutStream->seek(-4, SEEK_CUR);
-			pOutStream->write(GARBAGE_ARGS);
+			pOutStream->write(0);                  //lowest accepted version
+			pOutStream->write(prog->getVersion()); //highest accepted version
 		}
 	}
 

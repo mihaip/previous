@@ -32,11 +32,6 @@ CMountProg::~CMountProg() {
 int CMountProg::procedureMNT(void) {
     XDRString path;
 
-    if (m_param->version != getVersion()) {
-        log("MNT version %d not supported", m_param->version);
-        return PRC_MISMATCH;
-    }
-    
     m_in->read(path);
     log("MNT from %s for '%s'", m_param->remoteAddr, path.c_str());
     
