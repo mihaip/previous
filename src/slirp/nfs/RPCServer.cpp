@@ -139,6 +139,11 @@ int CRPCServer::process(int sockType, int port, XDRInput* pInStream, XDROutput* 
 			pOutStream->seek(-4, SEEK_CUR);
 			pOutStream->write(PROC_UNAVAIL);
 		}
+		else if (nResult == PRC_MISMATCH)  //program version mismatch
+		{
+			pOutStream->seek(-4, SEEK_CUR);
+			pOutStream->write(PROG_MISMATCH);
+		}
 		else if (nResult == PRC_FAIL)  //input data is truncated
 		{
 			pOutStream->seek(-4, SEEK_CUR);

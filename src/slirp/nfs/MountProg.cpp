@@ -19,7 +19,7 @@ enum
     MNTERR_INVAL = 22
 };
 
-CMountProg::CMountProg() : CRPCProg(PROG_MOUNT, 3, "mountd") {
+CMountProg::CMountProg() : CRPCProg(PROG_MOUNT, 1, "mountd") {
     #define RPC_PROG_CLASS CMountProg
     SET_PROC(1, MNT);
     SET_PROC(3, UMNT);
@@ -32,8 +32,13 @@ CMountProg::~CMountProg() {
 int CMountProg::procedureMNT(void) {
     XDRString path;
 
+    if (m_param->version != getVersion()) {
+        log("MNT version %d not supported", m_param->version);
+        return PRC_MISMATCH;
+    }
+    
     m_in->read(path);
-    log("MNT from %s for '%s'\n", m_param->remoteAddr, path.c_str());
+    log("MNT from %s for '%s'", m_param->remoteAddr, path.c_str());
     
     uint64_t handle = nfsd_fts[0]->getFileHandle(path.c_str());
     if(handle) {
@@ -41,7 +46,7 @@ int CMountProg::procedureMNT(void) {
         
         uint64_t data[8] = {handle, 0, 0, 0, 0, 0, 0, 0};
         
-        if (m_param->version == 1) {
+        if (m_param->version == 1 || m_param->version == 2) {
             m_out->write(data, FHSIZE);
         } else {
             m_out->write(FHSIZE_NFS3);
