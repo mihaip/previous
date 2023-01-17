@@ -52,6 +52,8 @@ enum {
 
 enum NFTYPE { NFNON, NFREG, NFDIR, NFBLK, NFCHR, NFLNK, NFSOCK, NFFIFO, NFBAD };
 
+#define NFS_FIFO_DEV 0xFFFFFFFF
+
 CNFS2Prog::CNFS2Prog() : CRPCProg(PROG_NFS, 2, "nfsd") {
     #define RPC_PROG_CLASS CNFS2Prog
     SET_PROC(1,  GETATTR);
@@ -107,6 +109,8 @@ static void set_attrs(const string& path, const FileAttrs& fstat) {
         newAttrs.uid = fstat.uid;
     if(FileAttrs::valid16(fstat.gid))
         newAttrs.gid = fstat.gid;
+    if(FileAttrs::valid16(fstat.rdev))
+        newAttrs.rdev = fstat.rdev;
 
     timeval times[2];
     timeval now;
@@ -312,6 +316,19 @@ int CNFS2Prog::procedureCREATE(void) {
     
     if(!(FileAttrs::valid16(fstat.uid))) fstat.uid = nfsd_fts[0]->vfsGetUID(path, false);
     if(!(FileAttrs::valid16(fstat.gid))) fstat.gid = nfsd_fts[0]->vfsGetGID(path, true);
+    
+    // size field is used to set device numbers for special devices over NFS
+    if(S_ISCHR(fstat.mode)) {
+        if(fstat.size == NFS_FIFO_DEV) {
+            fstat.mode = (fstat.mode & ~S_IFMT) | S_IFIFO;
+        } else {
+            fstat.rdev = fstat.size;
+        }
+        fstat.size = 0;
+    } else if(S_ISBLK(fstat.mode)) {
+        fstat.rdev = fstat.size;
+        fstat.size = 0;
+    }
     
     if(nfsd_fts[0]->vfsAccess(path, F_OK) == 0) {
         if(!(FileAttrs::valid32(fstat.size)) || fstat.size) {
@@ -581,7 +598,11 @@ bool CNFS2Prog::writeFileAttributes(const string& path) {
 #ifndef _WIN32
     else if(S_ISLNK (fstat.st_mode)) type = NFLNK;
     else if(S_ISSOCK(fstat.st_mode)) type = NFSOCK;
-    else if(S_ISFIFO(fstat.st_mode)) type = NFFIFO;
+    else if(S_ISFIFO(fstat.st_mode)) {
+        type = NFCHR;
+        fstat.st_rdev = NFS_FIFO_DEV;
+        fstat.st_mode = (fstat.st_mode & ~S_IFMT) | S_IFCHR;
+    }
 
 	m_out->write(type);  //type
 	m_out->write(fstat.st_mode & 0xFFFF);  //mode
