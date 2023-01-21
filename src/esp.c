@@ -29,6 +29,13 @@ typedef enum {
 
 SCSI_STATE esp_state;
 
+typedef enum {
+    ESP_IO_STATE_TRANSFERING,
+    ESP_IO_STATE_FLUSHING,
+    ESP_IO_STATE_DONE
+} ESP_IO_STATE;
+
+ESP_IO_STATE esp_io_state;
 
 /* ESP FIFO */
 #define ESP_FIFO_SIZE 16
@@ -364,6 +371,58 @@ void ESP_Unknown_Write(void) {
 
 /* Helper functions */
 
+/* DMA interface functions */
+static void esp_dma_write_memory(void) { /* from device to memory */
+    if (esp_dma.control&ESPCTRL_MODE_DMA) {
+        dma_esp_write_memory();
+    } else {
+        while (fifoflags < ESP_FIFO_SIZE && esp_counter > 0 && SCSIbus.phase == PHASE_DI) {
+            esp_fifo_write(SCSIdisk_Send_Data());
+            esp_counter--;
+        }
+    }
+}
+bool ESP_Send_Ready(void) {
+    return (esp_counter > 0 && SCSIbus.phase == PHASE_DI) || fifoflags > 0;
+}
+uint8_t ESP_Send_Data(void) {
+    if (fifoflags > 0) {
+        return esp_fifo_read();
+    } else {
+        /* Simplification: this is really FIFO write followed by FIFO read */
+        esp_counter--;
+        return SCSIdisk_Send_Data();
+    }
+}
+
+static void esp_dma_read_memory(void) { /* from memory to device */
+    while (fifoflags > 0 && esp_counter > 0 && SCSIbus.phase == PHASE_DO) {
+        SCSIdisk_Receive_Data(esp_fifo_read());
+        esp_counter--;
+    }
+    if (esp_dma.control&ESPCTRL_MODE_DMA) {
+        dma_esp_read_memory();
+    }
+}
+bool ESP_Receive_Ready(void) {
+    return (esp_dma.control&ESPCTRL_MODE_DMA) && esp_counter > 0 && SCSIbus.phase == PHASE_DO;
+}
+void ESP_Receive_Data(uint8_t val) {
+    /* Simplification: this is really FIFO write followed by FIFO read */
+    esp_counter--;
+    SCSIdisk_Receive_Data(val);
+}
+
+static bool esp_dma_not_ready(void) {
+    if (esp_io_state == ESP_IO_STATE_TRANSFERING && !(esp_dma.control&ESPCTRL_MODE_DMA)) {
+        if (esp_counter > 0 && SCSIbus.phase == PHASE_DI) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 /* Functions for reading and writing ESP FIFO */
 uint8_t esp_fifo_read(void) {
     int i;
@@ -376,6 +435,10 @@ uint8_t esp_fifo_read(void) {
         fifo[ESP_FIFO_SIZE-1] = 0x00;
         fifoflags--;
         Log_Printf(LOG_ESPFIFO_LEVEL,"ESP FIFO: Reading byte, val=%02x, size = %i", val, fifoflags);
+    } else if (esp_dma_not_ready()) {
+        val = SCSIdisk_Send_Data();
+        esp_counter--;
+        Log_Printf(LOG_WARN, "ESP FIFO: PIO disk read, val=%02x",val);
     } else {
         val = 0x00;
         Log_Printf(LOG_WARN, "ESP FIFO read: FIFO is empty!\n");
@@ -657,7 +720,6 @@ void esp_reset_hard(void) {
 }
 
 
-
 void esp_reset_soft(void) {
     status &= ~STAT_TC; /* clear transfer count zero */
     
@@ -681,9 +743,10 @@ void esp_bus_reset(void) {
     esp_reset_soft();
     if (!(configuration & CFG1_RESREPT)) {
         intstatus = INTR_RST;
-        SCSIbus.phase = PHASE_MI; /* CHECK: why message in phase? */
+        SCSIbus.phase = PHASE_DO;
         Log_Printf(LOG_ESPCMD_LEVEL,"[ESP] SCSI bus reset raising IRQ (configuration=$%02X)\n",configuration);
-        CycInt_AddRelativeInterruptUs(500, 0, INTERRUPT_ESP); /* CHECK: how is this delay defined? */
+        /* CHECK: how is this delay defined? */
+        CycInt_AddRelativeInterruptUsCycles(ConfigureParams.System.nMachineType == NEXT_CUBE030 ? 50 : 335, 0, INTERRUPT_ESP);
     } else {
         Log_Printf(LOG_ESPCMD_LEVEL,"[ESP] SCSI bus reset not interrupting (configuration=$%02X)\n",configuration);
         esp_finish_command();
@@ -757,21 +820,17 @@ void esp_select(bool atn) {
 }
 
 
-/* DMA done: this is called as part of transfer info or transfer pad
- * after DMA transfer has completed. */
-
-enum {
-    ESP_IO_STATE_TRANSFERING,
-    ESP_IO_STATE_FLUSHING,
-    ESP_IO_STATE_DONE
-} esp_io_state;
-
+/* Transfer done: this is called as part of transfer info or transfer pad */
 bool esp_transfer_done(bool write) {
     Log_Printf(LOG_ESPCMD_LEVEL, "[ESP] Transfer done: ESP counter = %i, SCSI residual bytes: %i",
                esp_counter,scsi_buffer.size);
     
     if (esp_counter == 0) { /* Transfer done */
-        intstatus = INTR_FC;
+        if ((write && SCSIbus.phase==PHASE_DI) || (!write && SCSIbus.phase==PHASE_DO)) { /* Still requesting */
+            intstatus = INTR_BS;
+        } else {
+            intstatus = INTR_FC;
+        }
         status |= STAT_TC;
         CycInt_AddRelativeInterruptUs(ESP_DELAY, 20, INTERRUPT_ESP);
         return true;
@@ -819,13 +878,13 @@ void ESP_IO_Handler(void) {
         case ESP_IO_STATE_TRANSFERING:
             switch (SCSIbus.phase) {
                 case PHASE_DI:
-                    dma_esp_write_memory();
+                    esp_dma_write_memory();
                     if (esp_transfer_done(true)) {
                         esp_io_state=ESP_IO_STATE_FLUSHING;
                     }
                     break;
                 case PHASE_DO:
-                    dma_esp_read_memory();
+                    esp_dma_read_memory();
                     if (esp_transfer_done(false)) {
                         return;
                     }
@@ -905,8 +964,8 @@ void esp_initiator_command_complete(void) {
 
 /* Message accepted */
 void esp_message_accepted(void) {
-    SCSIbus.phase = PHASE_ST; /* set at the end of iccs? */
-    intstatus = INTR_BS;
+    SCSIbus.phase = PHASE_DO;
+    intstatus = INTR_DC;
     esp_state = DISCONNECTED; /* CHECK: only disconnected if message was cmd complete? */
     CycInt_AddRelativeInterruptUs(ESP_DELAY, 20, INTERRUPT_ESP);
 }

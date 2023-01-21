@@ -707,7 +707,7 @@ void SCSI_WriteSector(uint8_t *cdb) {
     scsi_buffer.time = SCSI_GetTime(target);
     scsi_buffer.size = 0;
     scsi_buffer.limit = BLOCKSIZE;
-    SCSIbus.phase = PHASE_DO;
+    SCSIbus.phase = SCSIdisk[target].blockcounter ? PHASE_DO : PHASE_ST;
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Write sector: %i block(s) at offset %i (blocksize: %i byte)",
                SCSIdisk[target].blockcounter, SCSIdisk[target].lba, BLOCKSIZE);
 }
@@ -781,7 +781,7 @@ void SCSI_ReadSector(uint8_t *cdb) {
     scsi_buffer.disk = true;
     scsi_buffer.time = SCSI_GetTime(target);
     scsi_buffer.size = 0;
-    SCSIbus.phase = PHASE_DI;
+    SCSIbus.phase = SCSIdisk[target].blockcounter ? PHASE_DI : PHASE_ST;
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Read sector: %i block(s) at offset %i (blocksize: %i byte)",
                SCSIdisk[target].blockcounter, SCSIdisk[target].lba, BLOCKSIZE);
     scsi_read_sector();
@@ -898,7 +898,7 @@ void SCSI_Inquiry (uint8_t *cdb) {
                scsi_buffer.data[13],scsi_buffer.data[14],scsi_buffer.data[15]);
     
     SCSIdisk[target].status = STAT_GOOD;
-    SCSIbus.phase = PHASE_DI;
+    SCSIbus.phase = scsi_buffer.size ? PHASE_DI : PHASE_ST;
     SCSIdisk[target].sense.code = SC_NO_ERROR;
     SCSIdisk[target].sense.valid = false;
 }
@@ -932,27 +932,27 @@ void SCSI_StartStop(uint8_t *cdb) {
 
 
 void SCSI_RequestSense(uint8_t *cdb) {
+    uint8_t retbuf[22];
+
     uint8_t target = SCSIbus.target;
     
-    int nRetLen;
-    uint8_t retbuf[22];
+    int len = SCSI_GetTransferLength(cdb[0], cdb);
     
-    nRetLen = SCSI_GetCount(cdb[0], cdb);
-    
-    if ((nRetLen<4 && nRetLen!=0) || nRetLen>22) {
-        Log_Printf(LOG_WARN, "[SCSI] *** Strange REQUEST SENSE *** len=%d!",nRetLen);
+    if (len<4 && len!=0) {
+        Log_Printf(LOG_WARN, "[SCSI] Request sense: Strange request size (%d)!",len);
     }
     
     /* Limit to sane length */
-    if (nRetLen <= 0) {
-        nRetLen = 4;
-    } else if (nRetLen > 22) {
-        nRetLen = 22;
+    if (len <= 0) {
+        len = 4;
+    } else if (len > 22) {
+        len = 22;
     }
     
-    Log_Printf(LOG_WARN, "[SCSI] REQ SENSE size = %d %s at %d", nRetLen,__FILE__,__LINE__);
+    Log_Printf(LOG_WARN, "[SCSI] Request sense: size = %d, code = %02x, key = %02x", 
+               len, SCSIdisk[target].sense.code, SCSIdisk[target].sense.key);
     
-    memset(retbuf, 0, nRetLen);
+    memset(retbuf, 0, len);
     
     retbuf[0] = 0x70;
     if (SCSIdisk[target].sense.valid) {
@@ -988,7 +988,7 @@ void SCSI_RequestSense(uint8_t *cdb) {
     retbuf[7] = 14;
     retbuf[12] = SCSIdisk[target].sense.code;
     
-    scsi_buffer.size = scsi_buffer.limit = nRetLen;
+    scsi_buffer.size = scsi_buffer.limit = len;
     memcpy(scsi_buffer.data, retbuf, scsi_buffer.limit);
     scsi_buffer.disk = false;
     scsi_buffer.time = 100;
