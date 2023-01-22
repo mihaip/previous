@@ -171,8 +171,10 @@ Issues in Previous:
     compared to real hardware.
   > 68882 transcendental FPU instructions produce results identical to 68040 
     FPSP. The results are slightly different from real 68882 results.
-  > Diagnostic tests for SCSI Disk, Monitor/Sound and Ethernet fail due to 
-    timing issues.
+  > Diagnostic tests for Ethernet fail due to timing issues. Diagnostic tests 
+    for SCSI Disk sporadically fail on NeXTstation Color if variable speed mode
+    is enabled. Diagnostic tests for Monitor/Sound may also fail due to timing 
+    issues if sound is enabled.
 
 Issues in NeXTstep:
   > The MO drive causes slow downs and hangs when both drives are connected, but 

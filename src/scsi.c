@@ -86,6 +86,7 @@
 /* Other codes */
 #define CMD_TEST_UNIT_RDY   0x00    /* Test unit ready */
 #define CMD_FORMAT_DRIVE    0x04    /* Format the whole drive */
+#define CMD_REASSIGN        0x07    /* Reassign defective blocks */
 #define CMD_SEEK            0x0B    /* Seek */
 #define CMD_CORRECTION      0x0D    /* Correction */
 #define CMD_INQUIRY         0x12    /* Inquiry */
@@ -109,6 +110,7 @@ void SCSI_WriteSector(uint8_t *cdb);
 void SCSI_RequestSense(uint8_t *cdb);
 void SCSI_ModeSense(uint8_t *cdb);
 void SCSI_FormatDrive(uint8_t *cdb);
+void SCSI_ReassignBlocks(uint8_t *cdb);
 
 
 /* Helpers */
@@ -394,7 +396,11 @@ void SCSI_Emulate_Command(uint8_t *cdb) {
                     Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Format drive\n");
                     SCSI_FormatDrive(cdb);
                     break;
-                    /* as of yet unsupported commands */
+                case CMD_REASSIGN:
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Reassign blocks\n");
+                    SCSI_ReassignBlocks(cdb);
+                    break;
+                /* as of yet unsupported commands */
                 case CMD_VERIFY_TRACK:
                 case CMD_FORMAT_TRACK:
                 case CMD_CORRECTION:
@@ -1135,4 +1141,16 @@ void SCSI_FormatDrive(uint8_t *cdb) {
         SCSIdisk[SCSIbus.target].status = STAT_GOOD;
         SCSIbus.phase = PHASE_ST;
     }
+}
+
+
+void SCSI_ReassignBlocks(uint8_t *cdb) {
+    uint8_t target = SCSIbus.target;
+    
+    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Reassign blocks\n");
+    
+    SCSIdisk[target].status = STAT_GOOD;
+    SCSIdisk[target].sense.code = SC_NO_ERROR;
+    SCSIdisk[target].sense.valid = false;
+    SCSIbus.phase = PHASE_ST;
 }
