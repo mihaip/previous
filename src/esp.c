@@ -438,6 +438,9 @@ uint8_t esp_fifo_read(void) {
     } else if (esp_dma_not_ready()) {
         val = SCSIdisk_Send_Data();
         esp_counter--;
+        if (esp_transfer_done(true)) {
+            esp_io_state = ESP_IO_STATE_DONE;
+        }
         Log_Printf(LOG_WARN, "ESP FIFO: PIO disk read, val=%02x",val);
     } else {
         val = 0x00;
@@ -891,7 +894,9 @@ void ESP_IO_Handler(void) {
                     break;
                     
                 default:
-                    break;
+                    Log_Printf(LOG_WARN, "[ESP] Transfer done: Unexpected phase change (%i).", SCSIbus.phase);
+                    esp_transfer_done(true);
+                    return;
             }
             break;
         case ESP_IO_STATE_FLUSHING:
@@ -900,7 +905,6 @@ void ESP_IO_Handler(void) {
             return;
             
         default:
-            Log_Printf(LOG_ESPCMD_LEVEL, "[ESP] Transfer: Unkown state (%i).",esp_io_state);
             return;
     }
     

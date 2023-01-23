@@ -6,6 +6,7 @@ typedef struct {
 } ESPDMASTATUS;
 
 extern ESPDMASTATUS esp_dma;
+extern uint32_t     esp_counter;
 
 #define ESPCTRL_CLKMASK     0xc0    /* clock selection bits */
 #define ESPCTRL_CLK10MHz    0x00
