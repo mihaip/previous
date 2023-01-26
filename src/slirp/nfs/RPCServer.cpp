@@ -28,6 +28,14 @@ enum
 	GARBAGE_ARGS  = 4
 };
 
+enum
+{
+	AUTH_NONE  = 0,
+	AUTH_UNIX  = 1,
+	AUTH_SHORT = 2,
+	AUTH_DES   = 3
+};
+
 typedef struct
 {
 	uint32_t flavor;
@@ -46,6 +54,15 @@ typedef struct
 	OPAQUE_AUTH cred;
 	OPAQUE_AUTH verf;
 } RPC_HEADER;
+
+typedef struct {
+	uint32_t time;
+	XDRString machine;
+	uint32_t uid;
+	uint32_t gid;
+	uint32_t len;
+	uint32_t gids[16];
+} RPC_AUTH_UNIX;
 
 CRPCServer::CRPCServer() : m_hMutex(host_mutex_create()) {
 }
@@ -78,6 +95,7 @@ void CRPCServer::socketReceived(CSocket *pSocket, uint32_t header) {
 
 int CRPCServer::process(int sockType, int port, XDRInput* pInStream, XDROutput* pOutStream, uint32_t headerIn, const char* pRemoteAddr) {
 	RPC_HEADER header;
+	RPC_AUTH_UNIX auth;
     size_t headerPos;
 	ProcessParam param;
 	int nResult;
@@ -92,7 +110,16 @@ int CRPCServer::process(int sockType, int port, XDRInput* pInStream, XDROutput* 
 	pInStream->read(&header.proc);  //procedure
 	pInStream->read(&header.cred.flavor);
 	pInStream->read(&header.cred.length);
-	pInStream->skip(header.cred.length);
+	if (header.cred.flavor == AUTH_UNIX) {
+		pInStream->read(&auth.time);
+		pInStream->read(auth.machine);
+		pInStream->read(&auth.uid);
+		pInStream->read(&auth.gid);
+		pInStream->read(&auth.len);
+		pInStream->skip(auth.len * 4);
+	} else {
+		pInStream->skip(header.cred.length);
+	}
 	pInStream->read(&header.verf.flavor);  //vefifier
 	if (pInStream->read(&header.verf.length) < sizeof(header.verf.length))
 		nResult = PRC_FAIL;
