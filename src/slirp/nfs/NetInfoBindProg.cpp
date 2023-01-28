@@ -229,7 +229,9 @@ CNetInfoBindProg::CNetInfoBindProg()
     char hostname[_SC_HOST_NAME_MAX];
     hostname[0] = '\0';
     gethostname(hostname, sizeof(hostname));
-        
+
+    const char* domain = (NAME_DOMAIN[0] == '.' ? &NAME_DOMAIN[1] : &NAME_DOMAIN[0]);
+
     machines->add(NIProps("name",hostname) ("ip_address",ip_addr_str(CTL_NET|CTL_ALIAS, 4)));
     machines->add(NIProps("name",NAME_HOST)("ip_address",ip_addr_str(CTL_NET|CTL_HOST,  4))("serves",NAME_HOST"/local")("netgroups","")("system_type",systemType));
     machines->add(NIProps("name",NAME_DNS) ("ip_address",ip_addr_str(CTL_NET|CTL_DNS,   4)));
@@ -237,7 +239,9 @@ CNetInfoBindProg::CNetInfoBindProg()
 
     NetInfoNode* mounts     = m_Network.mRoot.add(NIProps("name","mounts"));
     mounts->add(NIProps("name",NAME_NFSD":/")("dir","/Net")("opts","rw,net"));
-
+    
+    NetInfoNode* locations  = m_Network.mRoot.add(NIProps("name","locations"));
+    locations->add(NIProps("name","resolver")("nameserver",ip_addr_str(CTL_NET|CTL_DNS, 4))("domain",domain)("search",domain));
     /*
     NetInfoNode* printers   = m_Network.mRoot.add(NIProps("name","printers"));
     NetInfoNode* fax_modems = m_Network.mRoot.add(NIProps("name","fax_modems"));
