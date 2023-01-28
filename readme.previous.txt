@@ -330,7 +330,9 @@ Previous v2.7:
 Previous v2.8 (unreleased):
   > Adds support for showing the main window if an alert occurs.
   > Adds support for creating block and character specials via NFS.
+  > Adds support for setting up DNS from the internal NetInfo server.
   > Improves SCSI controller emulation to pass diagnostic tests.
+  > Improves accuracy of SCSI command and error condition handling.
   > Improves accuracy of Ethernet DMA channel.
   > Fixes bug that caused endless loop after STOP instruction.
   > Fixes bug that prevented correct detection of network interface.
