@@ -80,12 +80,20 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_Turbo[] =
 	{ 0x020040dc, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
 	
 	/* Channel Ethernet Transmit */
+	{ 0x02004100, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02004104, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02004108, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x0200410c, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x02004110, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
 	{ 0x02004114, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
 	{ 0x02004118, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
 	{ 0x0200411c, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
 	
 	/* Channel Ethernet Receive */
+	{ 0x02004140, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02004144, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02004148, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x0200414c, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x02004150, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
 	{ 0x02004154, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
 	{ 0x02004158, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
@@ -181,11 +189,11 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_Turbo[] =
 	{ 0x02014008, SIZE_BYTE, ESP_Configuration_Read, ESP_Configuration_Write },
 	{ 0x02014009, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, ESP_ClockConv_Write },
 	{ 0x0201400a, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, ESP_Test_Write },
-	{ 0x0201400b, SIZE_BYTE, ESP_Conf2_Read, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0201400c, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0201400d, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0201400e, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0201400f, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x0201400b, SIZE_BYTE, ESP_Conf2_Read, ESP_Conf2_Write },
+	{ 0x0201400c, SIZE_BYTE, ESP_Unknown_Read, ESP_Unknown_Write },
+	{ 0x0201400d, SIZE_BYTE, ESP_Unknown_Read, ESP_Unknown_Write },
+	{ 0x0201400e, SIZE_BYTE, ESP_Unknown_Read, ESP_Unknown_Write },
+	{ 0x0201400f, SIZE_BYTE, ESP_Unknown_Read, ESP_Unknown_Write },
 	
 	/* SCSI DMA Control/Status Registers */
 	{ 0x02014020, SIZE_BYTE, ESP_DMA_CTRL_Read, ESP_DMA_CTRL_Write },

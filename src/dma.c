@@ -183,6 +183,7 @@ void DMA_CSR_Write(void) {
     
     switch (writecsr&DMA_CMD_MASK) {
         case DMA_RESET:
+        case (DMA_RESET | DMA_CLRCOMPLETE):
             Log_Printf(LOG_DMA_LEVEL,"DMA reset"); break;
         case DMA_INITBUF:
             Log_Printf(LOG_DMA_LEVEL,"DMA initialize buffers"); break;
@@ -201,7 +202,7 @@ void DMA_CSR_Write(void) {
         case 0:
             Log_Printf(LOG_DMA_LEVEL,"DMA no command"); break;
         default:
-            Log_Printf(LOG_DMA_LEVEL,"DMA: unknown command!"); break;
+            Log_Printf(LOG_WARN,"DMA: unknown command (%02x)!", writecsr); break;
     }
 
     /* Handle CSR bits */
@@ -1144,6 +1145,7 @@ void TDMA_CSR_Write(void) {
     
     switch (writecsr&TDMA_CMD_MASK) {
         case TDMA_RESET:
+        case (TDMA_RESET | TDMA_CLRCOMPLETE):
             Log_Printf(LOG_DMA_LEVEL,"DMA reset"); break;
         case TDMA_BUFRESET:
             Log_Printf(LOG_DMA_LEVEL,"DMA initialize buffers"); break;
@@ -1162,7 +1164,7 @@ void TDMA_CSR_Write(void) {
         case 0:
             Log_Printf(LOG_DMA_LEVEL,"DMA no command"); break;
         default:
-            Log_Printf(LOG_WARN,"DMA: unknown command!"); break;
+            Log_Printf(LOG_WARN,"DMA: unknown command (%08x)!", writecsr); break;
     }
     
     /* Handle CSR bits */

@@ -9,7 +9,12 @@ NOTE: This procedure is only valid when using SLiRP as network interface. If
       letters.
 
 
-NOWTO: Setup networking on NeXTstep 1.0 and later:
+NOWTO: Setup networking on NeXTstep 3.3 and later:
+
+   Networking should work automatically without any setup.
+
+
+NOWTO: Setup networking on NeXTstep 1.0 through 3.2:
 
 1. On first boot you might be prompted to press 'c' or you might be dropped to 
    the single user mode console. If prompted to press 'c' just do so or if on 
