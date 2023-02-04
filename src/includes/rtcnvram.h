@@ -1,5 +1,6 @@
 extern uint8_t rtc_interface_read(void);
 extern void rtc_interface_write(uint8_t rtdatabit);
+extern void rtc_interface_start(void);
 extern void rtc_interface_reset(void);
 
 extern void rtc_request_power_down(void);

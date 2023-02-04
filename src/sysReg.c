@@ -377,6 +377,9 @@ void SCR2_Write2(void)
 
     /* RTC enabled */
     if (scr2_2&SCR2_RTCE) {
+        if (changed_bits&SCR2_RTCE) {
+            rtc_interface_start();
+        }
         if ((changed_bits&SCR2_RTCLK) && !(scr2_2&SCR2_RTCLK)) {
             rtc_interface_write(scr2_2&SCR2_RTDATA);
         }
