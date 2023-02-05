@@ -474,10 +474,19 @@ void dma_esp_flush_buffer(void) {
     TRY(prb) {
         if (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit) {
             Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Flush buffer to memory at $%08x, 4 bytes",dma[CHANNEL_SCSI].next);
-            if (espdma_buf_size>0) {
+            if (espdma_buf_size>=4) {
                 /* Write one long word to memory */
                 put_long(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
                 espdma_buf_size-=4;
+            } else if (espdma_buf_size>0) {
+                Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Unaligned buffer flush (%i bytes)!",espdma_buf_size);
+                while (espdma_buf_size>0) {
+                    put_byte(dma[CHANNEL_SCSI].next, espdma_buf[espdma_buf_limit-espdma_buf_size]);
+                    espdma_buf_size--;
+                }
+            }
+            if (espdma_buf_size == 0) {
+                espdma_buf_limit = espdma_buf_size;
             }
             dma[CHANNEL_SCSI].next+=4;
         } else {
@@ -1215,9 +1224,18 @@ void tdma_flush_buffer(int channel) {
         
         for (i = 0; i < DMA_BURST_SIZE; i+=4) {
             if (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit) {
-                if (espdma_buf_size) {
+                if (espdma_buf_size>=4) {
                     put_long(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
                     espdma_buf_size-=4;
+                } else if (espdma_buf_size>0) {
+                    Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Unaligned buffer flush (%i bytes)!",espdma_buf_size);
+                    while (espdma_buf_size>0) {
+                        put_byte(dma[CHANNEL_SCSI].next, espdma_buf[espdma_buf_limit-espdma_buf_size]);
+                        espdma_buf_size--;
+                    }
+                }
+                if (espdma_buf_size == 0) {
+                    espdma_buf_limit = espdma_buf_size;
                 }
                 dma[CHANNEL_SCSI].next+=4;
             }

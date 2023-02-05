@@ -338,6 +338,7 @@ Previous v2.8 (unreleased):
   > Fixes bug that caused endless loop after STOP instruction.
   > Fixes bug that prevented correct detection of network interface.
   > Fixes bug that could lead to incorrect SCSI controller detection.
+  > Fixes bug in SCSI DMA channel that could cause incomplete transfers.
 
 
  7) Running Previous
