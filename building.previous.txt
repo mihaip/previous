@@ -86,7 +86,6 @@ replace with these steps:
    Using Terminal go to the Contents directory inside the application bundle and
    run these commands from the command line:
       cd MacOS
-      install_name_tool -change @rpath/SDL2.framework/Versions/A/SDL2 @executable_path/../Frameworks/SDL2.framework/Versions/A/SDL2 Previous
       install_name_tool -change /opt/local/lib/libpng16.16.dylib @executable_path/../SharedSupport/libpng16.16.dylib Previous
       install_name_tool -change /opt/local/lib/libz.1.dylib /usr/lib/libz.1.dylib Previous
       install_name_tool -change /usr/lib/libedit.3.dylib /usr/lib/libedit.2.dylib Previous

@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 
+# Set build type to "Release" if user did not specify any build type yet
+# Other possible values: Debug, Release, RelWithDebInfo and MinSizeRel
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Release)
+endif(NOT CMAKE_BUILD_TYPE)
+
+IF (CMAKE_BUILD_TYPE STREQUAL "Release")
+	set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Target architectures" FORCE)
+	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Target Min 10.13" FORCE)
+ENDIF (CMAKE_BUILD_TYPE STREQUAL "Release")
+
 project(Previous)
 
 set(APP_NAME "Previous")
@@ -11,12 +22,6 @@ include(CheckFunctionExists)
 include(CheckStructHasMember)
 include(CheckCCompilerFlag)
 include(DistClean)
-
-# Set build type to "Release" if user did not specify any build type yet
-# Other possible values: Debug, Release, RelWithDebInfo and MinSizeRel
-if(NOT CMAKE_BUILD_TYPE)
-	set(CMAKE_BUILD_TYPE Release)
-endif(NOT CMAKE_BUILD_TYPE)
 
 # set(CMAKE_VERBOSE_MAKEFILE 1)
 
@@ -37,9 +42,6 @@ set(ENABLE_RENDERING_THREAD 1
 if(APPLE)
 	set(ENABLE_OSX_BUNDLE 1
 	    CACHE BOOL "Built Previous as macOS application bundle")
-	# set(CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "Target architectures" FORCE)
-	# set(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.6.sdk" CACHE STRING "10.6 SDK" FORCE)
-	# set(CMAKE_OSX_DEPLOYMENT_TARGET "10.5" CACHE STRING "Target Min 10.5" FORCE)
 	set(ADDITIONAL_INCLUDES ${FRAMEWORKS})
 	set_source_files_properties(${FRAMEWORKS} PROPERTIES MACOSX_PACKAGE_LOCATION Frameworks)
 else()

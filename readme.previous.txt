@@ -171,10 +171,10 @@ Issues in Previous:
     compared to real hardware.
   > 68882 transcendental FPU instructions produce results identical to 68040 
     FPSP. The results are slightly different from real 68882 results.
-  > Diagnostic tests for Ethernet fail due to timing issues. Diagnostic tests 
-    for SCSI Disk sporadically fail on NeXTstation Color if variable speed mode
-    is enabled. Diagnostic tests for Monitor/Sound may also fail due to timing 
-    issues if sound is enabled.
+  > Diagnostic tests for Ethernet fail. Diagnostic tests for SCSI Disk and 
+    Monitor/Sound fail in certain situations due to timing issues. Disable 
+    variable speed mode to reliably pass SCSI Disk diagnostics. Disable sound to 
+    pass Monitor/Sound diagnostics.
 
 Issues in NeXTstep:
   > The MO drive causes slow downs and hangs when both drives are connected, but 
@@ -333,6 +333,7 @@ Previous v2.8 (unreleased):
   > Adds support for setting up DNS from the internal NetInfo server.
   > Improves SCSI controller emulation to pass diagnostic tests.
   > Improves accuracy of SCSI command and error condition handling.
+  > Improves accuracy of Real Time Clock chip.
   > Improves accuracy of Ethernet DMA channel.
   > Fixes bug that caused endless loop after STOP instruction.
   > Fixes bug that prevented correct detection of network interface.
