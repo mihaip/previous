@@ -94,7 +94,7 @@ static void set_attrs_recr(UFS& ufs, set<string>& skip, uint32_t ino, const stri
     for(size_t i = 0; i < entries.size(); i++) {
         direct& dirEnt = entries[i];
         icommon inode;
-        ufs.readInode(inode, fsv(dirEnt.d_ino));
+        ufs.readInode(inode, fsv(dirEnt.d_inonum));
         
         string dirEntPath(join(path, dirEnt.d_name));
 
@@ -105,7 +105,7 @@ static void set_attrs_recr(UFS& ufs, set<string>& skip, uint32_t ino, const stri
         uint32_t rdev = 0;
         switch(fsv(inode.ic_mode) & IFMT) {
             case IFDIR:       /* directory */
-                set_attrs_recr(ufs, skip, fsv(dirEnt.d_ino), dirEntPath, ft);
+                set_attrs_recr(ufs, skip, fsv(dirEnt.d_inonum), dirEntPath, ft);
                 break;
             case IFCHR:       /* character special */
             case IFBLK:       /* block special */
@@ -158,7 +158,7 @@ static void verify_attr_recr(UFS& ufs, set<string>& skip, uint32_t ino, const st
     for(size_t i = 0; i < entries.size(); i++) {
         direct& dirEnt = entries[i];
         icommon inode;
-        ufs.readInode(inode, fsv(dirEnt.d_ino));
+        ufs.readInode(inode, fsv(dirEnt.d_inonum));
         
         string dirEntPath(join(path, dirEnt.d_name));
         
@@ -168,7 +168,7 @@ static void verify_attr_recr(UFS& ufs, set<string>& skip, uint32_t ino, const st
         switch(fsv(inode.ic_mode) & IFMT) {
             case IFDIR:       /* directory */
                 if(!(ignore_name(dirEnt.d_name)))
-                    verify_attr_recr(ufs, skip, fsv(dirEnt.d_ino), dirEntPath, ft);
+                    verify_attr_recr(ufs, skip, fsv(dirEnt.d_inonum), dirEntPath, ft);
                 break;
             case IFCHR:       /* character special */
             case IFBLK:       /* block special */
@@ -214,7 +214,7 @@ static void verify_inodes_recr(UFS& ufs, map<uint32_t, uint64_t>& inode2inode, s
     for(size_t i = 0; i < entries.size(); i++) {
         direct& dirEnt = entries[i];
         icommon inode;
-        ufs.readInode(inode, fsv(dirEnt.d_ino));
+        ufs.readInode(inode, fsv(dirEnt.d_inonum));
         
         string dirEntPath(join(path, dirEnt.d_name));
         
@@ -223,17 +223,17 @@ static void verify_inodes_recr(UFS& ufs, map<uint32_t, uint64_t>& inode2inode, s
         struct stat fstat;
         ft.stat(dirEntPath, fstat);
         
-        if(inode2inode.find(dirEnt.d_ino) == inode2inode.end()) {
-            inode2inode[dirEnt.d_ino] = fstat.st_ino;
+        if(inode2inode.find(dirEnt.d_inonum) == inode2inode.end()) {
+            inode2inode[dirEnt.d_inonum] = fstat.st_ino;
         } else {
-            if(inode2inode[dirEnt.d_ino] != fstat.st_ino)
-                cout << "inode mismatch (exp/act) " << inode2inode[dirEnt.d_ino] << " != " << fstat.st_ino << " "  << dirEntPath << endl;
+            if(inode2inode[dirEnt.d_inonum] != fstat.st_ino)
+                cout << "inode mismatch (exp/act) " << inode2inode[dirEnt.d_inonum] << " != " << fstat.st_ino << " "  << dirEntPath << endl;
         }
             
         switch(fsv(inode.ic_mode) & IFMT) {
             case IFDIR:       /* directory */
                 if(!(ignore_name(dirEnt.d_name)))
-                    verify_inodes_recr(ufs, inode2inode, skip, fsv(dirEnt.d_ino), dirEntPath, ft);
+                    verify_inodes_recr(ufs, inode2inode, skip, fsv(dirEnt.d_inonum), dirEntPath, ft);
                 break;
         }
     }
@@ -256,7 +256,7 @@ static void process_inodes_recr(UFS& ufs, map<uint32_t, string>& inode2path, set
     for(size_t i = 0; i < entries.size(); i++) {
         direct& dirEnt = entries[i];
         icommon inode;
-        ufs.readInode(inode, fsv(dirEnt.d_ino));
+        ufs.readInode(inode, fsv(dirEnt.d_inonum));
         
         string dirEntPath(join(path, dirEnt.d_name));
 
@@ -295,12 +295,12 @@ static void process_inodes_recr(UFS& ufs, map<uint32_t, string>& inode2path, set
                     continue;
                 }
             }
-            if(inode2path.find(fsv(dirEnt.d_ino)) != inode2path.end()) {
-                if(do_print("HLINK", listType, doPrint, forcePrint)) os << "[HLINK] " << inode2path[fsv(dirEnt.d_ino)] << " <- ";
+            if(inode2path.find(fsv(dirEnt.d_inonum)) != inode2path.end()) {
+                if(do_print("HLINK", listType, doPrint, forcePrint)) os << "[HLINK] " << inode2path[fsv(dirEnt.d_inonum)] << " <- ";
                 forcePrint = true;
-                if(ft) ft->vfsLink(inode2path[fsv(dirEnt.d_ino)], dirEntPath, false);
+                if(ft) ft->vfsLink(inode2path[fsv(dirEnt.d_inonum)], dirEntPath, false);
             } else
-                inode2path[fsv(dirEnt.d_ino)] = dirEntPath;
+                inode2path[fsv(dirEnt.d_inonum)] = dirEntPath;
         }
         
         switch(fsv(inode.ic_mode) & IFMT) {
@@ -318,7 +318,7 @@ static void process_inodes_recr(UFS& ufs, map<uint32_t, string>& inode2path, set
                     if(doPrint) os << dirEntPath << endl;
                     doPrint = false;
                     if(ft) ft->vfsMkdir(dirEntPath, DEFAULT_PERM);
-                    process_inodes_recr(ufs, inode2path, skip, fsv(dirEnt.d_ino), dirEntPath, ft, os, listType);
+                    process_inodes_recr(ufs, inode2path, skip, fsv(dirEnt.d_inonum), dirEntPath, ft, os, listType);
                 }
                 break;
             case IFBLK:       /* block special */

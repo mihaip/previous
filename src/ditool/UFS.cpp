@@ -126,7 +126,7 @@ bool UFS::findInode(icommon& inode, const string& path, bool followSymlink) {
         if(files.empty()) return false;
         for(size_t file = 0; file < files.size(); file++) {
             if(files[file].d_name == segments[seg]) {
-                ino = fsv(files[file].d_ino);
+                ino = fsv(files[file].d_inonum);
                 readInode(inode, ino);
                 if((fsv(inode.ic_mode) & IFMT) == IFLNK) {
                     string link = readlink(inode);
@@ -234,7 +234,7 @@ std::vector<direct> UFS::list(uint32_t ino) {
     struct direct dirEnt;
     for(uint32_t start = 0; start < size; start += fsv(dirEnt.d_reclen)) {
         dirEnt = *((direct*)&directory[start]);
-        if(fsv(dirEnt.d_ino) == 0 || fsv(dirEnt.d_reclen) == 0)
+        if(fsv(dirEnt.d_inonum) == 0 || fsv(dirEnt.d_reclen) == 0)
             break;
         result.push_back(dirEnt);
     }

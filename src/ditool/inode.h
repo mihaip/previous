@@ -76,10 +76,6 @@
 
 #include <stdint.h>
 
-#ifdef _WIN32
-typedef int32_t daddr_t;
-#endif
-
 #include "fs.h"
 
 #pragma pack(push, 1)
@@ -88,7 +84,7 @@ typedef int32_t daddr_t;
 #define	NDADDR	12		/* direct addresses in inode */
 #define	NIADDR	3		/* indirect addresses in inode */
 #if	defined(NeXT) || defined(MULTIMAX)
-#define MAX_FASTLINK_SIZE	((NDADDR + NIADDR) * sizeof (daddr_t))
+#define MAX_FASTLINK_SIZE	((NDADDR + NIADDR) * sizeof (int32_t))
 #endif	// defined(NeXT) || defined(MULTIMAX)
 
 struct 	icommon
@@ -105,8 +101,8 @@ struct 	icommon
 #if	defined(NeXT) || defined(MULTIMAX)
     union {
         struct {
-        daddr_t	Mb_db[NDADDR]; /* 40: disk block addresses*/
-        daddr_t	Mb_ib[NIADDR]; /* 88: indirect blocks */
+        int32_t	Mb_db[NDADDR]; /* 40: disk block addresses*/
+        int32_t	Mb_ib[NIADDR]; /* 88: indirect blocks */
         } ic_Mb;
 #define	ic_db	ic_Mun.ic_Mb.Mb_db
 #define	ic_ib	ic_Mun.ic_Mb.Mb_ib
@@ -115,8 +111,8 @@ struct 	icommon
     } ic_Mun;
 #define ic_symlink	ic_Mun.ic_Msymlink
 #else	// defined(NeXT) || defined(MULTIMAX)
-    daddr_t	ic_db[NDADDR];	/* 40: disk block addresses */
-    daddr_t	ic_ib[NIADDR];	/* 88: indirect blocks */
+    int32_t	ic_db[NDADDR];	/* 40: disk block addresses */
+    int32_t	ic_ib[NIADDR];	/* 88: indirect blocks */
 #endif	// defined(NeXT) || defined(MULTIMAX)
     int32_t	ic_flags;	/* 100: status, currently unused */
 #if	defined(NeXT) || defined(MULTIMAX)
@@ -133,7 +129,7 @@ struct    inb {
 };
 /* indirection block */
 struct    idb {
-    daddr_t idbs[MAXBSIZE / sizeof(daddr_t)];
+    int32_t idbs[MAXBSIZE / sizeof(int32_t)];
 };
 
 #define	i_mode		i_ic.ic_mode

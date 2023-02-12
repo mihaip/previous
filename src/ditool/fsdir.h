@@ -54,13 +54,13 @@
 #define NeXT 1
 
 #define DIRBLKSIZ	1024		/* a convenient number */
-#if !defined(MAXNAMLEN)
-//#define _MAXNAMLEN
-#define	MAXNAMLEN	255
+#ifdef MAXNAMLEN
+#undef MAXNAMLEN
 #endif /* MAXNAMLEN */
+#define	MAXNAMLEN	255
 
 struct	direct {
-	uint32_t	d_ino;			/* inode number of entry */
+	uint32_t	d_inonum;		/* inode number of entry */
 	uint16_t	d_reclen;		/* length of this record */
 	uint16_t	d_namlen;		/* length of string in d_name */
 	char	d_name[MAXNAMLEN + 1];	/* name must be no longer than this */
