@@ -49,6 +49,12 @@ void NDSDL::init(void) {
     char title[32], name[32];
     SDL_Rect r = {0,0,1120,832};
 
+#ifdef ENABLE_RENDERING_THREAD
+    SDL_RendererFlags vsync_flag = SDL_RENDERER_PRESENTVSYNC;
+#else
+    SDL_RendererFlags vsync_flag = 0;
+#endif
+
     if (!ndWindow) {
         SDL_GetWindowPosition(sdlWindow, &x, &y);
         SDL_GetWindowSize(sdlWindow, &w, &h);
@@ -64,14 +70,14 @@ void NDSDL::init(void) {
     
     if (ConfigureParams.Screen.nMonitorType == MONITOR_TYPE_DUAL) {
         if (!ndRenderer) {
-#ifdef ENABLE_RENDERING_THREAD
-            ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-#else
-            ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED);
-#endif
+            ndRenderer = SDL_CreateRenderer(ndWindow, -1, SDL_RENDERER_ACCELERATED | vsync_flag);
             if (!ndRenderer) {
-                fprintf(stderr,"[ND] Slot %i: Failed to create renderer! (%s)\n", slot, SDL_GetError());
-                exit(-1);
+                fprintf(stderr,"[ND] Slot %i: Failed to create accelerated renderer! (%s)\n", slot, SDL_GetError());
+                ndRenderer = SDL_CreateRenderer(ndWindow, -1, vsync_flag);
+                if (!ndRenderer) {
+                    fprintf(stderr,"[ND] Slot %i: Failed to create renderer! (%s)\n", slot, SDL_GetError());
+                    exit(-1);
+                }
             }
             SDL_RenderSetLogicalSize(ndRenderer, r.w, r.h);
             ndTexture = SDL_CreateTexture(ndRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, r.w, r.h);

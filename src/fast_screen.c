@@ -298,6 +298,12 @@ void Screen_Init(void) {
 	uint32_t format, r, g, b, a;
 	int      d;
 
+#ifdef ENABLE_RENDERING_THREAD
+	SDL_RendererFlags vsync_flag = SDL_RENDERER_PRESENTVSYNC;
+#else
+	SDL_RendererFlags vsync_flag = 0;
+#endif
+
 	/* Set initial window resolution */
 	width  = NeXT_SCRN_WIDTH;
 	height = NeXT_SCRN_HEIGHT;
@@ -341,14 +347,14 @@ void Screen_Init(void) {
 		exit(-1);
 	}
 
-#ifdef ENABLE_RENDERING_THREAD
-	sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-#else
-	sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_ACCELERATED);
-#endif
+	sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, SDL_RENDERER_ACCELERATED | vsync_flag);
 	if (!sdlRenderer) {
-		fprintf(stderr,"Failed to create renderer: %s!\n", SDL_GetError());
-		exit(-1);
+		fprintf(stderr,"Failed to create accelerated renderer: %s!\n", SDL_GetError());
+		sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, vsync_flag);
+		if (!sdlRenderer) {
+			fprintf(stderr,"Failed to create renderer: %s!\n", SDL_GetError());
+			exit(-1);
+		}
 	}
 
 	SDL_GetWindowSizeInPixels(sdlWindow, &nWindowWidth, &nWindowHeight);

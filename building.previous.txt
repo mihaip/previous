@@ -18,7 +18,7 @@ other platforms you might need to also install libpcap, readline and zlib.
    From the command line use the command "port install <package_name>" to 
    install the following packages:
       cmake
-      libpng+universal
+      libpng
 
 3. Compiling Previous:
    From the command line change the directory to the location of Previous' 
@@ -57,43 +57,43 @@ be distributed and run on any macOS version >= deployment target. If you want
 to build a distributable package skip step 3 from the above instructions and 
 replace with these steps:
 
-1. From the command line go to Previous' source directory and build an Xcode 
-   project using this command from the command line:
+1. Build png.framework:
+   a Download source code from http://libpng.org/pub/png/libpng.html
+   b Go to the source directory and build an Xcode project:
+        cmake -G Xcode . -DPNG_FRAMEWORK=ON -DPNG_HARDWARE_OPTIMIZATIONS=OFF
+   c Open the Xcode project and select "libpng" in left side bar
+   d Select "Targets > png_framework" in middle sector
+   e Set "Architectures" to "Standard Architectures (Apple Silicon, Intel)"
+   f Set "Build Active Architecture Only" to "No"
+   g Set "macOS Deployment Target" to "macOS 10.13" (oldest available)
+   h Set "Framework Version" to "A"
+   i Set "Compatibility Version" to "1.0.0"
+   j Set "Current Library Version" to "1.6.39"
+   k Select "ALL_BUILD > Any Mac" in title bar and go to "Edit Scheme ..."
+   l Set "Build Configuration" to "Release"
+   m Select "Product > Build" from the menu bar
+   n Using Terminal go to bundle directory, change loader path and sign code:
+        install_name_tool -change /opt/local/lib/libz.1.dylib /usr/lib/libz.1.dylib png
+        codesign --force -s - png
+   o Copy the framework to /Library/Frameworks and make sure no other versions
+     of libpng are installed (if applicable remove macports version of libpng)
+
+2. From the command line go to Previous' source directory and build Previous 
+   using this command from the command line:
       cmake -G Xcode .
 
-2. Change project settings and build:
-   Open the Xcode project and perform these steps:
-   a  Select Projects > Previous (not Targets) and go to Build Settings
-   b  Set "Architectures" to "64-bit Intel and ARM"
-   c  Set "Build Active Architecture Only" to "No"
-   d  Set "macOS Deployment Target" to the lowest available version
-   e  Select Product > Scheme > Previous
-   f  Select Product > Scheme > Edit Scheme ... and set "Build Configuration" 
-      to "Release"
-   g  Select Product > Build
-
-
-3. Add the SDL2 framework to the application bundle:
+3. Add SDL2.framework and png.framework to the application bundle:
    The application bundle Previous.app is located in the src directory of the 
    source tree. Go inside the application bundle and go to the Contents folder.
-   Create a folder named "Frameworks" and copy SDL2.framework into it.
+   Copy SDL2.framework and png.framework into the "Frameworks" folder.
 
-4. Add libpng to the application bundle:
-   Create a folder named "SharedSupport" and copy libpng16.16.dylib into it. 
-   (You find libpng16.16.dylib in /opt/local/lib directory.)
-
-5. Change internal linking of Previous:
-   Using Terminal go to the Contents directory inside the application bundle and
+4. Change internal linking of Previous:
+   Using Terminal go to the MacOS directory inside the application bundle and
    run these commands from the command line:
-      cd MacOS
-      install_name_tool -change /opt/local/lib/libpng16.16.dylib @executable_path/../SharedSupport/libpng16.16.dylib Previous
       install_name_tool -change /opt/local/lib/libz.1.dylib /usr/lib/libz.1.dylib Previous
-      install_name_tool -change /usr/lib/libedit.3.dylib /usr/lib/libedit.2.dylib Previous
-      cd ../SharedSupport
-      install_name_tool -id @executable_path/../SharedSupport/libpng16.16.dylib libpng16.16.dylib
-      install_name_tool -change /opt/local/lib/libz.1.dylib /usr/lib/libz.1.dylib libpng16.16.dylib
+      codesign --force -s - Previous
 
-6. Make a package for distribution:
+5. Make a package for distribution:
    Create a folder named "Previous <version>" and copy Previous.app into it. 
    Copy the following files and folders to the same folder:
       disks
