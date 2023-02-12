@@ -152,6 +152,18 @@ NOTE: The /etc/rc.boot script configures the network with this command:
             (/etc/route add default 10.0.2.2 1) >/dev/console
          fi
 
+NOTE: You can preserve the fastboot option permanently by modifying the /etc/rc
+      script. You need to replace the lines
+         if [ -r /bootdisk/fastboot ]
+         then
+            rm -f /bootdisk/fastboot
+         fi
+      with the lines
+         # if [ -r /bootdisk/fastboot ]
+         # then
+         #    rm -f /bootdisk/fastboot
+         # fi
+
 
 HOWTO: Reset network configuration:
 

@@ -80,7 +80,8 @@ replace with these steps:
 
 2. From the command line go to Previous' source directory and build Previous 
    using this command from the command line:
-      cmake -G Xcode .
+      cmake .
+      make
 
 3. Add SDL2.framework and png.framework to the application bundle:
    The application bundle Previous.app is located in the src directory of the 

@@ -480,10 +480,15 @@ void dma_esp_flush_buffer(void) {
                 espdma_buf_size-=4;
             } else if (espdma_buf_size>0) {
                 Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Unaligned buffer flush (%i bytes)!",espdma_buf_size);
-                while (espdma_buf_size>0) {
-                    put_byte(dma[CHANNEL_SCSI].next, espdma_buf[espdma_buf_limit-espdma_buf_size]);
-                    espdma_buf_size--;
-                }
+                do {
+                    espdma_buf[espdma_buf_limit]=0;
+                    espdma_buf_limit++;
+                    espdma_buf_size++;
+                } while (espdma_buf_size < 4);
+                put_long(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
+                espdma_buf_size=0;
+            } else {
+                put_long(dma[CHANNEL_SCSI].next, 0);
             }
             if (espdma_buf_size == 0) {
                 espdma_buf_limit = espdma_buf_size;
@@ -1222,23 +1227,19 @@ void tdma_flush_buffer(int channel) {
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Flush buffer to memory at $%08x, %i bytes",
                    dma[CHANNEL_SCSI].next,espdma_buf_size);
         
-        for (i = 0; i < DMA_BURST_SIZE; i+=4) {
+        for (i = 0; i < DMA_BURST_SIZE; i++) {
             if (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit) {
-                if (espdma_buf_size>=4) {
-                    put_long(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
-                    espdma_buf_size-=4;
-                } else if (espdma_buf_size>0) {
-                    Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Unaligned buffer flush (%i bytes)!",espdma_buf_size);
-                    while (espdma_buf_size>0) {
-                        put_byte(dma[CHANNEL_SCSI].next, espdma_buf[espdma_buf_limit-espdma_buf_size]);
-                        espdma_buf_size--;
-                    }
+                if (espdma_buf_size > 0) {
+                    put_byte(dma[CHANNEL_SCSI].next, espdma_buf[espdma_buf_limit-espdma_buf_size]);
+                    espdma_buf_size--;
+                } else {
+                    put_byte(dma[CHANNEL_SCSI].next, 0);
                 }
-                if (espdma_buf_size == 0) {
-                    espdma_buf_limit = espdma_buf_size;
-                }
-                dma[CHANNEL_SCSI].next+=4;
+                dma[CHANNEL_SCSI].next++;
             }
+        }
+        if (espdma_buf_size == 0) {
+            espdma_buf_limit = espdma_buf_size;
         }
     } CATCH(prb) {
         Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Bus error while flushing to %08x",dma[CHANNEL_SCSI].next);
