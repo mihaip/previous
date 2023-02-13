@@ -470,30 +470,28 @@ void dma_esp_flush_buffer(void) {
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Not flushing buffer. Bad direction!");
         return;
     }
+    if ((dma[CHANNEL_SCSI].limit%DMA_BURST_SIZE) || (dma[CHANNEL_SCSI].next%4)) {
+        Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Error! Bad alignment! (Next: $%08X, Limit: $%08X)",
+                   dma[CHANNEL_SCSI].next, dma[CHANNEL_SCSI].limit);
+        abort();
+    }
 
     TRY(prb) {
         if (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit) {
             Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Flush buffer to memory at $%08x, 4 bytes",dma[CHANNEL_SCSI].next);
-            if (espdma_buf_size>=4) {
-                /* Write one long word to memory */
-                put_long(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
-                espdma_buf_size-=4;
-            } else if (espdma_buf_size>0) {
-                Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Unaligned buffer flush (%i bytes)!",espdma_buf_size);
-                do {
-                    espdma_buf[espdma_buf_limit]=0;
-                    espdma_buf_limit++;
-                    espdma_buf_size++;
-                } while (espdma_buf_size < 4);
-                put_long(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
-                espdma_buf_size=0;
-            } else {
-                put_long(dma[CHANNEL_SCSI].next, 0);
+            /* If there is less than one long word in the buffer, fill the gap with 0 */
+            while (espdma_buf_size < 4) {
+                espdma_buf[espdma_buf_limit] = 0;
+                espdma_buf_limit++;
+                espdma_buf_size++;
             }
+            /* Write one long word to memory */
+            put_long(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
+            dma[CHANNEL_SCSI].next += 4;
+            espdma_buf_size -= 4;
             if (espdma_buf_size == 0) {
                 espdma_buf_limit = espdma_buf_size;
             }
-            dma[CHANNEL_SCSI].next+=4;
         } else {
             Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Not flushing buffer. DMA done.");
         }
