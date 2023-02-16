@@ -200,10 +200,12 @@ struct	ip_timestamp {
  	struct mbuf *mptr;
  	uint32_t dummy;
  };
-#else
+#elif SIZEOF_CHAR_P == 8
  struct mbuf_ptr {
  	struct mbuf *mptr;
  };
+#else
+#error SIZEOF_CHAR_P has strange value or is undefined
 #endif
 struct qlink {
  	void *next, *prev;
@@ -223,7 +225,7 @@ struct ipovly {
 	u_int16_t	ih_len;			/* protocol length */
 	struct	in_addr ih_src;		/* source internet address */
 	struct	in_addr ih_dst;		/* destination internet address */
-}  __attribute__((packed));
+} PACKED__;
 
 #ifdef PRAGMA_PACK_SUPPORTED
 #pragma pack(PACK_RESET)

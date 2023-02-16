@@ -265,7 +265,7 @@ Libraries summary :
 message("  - sdl :\tusing SDL2 ${SDL2_VERSION}")
 
 if(PNG_FOUND)
-  message( "  - png :\tfound, allows to print fo files using png" )
+  message( "  - png :\tfound, allows to print to files using png" )
 else()
   message( "  - png :\tnot found, install it to print to files using png" )
 endif(PNG_FOUND)

@@ -93,6 +93,9 @@
 /* Relative path from bindir to datadir */
 #define BIN2DATADIR "@BIN2DATADIR@"
 
+/* Size of void pointer */
+#define SIZEOF_VOID_P @CMAKE_SIZEOF_VOID_P@
+
 /* Define to 1 to enable DSP 56k emulation */
 #cmakedefine ENABLE_DSP_EMU 1
 

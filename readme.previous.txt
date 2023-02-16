@@ -339,6 +339,7 @@ Previous v2.8 (unreleased):
   > Fixes bug that prevented correct detection of network interface.
   > Fixes bug that could lead to incorrect SCSI controller detection.
   > Fixes bug in SCSI DMA channel that could cause incomplete transfers.
+  > Fixes bug that broke networking on 32-bit host platforms.
 
 
  7) Running Previous
