@@ -183,7 +183,6 @@
 
 #include <stdint.h>
 
-#ifndef WINUAE_FOR_PREVIOUS
 #ifdef WIN64
 #undef X86_MSVC_ASSEMBLY_MEMACCESS
 #undef X86_MSVC_ASSEMBLY
@@ -192,7 +191,6 @@
 #else
 #define SIZEOF_VOID_P 4
 #endif
-#endif /* ! WINUAE_FOR_PREVIOUS */
 
 #if !defined(AHI)
 #undef ENFORCER
