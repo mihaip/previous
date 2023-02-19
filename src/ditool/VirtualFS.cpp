@@ -306,7 +306,7 @@ FileAttrs::FileAttrs(const string& serialized) {
 
 string FileAttrs::serialize() const {
     char buffer[128];
-    snprintf(buffer, sizeof(buffer), "0%o:%d:%d:%d", mode, uid, gid, rdev);
+    snprintf(buffer, sizeof(buffer), "0%o:%d:%d:%d:", mode, uid, gid, rdev);
     return string(buffer);
 }
 
