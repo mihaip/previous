@@ -10,6 +10,12 @@
 
 using namespace std;
 
+#ifdef _WIN32
+typedef void recv_data_t;
+#else
+typedef char recv_data_t;
+#endif
+
 static int ThreadProc(void *lpParameter)
 {
 	CSocket *pSocket;
@@ -106,21 +112,15 @@ void CSocket::run(void) {
     socklen_t nSize;
 
     ssize_t nBytes = 0;
+    ssize_t nExtra = 0;
+
 	for (;;) {
         uint32_t header = 0;
 		if (m_nType == SOCK_STREAM)
-#ifdef _WIN32
-			nBytes = recv(m_Socket, (char*)m_Input.data(), m_Input.getCapacity(), 0);
-#else
-			nBytes = recv(m_Socket, (void*)m_Input.data(), m_Input.getCapacity(), 0);
-#endif
+			nBytes = recv(m_Socket, (recv_data_t*)m_Input.data(), m_Input.getCapacity(), 0);
         else if (m_nType == SOCK_DGRAM) {
             nSize = sizeof(m_RemoteAddr);
-#ifdef _WIN32
-			nBytes = recvfrom(m_Socket, (char*)m_Input.data(), m_Input.getCapacity(), 0, (struct sockaddr *)&m_RemoteAddr, &nSize);
-#else
-			nBytes = recvfrom(m_Socket, (void*)m_Input.data(), m_Input.getCapacity(), 0, (struct sockaddr *)&m_RemoteAddr, &nSize);
-#endif
+			nBytes = recvfrom(m_Socket, (recv_data_t*)m_Input.data(), m_Input.getCapacity(), 0, (struct sockaddr *)&m_RemoteAddr, &nSize);
         }
         if(nBytes == 0) {
             perror("[NFSD] Socket closed");
@@ -132,8 +132,21 @@ void CSocket::run(void) {
 			m_Input.resize(nBytes);  //bytes received
             if (m_nType == SOCK_STREAM) {
                 m_Input.read(&header);
-                if((nBytes - 4) < (header & ~0x80000000)) {
-                    perror("[NFSD] Missing data");
+                uint32_t nLen = (header & ~0x80000000) + 4;
+                if (nBytes < nLen) {
+                    do {
+                        nExtra = recv(m_Socket, (recv_data_t*)(m_Input.data()+nBytes), m_Input.getCapacity()-nBytes, 0);
+                        if (nExtra > 0) {
+                            nBytes += nExtra;
+                            m_Input.resize(nBytes);
+                            m_Input.skip(4);
+                        }
+                    } while (nBytes < nLen && (nExtra > 0 || (nExtra == -1 && errno == EAGAIN)));
+                    
+                    if (nExtra <= 0) {
+                        perror("[NFSD] Missing data");
+                        break;
+                    }
                 }
             }
 			if (m_pListener != NULL)
