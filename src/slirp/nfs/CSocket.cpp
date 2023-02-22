@@ -11,9 +11,9 @@
 using namespace std;
 
 #ifdef _WIN32
-typedef void recv_data_t;
-#else
 typedef char recv_data_t;
+#else
+typedef void recv_data_t;
 #endif
 
 static int ThreadProc(void *lpParameter)

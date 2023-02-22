@@ -65,11 +65,11 @@ replace with these steps:
    d Select "Targets > png_framework" in middle sector
    e Set "Architectures" to "Standard Architectures (Apple Silicon, Intel)"
    f Set "Build Active Architecture Only" to "No"
-   g Set "macOS Deployment Target" to "macOS 10.13" (oldest available)
+   g Set "macOS Deployment Target" to "macOS 10.13" or oldest available
    h Set "Framework Version" to "A"
    i Set "Compatibility Version" to "1.0.0"
-   j Set "Current Library Version" to "1.6.39"
-   k Select "ALL_BUILD > Any Mac" in title bar and go to "Edit Scheme ..."
+   j Set "Current Library Version" to the actual version of libpng
+   k Select "png_framework > Any Mac" in title bar and go to "Edit Scheme ..."
    l Set "Build Configuration" to "Release"
    m Select "Product > Build" from the menu bar
    n Using Terminal go to bundle directory, change loader path and sign code:

@@ -1,6 +1,6 @@
 
 
-                                  Previous 2.7
+                                  Previous 2.8
 
 
 
@@ -327,19 +327,21 @@ Previous v2.7:
   > Fixes bug that caused NeXTdimension window to start with wrong size.
   > Fixes bug in low-pass filter that could cause audible noise.
 
-Previous v2.8 (unreleased):
+Previous v2.8:
   > Adds support for showing the main window if an alert occurs.
   > Adds support for creating block and character specials via NFS.
   > Adds support for setting up DNS from the internal NetInfo server.
   > Improves SCSI controller emulation to pass diagnostic tests.
   > Improves accuracy of SCSI command and error condition handling.
   > Improves accuracy of Real Time Clock chip.
-  > Improves accuracy of Ethernet DMA channel.
+  > Improves accuracy of Ethernet DMA channel for booting NetBSD.
+  > Improves internal NFS server to support writes via TCP.
   > Fixes bug that caused endless loop after STOP instruction.
   > Fixes bug that prevented correct detection of network interface.
   > Fixes bug that could lead to incorrect SCSI controller detection.
   > Fixes bug in SCSI DMA channel that could cause incomplete transfers.
   > Fixes bug that broke networking on 32-bit host platforms.
+  > Fixes bug that could cause device number corruption on NFS.
 
 
  7) Running Previous
