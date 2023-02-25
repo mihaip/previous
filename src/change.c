@@ -82,6 +82,12 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 		return true;
 	}
 
+	/* Did we change network time? */
+	if (current->Ethernet.bNetworkTime != changed->Ethernet.bNetworkTime) {
+		printf("network time reset\n");
+		return true;
+	}
+
 	/* Did we change machine type? */
 	if (current->System.nMachineType != changed->System.nMachineType) {
 		printf("machine type reset\n");

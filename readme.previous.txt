@@ -328,6 +328,7 @@ Previous v2.7:
   > Fixes bug in low-pass filter that could cause audible noise.
 
 Previous v2.8:
+  > Adds internal network time server.
   > Adds support for showing the main window if an alert occurs.
   > Adds support for creating block and character specials via NFS.
   > Adds support for setting up DNS from the internal NetInfo server.
@@ -364,7 +365,7 @@ Many thanks go to the members of the NeXT International Forums for their help.
 Special thanks go to Gavin Thomas Nicol, Piotr Twarecki, Toni Wilen, Michael 
 Bosshard, Thomas Huth, Olivier Galibert, Jason Eckhardt, Jason Stevens, Daniel 
 L'Hommedieu, Tomaz Slivnik, Vaughan Kaufman, Peter Leonard, Brent Spillner, 
-Frank Wegmann, Grzegorz Szwoch and Michael Engel!
+Frank Wegmann, Grzegorz Szwoch, Michael Engel and Izumi Tsutsui!
 
 This emulator would not exist without their help.
 

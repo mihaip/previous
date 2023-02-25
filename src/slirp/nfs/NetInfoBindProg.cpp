@@ -242,6 +242,9 @@ CNetInfoBindProg::CNetInfoBindProg()
     
     NetInfoNode* locations  = m_Network.mRoot.add(NIProps("name","locations"));
     locations->add(NIProps("name","resolver")("nameserver",ip_addr_str(CTL_NET|CTL_DNS, 4))("domain",domain)("search",domain));
+    if (ConfigureParams.Ethernet.bNetworkTime) {
+        locations->add(NIProps("name","ntp")("server",NAME_NFSD)("host",NAME_NFSD));
+    }
     /*
     NetInfoNode* printers   = m_Network.mRoot.add(NIProps("name","printers"));
     NetInfoNode* fax_modems = m_Network.mRoot.add(NIProps("name","fax_modems"));

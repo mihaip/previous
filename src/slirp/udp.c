@@ -161,15 +161,15 @@ udp_input(m, iphlen)
         case BOOTP_SERVER:
             bootp_input(m);
             goto done;
-            break;
         case TFTP_SERVER:
             tftp_input(m);
             goto done;
+        case NTP_SERVER:
+            ntp_input(m);
             break;
         case RIP_ROUTER:
             rip_input(m);
             goto done;
-            break;
         default:
             break;
     }

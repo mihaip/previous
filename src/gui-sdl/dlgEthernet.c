@@ -22,15 +22,16 @@ char nfs_root_string[64] = "";
 #define DLGENET_THIN        5
 #define DLGENET_TWISTED     6
 
-#define DLGENET_SLIRP       9
-#define DLGENET_PCAP        10
+#define DLGENET_PCAP        9
+#define DLGENET_SLIRP       10
+#define DLGENET_TIME        11
 
-#define DLGENET_MAC         14
+#define DLGENET_MAC         15
 
-#define DLGENET_NFSBROWSE   17
-#define DLGENET_NFSROOT     18
+#define DLGENET_NFSBROWSE   18
+#define DLGENET_NFSROOT     19
 
-#define DLGENET_EXIT        20
+#define DLGENET_EXIT        21
 
 #define PCAP_INTERFACE_LEN  19
 
@@ -51,8 +52,9 @@ static SGOBJ enetdlg[] =
 	
 	{ SGBOX, 0, 0, 26,3, 24,9, NULL },
 	{ SGTEXT, 0, 0, 28,4, 14,1, "Host interface" },
-	{ SGRADIOBUT, 0, 0, 29,6, 7,1, "SLiRP" },
-	{ SGRADIOBUT, 0, 0, 29,8, PCAP_INTERFACE_LEN,1, pcap_interface },
+	{ SGRADIOBUT, 0, 0, 29,6, PCAP_INTERFACE_LEN,1, pcap_interface },
+	{ SGRADIOBUT, 0, 0, 29,8, 7,1, "SLiRP" },
+	{ SGCHECKBOX, 0, 0, 31,10, 14,1, "Network time" },
 	
 	{ SGBOX, 0, 0, 1,13, 49,3, NULL },
 	{ SGTEXT, 0, 0, 3,14, 12,1, "MAC address:" },
@@ -73,11 +75,11 @@ static SGOBJ enetdlg[] =
 #define DLGENET_ENABLE      3
 #define DLGENET_THIN        4
 #define DLGENET_TWISTED     5
+#define DLGENET_TIME        7
 #define DLGENET_MAC         9
-#define DLGENET_NFSBROWSE   12
-#define DLGENET_NFSROOT     13
-#define DLGENET_EXIT        14
-
+#define DLGENET_NFSBROWSE   13
+#define DLGENET_NFSROOT     14
+#define DLGENET_EXIT        15
 
 /* The Ethernet options dialog: */
 static SGOBJ enetdlg[] =
@@ -91,9 +93,10 @@ static SGOBJ enetdlg[] =
 	{ SGRADIOBUT, 0, 0, 5,9, 14,1, "Twisted pair" },
 	
 	{ SGBOX, 0, 0, 27,3, 25,9, NULL },
-	{ SGTEXT, 0, 0, 29,5, 12,1, "MAC address:" },
-	{ SGTEXT, 0, 0, 31,7, 17,1, mac_addr_string },
-	{ SGBUTTON, 0, 0, 42,5, 8,1, "Select" },
+	{ SGCHECKBOX, 0, 0, 29,5, 18,1, "Use network time" },
+	{ SGTEXT, 0, 0, 29,8, 12,1, "MAC address:" },
+	{ SGBUTTON, 0, 0, 42,8, 8,1, "Select" },
+	{ SGTEXT, 0, 0, 31,10, 17,1, mac_addr_string },
 	
 	{ SGBOX, 0, 0, 1,13, 51,5, NULL },
 	{ SGTEXT, 0, 0, 3,14, 12,1, "NFS shared directory:" },
@@ -121,6 +124,7 @@ void DlgEthernet_Main(void)
 	enetdlg[DLGENET_ENABLE].state &= ~SG_SELECTED;
 	enetdlg[DLGENET_THIN].state &= ~SG_SELECTED;
 	enetdlg[DLGENET_TWISTED].state &= ~SG_SELECTED;
+	enetdlg[DLGENET_TIME].state &= ~SG_SELECTED;
 
 	if (ConfigureParams.Ethernet.bEthernetConnected) {
 		enetdlg[DLGENET_ENABLE].state |= SG_SELECTED;
@@ -142,7 +146,11 @@ void DlgEthernet_Main(void)
 		snprintf(pcap_interface, sizeof(pcap_interface), "PCAP");
 	}
 #endif
-	
+
+	if (ConfigureParams.Ethernet.bNetworkTime) {
+		enetdlg[DLGENET_TIME].state |= SG_SELECTED;
+	}
+
 	File_ShrinkName(nfs_root_string, ConfigureParams.Ethernet.szNFSroot,
 					enetdlg[DLGENET_NFSROOT].w);
 
@@ -180,12 +188,12 @@ void DlgEthernet_Main(void)
 			case DLGENET_PCAP:
 				if (DlgEthernetAdvanced_ConfigurePCAP()) {
 					snprintf(pcap_interface, sizeof(pcap_interface), "PCAP: %.12s", ConfigureParams.Ethernet.szInterfaceName);
-				} else {
-					snprintf(pcap_interface, sizeof(pcap_interface), "PCAP");
-					enetdlg[DLGENET_PCAP].state &= ~SG_SELECTED;
-					enetdlg[DLGENET_SLIRP].state |= SG_SELECTED;
+					enetdlg[DLGENET_TIME].state &= ~SG_SELECTED;
+					break;
 				}
-				break;
+			case DLGENET_TIME:
+				enetdlg[DLGENET_PCAP].state &= ~SG_SELECTED;
+				enetdlg[DLGENET_SLIRP].state |= SG_SELECTED;
 			case DLGENET_SLIRP:
 				snprintf(pcap_interface, sizeof(pcap_interface), "PCAP");
 				break;
@@ -211,6 +219,7 @@ void DlgEthernet_Main(void)
 	/* Read values from dialog */
 	ConfigureParams.Ethernet.bEthernetConnected = enetdlg[DLGENET_ENABLE].state & SG_SELECTED;
 	ConfigureParams.Ethernet.bTwistedPair = enetdlg[DLGENET_TWISTED].state & SG_SELECTED;
+	ConfigureParams.Ethernet.bNetworkTime = enetdlg[DLGENET_TIME].state & SG_SELECTED;
 #if HAVE_PCAP
 	if (enetdlg[DLGENET_PCAP].state & SG_SELECTED) {
 		ConfigureParams.Ethernet.nHostInterface = ENET_PCAP;

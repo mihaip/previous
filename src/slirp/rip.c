@@ -24,7 +24,6 @@
 #include <slirp.h>
 #include <unistd.h>
 #include "ctl.h"
-#include "nfs/nfsd.h"
 
 #if 0 // unused
 static void rip_request(void)

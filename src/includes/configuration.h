@@ -238,6 +238,7 @@ typedef struct {
   ENET_INTERFACE nHostInterface;
   char szInterfaceName[FILENAME_MAX];
   char szNFSroot[FILENAME_MAX];
+  bool bNetworkTime;
 } CNF_ENET;
 
 typedef enum

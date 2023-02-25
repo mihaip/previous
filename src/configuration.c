@@ -250,6 +250,7 @@ static const struct Config_Tag configs_Ethernet[] =
 	{ "nHostInterface", Int_Tag, &ConfigureParams.Ethernet.nHostInterface },
 	{ "szInterfaceName", String_Tag, ConfigureParams.Ethernet.szInterfaceName },
 	{ "szNFSroot", String_Tag, ConfigureParams.Ethernet.szNFSroot },
+	{ "bNetworkTime", Bool_Tag, &ConfigureParams.Ethernet.bNetworkTime },
 
 	{ NULL , Error_Tag, NULL }
 };
@@ -412,6 +413,7 @@ void Configuration_SetDefault(void)
 	/* Set defaults for Ethernet */
 	ConfigureParams.Ethernet.bEthernetConnected = false;
 	ConfigureParams.Ethernet.bTwistedPair = false;
+	ConfigureParams.Ethernet.bNetworkTime = false;
 	ConfigureParams.Ethernet.nHostInterface = ENET_SLIRP;
 	strcpy(ConfigureParams.Ethernet.szInterfaceName, "");
 	File_MakePathBuf(ConfigureParams.Ethernet.szNFSroot,

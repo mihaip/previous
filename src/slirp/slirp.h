@@ -252,6 +252,7 @@ const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
 #endif
 
 #include "bootp.h"
+#include "ntp.h"
 #include "tftp.h"
 #include "rip.h"
 #include "libslirp.h"
