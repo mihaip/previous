@@ -7038,7 +7038,7 @@ static void gen_opcode (unsigned int opcode)
 			out("MakeFromSR_STOP();\n");
 		}
 		out("do_cycles_stop(4);\n");
-		out("m68k_setstopped();\n");
+		out("m68k_setstopped(1);\n");
 		// STOP does not prefetch anything
 		did_prefetch = -1;
 		m68k_pc_offset = 0;
@@ -7062,10 +7062,11 @@ static void gen_opcode (unsigned int opcode)
 		write_return_cycles(0);
 		out("}\n");
 		out("regs.sr = newsr;\n");
-		makefromsr();
-		out("m68k_setstopped();\n");
-		sync_m68k_pc();
-		fill_prefetch_full_ntx(0);
+		out("checkint();\n");
+		out("MakeFromSR_STOP();\n");
+		out("m68k_setstopped(2);\n");
+		did_prefetch = -1;
+		m68k_pc_offset = 0;
 		break;
 	case i_HALT: /* 68060 debug */
 		out("cpu_halt(CPU_HALT_68060_HALT);\n");
@@ -10400,7 +10401,6 @@ int main(int argc, char *argv[])
 	generate_includes(stblfile, 0);
 
 	for (int i = 0; i <= 55; i++) {
-//		if ((i >= 6 && i < 11) || (i > 14 && i < 20) || (i > 25 && i < 31) || (i > 35 && i < 40)) // original Hatari
 		if (i!=31 && i!=32) // Previous
 			continue;
 		using_nocycles = 1; // Previous
