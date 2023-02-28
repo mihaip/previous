@@ -126,7 +126,7 @@ void CSocket::run(void) {
             perror("[NFSD] Socket closed");
             break;
         }
-        else if(nBytes == -1 && errno == EAGAIN)
+        else if(nBytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))
             continue;
 		else if (nBytes > 0) {
 			m_Input.resize(nBytes);  //bytes received
@@ -141,7 +141,7 @@ void CSocket::run(void) {
                             m_Input.resize(nBytes);
                             m_Input.skip(4);
                         }
-                    } while (nBytes < nLen && (nExtra > 0 || (nExtra == -1 && errno == EAGAIN)));
+                    } while (nBytes < nLen && (nExtra > 0 || (nExtra == -1 && (errno == EAGAIN || errno == EWOULDBLOCK))));
                     
                     if (nExtra <= 0) {
                         perror("[NFSD] Missing data");

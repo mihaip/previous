@@ -51,11 +51,25 @@ Previous emulates the following machines:
   NeXTstation Turbo Color
   NeXTdimension Graphics Board
 
-Note that some hardware is only supported by later operating system versions:
-  NeXT Computer (68030):                       all versions
-  NeXTcube and NeXTstation (68040 non-Turbo):  NeXTstep 2.0 and later
-  NeXTdimension Graphics Board:                NeXTstep 2.1 and later
-  NeXTcube and NeXTstation (68040 Turbo):      NeXTstep 2.2 and later
+Less common machines can be emulated using custom options:
+  NeXTstation with up to 128 MB RAM (serial number ABB 002 8000 or later): 
+     Select NeXTstation Turbo and set CPU clock to 25 MHz
+  NeXTcube, NeXTstation or NeXTstation Color with board revision 1:
+     Select one of the above machines and set RTC chip to MCCS1850
+
+Note that some hardware is only supported by later operating system versions.
+Listed below are the system and ROM versions that introduced support for new
+hardware:
+
+  NeXTstep 0.8: NeXT Computer
+           2.0: NeXTcube, NeXTstation
+           2.1: NeXTstation Color, NeXTdimension
+           2.2: NeXTcube Turbo, NeXTstation Turbo, NeXTstation Turbo Color
+
+  ROM Rev. 0.8: NeXT Computer
+           2.0: NeXTcube, NeXTstation, NeXTdimension
+           2.4: NeXTstation Color
+           3.0: NeXTcube Turbo, NeXTstation Turbo, NeXTstation Turbo Color
 
 Previous includes an internal NFS and NetInfo server for advanced interaction 
 with the host system.

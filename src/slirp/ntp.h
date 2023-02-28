@@ -1,4 +1,4 @@
-/* routing information protocol defines */
+/* Network time protocol defines */
 
 
 #define NTP_SERVER      123

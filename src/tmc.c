@@ -34,7 +34,7 @@ struct {
  * xxxx---- -------- -------- --------  bits 28:31 --> slot id
  * ----xxxx xxxxxxxx -------- ----x---  all other bits: 1
  *
- * cpu speed:       7 = 33MHz?
+ * cpu speed:       7 = 33MHz, 6 = 25 MHz, 5 = 20 MHz, 4 = 16 MHz
  * main mem speed:  0 = 60ns, 1 = 70ns, 2 = 80ns, 3 = 100ns
  * video mem speed: 3 on all Turbo systems (100ns)?
  * cpu revision:    0xF = rev 0

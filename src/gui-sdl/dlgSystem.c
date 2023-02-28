@@ -323,7 +323,6 @@ void Dialog_SystemDlg(void)
   
 	/* Obsolete */
 	ConfigureParams.System.bCompatibleCpu = 1;
-	ConfigureParams.System.bRealTimeClock = 0;
 	ConfigureParams.System.bCompatibleFPU = 1;
 	ConfigureParams.System.bMMU = 1;
 }

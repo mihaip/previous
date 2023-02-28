@@ -103,6 +103,9 @@ uint32_t scrIntMask=0x00000000;
  *                  0 = DCD input inverted
  *                  1 = DCD polarity fixed
  *                  2 = must disable DSP mem before reset
+ *                  for 040 non-Turbo:
+ *                  0 = original
+ *                  1 = cost reduced, 5K gate array, new clock chip
  * cpu type:        0 = NeXT Computer (68030)
  *                  1 = NeXTstation monochrome
  *                  2 = NeXTcube
@@ -128,6 +131,7 @@ uint32_t scrIntMask=0x00000000;
 
 #define BOARD_REV0   0
 #define BOARD_REV1   1
+#define BOARD_REV2   2
 
 #define MEM_120NS    0
 #define MEM_100NS    0

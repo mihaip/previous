@@ -82,23 +82,18 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 		return true;
 	}
 
-	/* Did we change network time? */
-	if (current->Ethernet.bNetworkTime != changed->Ethernet.bNetworkTime) {
-		printf("network time reset\n");
+	/* Did we change network interface? */
+	if ((current->Ethernet.nHostInterface != changed->Ethernet.nHostInterface) ||
+		(current->Ethernet.bNetworkTime != changed->Ethernet.bNetworkTime)) {
+		printf("network interface reset\n");
 		return true;
 	}
 
 	/* Did we change machine type? */
-	if (current->System.nMachineType != changed->System.nMachineType) {
+	if ((current->System.nMachineType != changed->System.nMachineType) ||
+		(current->System.bColor != changed->System.bColor) || 
+		(current->System.bTurbo != changed->System.bTurbo)) {
 		printf("machine type reset\n");
-		return true;
-	}
-	if (current->System.bColor != changed->System.bColor) {
-		printf("machine type reset (color)\n");
-		return true;
-	}
-	if (current->System.bTurbo != changed->System.bTurbo) {
-		printf("machine type reset (turbo)\n");
 		return true;
 	}
 
@@ -277,7 +272,6 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Do we need to change Ethernet connection? */
 	if (!NeedReset &&
 		(current->Ethernet.bEthernetConnected != changed->Ethernet.bEthernetConnected ||
-		 current->Ethernet.nHostInterface != changed->Ethernet.nHostInterface ||
 		 strcmp(current->Ethernet.szInterfaceName, changed->Ethernet.szInterfaceName))) {
 		bReInitEnetEmu = true;
 	}
@@ -310,20 +304,20 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 
 	/* Re-init Ethernet? */
 	if (bReInitEnetEmu) {
-		Dprintf("- Ethernet<\n");
+		Dprintf("- Ethernet\n");
 		Ethernet_Reset(false);
 	}
 
 	/* Re-init Sound? */
 	if (bReInitSoundEmu) {
-		Dprintf("- Sound<\n");
+		Dprintf("- Sound\n");
 		Sound_Reset();
 	}
 
 	/* Force things associated with screen change */
 	if (bScreenModeChange)
 	{
-		Dprintf("- screenmode<\n");
+		Dprintf("- Screen\n");
 		Screen_ModeChanged();
 	}
 
@@ -335,7 +329,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		if (bQuitProgram)
 			return;
 
-		Dprintf("- reset\n");
+		Dprintf("- Reset\n");
 		Reset_Cold();
 	}
 
