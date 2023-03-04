@@ -165,5 +165,6 @@ void icmp_input(struct mbuf *, int);
 void icmp_error(struct mbuf *, u_char, u_char, int, const char *);
 void icmp_reflect(struct mbuf *);
 void icmp_maskreply(struct mbuf *);
+void icmp_timestamp(struct mbuf *);
 
 #endif
