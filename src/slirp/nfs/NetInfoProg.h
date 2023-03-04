@@ -76,6 +76,7 @@ public:
     NetInfoNode*              add(const std::map<std::string, std::string>& props);
     NetInfoNode*              addEx(const std::map<std::string, std::string>& props);
     void                      add(const std::string& key, const std::string& value);
+    void                      remove(NetInfoNode* node);
     NetInfoNode*              find(struct ni_id& ni_id, ni_status& status, bool forWrite = false) const;
     std::vector<NetInfoNode*> find(const std::string& key, const std::string& value) const;
     int                       checksum(void);

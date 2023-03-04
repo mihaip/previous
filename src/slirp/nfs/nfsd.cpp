@@ -80,6 +80,14 @@ extern "C" void nfsd_start(void) {
     } else {
         nfsd_fts[0] = new FileTableNFSD(ConfigureParams.Ethernet.szNFSroot, "/");
     }
+    
+    static CNFSProg         sNFSProg;
+    static CMountProg       sMountProg;
+    static CBootparamProg   sBootparamProg;
+    static CNetInfoBindProg sNetInfoBindProg;
+    
+    sNetInfoBindProg.configure(ConfigureParams.Ethernet.bNetworkTime);
+    
     if(initialized) return;
 
     char nfsd_hostname[_SC_HOST_NAME_MAX];
@@ -87,11 +95,6 @@ extern "C" void nfsd_start(void) {
     
     printf("[NFSD] starting local NFS daemon on '%s', exporting '%s'\n", nfsd_hostname, ConfigureParams.Ethernet.szNFSroot);
     printAbout();
-    
-    static CNFSProg         sNFSProg;
-    static CMountProg       sMountProg;
-    static CBootparamProg   sBootparamProg;
-    static CNetInfoBindProg sNetInfoBindProg;
     
     g_RPCServer.setLogOn(g_bLogOn);
 

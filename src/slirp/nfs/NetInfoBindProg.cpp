@@ -197,6 +197,20 @@ void CNetInfoBindProg::addHost(CNetInfoProg& host, const string& name, const str
     machines->add(NIProps("name","localhost")("ip_address",ip_addr_str(0x7F000001, 4))("serves","./local")("netgroups","")("system_type",systemType));
 }
 
+void CNetInfoBindProg::configure(bool ntp) {
+    /* Remove old */
+    vector<NetInfoNode*> old = m_Network.mRoot.find("name","locations");
+    m_Network.mRoot.remove(old[0]);
+    
+    /* Create new */
+    static const char* domain = (NAME_DOMAIN[0] == '.' ? &NAME_DOMAIN[1] : &NAME_DOMAIN[0]);
+    NetInfoNode* locations = m_Network.mRoot.add(NIProps("name","locations"));
+    locations->add(NIProps("name","resolver")("nameserver",ip_addr_str(CTL_NET|CTL_DNS, 4))("domain",domain)("search",domain));
+    if (ConfigureParams.Ethernet.bNetworkTime) {
+        locations->add(NIProps("name","ntp")("server",NAME_NFSD)("host",NAME_NFSD));
+    }
+}
+
 CNetInfoBindProg::CNetInfoBindProg()
     : CRPCProg(PROG_NETINFOBIND, 1, "nibindd")
     , m_Local("local")
@@ -242,9 +256,8 @@ CNetInfoBindProg::CNetInfoBindProg()
     
     NetInfoNode* locations  = m_Network.mRoot.add(NIProps("name","locations"));
     locations->add(NIProps("name","resolver")("nameserver",ip_addr_str(CTL_NET|CTL_DNS, 4))("domain",domain)("search",domain));
-    if (ConfigureParams.Ethernet.bNetworkTime) {
-        locations->add(NIProps("name","ntp")("server",NAME_NFSD)("host",NAME_NFSD));
-    }
+    locations->add(NIProps("name","ntp")("server",NAME_NFSD)("host",NAME_NFSD));
+
     /*
     NetInfoNode* printers   = m_Network.mRoot.add(NIProps("name","printers"));
     NetInfoNode* fax_modems = m_Network.mRoot.add(NIProps("name","fax_modems"));

@@ -44,6 +44,8 @@ public:
     
     CNetInfoProg  m_Local;
     CNetInfoProg  m_Network;
+    
+    void configure(bool ntp);
 };
 
 #endif /* NetInfoBindProg_h */

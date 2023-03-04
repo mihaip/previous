@@ -571,6 +571,14 @@ vector<NetInfoNode*> NetInfoNode::find(const string& key, const string& value) c
     return result;
 }
 
+void NetInfoNode::remove(NetInfoNode* node) {
+    vector<NetInfoNode*>::iterator it = std::find(mChildren.begin(), mChildren.end(), node);
+    if(it != mChildren.end()) {
+        mChildren.erase(it);
+        delete *it;
+    }
+}
+
 static int checksum(string str) {
     int result = 0;
     for (size_t i = 0; i < str.size(); ++i)
