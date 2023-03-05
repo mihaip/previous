@@ -759,13 +759,10 @@ static void newrtc_interface_start(void) {
 
 /* ----------------- Common RTC interface ---------------- */
 void rtc_interface_write(uint8_t rtdatabit) {
-    switch (ConfigureParams.System.nRTC) {
-        case MC68HC68T1: rtc_data = oldrtc_interface_io(rtdatabit); break;
-        case MCCS1850:   rtc_data = newrtc_interface_io(rtdatabit); break;
-        default:
-            Log_Printf(LOG_WARN, "[RTC] error: no I/O function for this chip!");
-            rtc_data = oldrtc_interface_io(rtdatabit); /* trying old chip */
-            break;
+    if (ConfigureParams.System.nRTC == MCCS1850) {
+        rtc_data = newrtc_interface_io(rtdatabit);
+    } else {
+        rtc_data = oldrtc_interface_io(rtdatabit);
     }
 }
 
@@ -774,13 +771,10 @@ uint8_t rtc_interface_read(void) {
 }
 
 void rtc_interface_start(void) {
-    switch (ConfigureParams.System.nRTC) {
-        case MC68HC68T1: oldrtc_interface_start(); return;
-        case MCCS1850:   newrtc_interface_start(); return;
-        default:
-            Log_Printf(LOG_WARN, "[RTC] error: no start function for this chip!");
-            oldrtc_interface_start(); /* trying old chip */
-            return;
+    if (ConfigureParams.System.nRTC == MCCS1850) {
+        newrtc_interface_start();
+    } else {
+        oldrtc_interface_start();
     }
 }
 
@@ -790,47 +784,38 @@ void rtc_interface_reset(void) {
     phase    = 0;
     rtc_addr = 0;
     rtc_val  = 0;
-    switch (ConfigureParams.System.nRTC) {
-        case MC68HC68T1: rtc_data = 1; return;
-        case MCCS1850:   rtc_data = 0; return;
-        default:
-            Log_Printf(LOG_WARN, "[RTC] error: no reset function for this chip!");
-            rtc_data = 1; /* trying old chip */
-            return;
+    if (ConfigureParams.System.bTurbo) {
+        rtc_data = 0;
+    } else {
+        rtc_data = 1;
     }
 }
 
 
 /* ----------------- RTC power interface ----------------- */
 void rtc_request_power_down(void) {
-    switch (ConfigureParams.System.nRTC) {
-        case MC68HC68T1: oldrtc_request_power_down(); return;
-        case MCCS1850:   newrtc_request_power_down(); return;
-        default:
-            Log_Printf(LOG_WARN, "[RTC] error: no power down function for this chip!");
-            oldrtc_request_power_down(); return; /* trying old chip */
+    if (ConfigureParams.System.nRTC == MCCS1850) {
+        newrtc_request_power_down();
+    } else {
+        oldrtc_request_power_down();
     }
 }
 
 void rtc_stop_pdown_request(void) {
-    switch (ConfigureParams.System.nRTC) {
-        case MC68HC68T1: oldrtc_stop_pdown_request(); return;
-        case MCCS1850:   newrtc_stop_pdown_request(); return;
-        default:
-            Log_Printf(LOG_WARN, "[RTC] error: no power down function for this chip!");
-            oldrtc_stop_pdown_request(); return; /* trying old chip */
+    if (ConfigureParams.System.nRTC == MCCS1850) {
+        newrtc_stop_pdown_request();
+    } else {
+        oldrtc_stop_pdown_request();
     }
 }
 
 
 /* -------------------- RTC time check ------------------- */
 static void rtc_check_time(void) {
-    switch (ConfigureParams.System.nRTC) {
-        case MC68HC68T1: oldrtc_check_time(); return;
-        case MCCS1850:   newrtc_check_time(); return;
-        default:
-            Log_Printf(LOG_WARN, "[RTC] error: no time check function for this chip!");
-            oldrtc_check_time(); return; /* trying old chip */
+    if (ConfigureParams.System.nRTC == MCCS1850) {
+        newrtc_check_time();
+    } else {
+        oldrtc_check_time();
     }
 }
 

@@ -351,6 +351,7 @@ Previous v2.8:
   > Improves accuracy of Real Time Clock chip.
   > Improves accuracy of Ethernet DMA channel for booting NetBSD.
   > Improves internal NFS server to support writes via TCP.
+  > Improves accuracy of system status registers for later NeXTstations.
   > Fixes bug that caused endless loop after STOP instruction.
   > Fixes bug that prevented correct detection of network interface.
   > Fixes bug that could lead to incorrect SCSI controller detection.

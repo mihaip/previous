@@ -31,7 +31,13 @@
  *
  * NeXTstation (CPU MC68040 25 MHz, memory 100 nS, Memory size 20MB)
  * intrstat: 00000020 (likely called while running boot animation)
- * intrmask: 88027640
+ * intrmask: 88027640 (POT enabled)
+ * scr1:     00011102 (likely new clock chip)
+ * scr2:     00ff0c80
+ *
+ * NeXTstation with new clock chip (CPU MC68040 25 MHz, memory 100 nS, Memory size 20MB)
+ * intrstat: 00001000 (likely no SCSI disk installed)
+ * intrmask: 80027640 (no POT)
  * scr1:     00011102
  * scr2:     00ff0c80
  *
@@ -46,6 +52,12 @@
  * intrmask: 80027640
  * scr1:     00013002
  * scr2:     00000c80
+ *
+ * NeXTstation with Turbo chipset (CPU MC68040 25 MHz, memory 60 nS, Memory size 128MB)
+ * intrstat: 00000000
+ * intrmask: 00000000
+ * scr1:     ffff4fce (really tmc scr1)
+ * scr2:     00001080
  *
  * NeXTstation Turbo (CPU MC68040 33 MHz, memory 60 nS, Memory size 128MB)
  * intrstat: 00000000
@@ -189,15 +201,15 @@ void SCR_Reset(void) {
             break;
         case NEXT_CUBE040:
             system_type = TYPE_CUBE;
-            board_rev   = BOARD_REV0;
+            board_rev   = (ConfigureParams.System.nRTC == MCCS1850) ? BOARD_REV1 : BOARD_REV0;
             break;
         case NEXT_STATION:
             if (ConfigureParams.System.bColor) {
                 system_type = TYPE_COLOR;
-                board_rev   = BOARD_REV0;
+                board_rev   = (ConfigureParams.System.nRTC == MCCS1850) ? BOARD_REV1 : BOARD_REV0;
             } else {
                 system_type = TYPE_SLAB;
-                board_rev   = BOARD_REV1;
+                board_rev   = (ConfigureParams.System.nRTC == MCCS1850) ? BOARD_REV1 : BOARD_REV0;
             }
             break;
         default:
