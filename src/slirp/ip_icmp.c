@@ -164,10 +164,21 @@ icmp_input(m, hlen)
     } /* if ip->ip_dst.s_addr == alias_addr.s_addr */
     break;
   case ICMP_MASKREQ:
-    icmp_maskreply(m);
+    if (ip->ip_dst.s_addr == alias_addr.s_addr ||
+        ip->ip_dst.s_addr == ntohl(CTL_NET | CTL_GATEWAY) ||
+        ip->ip_dst.s_addr == ntohl(CTL_BROADCAST)
+        ) {
+      icmp_maskreply(m);
+    }
     break;
   case ICMP_TSTAMP:
-    icmp_timestamp(m);
+    if (ip->ip_dst.s_addr == alias_addr.s_addr ||
+        ip->ip_dst.s_addr == ntohl(CTL_NET | CTL_ALIAS) ||
+        ip->ip_dst.s_addr == ntohl(CTL_NET | CTL_DNS) ||
+        ip->ip_dst.s_addr == ntohl(CTL_NET | CTL_NFSD)
+        ) {
+      icmp_timestamp(m);
+    }
     break;
   case ICMP_UNREACH:
     /* XXX? report error? close socket? */
@@ -425,7 +436,11 @@ icmp_maskreply(m)
     }
     
     ip->ip_ttl = MAXTTL;
-    ip->ip_dst = ip->ip_src;
+    if (ip->ip_src.s_addr == 0) {
+        ip->ip_dst.s_addr = htonl(CTL_BROADCAST);
+    } else {
+        ip->ip_dst = ip->ip_src;
+    }
     ip->ip_src = alias_addr;
     
     (void ) ip_output((struct socket *)NULL, m);
