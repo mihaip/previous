@@ -72,7 +72,9 @@ hardware:
            3.0: NeXTcube Turbo, NeXTstation Turbo, NeXTstation Turbo Color
 
 Previous includes an internal NFS and NetInfo server for advanced interaction 
-with the host system.
+with the host system. It also includes an internal time server that makes it 
+possible to automatically synchronise host and guest system time. Please note 
+that only NeXTstep 2.0 and later support automatic time synchronisation.
 
 Previous comes with a command line utility called "ditool" (disk image tool). It
 can be used to extract raw disk image files into a directory on the host system. 
