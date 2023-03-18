@@ -897,11 +897,11 @@ static const dbgcommand_t uicommand[] =
 	  "\tThose are replaced by their values. Supported operators in\n"
 	  "\texpressions are, in the descending order of precedence:\n"
 	  "\t\t(), +, -, ~, *, /, +, -, >>, <<, ^, &, |\n"
-	  "\tParenthesis will fetch a _long_ value from the address\n"
-	  "\tto what the value inside it evaluates to. Prefixes can be\n"
+	  "\tParenthesis fetch long value from the given address,\n"
+	  "\tunless .<width> suffix is given. Prefixes can be\n"
 	  "\tused only in start of line or parenthesis.\n"
 	  "\tFor example:\n"
-	  "\t\t~%101 & $f0f0f ^ (d0 + 0x21)\n"
+	  "\t\t~%101 & $f0f0f ^ (d0 + 0x21).w\n"
 	  "\tResult value is shown as binary, decimal and hexadecimal.\n"
 	  "\tAfter this, '$' will TAB-complete to last result value.",
 	  true },
@@ -913,11 +913,11 @@ static const dbgcommand_t uicommand[] =
 	  false },
 	{ History_Parse, History_Match,
 	  "history", "hi",
-	  "show last CPU/DSP PC values & executed instructions",
+	  "show last CPU and/or DSP PC values + instructions",
 	  "cpu|dsp|on|off|<count> [limit]|save <file>\n"
-	  "\t'cpu' and 'dsp' enable instruction history tracking for just given\n"
+	  "\t'cpu' and 'dsp' enable program counter history tracking for given\n"
 	  "\tprocessor, 'on' tracks them both, 'off' will disable history.\n"
-	  "\tOptional 'limit' will set how many past instructions are tracked.\n"
+	  "\tOptional 'limit' will set how many past addresses are tracked.\n"
 	  "\tGiving just count will show (at max) given number of last saved PC\n"
 	  "\tvalues and instructions currently at corresponding RAM addresses.",
 	  false },
