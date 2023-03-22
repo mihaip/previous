@@ -572,10 +572,12 @@ vector<NetInfoNode*> NetInfoNode::find(const string& key, const string& value) c
 }
 
 void NetInfoNode::remove(NetInfoNode* node) {
-    vector<NetInfoNode*>::iterator it = std::find(mChildren.begin(), mChildren.end(), node);
-    if(it != mChildren.end()) {
-        mChildren.erase(it);
-        delete *it;
+    for(vector<NetInfoNode*>::const_iterator it = mChildren.begin(); it != mChildren.end(); it++) {
+        if(*it == node) {
+            mChildren.erase(it);
+            delete *it;
+            return;
+        }
     }
 }
 
