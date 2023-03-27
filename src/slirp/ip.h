@@ -195,18 +195,14 @@ struct	ip_timestamp {
 
 #define	IP_MSS		576		/* default maximum segment size */
 
-#if SIZEOF_CHAR_P == 4
- struct mbuf_ptr {
- 	struct mbuf *mptr;
- 	uint32_t dummy;
- };
-#elif SIZEOF_CHAR_P == 8
- struct mbuf_ptr {
- 	struct mbuf *mptr;
- };
-#else
-#error SIZEOF_CHAR_P has strange value or is undefined
-#endif
+struct mbuf_ptr {
+	union {
+		struct mbuf *mptr_u;
+		u_int8_t dummy_u[8];
+	} mbuf_ptr_u;
+#define mptr mbuf_ptr_u.mptr_u
+};
+
 struct qlink {
  	void *next, *prev;
 };

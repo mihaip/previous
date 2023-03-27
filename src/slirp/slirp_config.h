@@ -78,6 +78,9 @@
 #define NEED_TYPEDEFS
 #endif
 
+/* Define to sizeof(char *) */
+#define SIZEOF_CHAR_P SIZEOF_VOID_P
+
 /* Define if you have random() */
 #undef HAVE_RANDOM
 

@@ -64,14 +64,6 @@ typedef int ioctlsockopt_t;
 #include <sys/time.h>
 #endif
 
-#if INTPTR_MAX == INT32_MAX
-#define SIZEOF_CHAR_P 4
-#elif INTPTR_MAX == INT64_MAX
-#define SIZEOF_CHAR_P 8
-#else
-#error SIZEOF_CHAR_P needs to be defined
-#endif
-
 #ifdef NEED_TYPEDEFS
 typedef char int8_t;
 typedef unsigned char u_int8_t;
