@@ -177,7 +177,7 @@ void SND_Out_Handler(void) {
     }
 }
 
-bool snd_output_active() {
+bool snd_output_active(void) {
     return sound_output_active;
 }
 
@@ -280,7 +280,7 @@ void SND_In_Handler(void) {
     }
 }
 
-bool snd_input_active() {
+bool snd_input_active(void) {
     return sound_input_active;
 }
 

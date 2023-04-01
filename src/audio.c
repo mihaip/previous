@@ -70,7 +70,7 @@ static void Audio_Input_CallBack(void *userdata, uint8_t *stream, int len) {
 	Audio_Input_Unlock();
 }
 
-void Audio_Input_Lock() {
+void Audio_Input_Lock(void) {
 	host_lock(&recBufferLock);
 }
 
@@ -115,7 +115,7 @@ int Audio_Input_Read(int16_t* sample) {
 	return 0;
 }
 
-void Audio_Input_Unlock() {
+void Audio_Input_Unlock(void) {
 	host_unlock(&recBufferLock);
 }
 

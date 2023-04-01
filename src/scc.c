@@ -441,7 +441,7 @@ static void scc_write_masterint(uint8_t val) {
     scc_check_interrupt();
 }
 
-static void scc_write_init(ch, val) {
+static void scc_write_init(int ch, uint8_t val) {
     switch (val&0x38) {
         case WR0_RESETTXPEND:
             scc_release_interrupt(ch?RR3_B_TXIP:RR3_A_TXIP);

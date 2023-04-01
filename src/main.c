@@ -86,7 +86,7 @@ void Main_SpeedReset(void) {
 	Log_Printf(LOG_WARN, "Realtime mode %s.\n", ConfigureParams.System.bRealtime ? "enabled" : "disabled");
 }
 
-const char* Main_SpeedMsg() {
+const char* Main_SpeedMsg(void) {
 	speedMsg[0] = 0;
 	if(speedFactor > 0) {
 		if(ConfigureParams.System.bRealtime) {

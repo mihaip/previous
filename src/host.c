@@ -179,7 +179,7 @@ void host_hardclock(int expected, int actual) {
 }
 
 // this can be used by other threads to read hostTime
-uint64_t host_get_save_time() {
+uint64_t host_get_save_time(void) {
     uint64_t hostTime;
     host_lock(&timeLock);
     hostTime = saveTime;
@@ -188,7 +188,7 @@ uint64_t host_get_save_time() {
 }
 
 // Return current time as microseconds
-uint64_t host_time_us() {
+uint64_t host_time_us(void) {
     uint64_t hostTime;
     
     host_lock(&timeLock);
@@ -238,16 +238,16 @@ void host_time(uint64_t* realTime, uint64_t* hostTime) {
 }
 
 // Return current time as seconds
-uint64_t host_time_sec() {
+uint64_t host_time_sec(void) {
     return host_time_us() / 1000000ULL;
 }
 
 // Return current time as milliseconds
-uint64_t host_time_ms() {
+uint64_t host_time_ms(void) {
     return host_time_us() / 1000ULL;
 }
 
-time_t host_unix_time() {
+time_t host_unix_time(void) {
     return unixTimeStart + host_time_sec();
 }
 
@@ -255,7 +255,7 @@ void host_set_unix_time(time_t now) {
     unixTimeStart = now - host_time_sec();
 }
 
-struct tm* host_unix_tm() {
+struct tm* host_unix_tm(void) {
     time_t tmp = host_unix_time();
     return gmtime(&tmp);
 }
@@ -265,7 +265,7 @@ void host_set_unix_tm(struct tm* now) {
     host_set_unix_time(tmp);
 }
 
-int64_t host_real_time_offset() {
+int64_t host_real_time_offset(void) {
     uint64_t rt, vt;
     host_time(&rt, &vt);
     return (int64_t)vt-rt;
@@ -360,7 +360,7 @@ void host_mutex_destroy(mutex_t* mutex) {
     SDL_DestroyMutex(mutex);
 }
 
-int host_num_cpus() {
+int host_num_cpus(void) {
   return  SDL_GetCPUCount();
 }
 
