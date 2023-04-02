@@ -55,7 +55,7 @@ size_t	tcp_sndspace;	/* Keep small if you have an error prone link */
 /*
  * Tcp initialization
  */
-void tcp_init()
+void tcp_init(void)
 {
 	tcp_iss = 1;		/* wrong */
 	tcb.so_next = tcb.so_prev = &tcb;
@@ -297,7 +297,7 @@ struct tcpcb *tcp_close(register struct tcpcb *tp)
 	return ((struct tcpcb *)0);
 }
 
-void tcp_drain()
+void tcp_drain(void)
 {
 	/* XXX */
 }
@@ -615,7 +615,7 @@ int do_echo = -1;
 int tcp_emu(struct socket *so, struct mbuf *m)
 {
 	u_int n1, n2, n3, n4, n5, n6;
-	char buff[256];
+	char buff[256+1];
 	u_int32_t laddr;
 	u_int lport;
 	char *bptr;

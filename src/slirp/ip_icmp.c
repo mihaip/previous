@@ -67,9 +67,7 @@ static int icmp_flush[19] = {
  * Process a received ICMP message.
  */
 void
-icmp_input(m, hlen)
-     struct mbuf *m;
-     int hlen;
+icmp_input(struct mbuf *m, int hlen)
 {
   register struct icmp *icp;
   register struct ip *ip=mtod(m, struct ip *);
@@ -341,8 +339,7 @@ end_error:
  * Reflect the ip packet back to the source
  */
 void
-icmp_reflect(m)
-     struct mbuf *m;
+icmp_reflect(struct mbuf *m)
 {
   register struct ip *ip = mtod(m, struct ip *);
   int hlen = ip->ip_hl << 2;
@@ -394,8 +391,7 @@ icmp_reflect(m)
  * Reply to a mask request with the netmask
  */
 void
-icmp_maskreply(m)
-     struct mbuf *m;
+icmp_maskreply(struct mbuf *m)
 {
     register struct ip *ip = mtod(m, struct ip *);
     int hlen = ip->ip_hl << 2;
@@ -452,8 +448,7 @@ icmp_maskreply(m)
  * Reply to a timestamp request with a timestamp
  */
 void
-icmp_timestamp(m)
-     struct mbuf *m;
+icmp_timestamp(struct mbuf *m)
 {
     register struct ip *ip = mtod(m, struct ip *);
     int hlen = ip->ip_hl << 2;

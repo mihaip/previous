@@ -176,7 +176,7 @@ int inet_aton(const char *cp, struct in_addr *ia)
 /*
  * Get our IP address and put it in our_addr
  */
-void getouraddr()
+void getouraddr(void)
 {
 	char buff[256];
 
@@ -700,7 +700,7 @@ void add_emu(char *buff)
 {
 	u_int lport, fport;
 	u_int8_t tos = 0, emu = 0;
-	char buff1[256], buff2[256], buff4[128];
+	char buff1[256+1], buff2[256+1], buff4[128];
 	char *buff3 = buff4;
 	struct emu_t *emup;
 	struct socket *so;
