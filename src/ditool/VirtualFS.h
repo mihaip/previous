@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <cstdint>
 #include <dirent.h>
 #include <ftw.h>
 #include <sys/stat.h>

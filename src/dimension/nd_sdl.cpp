@@ -52,7 +52,7 @@ void NDSDL::init(void) {
 #ifdef ENABLE_RENDERING_THREAD
     SDL_RendererFlags vsync_flag = SDL_RENDERER_PRESENTVSYNC;
 #else
-    SDL_RendererFlags vsync_flag = 0;
+    uint32_t vsync_flag = 0;
 #endif
 
     if (!ndWindow) {
