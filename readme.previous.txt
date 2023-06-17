@@ -361,6 +361,9 @@ Previous v2.8:
   > Fixes bug that broke networking on 32-bit host platforms.
   > Fixes bug that could cause device number corruption on NFS.
 
+Previous v2.9 (unreleased):
+  > Adds support for using any base clock speed in variable speed mode.
+
 
  7) Running Previous
  -------------------

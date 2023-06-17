@@ -58,7 +58,7 @@ static SGOBJ advanceddlg[] =
 
 	{ SGBOX, 0, 0, 2,3, 14,15, NULL },
 	{ SGTEXT, 0, 0, 3,4, 12,1, "CPU clock" },
-	{ SGRADIOBUT, 0, 0, 4,DLG_VAR_Y, 10,1, "Variable" },
+	{ SGCHECKBOX, 0, 0, 4,DLG_VAR_Y, 10,1, "Variable" },
 	{ SGRADIOBUT, 0, 0, 4,6, 8,1, "16 MHz" },
 	{ SGRADIOBUT, 0, 0, 4,8, 8,1, "20 MHz" },
 	{ SGRADIOBUT, 0, 0, 4,10, 8,1, "25 MHz" },
@@ -229,36 +229,35 @@ void Dialog_AdvancedDlg(void) {
 	/* Remove 40 MHz option if system is non-Turbo */
 	if (ConfigureParams.System.bTurbo) {
 		advanceddlg[DLGADV_40MHZ] = enable_40mhz_opt;
-		advanceddlg[DLGADV_REALTIME].y = DLG_VAR_Y;
 	} else {
 		advanceddlg[DLGADV_40MHZ] = disable_40mhz_opt;
-		advanceddlg[DLGADV_REALTIME].y = DLG_VAR_Y-2;
 	}
 
 	if (ConfigureParams.System.bRealtime) {
 		advanceddlg[DLGADV_REALTIME].state |= SG_SELECTED;
 	} else {
 		advanceddlg[DLGADV_REALTIME].state &= ~SG_SELECTED;
-		switch (ConfigureParams.System.nCpuFreq)
-		{
-			case 16:
-				advanceddlg[DLGADV_16MHZ].state |= SG_SELECTED;
-				break;
-			case 20:
-				advanceddlg[DLGADV_20MHZ].state |= SG_SELECTED;
-				break;
-			case 25:
-				advanceddlg[DLGADV_25MHZ].state |= SG_SELECTED;
-				break;
-			case 33:
-				advanceddlg[DLGADV_33MHZ].state |= SG_SELECTED;
-				break;
-			case 40:
-				advanceddlg[DLGADV_40MHZ].state |= SG_SELECTED;
-				break;
-			default:
-				break;
-		}
+	}
+
+	switch (ConfigureParams.System.nCpuFreq)
+	{
+		case 16:
+			advanceddlg[DLGADV_16MHZ].state |= SG_SELECTED;
+			break;
+		case 20:
+			advanceddlg[DLGADV_20MHZ].state |= SG_SELECTED;
+			break;
+		case 25:
+			advanceddlg[DLGADV_25MHZ].state |= SG_SELECTED;
+			break;
+		case 33:
+			advanceddlg[DLGADV_33MHZ].state |= SG_SELECTED;
+			break;
+		case 40:
+			advanceddlg[DLGADV_40MHZ].state |= SG_SELECTED;
+			break;
+		default:
+			break;
 	}
 
 	/* Remove 64 and 128MB option if system is non-Turbo Slab,
@@ -422,24 +421,22 @@ void Dialog_AdvancedDlg(void) {
  
  	/* Read values from dialog: */
 	
-	if (advanceddlg[DLGADV_REALTIME].state & SG_SELECTED) {
+	if (advanceddlg[DLGADV_REALTIME].state & SG_SELECTED)
 		ConfigureParams.System.bRealtime = true;
-		ConfigureParams.System.nCpuFreq = ConfigureParams.System.bTurbo ? 33 : 25;
-	} else {
+	else
 		ConfigureParams.System.bRealtime = false;
-		
-		if (advanceddlg[DLGADV_16MHZ].state & SG_SELECTED)
-			ConfigureParams.System.nCpuFreq = 16;
-		else if (advanceddlg[DLGADV_20MHZ].state & SG_SELECTED)
-			ConfigureParams.System.nCpuFreq = 20;
-		else if (advanceddlg[DLGADV_25MHZ].state & SG_SELECTED)
-			ConfigureParams.System.nCpuFreq = 25;
-		else if (advanceddlg[DLGADV_33MHZ].state & SG_SELECTED)
-			ConfigureParams.System.nCpuFreq = 33;
-		else
-			ConfigureParams.System.nCpuFreq = 40;
-	}
 
+	if (advanceddlg[DLGADV_16MHZ].state & SG_SELECTED)
+		ConfigureParams.System.nCpuFreq = 16;
+	else if (advanceddlg[DLGADV_20MHZ].state & SG_SELECTED)
+		ConfigureParams.System.nCpuFreq = 20;
+	else if (advanceddlg[DLGADV_25MHZ].state & SG_SELECTED)
+		ConfigureParams.System.nCpuFreq = 25;
+	else if (advanceddlg[DLGADV_33MHZ].state & SG_SELECTED)
+		ConfigureParams.System.nCpuFreq = 33;
+	else
+		ConfigureParams.System.nCpuFreq = 40;
+	
 	if (advanceddlg[DLGADV_120NS].state & SG_SELECTED)
 		ConfigureParams.Memory.nMemorySpeed = MEMORY_120NS;
 	else if (advanceddlg[DLGADV_100NS].state & SG_SELECTED)
@@ -449,17 +446,15 @@ void Dialog_AdvancedDlg(void) {
 	else
 		ConfigureParams.Memory.nMemorySpeed = MEMORY_60NS;
 
-	if (advanceddlg[DLGADV_DSP56001].state & SG_SELECTED) {
+	if (advanceddlg[DLGADV_DSP56001].state & SG_SELECTED)
 		ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
-	} else {
+	else
 		ConfigureParams.System.nDSPType = DSP_TYPE_NONE;
-	}
 
-	if (advanceddlg[DLGADV_DSPMEM96].state & SG_SELECTED) {
+	if (advanceddlg[DLGADV_DSPMEM96].state & SG_SELECTED)
 		ConfigureParams.System.bDSPMemoryExpansion = true;
-	} else {
+	else
 		ConfigureParams.System.bDSPMemoryExpansion = false;
-	}
 
 	if (advanceddlg[DLGADV_NBIC].state & SG_SELECTED)
 		ConfigureParams.System.bNBIC = true;

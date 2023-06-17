@@ -67,20 +67,14 @@ void M68000_Start(void)
  */
 void M68000_CheckCpuSettings(void)
 {
-	if (ConfigureParams.System.nCpuFreq < 20)
-	{
+#if 0
+	if (ConfigureParams.System.nCpuFreq < 20) {
 		ConfigureParams.System.nCpuFreq = 16;
-	}
-	else if (ConfigureParams.System.nCpuFreq < 24)
-	{
+	} else if (ConfigureParams.System.nCpuFreq < 25) {
 		ConfigureParams.System.nCpuFreq = 20;
-	}
-	else if (ConfigureParams.System.nCpuFreq < 32)
-	{
+	} else if (ConfigureParams.System.nCpuFreq < 33) {
 		ConfigureParams.System.nCpuFreq = 25;
-	}
-	else if (ConfigureParams.System.nCpuFreq < 40)
-	{
+	} else if (ConfigureParams.System.nCpuFreq < 40) {
 		ConfigureParams.System.nCpuFreq = 33;
 	} else {
 		if (ConfigureParams.System.bTurbo) {
@@ -89,6 +83,7 @@ void M68000_CheckCpuSettings(void)
 			ConfigureParams.System.nCpuFreq = 33;
 		}
 	}
+#endif
 	changed_prefs.cpu_compatible = ConfigureParams.System.bCompatibleCpu;
 
 	switch (ConfigureParams.System.nCpuLevel) {
