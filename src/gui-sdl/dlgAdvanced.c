@@ -434,7 +434,7 @@ void Dialog_AdvancedDlg(void) {
 		ConfigureParams.System.nCpuFreq = 25;
 	else if (advanceddlg[DLGADV_33MHZ].state & SG_SELECTED)
 		ConfigureParams.System.nCpuFreq = 33;
-	else
+	else if (advanceddlg[DLGADV_40MHZ].state & SG_SELECTED)
 		ConfigureParams.System.nCpuFreq = 40;
 	
 	if (advanceddlg[DLGADV_120NS].state & SG_SELECTED)

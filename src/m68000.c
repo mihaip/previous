@@ -83,6 +83,13 @@ void M68000_CheckCpuSettings(void)
 			ConfigureParams.System.nCpuFreq = 33;
 		}
 	}
+#else
+	if (ConfigureParams.System.nCpuFreq < 1) {
+		ConfigureParams.System.nCpuFreq = 1;
+	}
+	if (ConfigureParams.System.nCpuFreq > 1000) {
+		ConfigureParams.System.nCpuFreq = 1000;
+	}
 #endif
 	changed_prefs.cpu_compatible = ConfigureParams.System.bCompatibleCpu;
 
