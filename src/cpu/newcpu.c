@@ -920,6 +920,21 @@ static void set_x_ifetches(void)
 
 #ifdef WINUAE_FOR_HATARI
 
+static void trace_cpu_disasm(void)
+{
+#ifndef WINUAE_FOR_PREVIOUS
+	if (LOG_TRACE_LEVEL(TRACE_CPU_VIDEO_CYCLES)) {
+		int FrameCycles, HblCounterVideo, LineCycles;
+		Video_GetPosition ( &FrameCycles, &HblCounterVideo, &LineCycles );
+		LOG_TRACE_DIRECT_INIT ();
+		LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : ",
+				   FrameCycles, LineCycles, HblCounterVideo,
+				   CyclesGlobalClockCounter );
+	}
+#endif
+	m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+}
+
 void (*x_do_cycles_hatari_blitter_save)(int);
 void (*x_do_cycles_pre_hatari_blitter_save)(int);
 void (*x_do_cycles_post_hatari_blitter_save)(int, uae_u32);
@@ -5299,15 +5314,11 @@ static void m68k_run_1 (void)
 
 				count_instr (r->opcode);
 
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_HATARI
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 				}
 #endif
 
@@ -5444,15 +5455,11 @@ static void m68k_run_1_ce (void)
 			while (!exit) {
 				r->opcode = r->ir;
 
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_HATARI
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 				}
 #endif
 
@@ -6051,11 +6058,7 @@ static void m68k_run_jit(void)
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 				}
 #endif
 
@@ -6211,15 +6214,11 @@ static void m68k_run_mmu060 (void)
 		check_debugger();
 		TRY (prb) {
 			for (;;) {
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_HATARI
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 				}
 #endif
 				f.cznv = regflags.cznv;
@@ -6519,15 +6518,11 @@ static void m68k_run_3ce (void)
 		check_debugger();
 		TRY(prb) {
 			while (!exit) {
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_HATARI
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 				}
 				currcycle = CYCLE_UNIT / 2;	/* Assume at least 1 cycle per instruction */
 #endif
@@ -6622,15 +6617,11 @@ static void m68k_run_3p(void)
 		check_debugger();
 		TRY(prb) {
 			while (!exit) {
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_HATARI
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 				}
 #endif
 				r->instruction_pc = m68k_getpc();
@@ -6762,15 +6753,11 @@ static void m68k_run_2ce (void)
 #if 0
 				static int prevopcode;
 #endif
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_HATARI
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 #if 0
 // logs to debug data cache issues
 struct cache030 *c1 ,*c2;
@@ -6963,15 +6950,11 @@ static void m68k_run_2p (void)
 			}
 
 			while (!exit) {
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_HATARI
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 				}
 #endif
 				r->instruction_pc = m68k_getpc ();
@@ -7162,15 +7145,11 @@ static void m68k_run_2_000(void)
 		check_debugger();
 		TRY(prb) {
 			while (!exit) {
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_HATARI
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(stderr, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 				}
 #endif
 				r->instruction_pc = m68k_getpc ();
@@ -7256,15 +7235,11 @@ static void m68k_run_2_020(void)
 		check_debugger();
 		TRY(prb) {
 			while (!exit) {
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_HATARI
 				//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 				if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 				{
-					int FrameCycles, HblCounterVideo, LineCycles;
-					Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-					LOG_TRACE_DIRECT_INIT ();
-					LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-					m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+					trace_cpu_disasm();
 				}
 #endif
 				r->instruction_pc = m68k_getpc();
@@ -7338,11 +7313,7 @@ static void m68k_run_mmu (void)
 		//m68k_dumpstate_file(stderr, NULL, 0xffffffff);
 		if ((LOG_TRACE_LEVEL(TRACE_CPU_DISASM)) && (!regs.stopped))
 		{
-			int FrameCycles, HblCounterVideo, LineCycles;
-			Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-			LOG_TRACE_DIRECT_INIT ();
-			LOG_TRACE_DIRECT ( "cpu video_cyc=%6d %3d@%3d %"PRIu64" : " , FrameCycles, LineCycles, HblCounterVideo , CyclesGlobalClockCounter );
-			m68k_disasm_file(TraceFile, m68k_getpc (), NULL, m68k_getpc (), 1);
+			trace_cpu_disasm();
 		}
 #endif
 		regs.opcode = get_iiword (0);
