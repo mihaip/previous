@@ -363,6 +363,7 @@ Previous v2.8:
 
 Previous v2.9 (unreleased):
   > Adds support for using any base clock speed in variable speed mode.
+  > Improves SCC emulation for booting Mac OS 7.5.3 via Daydream.
 
 
  7) Running Previous

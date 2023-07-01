@@ -335,7 +335,7 @@ static void scc_send(int ch, uint8_t val) {
     if (scc[ch].wreg[W_MISC]&WR14_LOOPBACK) {
         scc_receive(ch, val);
     } else {
-        // send to real world
+        /* send to real world */
     }
     
     if (scc[ch].wreg[W_MODE]&WR1_TXIE) {
@@ -349,15 +349,15 @@ static void scc_send_dma(int ch, uint8_t val) {
     if (scc[ch].wreg[W_MISC]&WR14_LOOPBACK) {
         scc_receive(ch, val);
     } else {
-        // send to real world
+        /* send to real world */
     }
 }
 
 
 /* Read and write data */
-bool  scc_pio         = false;
+bool    scc_pio         = false;
 uint8_t scc_pio_data    = 0;
-int   scc_pio_channel = 0;
+int     scc_pio_channel = 0;
 
 void SCC_IO_Handler(void) {
     int i;
@@ -367,7 +367,7 @@ void SCC_IO_Handler(void) {
     if (scc_pio) {
         scc_pio = false;
         scc_send(scc_pio_channel, scc_pio_data);
-    } else { // DMA
+    } else { /* DMA */
         for (i = 0; i < 2; i++) {
             if (scc[i].wreg[W_MODE]&WR1_REQENABLE) {
                 if (scc[i].wreg[W_MODE]&WR1_REQFUNC) {
@@ -401,6 +401,48 @@ static void scc_data_write(int ch, uint8_t val) {
 
 
 /* Internal register functions */
+static uint8_t scc_read_intvec(int ch) {
+    uint8_t val = scc[0].wreg[W_INTVEC];
+    
+    /* Add status bits for channel B */
+    if (ch) {
+        if (scc[0].wreg[W_MASTERINT]&WR9_STATHIGH) {
+            if (scc[0].rreg[R_INTBITS] == 0) {
+                val |= 0x60;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_A_RXIP) {
+                val |= 0x30;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_A_TXIP) {
+                val |= 0x10;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_A_STATIP) {
+                val |= 0x50;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_B_RXIP) {
+                val |= 0x20;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_B_TXIP) {
+                val |= 0x00;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_B_STATIP) {
+                val |= 0x40;
+            }
+        } else {
+            if (scc[0].rreg[R_INTBITS] == 0) {
+                val |= 0x06;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_A_RXIP) {
+                val |= 0x0C;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_A_TXIP) {
+                val |= 0x08;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_A_STATIP) {
+                val |= 0x0A;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_B_RXIP) {
+                val |= 0x04;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_B_TXIP) {
+                val |= 0x00;
+            } else if (scc[0].rreg[R_INTBITS]&RR3_B_STATIP) {
+                val |= 0x02;
+            }
+        }
+    }
+    return val;
+}
+
 static void scc_write_mode(int ch, uint8_t val) {
     if (val&WR1_REQENABLE) {
         scc_pio = false;
@@ -470,7 +512,7 @@ static uint8_t scc_control_read(int ch) {
             val = scc[ch].wreg[scc_register_pointer];
             break;
         case R_INTVEC:
-            val = scc[0].wreg[2]; // FIXME: different for channel B
+            val = scc_read_intvec(ch);
             break;
         case R_RECBUF:
             val = scc_data_read(ch);

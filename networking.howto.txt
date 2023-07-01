@@ -180,3 +180,17 @@ HOWTO: Reset network configuration:
    Use this command to restore "/private/etc" and continue booting:
       (cd /usr/template/client/etc; tar cf - .)|(cd /private/etc; tar xpBf -)
       exit
+
+
+NOWTO: Setup networking on Mac OS:
+
+   Open the control panel "MacTCP" and configure Ethernet using these values:
+      IP Address: 10.0.2.15
+      Obtain Address: Manually
+      Class: A
+      Net: 10
+      Subnet: 2
+      Node: 15
+      Subnet Mask: 255.255.255.0
+      Gateway/Router Address: 10.0.2.2
+      Domain Name Server Information: Domain home, IP Address 10.0.2.3
