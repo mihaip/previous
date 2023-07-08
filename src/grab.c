@@ -97,14 +97,14 @@ static bool Grab_MakePNG(FILE* fp) {
 	int         y        = 0;
 	bool        ret      = false;
 	
-	uint8_t*    src_ptr;
-	uint8_t*    rowbuf;
-	uint8_t*    buf = malloc(NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4);
+	uint8_t*    src_ptr  = NULL;
+	uint8_t*    buf      = malloc(NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4);
 	
 	if (!buf) {
 		return false;
 	}	
 	if (!Grab_FillBuffer(buf)) {
+		free(buf);
 		return false;
 	}
 
@@ -167,6 +167,10 @@ png_cleanup:
 		/* handles info_ptr being NULL */
 		png_destroy_write_struct(&png_ptr, &info_ptr);
 	}
+	if (buf) {
+		free(buf);
+	}
+	
 	return ret;
 }
 
