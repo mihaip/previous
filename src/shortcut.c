@@ -177,6 +177,9 @@ void ShortCut_ActKey(void)
 		Reset_Cold();                  /* Reset emulator with 'cold' (clear all) */
 		Main_UnPauseEmulation();
 		break;
+	 case SHORTCUT_SCREENSHOT:
+		Screen_Grab();                 /* Grab screenshot */
+		break;
 	 case SHORTCUT_SOUND:
 		ShortCut_SoundOnOff();         /* Enable/disable sound */
 		break;
