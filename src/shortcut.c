@@ -15,6 +15,7 @@ const char ShortCut_fileid[] = "Hatari shortcut.c";
 #include "file.h"
 #include "m68000.h"
 #include "dimension.hpp"
+#include "grab.h"
 #include "reset.h"
 #include "screen.h"
 #include "configuration.h"
@@ -178,7 +179,7 @@ void ShortCut_ActKey(void)
 		Main_UnPauseEmulation();
 		break;
 	 case SHORTCUT_SCREENSHOT:
-		Screen_Grab();                 /* Grab screenshot */
+		Grab_Screen();                 /* Grab screenshot */
 		break;
 	 case SHORTCUT_SOUND:
 		ShortCut_SoundOnOff();         /* Enable/disable sound */

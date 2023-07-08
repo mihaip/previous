@@ -24,7 +24,6 @@ extern void Screen_UnInit(void);
 extern void Screen_Pause(bool pause);
 extern void Screen_EnterFullScreen(void);
 extern void Screen_ReturnFromFullScreen(void);
-extern void Screen_Grab(void);
 extern void Screen_ShowMainWindow(void);
 extern void Screen_SizeChanged(void);
 extern void Screen_ModeChanged(void);
