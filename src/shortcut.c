@@ -181,6 +181,9 @@ void ShortCut_ActKey(void)
 	 case SHORTCUT_SCREENSHOT:
 		Grab_Screen();                 /* Grab screenshot */
 		break;
+	 case SHORTCUT_RECORD:
+		Grab_SoundToggle();            /* Enable/disable sound recording */
+		break;
 	 case SHORTCUT_SOUND:
 		ShortCut_SoundOnOff();         /* Enable/disable sound */
 		break;
@@ -226,7 +229,6 @@ bool Shortcut_Invoke(const char *shortcut)
 	} shortcuts[] = {
 		{ SHORTCUT_MOUSEGRAB, "mousegrab" },
 		{ SHORTCUT_COLDRESET, "coldreset" },
-		{ SHORTCUT_WARMRESET, "warmreset" },
 		{ SHORTCUT_QUIT, "quit" },
 		{ SHORTCUT_NONE, NULL }
 	};

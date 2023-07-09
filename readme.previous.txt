@@ -364,6 +364,7 @@ Previous v2.8:
 Previous v2.9 (unreleased):
   > Adds support for using any base clock speed in variable speed mode.
   > Adds support for saving screen contents to a file.
+  > Adds support for saving sound output to a file.
   > Improves SCC emulation for booting Mac OS 7.5.3 via Daydream.
 
 
@@ -376,6 +377,24 @@ machine.
 While the emulator is running, you can open the configuration menu by pressing 
 F12, toggle between fullscreen and windowed mode by pressing F11 and initiate a 
 clean shut down by pressing F10 (emulates the power button).
+
+Further shortcuts can be invoked by simultaneously pressing ctrl and alt and
+one of the following keys:
+
+O: Shows main menu (same as F12).
+P: Pauses emulation and resumes it when pressed again.
+C: Initiates a cold reset. All unsaved changes will be lost.
+M: Locks the mouse cursor to the window and releases it when pressed again.
+N: Switches between screens if multiple screens are used in single window or 
+   fullscreen mode.
+G: Grabs the screen contents and saves them to a PNG file. The file is saved 
+   inside the directory specified for printer output.
+R: Records all sound output to a WAV file and stops recording when pressed 
+   again. The file is saved inside the directory specified for printer output.
+F: Toggles between fullscreen and windowed mode (same as F11).
+B: Hides the statusbar and shows it when pressed again.
+S: Disables sound output and re-enables it when pressed again.
+Q: Requests to quit Previous. All unsaved changes will be lost.
 
 
  8) Contributors

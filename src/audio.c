@@ -7,6 +7,7 @@
 #include "dma.h"
 #include "snd.h"
 #include "host.h"
+#include "grab.h"
 
 #include <SDL.h>
 
@@ -28,6 +29,7 @@ static lock_t         recBufferLock;
 
 void Audio_Output_Queue(uint8_t* data, int len) {
 	int chunkSize = SOUND_BUFFER_SAMPLES;
+	Grab_Sound(data, len);
 	if (bSoundOutputWorking) {
 		while (len > 0) {
 			if (len < chunkSize) chunkSize = len;

@@ -10,4 +10,9 @@
 
 extern void Grab_Screen(void);
 
+extern void Grab_Sound(uint8_t* samples, int len);
+extern void Grab_SoundToggle(void);
+
+extern void Grab_Stop(void);
+
 #endif /* PREVIOUS_GRAB_H */

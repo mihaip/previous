@@ -35,6 +35,7 @@ const char Main_fileid[] = "Hatari main.c";
 #include "file.h"
 #include "dsp.h"
 #include "host.h"
+#include "grab.h"
 #include "dimension.hpp"
 
 #include "hatari-glue.h"
@@ -987,7 +988,10 @@ int main(int argc, char *argv[])
 		/* Run emulation */
 		Main_Loop();
 	}
-	
+
+	/* Stop recording */
+	Grab_Stop();
+
 	/* Return from full screen */
 	Screen_ReturnFromFullScreen();
 
