@@ -217,62 +217,64 @@ void Grab_Screen(void) {
 
 
 /*
- WAV file output
+ AIFF file output
  
- We simply save out the WAVE format headers and then write the sample data. 
+ We simply save out the AIFF format headers and then write the sample data. 
  When we stop recording we complete the size information in the headers and 
  close up.
  
- All data is stored in little endian byte order.
+ All data is stored in big endian byte order.
  
- RIFF Chunk (12 bytes in length total) Byte Number
- 0 - 3    "RIFF" (ASCII Characters)
- 4 - 7    Total Length Of Package To Follow (Binary, little endian)
- 8 - 11   "WAVE" (ASCII Characters)
+ Format Chunk (12 bytes in length total) Byte Number
+ 0 - 3    "FORM" (ASCII Characters)
+ 4 - 7    Total Length Of Package To Follow (Binary, big endian)
+ 8 - 11   "AIFF" (ASCII Characters)
  
- FORMAT Chunk (24 bytes in length total) Byte Number
- 0 - 3    "fmt_" (ASCII Characters)
- 4 - 7    Length Of FORMAT Chunk (Binary, always 0x10)
- 8 - 9    Always 0x01
- 10 - 11  Channel Numbers (Always 0x01=Mono, 0x02=Stereo)
- 12 - 15  Sample Rate (Binary, in Hz)
- 16 - 19  Bytes Per Second
- 20 - 21  Bytes Per Sample: 1=8 bit Mono, 2=8 bit Stereo or 16 bit Mono, 4=16 bit Stereo
- 22 - 23  Bits Per Sample
+ Common Chunk (24 bytes in length total) Byte Number
+ 0 - 3    "COMM" (ASCII Characters)
+ 4 - 7    Length Of COMM Chunk (Binary, always 18)
+ 8 - 9    Number Of Channles (1=Mono, 2=Stereo)
+ 10 - 13  Number Of Samples
+ 14 - 15  Bits Per Sample
+ 16 - 25  Sample Rate (80-bit IEEE 754 floating point number, in Hz)
  
- DATA Chunk Byte Number
- 0 - 3    "data" (ASCII Characters)
+ SSND Chunk Byte Number
+ 0 - 3    "SSND" (ASCII Characters)
  4 - 7    Length Of Data To Follow
- 8 - end  Data (Samples)
+ 8 - 11   Offset
+ 12 - 15  Block Size
+ 16 - end Data (Samples)
  */
 
-static FILE *WavFileHndl;
-static int  nWavOutputBytes;            /* Number of sample bytes saved */
-static bool bRecordingWav = false;      /* Is a WAV file open and recording? */
+static FILE *AiffFileHndl;
+static int  nAiffOutputBytes;            /* Number of sample bytes saved */
+static bool bRecordingAiff = false;      /* Is a AIFF file open and recording? */
 
-static uint8_t WavHeader[44] =
+static uint8_t AiffHeader[54] =
 {
-	/* RIFF chunk */
-	'R', 'I', 'F', 'F',      /* "RIFF" (ASCII Characters) */
-	0, 0, 0, 0,              /* Total Length Of Package To Follow (patched when file is closed) */
-	'W', 'A', 'V', 'E',      /* "WAVE" (ASCII Characters) */
 	/* Format chunk */
-	'f', 'm', 't', ' ',      /* "fmt_" (ASCII Characters) */
-	0x10, 0, 0, 0,           /* Length Of FORMAT Chunk (always 0x10) */
-	0x01, 0,                 /* Always 0x01 */
-	0x02, 0,                 /* Number of channels (2 for stereo) */
-	0x44, 0xAC, 0x00, 0x00,  /* Sample rate (44,1 kHz) */
-	0x10, 0xB1, 0x02, 0x00,  /* Bytes per second (4 times sample rate for 16-bit stereo) */
-	0x04, 0,                 /* Bytes per sample (4 = 16 bit stereo) */
-	0x10, 0,                 /* Bits per sample (16 bit) */
-	/* Data chunk */
-	'd', 'a', 't', 'a',
-	0, 0, 0, 0,              /* Length of data to follow (will be patched when file is closed) */
+	'F', 'O', 'R', 'M',      /* "FORM" (ASCII Characters) */
+	0, 0, 0, 0,              /* Total Length Of Package To Follow (patched when file is closed) */
+	'A', 'I', 'F', 'F',      /* "AIFF" (ASCII Characters) */
+	/* Common chunk */
+	'C', 'O', 'M', 'M',      /* "COMM" (ASCII Characters) */
+	0, 0, 0, 18,             /* Length Of COMM Chunk (18) */
+	0, 2,                    /* Number of channels (2 for stereo) */
+	0, 0, 0, 0,              /* Number of samples (patched when file is closed) */
+	0, 16,                   /* Bits per sample (16 bit) */
+	0x40, 0x0E, 0xAC, 0x44,  /* Sample rate (44,1 kHz) */
+	0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00,
+	/* Sound data chunk */
+	'S', 'S', 'N', 'D',      /* "SSND" (ASCII Characters) */
+	0, 0, 0, 0,              /* Length of SSND Chunk (patched when file is closed) */
+	0, 0, 0, 0,              /* Offset */
+	0, 0, 0, 0               /* Block size */
 };
 
 
 /**
- * Open WAV output file and write header.
+ * Open AIFF output file and write header.
  */
 static void Grab_OpenSoundFile(void)
 {
@@ -284,17 +286,14 @@ static void Grab_OpenSoundFile(void)
 
 	uint32_t nSampleFreq, nBytesPerSec;
 	
-	bRecordingWav   = false;
-	nWavOutputBytes = 0;
-	
-	nSampleFreq     = 44100;            /* Set frequency (44,1 kHz) */
-	nBytesPerSec    = nSampleFreq * 4;  /* Multiply by 4 for 16 bit stereo */
+	bRecordingAiff   = false;
+	nAiffOutputBytes = 0;
 
 	/* Build file name */
 	if (File_DirExists(ConfigureParams.Printer.szPrintToFileName)) {
 		for (i = 0; i < 1000; i++) {
 			snprintf(szFileName, sizeof(szFileName), "next_sound_%03d", i);
-			szPathName = File_MakePath(ConfigureParams.Printer.szPrintToFileName, szFileName, ".wav");
+			szPathName = File_MakePath(ConfigureParams.Printer.szPrintToFileName, szFileName, ".aiff");
 			
 			if (File_Exists(szPathName)) {
 				continue;
@@ -309,17 +308,17 @@ static void Grab_OpenSoundFile(void)
 	}
 	
 	/* Create our file */
-	WavFileHndl = File_Open(szPathName, "wb");
-	if (!WavFileHndl)
+	AiffFileHndl = File_Open(szPathName, "wb");
+	if (!AiffFileHndl)
 	{
 		Log_Printf(LOG_WARN, "[Grab] Failed to create sound file %s: ", szPathName);
 		goto done;
 	}
 		
 	/* Write header to file */
-	if (File_Write(WavHeader, sizeof(WavHeader), 0, WavFileHndl))
+	if (File_Write(AiffHeader, sizeof(AiffHeader), 0, AiffFileHndl))
 	{
-		bRecordingWav = true;
+		bRecordingAiff = true;
 		Log_Printf(LOG_WARN, "[Grab] Starting sound record");
 		Statusbar_AddMessage("Start saving sound to file", 0);
 	}
@@ -335,39 +334,49 @@ done:
 }
 
 /**
- * Write sizes to WAV header, then close the WAV file.
+ * Write sizes to AIFF header, then close the AIFF file.
  */
 static void Grab_CloseSoundFile(void)
 {
-	if (bRecordingWav)
+	if (bRecordingAiff)
 	{
-		uint32_t nWavFileBytes;
+		uint32_t nAiffFileBytes;
+		uint32_t nAiffDataBytes;
+		uint32_t nAiffSamples;
 		
-		bRecordingWav = false;
+		bRecordingAiff = false;
 		
 		/* Update headers with sizes */
-		nWavFileBytes = 36+nWavOutputBytes; /* length of headers minus 8 bytes plus length of data */
+		nAiffFileBytes = 46+nAiffOutputBytes; /* length of headers minus 8 bytes plus length of data */
+		nAiffDataBytes = 8+nAiffOutputBytes;  /* length of data plus 8 bytes */
+		nAiffSamples   = nAiffOutputBytes/2;  /* length of data divided by bytes per sample */
 		
 		/* Patch length of file in header structure */
-		WavHeader[4] = (uint8_t)(nWavFileBytes >> 0);
-		WavHeader[5] = (uint8_t)(nWavFileBytes >> 8);
-		WavHeader[6] = (uint8_t)(nWavFileBytes >> 16);
-		WavHeader[7] = (uint8_t)(nWavFileBytes >> 24);
+		AiffHeader[4] = (uint8_t)(nAiffFileBytes >> 24);
+		AiffHeader[5] = (uint8_t)(nAiffFileBytes >> 16);
+		AiffHeader[6] = (uint8_t)(nAiffFileBytes >> 8);
+		AiffHeader[7] = (uint8_t)(nAiffFileBytes >> 0);
 		
+		/* Patch number of samples in header sturcture */
+		AiffHeader[22] = (uint8_t)(nAiffSamples >> 24);
+		AiffHeader[23] = (uint8_t)(nAiffSamples >> 16);
+		AiffHeader[24] = (uint8_t)(nAiffSamples >> 8);
+		AiffHeader[25] = (uint8_t)(nAiffSamples >> 0);
+
 		/* Patch length of data in header structure */
-		WavHeader[40] = (uint8_t)(nWavOutputBytes >> 0);
-		WavHeader[41] = (uint8_t)(nWavOutputBytes >> 8);
-		WavHeader[42] = (uint8_t)(nWavOutputBytes >> 16);
-		WavHeader[43] = (uint8_t)(nWavOutputBytes >> 24);
+		AiffHeader[42] = (uint8_t)(nAiffDataBytes >> 24);
+		AiffHeader[43] = (uint8_t)(nAiffDataBytes >> 16);
+		AiffHeader[44] = (uint8_t)(nAiffDataBytes >> 8);
+		AiffHeader[45] = (uint8_t)(nAiffDataBytes >> 0);
 		
 		/* Write updated header to file */
-		if (!File_Write(WavHeader, sizeof(WavHeader), 0, WavFileHndl))
+		if (!File_Write(AiffHeader, sizeof(AiffHeader), 0, AiffFileHndl))
 		{
 			perror("[Grab] Grab_CloseSoundFile:");
 		}
 		
 		/* Close file */
-		WavFileHndl = File_Close(WavFileHndl);
+		AiffFileHndl = File_Close(AiffFileHndl);
 		
 		/* And inform user */
 		Log_Printf(LOG_WARN, "[Grab] Stopping sound record");
@@ -376,38 +385,26 @@ static void Grab_CloseSoundFile(void)
 }
 
 /**
- * Update WAV file with current samples.
+ * Update AIFF file with current samples.
  */
 void Grab_Sound(uint8_t* samples, int len)
 {
 	int i;
-	uint8_t* wav_samples;
+	uint8_t* aiff_samples;
 
-	if (bRecordingWav)
+	if (bRecordingAiff)
 	{
 		len &= ~1; /* Just to be sure */
 		
-		wav_samples = malloc(len);
-		if (!wav_samples) return;
-
-		/* Convert samples to little endian */
-		for (i = 0; i < len; i+=2)
-		{
-			wav_samples[i+0] = samples[i+1];
-			wav_samples[i+1] = samples[i+0];
-		}
-
-		/* And append them to our wav file */
-		if (fwrite(wav_samples, len, 1, WavFileHndl) != 1)
+		/* Append samples to our AIFF file */
+		if (fwrite(samples, len, 1, AiffFileHndl) != 1)
 		{
 			perror("[Grab] Grab_Sound:");
 			Grab_CloseSoundFile();
 		}
 
-		/* Add samples to wav file length counter */
-		nWavOutputBytes += len;
-
-		free(wav_samples);
+		/* Add samples to AIFF file length counter */
+		nAiffOutputBytes += len;
 	}
 }
 
@@ -415,7 +412,7 @@ void Grab_Sound(uint8_t* samples, int len)
  * Start/Stop recording sound.
  */
 void Grab_SoundToggle(void) {
-	if (bRecordingWav) {
+	if (bRecordingAiff) {
 		Grab_CloseSoundFile();
 	} else {
 		Grab_OpenSoundFile();

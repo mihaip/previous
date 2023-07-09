@@ -389,7 +389,7 @@ N: Switches between screens if multiple screens are used in single window or
    fullscreen mode.
 G: Grabs the screen contents and saves them to a PNG file. The file is saved 
    inside the directory specified for printer output.
-R: Records all sound output to a WAV file and stops recording when pressed 
+R: Records all sound output to an AIFF file and stops recording when pressed 
    again. The file is saved inside the directory specified for printer output.
 F: Toggles between fullscreen and windowed mode (same as F11).
 B: Hides the statusbar and shows it when pressed again.
