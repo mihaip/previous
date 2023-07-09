@@ -1,6 +1,6 @@
 
 
-                                  Previous 2.8
+                                  Previous 2.9
 
 
 
@@ -361,7 +361,7 @@ Previous v2.8:
   > Fixes bug that broke networking on 32-bit host platforms.
   > Fixes bug that could cause device number corruption on NFS.
 
-Previous v2.9 (unreleased):
+Previous v2.9:
   > Adds support for using any base clock speed in variable speed mode.
   > Adds support for saving screen contents to a file.
   > Adds support for saving sound output to a file.

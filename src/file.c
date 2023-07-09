@@ -787,17 +787,21 @@ void File_UnLock(FILE *fp)
  */
 bool File_Read(uint8_t *data, uint32_t size, uint64_t offset, FILE *fp)
 {
-    if (fseek(fp, offset, SEEK_SET))
-    {
-        fprintf(stderr, "File seek failed:\n  %s\n", strerror(errno));
-        return false;
-    }
-    if (fread(data, size, 1, fp) != 1)
-    {
-        fprintf(stderr, "Error occured while reading file.\n");
-        return false;
-    }
-    return true;
+	if (!fp || !data)
+	{
+		return false;
+	}
+	if (fseek(fp, offset, SEEK_SET))
+	{
+		fprintf(stderr, "File seek failed:\n  %s\n", strerror(errno));
+		return false;
+	}
+	if (fread(data, size, 1, fp) != 1)
+	{
+		fprintf(stderr, "Error occured while reading file.\n");
+		return false;
+	}
+	return true;
 }
 
 
@@ -807,17 +811,21 @@ bool File_Read(uint8_t *data, uint32_t size, uint64_t offset, FILE *fp)
  */
 bool File_Write(uint8_t *data, uint32_t size, uint64_t offset, FILE *fp)
 {
-    if (fseek(fp, offset, SEEK_SET))
-    {
-        fprintf(stderr, "File seek failed:\n  %s\n", strerror(errno));
-        return false;
-    }
-    if (fwrite(data, size, 1, fp) != 1)
-    {
-        fprintf(stderr, "Error occured while writing file.\n");
-        return false;
-    }
-    return true;
+	if (!fp || !data)
+	{
+		return false;
+	}
+	if (fseek(fp, offset, SEEK_SET))
+	{
+		fprintf(stderr, "File seek failed:\n  %s\n", strerror(errno));
+		return false;
+	}
+	if (fwrite(data, size, 1, fp) != 1)
+	{
+		fprintf(stderr, "Error occured while writing file.\n");
+		return false;
+	}
+	return true;
 }
 
 

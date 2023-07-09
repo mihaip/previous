@@ -282,15 +282,12 @@ static void Grab_OpenSoundFile(void)
 	char szFileName[32];
 	char *szPathName = NULL;
 	
-	if (!szFileName) return;
-
-	uint32_t nSampleFreq, nBytesPerSec;
-	
 	bRecordingAiff   = false;
 	nAiffOutputBytes = 0;
 
-	/* Build file name */
 	if (File_DirExists(ConfigureParams.Printer.szPrintToFileName)) {
+		
+		/* Build file name */
 		for (i = 0; i < 1000; i++) {
 			snprintf(szFileName, sizeof(szFileName), "next_sound_%03d", i);
 			szPathName = File_MakePath(ConfigureParams.Printer.szPrintToFileName, szFileName, ".aiff");
@@ -305,31 +302,31 @@ static void Grab_OpenSoundFile(void)
 			Log_Printf(LOG_WARN, "[Grab] Error: Maximum sound grab count exceeded (%d)", i);
 			goto done;
 		}
-	}
-	
-	/* Create our file */
-	AiffFileHndl = File_Open(szPathName, "wb");
-	if (!AiffFileHndl)
-	{
-		Log_Printf(LOG_WARN, "[Grab] Failed to create sound file %s: ", szPathName);
-		goto done;
-	}
 		
-	/* Write header to file */
-	if (File_Write(AiffHeader, sizeof(AiffHeader), 0, AiffFileHndl))
-	{
-		bRecordingAiff = true;
-		Log_Printf(LOG_WARN, "[Grab] Starting sound record");
-		Statusbar_AddMessage("Start saving sound to file", 0);
-	}
-	else
-	{
-		perror("[Grab] Grab_OpenSoundFile:");
-	}
-	
-done:
-	if (szPathName) {
-		free(szPathName);
+		/* Create our file */
+		AiffFileHndl = File_Open(szPathName, "wb");
+		if (!AiffFileHndl)
+		{
+			Log_Printf(LOG_WARN, "[Grab] Failed to create sound file %s: ", szPathName);
+			goto done;
+		}
+		
+		/* Write header to file */
+		if (File_Write(AiffHeader, sizeof(AiffHeader), 0, AiffFileHndl))
+		{
+			bRecordingAiff = true;
+			Log_Printf(LOG_WARN, "[Grab] Starting sound record");
+			Statusbar_AddMessage("Start saving sound to file", 0);
+		}
+		else
+		{
+			perror("[Grab] Grab_OpenSoundFile:");
+		}
+		
+	done:
+		if (szPathName) {
+			free(szPathName);
+		}
 	}
 }
 
