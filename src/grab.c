@@ -389,13 +389,8 @@ static void Grab_CloseSoundFile(void)
  */
 void Grab_Sound(uint8_t* samples, int len)
 {
-	int i;
-	uint8_t* aiff_samples;
-
 	if (bRecordingAiff)
 	{
-		len &= ~1; /* Just to be sure */
-		
 		/* Append samples to our AIFF file */
 		if (fwrite(samples, len, 1, AiffFileHndl) != 1)
 		{
