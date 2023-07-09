@@ -39,14 +39,14 @@ static bool Grab_FillBuffer(uint8_t* buf) {
 #else
 			j = 16*4;
 #endif
-			for (i = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=4) {		
+			for (i = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=4, j+=4) {		
 				if (i && (i%(NEXT_SCREEN_WIDTH*4))==0)
 					j+=32*4;
 
-				buf[i+0] = fb[i+j+2]; // r
-				buf[i+1] = fb[i+j+1]; // g
-				buf[i+2] = fb[i+j+0]; // b
-				buf[i+3] = 0xff;      // a
+				buf[i+0] = fb[j+2]; // r
+				buf[i+1] = fb[j+1]; // g
+				buf[i+2] = fb[j+0]; // b
+				buf[i+3] = 0xff;    // a
 			}
 			return true;
 		}
@@ -55,28 +55,24 @@ static bool Grab_FillBuffer(uint8_t* buf) {
 			fb = NEXTVideo;
 			j = 0;
 			if (ConfigureParams.System.bColor) {
-				for (i = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=4) {
+				for (i = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=4, j+=2) {
 					if (!ConfigureParams.System.bTurbo && i && (i%(NEXT_SCREEN_WIDTH*4))==0)
 						j+=32*2;
 					
-					buf[i+0] = (fb[(i>>1)+j+0]&0xF0) | ((fb[(i>>1)+j+0]&0xF0)>>4); // r
-					buf[i+1] = (fb[(i>>1)+j+0]&0x0F) | ((fb[(i>>1)+j+0]&0x0F)<<4); // g
-					buf[i+2] = (fb[(i>>1)+j+1]&0xF0) | ((fb[(i>>1)+j+1]&0xF0)>>4); // b
-					buf[i+3] = 0xff;                                               // a
+					buf[i+0] = (fb[j+0]&0xF0) | ((fb[j+0]&0xF0)>>4); // r
+					buf[i+1] = (fb[j+0]&0x0F) | ((fb[j+0]&0x0F)<<4); // g
+					buf[i+2] = (fb[j+1]&0xF0) | ((fb[j+1]&0xF0)>>4); // b
+					buf[i+3] = 0xff;                                 // a
 				}
 			} else {
-				for (i = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT/4); i++) {
-					if (!ConfigureParams.System.bTurbo && i && (i%(NEXT_SCREEN_WIDTH/4))==0)
+				for (i = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=16, j++) {
+					if (!ConfigureParams.System.bTurbo && i && (i%(NEXT_SCREEN_WIDTH*4))==0)
 						j+=32/4;
 					
-					buf[i*16+ 0] = buf[i*16+ 1] = buf[i*16+ 2] = (~(fb[i+j] >> 6) & 3) * 0x55; // rgb
-					buf[i*16+ 4] = buf[i*16+ 5] = buf[i*16+ 6] = (~(fb[i+j] >> 4) & 3) * 0x55; // rgb
-					buf[i*16+ 8] = buf[i*16+ 9] = buf[i*16+10] = (~(fb[i+j] >> 2) & 3) * 0x55; // rgb
-					buf[i*16+12] = buf[i*16+13] = buf[i*16+14] = (~(fb[i+j] >> 0) & 3) * 0x55; // rgb
-					buf[i*16+ 3] = 0xff; // a
-					buf[i*16+ 7] = 0xff; // a
-					buf[i*16+11] = 0xff; // a
-					buf[i*16+15] = 0xff; // a
+					buf[i+ 0] = buf[i+ 1] = buf[i+ 2] = (~(fb[j] >> 6) & 3) * 0x55; buf[i+ 3] = 0xff; // rgba
+					buf[i+ 4] = buf[i+ 5] = buf[i+ 6] = (~(fb[j] >> 4) & 3) * 0x55; buf[i+ 7] = 0xff; // rgba
+					buf[i+ 8] = buf[i+ 9] = buf[i+10] = (~(fb[j] >> 2) & 3) * 0x55; buf[i+11] = 0xff; // rgba
+					buf[i+12] = buf[i+13] = buf[i+14] = (~(fb[j] >> 0) & 3) * 0x55; buf[i+15] = 0xff; // rgba
 				}
 			}
 			return true;
@@ -95,83 +91,67 @@ static bool Grab_MakePNG(FILE* fp) {
 	char        text[]   = "Previous Screen Grab";
 
 	int         y        = 0;
-	bool        ret      = false;
+	bool        result   = false;
 	
+	off_t       start    = 0;
 	uint8_t*    src_ptr  = NULL;
 	uint8_t*    buf      = malloc(NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4);
 	
-	if (!buf) {
-		return false;
-	}	
-	if (!Grab_FillBuffer(buf)) {
-		free(buf);
-		return false;
-	}
-
-	/* Create and initialize the png_struct with error handler functions. */
-	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if (!png_ptr) {
-		goto png_cleanup;
-	}
-	
-	/* Allocate/initialize the image information data. */
-	info_ptr = png_create_info_struct(png_ptr);
-	if (!info_ptr) {
-		goto png_cleanup;
-	}
-	
-	/* libpng ugliness: Set error handling when not supplying own
-	 * error handling functions in the png_create_write_struct() call.
-	 */
-	if (setjmp(png_jmpbuf(png_ptr))) {
-		goto png_cleanup;
-	}
-	
-	/* store current pos in fp (could be != 0 for avi recording) */
-	off_t start = ftello(fp);
-	
-	/* initialize the png structure */
-	png_init_io(png_ptr, fp);
-	
-	/* image data properties */
-	png_set_IHDR(png_ptr, info_ptr, NEXT_SCREEN_WIDTH, NEXT_SCREEN_HEIGHT, 8, PNG_COLOR_TYPE_RGB_ALPHA,
-				 PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
-				 PNG_FILTER_TYPE_DEFAULT);
-	
-	/* image info */
-	pngtext.key = key;
-	pngtext.text = text;
-	pngtext.compression = PNG_TEXT_COMPRESSION_NONE;
-#ifdef PNG_iTXt_SUPPORTED
-	pngtext.lang = NULL;
-#endif
-	png_set_text(png_ptr, info_ptr, &pngtext, 1);
-	
-	/* write the file header information */
-	png_write_info(png_ptr, info_ptr);
-		
-	for (y = 0; y < NEXT_SCREEN_HEIGHT; y++)
-	{		
-		src_ptr = buf + y * NEXT_SCREEN_WIDTH * 4;
-		
-		png_write_row(png_ptr, src_ptr);
-	}
-	
-	/* write the additional chunks to the PNG file */
-	png_write_end(png_ptr, info_ptr);
-	
-	ret = true;
-	
-png_cleanup:
-	if (png_ptr) {
-		/* handles info_ptr being NULL */
-		png_destroy_write_struct(&png_ptr, &info_ptr);
-	}
 	if (buf) {
+		if (Grab_FillBuffer(buf)) {
+			/* Create and initialize the png_struct with error handler functions. */
+			png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+			if (png_ptr) {
+				/* Allocate/initialize the image information data. */
+				info_ptr = png_create_info_struct(png_ptr);
+				if (info_ptr) {
+					/* libpng ugliness: Set error handling when not supplying own
+					 * error handling functions in the png_create_write_struct() call.
+					 */
+					if (!setjmp(png_jmpbuf(png_ptr))) {
+						/* store current pos in fp (could be != 0 for avi recording) */
+						start = ftello(fp);
+						
+						/* initialize the png structure */
+						png_init_io(png_ptr, fp);
+						
+						/* image data properties */
+						png_set_IHDR(png_ptr, info_ptr, NEXT_SCREEN_WIDTH, NEXT_SCREEN_HEIGHT, 8, PNG_COLOR_TYPE_RGB_ALPHA,
+									 PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+									 PNG_FILTER_TYPE_DEFAULT);
+						
+						/* image info */
+						pngtext.key = key;
+						pngtext.text = text;
+						pngtext.compression = PNG_TEXT_COMPRESSION_NONE;
+#ifdef PNG_iTXt_SUPPORTED
+						pngtext.lang = NULL;
+#endif
+						png_set_text(png_ptr, info_ptr, &pngtext, 1);
+						
+						/* write the file header information */
+						png_write_info(png_ptr, info_ptr);
+						
+						for (y = 0; y < NEXT_SCREEN_HEIGHT; y++)
+						{		
+							src_ptr = buf + y * NEXT_SCREEN_WIDTH * 4;
+							
+							png_write_row(png_ptr, src_ptr);
+						}
+						
+						/* write the additional chunks to the PNG file */
+						png_write_end(png_ptr, info_ptr);
+						
+						result = true;
+					}
+				}
+				/* handles info_ptr being NULL */
+				png_destroy_write_struct(&png_ptr, &info_ptr);
+			}
+		}
 		free(buf);
-	}
-	
-	return ret;
+	}	
+	return result;
 }
 
 /* Open file and save PNG data to it */
@@ -203,7 +183,7 @@ void Grab_Screen(void) {
 	
 	if (File_DirExists(ConfigureParams.Printer.szPrintToFileName)) {
 		for (i = 0; i < 1000; i++) {
-			snprintf(szFileName, FILENAME_MAX, "%03d_next_screen", i);
+			snprintf(szFileName, FILENAME_MAX, "next_screen_%03d", i);
 			szPathName = File_MakePath(ConfigureParams.Printer.szPrintToFileName, szFileName, ".png");
 			
 			if (File_Exists(szPathName)) {
