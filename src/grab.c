@@ -16,6 +16,7 @@ const char Grab_fileid[] = "Previous grab.c";
 #include "paths.h"
 #include "statusbar.h"
 #include "m68000.h"
+#include "host.h"
 #include "grab.h"
 
 
@@ -246,9 +247,11 @@ void Grab_Screen(void) {
  16 - end Data (Samples)
  */
 
-static FILE *AiffFileHndl;
-static int  nAiffOutputBytes;            /* Number of sample bytes saved */
-static bool bRecordingAiff = false;      /* Is a AIFF file open and recording? */
+static lock_t GrabSoundLock;               /* Protect AIFF file and variables */
+
+static FILE*  AiffFileHndl;                /* Pointer to our AIFF file */
+static int    nAiffOutputBytes;            /* Number of sample bytes saved */
+static bool   bRecordingAiff = false;      /* Is an AIFF file open and recording? */
 
 static uint8_t AiffHeader[54] =
 {
@@ -274,6 +277,57 @@ static uint8_t AiffHeader[54] =
 
 
 /**
+ * Write sizes to AIFF header, then close the AIFF file.
+ */
+static void Grab_CloseSoundFile(void)
+{
+	uint32_t nAiffFileBytes;
+	uint32_t nAiffDataBytes;
+	uint32_t nAiffSamples;
+	
+	if (bRecordingAiff)
+	{
+		bRecordingAiff = false;
+		
+		/* Update headers with sizes */
+		nAiffFileBytes = 46+nAiffOutputBytes; /* length of headers minus 8 bytes plus length of data */
+		nAiffDataBytes = 8+nAiffOutputBytes;  /* length of data plus 8 bytes */
+		nAiffSamples   = nAiffOutputBytes/2;  /* length of data divided by bytes per sample */
+		
+		/* Patch length of file in header structure */
+		AiffHeader[4] = (uint8_t)(nAiffFileBytes >> 24);
+		AiffHeader[5] = (uint8_t)(nAiffFileBytes >> 16);
+		AiffHeader[6] = (uint8_t)(nAiffFileBytes >> 8);
+		AiffHeader[7] = (uint8_t)(nAiffFileBytes >> 0);
+		
+		/* Patch number of samples in header sturcture */
+		AiffHeader[22] = (uint8_t)(nAiffSamples >> 24);
+		AiffHeader[23] = (uint8_t)(nAiffSamples >> 16);
+		AiffHeader[24] = (uint8_t)(nAiffSamples >> 8);
+		AiffHeader[25] = (uint8_t)(nAiffSamples >> 0);
+
+		/* Patch length of data in header structure */
+		AiffHeader[42] = (uint8_t)(nAiffDataBytes >> 24);
+		AiffHeader[43] = (uint8_t)(nAiffDataBytes >> 16);
+		AiffHeader[44] = (uint8_t)(nAiffDataBytes >> 8);
+		AiffHeader[45] = (uint8_t)(nAiffDataBytes >> 0);
+		
+		/* Write updated header to file */
+		if (!File_Write(AiffHeader, sizeof(AiffHeader), 0, AiffFileHndl))
+		{
+			perror("[Grab] Grab_CloseSoundFile:");
+		}
+		
+		/* Close file */
+		AiffFileHndl = File_Close(AiffFileHndl);
+		
+		/* And inform user */
+		Log_Printf(LOG_WARN, "[Grab] Stopping sound record");
+		Statusbar_AddMessage("Stop saving sound to file", 0);
+	}
+}
+
+/**
  * Open AIFF output file and write header.
  */
 static void Grab_OpenSoundFile(void)
@@ -282,9 +336,12 @@ static void Grab_OpenSoundFile(void)
 	char szFileName[32];
 	char *szPathName = NULL;
 	
-	bRecordingAiff   = false;
+	if (bRecordingAiff) {
+		Grab_CloseSoundFile();
+	}
+	
 	nAiffOutputBytes = 0;
-
+	
 	if (File_DirExists(ConfigureParams.Printer.szPrintToFileName)) {
 		
 		/* Build file name */
@@ -331,61 +388,11 @@ static void Grab_OpenSoundFile(void)
 }
 
 /**
- * Write sizes to AIFF header, then close the AIFF file.
- */
-static void Grab_CloseSoundFile(void)
-{
-	if (bRecordingAiff)
-	{
-		uint32_t nAiffFileBytes;
-		uint32_t nAiffDataBytes;
-		uint32_t nAiffSamples;
-		
-		bRecordingAiff = false;
-		
-		/* Update headers with sizes */
-		nAiffFileBytes = 46+nAiffOutputBytes; /* length of headers minus 8 bytes plus length of data */
-		nAiffDataBytes = 8+nAiffOutputBytes;  /* length of data plus 8 bytes */
-		nAiffSamples   = nAiffOutputBytes/2;  /* length of data divided by bytes per sample */
-		
-		/* Patch length of file in header structure */
-		AiffHeader[4] = (uint8_t)(nAiffFileBytes >> 24);
-		AiffHeader[5] = (uint8_t)(nAiffFileBytes >> 16);
-		AiffHeader[6] = (uint8_t)(nAiffFileBytes >> 8);
-		AiffHeader[7] = (uint8_t)(nAiffFileBytes >> 0);
-		
-		/* Patch number of samples in header sturcture */
-		AiffHeader[22] = (uint8_t)(nAiffSamples >> 24);
-		AiffHeader[23] = (uint8_t)(nAiffSamples >> 16);
-		AiffHeader[24] = (uint8_t)(nAiffSamples >> 8);
-		AiffHeader[25] = (uint8_t)(nAiffSamples >> 0);
-
-		/* Patch length of data in header structure */
-		AiffHeader[42] = (uint8_t)(nAiffDataBytes >> 24);
-		AiffHeader[43] = (uint8_t)(nAiffDataBytes >> 16);
-		AiffHeader[44] = (uint8_t)(nAiffDataBytes >> 8);
-		AiffHeader[45] = (uint8_t)(nAiffDataBytes >> 0);
-		
-		/* Write updated header to file */
-		if (!File_Write(AiffHeader, sizeof(AiffHeader), 0, AiffFileHndl))
-		{
-			perror("[Grab] Grab_CloseSoundFile:");
-		}
-		
-		/* Close file */
-		AiffFileHndl = File_Close(AiffFileHndl);
-		
-		/* And inform user */
-		Log_Printf(LOG_WARN, "[Grab] Stopping sound record");
-		Statusbar_AddMessage("Stop saving sound to file", 0);
-	}
-}
-
-/**
  * Update AIFF file with current samples.
  */
 void Grab_Sound(uint8_t* samples, int len)
 {
+	host_lock(&GrabSoundLock);
 	if (bRecordingAiff)
 	{
 		/* Append samples to our AIFF file */
@@ -398,22 +405,27 @@ void Grab_Sound(uint8_t* samples, int len)
 		/* Add samples to AIFF file length counter */
 		nAiffOutputBytes += len;
 	}
+	host_unlock(&GrabSoundLock);
 }
 
 /**
  * Start/Stop recording sound.
  */
 void Grab_SoundToggle(void) {
+	host_lock(&GrabSoundLock);
 	if (bRecordingAiff) {
 		Grab_CloseSoundFile();
 	} else {
 		Grab_OpenSoundFile();
 	}
+	host_unlock(&GrabSoundLock);
 }
 
 /**
  * Stop any recording activities.
  */
 void Grab_Stop(void) {
+	host_lock(&GrabSoundLock);
 	Grab_CloseSoundFile();
+	host_unlock(&GrabSoundLock);
 }
