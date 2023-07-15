@@ -4,7 +4,7 @@
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
-  Grab screen and save it as PNG file.
+  Grab screen or sound and save it to a PNG or AIFF file.
 */
 const char Grab_fileid[] = "Previous grab.c";
 
@@ -26,6 +26,12 @@ const char Grab_fileid[] = "Previous grab.c";
 #define NEXT_SCREEN_HEIGHT 832
 #define NEXT_SCREEN_WIDTH  1120
 
+#if ND_STEP
+#define ND_OFFSET 0
+#else
+#define ND_OFFSET (4*4)
+#endif
+
 /**
  * Convert framebuffer data to RGBA and fill buffer.
  */
@@ -36,12 +42,7 @@ static bool Grab_FillBuffer(uint8_t* buf) {
 	if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
 		fb = (uint8_t*)(nd_vram_for_slot(ND_SLOT(ConfigureParams.Screen.nMonitorNum)));
 		if (fb) {
-#if ND_STEP
-			j = 0;
-#else
-			j = 16*4;
-#endif
-			for (i = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=4, j+=4) {		
+			for (i = 0, j = ND_OFFSET; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=4, j+=4) {		
 				if (i && (i%(NEXT_SCREEN_WIDTH*4))==0)
 					j+=32*4;
 
@@ -55,19 +56,18 @@ static bool Grab_FillBuffer(uint8_t* buf) {
 	} else {
 		if (NEXTVideo) {
 			fb = NEXTVideo;
-			j = 0;
 			if (ConfigureParams.System.bColor) {
-				for (i = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=4, j+=2) {
+				for (i = 0, j = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=4, j+=2) {
 					if (!ConfigureParams.System.bTurbo && i && (i%(NEXT_SCREEN_WIDTH*4))==0)
 						j+=32*2;
 					
-					buf[i+0] = (fb[j+0]&0xF0) | ((fb[j+0]&0xF0)>>4); // r
-					buf[i+1] = (fb[j+0]&0x0F) | ((fb[j+0]&0x0F)<<4); // g
-					buf[i+2] = (fb[j+1]&0xF0) | ((fb[j+1]&0xF0)>>4); // b
+					buf[i+0] = (fb[j+0]&0xf0) | ((fb[j+0]&0xf0)>>4); // r
+					buf[i+1] = (fb[j+0]&0x0f) | ((fb[j+0]&0x0f)<<4); // g
+					buf[i+2] = (fb[j+1]&0xf0) | ((fb[j+1]&0xf0)>>4); // b
 					buf[i+3] = 0xff;                                 // a
 				}
 			} else {
-				for (i = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=16, j++) {
+				for (i = 0, j = 0; i < (NEXT_SCREEN_WIDTH*NEXT_SCREEN_HEIGHT*4); i+=16, j++) {
 					if (!ConfigureParams.System.bTurbo && i && (i%(NEXT_SCREEN_WIDTH*4))==0)
 						j+=32/4;
 					
@@ -265,7 +265,7 @@ static uint8_t AiffHeader[54] =
 	0, 2,                    /* Number of channels (2 for stereo) */
 	0, 0, 0, 0,              /* Number of samples (patched when file is closed) */
 	0, 16,                   /* Bits per sample (16 bit) */
-	0x40, 0x0E, 0xAC, 0x44,  /* Sample rate (44,1 kHz) */
+	0x40, 0x0e, 0xac, 0x44,  /* Sample rate (44,1 kHz) */
 	0x00, 0x00, 0x00, 0x00,
 	0x00, 0x00,
 	/* Sound data chunk */
@@ -295,22 +295,22 @@ static void Grab_CloseSoundFile(void)
 		nAiffSamples   = nAiffOutputBytes/2;  /* length of data divided by bytes per sample */
 		
 		/* Patch length of file in header structure */
-		AiffHeader[4] = (uint8_t)(nAiffFileBytes >> 24);
-		AiffHeader[5] = (uint8_t)(nAiffFileBytes >> 16);
-		AiffHeader[6] = (uint8_t)(nAiffFileBytes >> 8);
-		AiffHeader[7] = (uint8_t)(nAiffFileBytes >> 0);
+		AiffHeader[4] = (uint8_t)((nAiffFileBytes >> 24) & 0xff);
+		AiffHeader[5] = (uint8_t)((nAiffFileBytes >> 16) & 0xff);
+		AiffHeader[6] = (uint8_t)((nAiffFileBytes >>  8) & 0xff);
+		AiffHeader[7] = (uint8_t)((nAiffFileBytes >>  0) & 0xff);
 		
-		/* Patch number of samples in header sturcture */
-		AiffHeader[22] = (uint8_t)(nAiffSamples >> 24);
-		AiffHeader[23] = (uint8_t)(nAiffSamples >> 16);
-		AiffHeader[24] = (uint8_t)(nAiffSamples >> 8);
-		AiffHeader[25] = (uint8_t)(nAiffSamples >> 0);
+		/* Patch number of samples in header structure */
+		AiffHeader[22] = (uint8_t)((nAiffSamples >> 24) & 0xff);
+		AiffHeader[23] = (uint8_t)((nAiffSamples >> 16) & 0xff);
+		AiffHeader[24] = (uint8_t)((nAiffSamples >>  8) & 0xff);
+		AiffHeader[25] = (uint8_t)((nAiffSamples >>  0) & 0xff);
 
 		/* Patch length of data in header structure */
-		AiffHeader[42] = (uint8_t)(nAiffDataBytes >> 24);
-		AiffHeader[43] = (uint8_t)(nAiffDataBytes >> 16);
-		AiffHeader[44] = (uint8_t)(nAiffDataBytes >> 8);
-		AiffHeader[45] = (uint8_t)(nAiffDataBytes >> 0);
+		AiffHeader[42] = (uint8_t)((nAiffDataBytes >> 24) & 0xff);
+		AiffHeader[43] = (uint8_t)((nAiffDataBytes >> 16) & 0xff);
+		AiffHeader[44] = (uint8_t)((nAiffDataBytes >>  8) & 0xff);
+		AiffHeader[45] = (uint8_t)((nAiffDataBytes >>  0) & 0xff);
 		
 		/* Write updated header to file */
 		if (!File_Write(AiffHeader, sizeof(AiffHeader), 0, AiffFileHndl))

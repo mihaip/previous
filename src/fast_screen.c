@@ -127,7 +127,7 @@ void Screen_BlitDimension(uint32_t* vram, SDL_Texture* tex) {
 #if ND_STEP
 	uint32_t* src = &vram[0];
 #else
-	uint32_t* src = &vram[16];
+	uint32_t* src = &vram[4];
 #endif
 	int       d;
 	uint32_t  format;
