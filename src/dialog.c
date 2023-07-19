@@ -117,36 +117,30 @@ void Dialog_CheckFiles(void) {
 			File_MakePathBuf(szDefault, sizeof(szDefault), Paths_GetDataDir(), "Rev_2.5_v66", "BIN");
 		}
 	}
-	while (!File_Exists(szMissingFile)) {
+	while (!bQuitProgram && !File_Exists(szMissingFile)) {
 		DlgMissing_Rom(szMachine, szMissingFile, szDefault, &bEnable);
-		if (bQuitProgram) {
-			return;
-		}
 	}
 	for (i = 0; i < ND_MAX_BOARDS; i++) {
-		while (ConfigureParams.Dimension.board[i].bEnabled && !File_Exists(ConfigureParams.Dimension.board[i].szRomFileName)) {
+		while (!bQuitProgram &&
+		       ConfigureParams.Dimension.board[i].bEnabled &&
+		       !File_Exists(ConfigureParams.Dimension.board[i].szRomFileName)) {
 			snprintf(szMachine, sizeof(szMachine), "NeXTdimension at slot %i", i*2+2);
 			File_MakePathBuf(szDefault, sizeof(szDefault), Paths_GetDataDir(), "ND_step1_v43", "BIN");
 			DlgMissing_Rom(szMachine, ConfigureParams.Dimension.board[i].szRomFileName,
 			               szDefault, &ConfigureParams.Dimension.board[i].bEnabled);
-			if (bQuitProgram) {
-				return;
-			}
 		}
 	}
 
 	/* Check if SCSI disk images exist. Present a dialog to select missing files. */
 	for (i = 0; i < ESP_MAX_DEVS; i++) {
-		while ((ConfigureParams.SCSI.target[i].nDeviceType!=DEVTYPE_NONE) &&
+		while (!bQuitProgram &&
+		       (ConfigureParams.SCSI.target[i].nDeviceType!=DEVTYPE_NONE) &&
 		       ConfigureParams.SCSI.target[i].bDiskInserted &&
 		       !File_Exists(ConfigureParams.SCSI.target[i].szImageName)) {
 			DlgMissing_Disk("SCSI disk", i,
 			                ConfigureParams.SCSI.target[i].szImageName,
 			                &ConfigureParams.SCSI.target[i].bDiskInserted,
 			                &ConfigureParams.SCSI.target[i].bWriteProtected);
-			if (bQuitProgram) {
-				return;
-			}
 			if (ConfigureParams.SCSI.target[i].nDeviceType==DEVTYPE_HARDDISK &&
 			    !ConfigureParams.SCSI.target[i].bDiskInserted) {
 				ConfigureParams.SCSI.target[i].nDeviceType=DEVTYPE_NONE;
@@ -156,31 +150,35 @@ void Dialog_CheckFiles(void) {
 
 	/* Check if MO disk images exist. Present a dialog to select missing files. */
 	for (i = 0; i < MO_MAX_DRIVES; i++) {
-		while (ConfigureParams.MO.drive[i].bDriveConnected &&
+		while (!bQuitProgram &&
+		       ConfigureParams.MO.drive[i].bDriveConnected &&
 		       ConfigureParams.MO.drive[i].bDiskInserted &&
 		       !File_Exists(ConfigureParams.MO.drive[i].szImageName)) {
 			DlgMissing_Disk("MO disk", i,
 			                ConfigureParams.MO.drive[i].szImageName,
 			                &ConfigureParams.MO.drive[i].bDiskInserted,
 			                &ConfigureParams.MO.drive[i].bWriteProtected);
-			if (bQuitProgram) {
-				return;
-			}
 		}
 	}
 
-	/* Check if Floppy disk images exist. Present a dialog to select missing files. */
+	/* Check if floppy disk images exist. Present a dialog to select missing files. */
 	for (i = 0; i < FLP_MAX_DRIVES; i++) {
-		while (ConfigureParams.Floppy.drive[i].bDriveConnected &&
+		while (!bQuitProgram &&
+		       ConfigureParams.Floppy.drive[i].bDriveConnected &&
 		       ConfigureParams.Floppy.drive[i].bDiskInserted &&
 		       !File_Exists(ConfigureParams.Floppy.drive[i].szImageName)) {
 			DlgMissing_Disk("Floppy", i,
 			                ConfigureParams.Floppy.drive[i].szImageName,
 			                &ConfigureParams.Floppy.drive[i].bDiskInserted,
 			                &ConfigureParams.Floppy.drive[i].bWriteProtected);
-			if (bQuitProgram) {
-				return;
-			}
 		}
+	}
+	
+	/* Check if NFS shared direcory and printer output directory exist. */
+	while (!bQuitProgram && !File_DirExists(ConfigureParams.Ethernet.szNFSroot)) {
+		DlgMissing_Dir("NFS shared", ConfigureParams.Ethernet.szNFSroot, Paths_GetUserHome());
+	}
+	while (!bQuitProgram && !File_DirExists(ConfigureParams.Printer.szPrintToFileName)) {
+		DlgMissing_Dir("Printer output", ConfigureParams.Printer.szPrintToFileName, Paths_GetUserHome());
 	}
 }

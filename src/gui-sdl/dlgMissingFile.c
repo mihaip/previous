@@ -44,7 +44,7 @@ static SGOBJ missingromdlg[] =
 };
 
 
-/* Missing Disk dialog */
+/* Missing disk dialog */
 #define DLGMISDSK_ALERT     1
 
 #define DLGMISDSK_DRIVE     4
@@ -76,11 +76,38 @@ static SGOBJ missingdiskdlg[] =
 };
 
 
+/* Missing direcory dialog */
+#define DLGMISDIR_ALERT     1
+
+#define DLGMISDIR_BROWSE    4
+#define DLGMISDIR_DEFAULT   5
+#define DLGMISDIR_NAME      6
+
+#define DLGMISDIR_SELECT    7
+#define DLGMISDIR_QUIT      8
+
+
+static SGOBJ missingdirdlg[] =
+{
+	{ SGBOX, 0, 0, 0,0, 52,15, NULL },
+	{ SGTEXT, 0, 0, 2,1, 38,1, NULL },
+	{ SGTEXT, 0, 0, 2,4, 43,1, "Please select a valid directory:" },
+	
+	{ SGBOX, 0, 0, 1,6, 50,4, NULL },
+	{ SGBUTTON, 0, 0, 2,7, 8,1, "Browse" },
+	{ SGBUTTON, 0, 0, 11,7, 9,1, "Default" },
+	{ SGTEXT, 0, 0, 2,8, 46,1, NULL },
+	
+	{ SGBUTTON, SG_DEFAULT, 0, 4,12, 10,1, "Select" },
+	{ SGBUTTON, 0, 0, 38,12, 10,1, "Quit" },
+	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
+};
+
 
 
 /*-----------------------------------------------------------------------*/
 /**
- * Show and process the Missing ROM dialog.
+ * Show and process the missing ROM dialog.
  */
 void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *enabled) {
 	int but;
@@ -149,7 +176,7 @@ void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *
 
 /*-----------------------------------------------------------------------*/
 /**
- * Show and process the Missing Disk dialog.
+ * Show and process the missing disk dialog.
  */
 void DlgMissing_Disk(const char* type, int num, char *imgname, bool *inserted, bool *wp)
 {
@@ -205,6 +232,65 @@ void DlgMissing_Disk(const char* type, int num, char *imgname, bool *inserted, b
 		}
 	}
 	while (but != DLGMISDSK_SELECT && but != DLGMISDSK_REMOVE &&
+		   but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
+	
+	Screen_UpdateRect(sdlscrn, 0, 0, 0, 0);
+	SDL_ShowCursor(bOldMouseVisibility);
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Show and process the missing disk dialog.
+ */
+void DlgMissing_Dir(const char* type, char *dirname, const char *defname)
+{
+	int but;
+	
+	char dlgname_missingdir[64];
+	char missingdir_alert[64];
+	char missingdir_dir[64];
+	
+	bool bOldMouseVisibility;
+	bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
+	SDL_ShowCursor(SDL_ENABLE);
+	
+	SDLGui_CenterDlg(missingdirdlg);
+	
+	/* Set up dialog to actual values: */
+	snprintf(missingdir_alert, sizeof(missingdir_alert), "%s directory not found!", type);
+	missingdirdlg[DLGMISDIR_ALERT].txt = missingdir_alert;
+	
+	snprintf(missingdir_dir, sizeof(missingdir_dir), "%s directory:", type);
+	missingdirdlg[DLGMISDIR_NAME].txt = missingdir_dir;
+	
+	File_ShrinkName(dlgname_missingdir, dirname, missingdirdlg[DLGMISDIR_NAME].w);
+	
+	missingdirdlg[DLGMISDIR_NAME].txt = dlgname_missingdir;
+	
+	
+	/* Draw and process the dialog */
+	do
+	{		
+		but = SDLGui_DoDialog(missingdirdlg);
+		switch (but)
+		{
+			case DLGMISDIR_BROWSE:
+				SDLGui_DirConfSelect(dlgname_missingdir, dirname, missingdirdlg[DLGMISDIR_NAME].w);
+				break;
+			case DLGMISDIR_DEFAULT:
+				snprintf(dirname, FILENAME_MAX, "%s",defname);
+				File_ShrinkName(dlgname_missingdir, dirname, missingdirdlg[DLGMISDIR_NAME].w);
+				break;
+			case DLGMISDIR_QUIT:
+				bQuitProgram = true;
+				break;
+
+			default:
+				break;
+		}
+	}
+	while (but != DLGMISDIR_SELECT && 
 		   but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
 	
 	Screen_UpdateRect(sdlscrn, 0, 0, 0, 0);
