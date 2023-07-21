@@ -193,7 +193,7 @@ static const TCHAR help[] = {
 	_T("  tx                    Break when any exception.\n")
 	_T("  z                     Step through one instruction - useful for JSR, DBRA etc.\n")
 	_T("  f                     Step forward until PC in RAM (\"boot block finder\").\n")
-	_T("  f <address>           Add/remove breakpoint.\n")
+	_T("  f <address> [Nx]      Add/remove breakpoint.\n")
 	_T("  fa <address> [<start>] [<end>]\n")
 	_T("                        Find effective address <address>.\n")
 	_T("  fi                    Step forward until PC points to RTS, RTD or RTE.\n")
@@ -203,7 +203,7 @@ static const TCHAR help[] = {
 	_T("  fd                    Remove all breakpoints.\n")
 	_T("  fs <lines to wait> | <vpos> <hpos> Wait n scanlines/position.\n")
 	_T("  fc <CCKs to wait>     Wait n color clocks.\n")
-	_T("  fo <num> <reg> <oper> <val> [<mask> <val2>] Conditional register breakpoint.\n")
+	_T("  fo <num> <reg> <oper> <val> [<mask> <val2>] Conditional register breakpoint [Nx] [Hx].\n")
 	_T("   reg=Dx,Ax,PC,USP,ISP,VBR,SR. oper:!=,==,<,>,>=,<=,-,!- (-=val to val2 range).\n")
 	_T("  f <addr1> <addr2>     Step forward until <addr1> <= PC <= <addr2>.\n")
 	_T("  e[x]                  Dump contents of all custom registers, ea = AGA colors.\n")
@@ -535,7 +535,7 @@ static bool iscancel (int counter)
 static bool isoperator(TCHAR **cp)
 {
 	TCHAR c = **cp;
-	return c == '+' || c == '-' || c == '/' || c == '*' || c == '(' || c == ')' || c == '|' || c == '&' || c == '^';
+	return c == '+' || c == '-' || c == '/' || c == '*' || c == '(' || c == ')' || c == '|' || c == '&' || c == '^' || c == '=' || c == '>' || c == '<';
 }
 
 static void ignore_ws (TCHAR **c)
@@ -593,7 +593,7 @@ static const TCHAR *debugoper[] = {
 	NULL
 };
 
-static int getoperidx(TCHAR **c)
+static int getoperidx(TCHAR **c, bool *opersigned)
 {
 	int i;
 	TCHAR *p = *c;
@@ -633,6 +633,11 @@ static int getoperidx(TCHAR **c)
 		(*c) += 2;
 		return BREAKPOINT_CMP_NRANGE;
 	}
+	*opersigned = false;
+	if (**c == 's') {
+		(*c)++;
+		*opersigned = true;
+	}
 	return -1;
 }
 
@@ -671,6 +676,9 @@ static const TCHAR *debugregs[] = {
 	_T("DTT1"),
 	_T("BUSC"),
 	_T("PCR"),
+	_T("FPIAR"),
+	_T("FPCR"),
+	_T("FPSR"),
 	NULL
 };
 
@@ -747,85 +755,74 @@ static uae_u32 returnregx(int regid)
 		case BREAKPOINT_REG_BUSC:
 		return regs.buscr;
 		case BREAKPOINT_REG_PCR:
+		return regs.pcr;
+		case BREAKPOINT_REG_FPIAR:
+		return regs.fpiar;
+		case BREAKPOINT_REG_FPCR:
 		return regs.fpcr;
+		case BREAKPOINT_REG_FPSR:
+		return regs.fpsr;
 	}
 	return 0;
 }
 
-static int readregx (TCHAR **c, uae_u32 *valp)
+static int readregx(TCHAR **c, uae_u32 *valp)
 {
-	int i;
+	int idx;
 	uae_u32 addr;
-	TCHAR *p = *c;
-	TCHAR tmp[10], *tp;
-	int extra = 0;
+	TCHAR *old = *c;
 
 	addr = 0;
-	i = 0;
-	while (p[i]) {
-		tmp[i] = _totupper (p[i]);
-		if (i >= sizeof (tmp) / sizeof (TCHAR) - 1)
-			break;
-		i++;
+	if (_totupper(**c) == 'R') {
+		(*c)++;
 	}
-	tmp[i] = 0;
-	tp = tmp;
-	if (_totupper (tmp[0]) == 'R') {
-		tp = tmp + 1;
-		extra = 1;
-	}
-	if (!_tcsncmp (tp, _T("USP"), 3)) {
-		addr = regs.usp;
-		(*c) += 3;
-	} else if (!_tcsncmp (tp, _T("VBR"), 3)) {
-		addr = regs.vbr;
-		(*c) += 3;
-	} else if (!_tcsncmp (tp, _T("MSP"), 3)) {
-		addr = regs.msp;
-		(*c) += 3;
-	} else if (!_tcsncmp (tp, _T("ISP"), 3)) {
-		addr = regs.isp;
-		(*c) += 3;
-	} else if (!_tcsncmp (tp, _T("PC"), 2)) {
-		addr = regs.pc;
-		(*c) += 2;
-	} else if (tp[0] == 'A' || tp[0] == 'D') {
-		int reg = 0;
-		if (tp[0] == 'A')
-			reg += 8;
-		reg += tp[1] - '0';
-		if (reg < 0 || reg > 15)
-			return 0;
-		addr = regs.regs[reg];
-		(*c) += 2;
-	} else {
+	idx = getregidx(c);
+	if (idx < 0) {
+		*c = old;
 		return 0;
 	}
+	addr = returnregx(idx);
 	*valp = addr;
-	(*c) += extra;
 	return 1;
+}
+
+static bool checkisneg(TCHAR **c)
+{
+	TCHAR nc = peekchar(c);
+	if (nc == '-') {
+		(*c)++;
+		return true;
+	} else if (nc == '+') {
+		(*c)++;
+	}
+	return false;
 }
 
 static bool readbinx (TCHAR **c, uae_u32 *valp)
 {
 	uae_u32 val = 0;
 	bool first = true;
+	bool negative = false;
 
 	ignore_ws (c);
+	negative = checkisneg(c);
 	for (;;) {
 		TCHAR nc = **c;
-		if (nc != '1' && nc != '0') {
+		if (nc != '1' && nc != '0' && nc != '`') {
 			if (first)
 				return false;
 			break;
 		}
 		first = false;
 		(*c)++;
-		val <<= 1;
-		if (nc == '1')
-			val |= 1;
+		if (nc != '`') {
+			val <<= 1;
+			if (nc == '1') {
+				val |= 1;
+			}
+		}
 	}
-	*valp = val;
+	*valp = val * (negative ? -1 : 1);
 	return true;
 }
 
@@ -833,9 +830,11 @@ static bool readhexx (TCHAR **c, uae_u32 *valp)
 {
 	uae_u32 val = 0;
 	TCHAR nc;
+	bool negative = false;
 
-	ignore_ws (c);
-	if (!isxdigit (peekchar (c)))
+	ignore_ws(c);
+	negative = checkisneg(c);
+	if (!isxdigit(peekchar(c)))
 		return false;
 	while (isxdigit (nc = **c)) {
 		(*c)++;
@@ -847,7 +846,7 @@ static bool readhexx (TCHAR **c, uae_u32 *valp)
 			val += nc - 'A' + 10;
 		}
 	}
-	*valp = val;
+	*valp = val * (negative ? -1 : 1);
 	return true;
 }
 
@@ -858,8 +857,7 @@ static bool readintx (TCHAR **c, uae_u32 *valp)
 	int negative = 0;
 
 	ignore_ws (c);
-	if (**c == '-')
-		negative = 1, (*c)++;
+	negative = checkisneg(c);
 	if (!isdigit (peekchar (c)))
 		return false;
 	while (isdigit (nc = **c)) {
@@ -951,17 +949,23 @@ static int checkvaltype (TCHAR **cp, uae_u32 *val, int *size, TCHAR def)
 	p = form;
 	for (;;) {
 		uae_u32 v;
-		if (!checkvaltype2 (cp, &v, def))
+		if (!checkvaltype2 (cp, &v, def)) {
+			if (isoperator(cp) || gotop || **cp == '\"' || **cp == '\'') {
+				goto docalc;
+			}
 			return 0;
+		}
 		*val = v;
 		// stupid but works!
 		_stprintf(p, _T("%u"), v);
 		p += _tcslen (p);
+		*p = 0;
 		if (peekchar (cp) == '.') {
 			readchar (cp);
 			if (size)
 				*size = readsize (v, cp);
 		}
+		ignore_ws(cp);
 		if (!isoperator (cp))
 			break;
 		gotop = true;
@@ -981,7 +985,14 @@ static int checkvaltype (TCHAR **cp, uae_u32 *val, int *size, TCHAR def)
 		}
 		return 1;
 	}
-	if (calc (form, &out)) {
+docalc:
+	while (more_params2(cp)) {
+		*p++ = readchar(cp);
+	}
+	*p = 0;
+	TCHAR tmp[MAX_DPATH];
+	int v = calc(form, &out, tmp, sizeof(tmp) / sizeof(TCHAR));
+	if (v > 0) {
 		*val = (uae_u32)out;
 		if (size && *size == 0) {
 			uae_s32 v = (uae_s32)(*val);
@@ -994,6 +1005,8 @@ static int checkvaltype (TCHAR **cp, uae_u32 *val, int *size, TCHAR def)
 			}
 		}
 		return 1;
+	} else if (v < 0) {
+		console_out_f(_T("String returned: '%s'\n"), tmp);
 	}
 	return 0;
 }
@@ -1071,15 +1084,19 @@ static void converter(TCHAR **c)
 	bool err;
 	uae_u32 v = readint(c, &err);
 	TCHAR s[100];
-	int i;
+	int i, j;
 
 	if (err) {
 		return;
 	}
-	for (i = 0; i < 32; i++)
-		s[i] = (v & (1 << (31 - i))) ? '1' : '0';
-	s[i] = 0;
-	console_out_f (_T("0x%08X = %%%s = %u = %d\n"), v, s, v, (uae_s32)v);
+	for (i = 0, j = 0; i < 32; i++) {
+		s[j++] = (v & (1 << (31 - i))) ? '1' : '0';
+		if (i < 31 && (i & 7) == 7) {
+			s[j++] = '`';
+		}
+	}
+	s[j] = 0;
+	console_out_f (_T("$%08X = %%%s = %u = %d\n"), v, s, v, (uae_s32)v);
 }
 
 static bool isrom(uaecptr addr)
@@ -1210,12 +1227,13 @@ uaecptr dumpmem2 (uaecptr addr, TCHAR *out, int osize)
 	return addr;
 }
 
+static TCHAR dumpmemline[MAX_LINEWIDTH + 1];
+
 static void dumpmem (uaecptr addr, uaecptr *nxmem, int lines)
 {
-	TCHAR line[MAX_LINEWIDTH + 1];
 	for (;lines--;) {
-		addr = dumpmem2 (addr, line, sizeof(line));
-		debug_out (_T("%s"), line);
+		addr = dumpmem2 (addr, dumpmemline, sizeof(dumpmemline) / sizeof(TCHAR));
+		debug_out (_T("%s"), dumpmemline);
 		if (!debug_out (_T("\n")))
 			break;
 	}
@@ -2134,11 +2152,13 @@ void record_dma_write(uae_u16 reg, uae_u32 dat, uae_u32 addr, int hpos, int vpos
 		dma_record_init();
 	}
 
+	last_dma_rec = NULL;
+	hpos += dma_record_hoffset;
 	if (hpos >= NR_DMA_REC_HPOS || vpos >= NR_DMA_REC_VPOS)
 		return;
 
 	dr = &dma_record[dma_record_toggle][vpos * NR_DMA_REC_HPOS + hpos];
-	dma_record_frame[dma_record_toggle] = timeframes;
+	dma_record_frame[dma_record_toggle] = vsync_counter;
 	if (dr->reg != 0xffff) {
 		dr->cf_reg = reg;
 		dr->cf_dat = dat;
@@ -2222,7 +2242,7 @@ void record_cia_access(int r, int mask, uae_u16 value, bool rw, int hpos, int vp
 		return;
 
 	dr = &dma_record[dma_record_toggle][vpos * NR_DMA_REC_HPOS + hpos];
-	dma_record_frame[dma_record_toggle] = timeframes;
+	dma_record_frame[dma_record_toggle] = vsync_counter;
 
 	if (dr->ciaphase < 0) {
 		return;
@@ -2240,11 +2260,13 @@ void record_dma_read(uae_u16 reg, uae_u32 addr, int hpos, int vpos, int type, in
 
 	dma_record_init();
 
+	last_dma_rec = NULL;
+	hpos += dma_record_hoffset;
 	if (hpos >= NR_DMA_REC_HPOS || vpos >= NR_DMA_REC_VPOS)
 		return;
 
 	dr = &dma_record[dma_record_toggle][vpos * NR_DMA_REC_HPOS + hpos];
-	dma_record_frame[dma_record_toggle] = timeframes;
+	dma_record_frame[dma_record_toggle] = vsync_counter;
 	if (dr->reg != 0xffff) {
 		if (dr->reg != reg) {
 			dma_conflict(vpos, hpos, dr, reg, false);
@@ -2704,7 +2726,7 @@ void log_dma_record (void)
 	if (!input_record && !input_play)
 		return;
 	if (!debug_dma)
-		debug_dma = 1;
+		return;
 	decode_dma_record (0, 0, 0, true);
 }
 
@@ -4758,6 +4780,9 @@ static void writeintomem (TCHAR **c)
 				if (addr >= eaddr)
 					break;
 			}
+			if (fillmode && peekchar(c) == 0) {
+				*c = cb;
+			}
 		}
 		if (retry) {
 			continue;
@@ -5518,19 +5543,35 @@ static struct regstruct trace_prev_regs;
 #endif
 static uaecptr nextpc;
 
-int instruction_breakpoint(TCHAR **c)
+static void check_breakpoint_extra(TCHAR **c, struct breakpoint_node *bpn)
 {
-	struct breakpoint_node *bpn;
-	int bpcnt = 0;
-	int i;
-
+	bpn->cnt = 0;
+	bpn->chain = -1;
 	if (more_params(c)) {
 		TCHAR nc = _totupper((*c)[0]);
 		if (nc == 'N') {
 			next_char(c);
-			bpcnt = readint(c, NULL);
+			bpn->cnt = readint(c, NULL);
 		}
 	}
+	if (more_params(c)) {
+		TCHAR nc = _totupper((*c)[0]);
+		if (nc == 'H') {
+			next_char(c);
+			bpn->chain = readint(c, NULL);
+			if (bpn->chain < 0 || bpn->chain >= BREAKPOINT_TOTAL) {
+				bpn->chain = -1;
+			}
+		}
+	}
+}
+
+int instruction_breakpoint(TCHAR **c)
+{
+	struct breakpoint_node *bpn;
+	int i;
+	TCHAR next = 0;
+
 	if (more_params (c)) {
 		TCHAR nc = _totupper ((*c)[0]);
 		if (nc == 'O') {
@@ -5540,13 +5581,12 @@ int instruction_breakpoint(TCHAR **c)
 				int bpidx = readint(c, NULL);
 				if (more_params(c) && bpidx >= 0 && bpidx < BREAKPOINT_TOTAL) {
 					bpn = &bpnodes[bpidx];
-					bpn->cnt = bpcnt;
 					int regid = getregidx(c);
 					if (regid >= 0) {
 						bpn->type = regid;
 						bpn->mask = 0xffffffff;
 						if (more_params(c)) {
-							int operid = getoperidx(c);
+							int operid = getoperidx(c, &bpn->opersigned);
 							if (more_params(c) && operid >= 0) {
 								bpn->oper = operid;
 								bpn->value1 = readhex(c, NULL);
@@ -5557,6 +5597,7 @@ int instruction_breakpoint(TCHAR **c)
 										bpn->value2 = readhex(c, NULL);
 									}
 								}
+								check_breakpoint_extra(c, bpn);
 								console_out(_T("Breakpoint added.\n"));
 							}
 						}
@@ -5596,8 +5637,9 @@ int instruction_breakpoint(TCHAR **c)
 			trace_mode = TRACE_MATCH_INS;
 			return 1;
 		} else if (nc == 'D' && (*c)[1] == 0) {
-			for (i = 0; i < BREAKPOINT_TOTAL; i++)
+			for (i = 0; i < BREAKPOINT_TOTAL; i++) {
 				bpnodes[i].enabled = 0;
+			}
 			console_out(_T("All breakpoints removed.\n"));
 			return 0;
 		} else if (nc == 'R' && (*c)[1] == 0) {
@@ -5615,7 +5657,14 @@ int instruction_breakpoint(TCHAR **c)
 				bpn = &bpnodes[i];
 				if (!bpn->enabled)
 					continue;
-				console_out_f (_T("%d: %s %s %08x [%08x %08x]\n"), i, debugregs[bpn->type], debugoper[bpn->oper], bpn->value1, bpn->mask, bpn->value2);
+				console_out_f (_T("%d: %s %s %08x [%08x %08x]"), i, debugregs[bpn->type], debugoper[bpn->oper], bpn->value1, bpn->mask, bpn->value2);
+				if (bpn->cnt > 0) {
+					console_out_f(_T(" N=%d"), bpn->cnt);
+				}
+				if (bpn->chain > 0) {
+					console_out_f(_T(" H=%d"), bpn->chain);
+				}
+				console_out_f(_T("\n"));
 				got = 1;
 			}
 			if (!got)
@@ -5646,8 +5695,8 @@ int instruction_breakpoint(TCHAR **c)
 				bpn->value1 = trace_param[0];
 				bpn->type = BREAKPOINT_REG_PC;
 				bpn->oper = BREAKPOINT_CMP_EQUAL;
-				bpn->cnt = bpcnt;
 				bpn->enabled = 1;
+				check_breakpoint_extra(c, bpn);
 				console_out (_T("Breakpoint added.\n"));
 				trace_mode = 0;
 				break;
@@ -5951,7 +6000,7 @@ static void debug_sprite (TCHAR **inptr)
 	int ecs, sh10;
 	int y, i;
 	TCHAR tmp[80];
-	int max = 2;
+	int max = 14;
 
 	addr2 = 0;
 	ignore_ws(inptr);
@@ -6007,6 +6056,11 @@ static void debug_sprite (TCHAR **inptr)
 			sh10 = 1;
 		if (ypose < ypos)
 			ypose += 256;
+
+		if (ecs_agnus) {
+			ypos = ypos_ecs;
+			ypose = ypose_ecs;
+		}
 
 		for (y = ypos; y < ypose; y++) {
 			int x;
@@ -6076,8 +6130,10 @@ static void debug_sprite (TCHAR **inptr)
 		if (get_word_debug (addr) == 0 && get_word_debug (addr + size * 4) == 0)
 			break;
 		max--;
-		if (max <= 0)
+		if (max <= 0) {
+			console_out_f(_T("Max sprite count reached.\n"));
 			break;
+		}
 	}
 
 }
@@ -6983,10 +7039,10 @@ static bool debug_line (TCHAR *input)
 	return false;
 }
 
+static TCHAR input[MAX_LINEWIDTH];
+
 static void debug_1 (void)
 {
-	TCHAR input[MAX_LINEWIDTH];
-
 	custom_dumpstate(0);
 	m68k_dumpstate(&nextpc, debug_pc);
 	debug_pc = 0xffffffff;
@@ -7053,9 +7109,98 @@ void debug_exception(int nr)
 	}
 }
 
+static bool check_breakpoint(struct breakpoint_node *bpn, uaecptr pc)
+{
+	int bpnum = -1;
+
+	if (!bpn->enabled) {
+		return false;
+	}
+	if (bpn->type == BREAKPOINT_REG_PC) {
+		if (bpn->value1 == pc) {
+			return true;
+		}
+	} else if (bpn->type >= 0 && bpn->type < BREAKPOINT_REG_END) {
+		uae_u32 value1 = bpn->value1 & bpn->mask;
+		uae_u32 value2 = bpn->value2 & bpn->mask;
+		uae_u32 cval = returnregx(bpn->type) & bpn->mask;
+		int opersize = bpn->mask == 0xff ? 1 : (bpn->mask == 0xffff) ? 2 : 4;
+		bool opersigned = bpn->opersigned;
+		uae_s32 value1s = (uae_s32)value1;
+		uae_s32 value2s = (uae_s32)value2;
+		uae_s32 cvals = (uae_s32)cval;
+		if (opersize == 2) {
+			cvals = (uae_s32)(uae_s16)cvals;
+			value1s = (uae_s32)(uae_s16)value1s;
+			value2s = (uae_s32)(uae_s16)value2s;
+		} else if (opersize == 1) {
+			cvals = (uae_s32)(uae_s8)cvals;
+			value1s = (uae_s32)(uae_s8)value1s;
+			value2s = (uae_s32)(uae_s8)value2s;
+		}
+		switch (bpn->oper)
+		{
+			case BREAKPOINT_CMP_EQUAL:
+				if (cval == value1)
+					return true;
+				break;
+			case BREAKPOINT_CMP_NEQUAL:
+				if (cval != value1)
+					return true;
+				break;
+			case BREAKPOINT_CMP_SMALLER:
+				if (opersigned) {
+					if (cvals <= value1s)
+						return true;
+				} else {
+					if (cval <= value1)
+						return true;
+				}
+				break;
+			case BREAKPOINT_CMP_LARGER:
+				if (opersigned) {
+					if (cvals >= value1s)
+						return true;
+				} else {
+					if (cval >= value1)
+						return true;
+				}
+				break;
+			case BREAKPOINT_CMP_RANGE:
+				if (opersigned) {
+					if (cvals >= value1s && cvals <= value2s)
+						return true;
+				} else {
+					if (cval >= value1 && cval <= value2)
+						return true;
+				}
+				break;
+			case BREAKPOINT_CMP_NRANGE:
+				if (opersigned) {
+					if (cvals <= value1s || cvals >= value2s)
+						return true;
+				} else {
+					if (cval <= value1 || cval >= value2)
+					return true;
+				}
+				break;
+		}
+	}
+	return false;
+}
+
+static bool check_breakpoint_count(struct breakpoint_node *bpn, uaecptr pc)
+{
+	if (bpn->cnt <= 0) {
+		return true;
+	}
+	console_out_f(_T("Breakpoint %d hit: PC=%08x, count=%d.\n"), bpn - bpnodes, pc, bpn->cnt);
+	bpn->cnt--;
+	return false;
+}
+
 void debug (void)
 {
-	int i;
 	int wasactive;
 
 	if (savestate_state)
@@ -7088,50 +7233,46 @@ void debug (void)
 		if (trace_mode) {
 			uae_u32 pc;
 			uae_u16 opcode;
+			int bpnum = -1;
 			int bp = 0;
 
 			pc = munge24 (m68k_getpc ());
 			opcode = currprefs.cpu_model < 68020 && (currprefs.cpu_compatible || currprefs.cpu_cycle_exact) ? regs.ir : get_word_debug (pc);
 
-			for (i = 0; i < BREAKPOINT_TOTAL; i++) {
+			for (int i = 0; i < BREAKPOINT_TOTAL; i++) {
 				struct breakpoint_node *bpn = &bpnodes[i];
-				if (!bpn->enabled)
-					continue;
-				if (bpn->type == BREAKPOINT_REG_PC) {
-					if (bpn->value1 == pc) {
-						bp = i + 1;
-						break;
+				if (check_breakpoint(bpn, pc)) {
+					int j;
+					// if this breakpoint is chained, ignore it
+					for (j = 0; j < BREAKPOINT_TOTAL; j++) {
+						struct breakpoint_node *bpn2 = &bpnodes[j];
+						if (bpn2->enabled && bpn2->chain == i) {
+							break;
+						}
 					}
-				} else if (bpn->type >= 0 && bpn->type < BREAKPOINT_REG_END) {
-					uae_u32 value1 = bpn->value1 & bpn->mask;
-					uae_u32 value2 = bpn->value2 & bpn->mask;
-					uae_u32 cval = returnregx(bpn->type) & bpn->mask;
-					switch (bpn->oper)
-					{
-						case BREAKPOINT_CMP_EQUAL:
-						if (cval == value1)
-							bp = i + 1;
-						break;
-						case BREAKPOINT_CMP_NEQUAL:
-						if (cval != value1)
-							bp = i + 1;
-						break;
-						case BREAKPOINT_CMP_SMALLER:
-						if (cval <= value1)
-							bp = i + 1;
-						break;
-						case BREAKPOINT_CMP_LARGER:
-						if (cval >= value1)
-							bp = i + 1;
-						break;
-						case BREAKPOINT_CMP_RANGE:
-						if (cval >= value1 && cval <= value2)
-							bp = i + 1;
-						break;
-						case BREAKPOINT_CMP_NRANGE:
-						if (cval <= value1 || cval >= value2)
-							bp = i + 1;
-						break;
+					if (j >= BREAKPOINT_TOTAL) {
+						if (!check_breakpoint_count(bpn, pc)) {
+							break;
+						}
+						int max = BREAKPOINT_TOTAL;
+						bpnum = i;
+						// check breakpoint chain
+						while (bpnum >= 0 && bpnodes[bpnum].chain >= 0 && bpnodes[bpnum].chain != bpnum && max > 0) {
+							bpnum = bpnodes[bpnum].chain;
+							struct breakpoint_node *bpn = &bpnodes[bpnum];
+							if (!check_breakpoint(bpn, pc)) {
+								bpnum = -1;
+								break;
+							}
+							if (!check_breakpoint_count(bpn, pc)) {
+								bpnum = -1;
+								break;
+							}
+							max--;
+						}
+						if (bpnum >= 0) {
+							break;
+						}
 					}
 				}
 			}
@@ -7171,7 +7312,7 @@ void debug (void)
 							while (seglist) {
 								uae_u32 size = get_long_debug (seglist - 4) - 4;
 								if (pc >= (seglist + 4) && pc < (seglist + size)) {
-									bp = i + 1;
+									bp = -1;
 									break;
 								}
 								seglist = BPTR2APTR(get_long_debug (seglist));
@@ -7216,19 +7357,12 @@ void debug (void)
 					}
 				}
 			}
-			if (!bp) {
+			if (!bp && bpnum < 0) {
 				debug_continue();
 				return;
 			}
-			if (bp > 0) {
-				if (bpnodes[bp - 1].cnt > 0) {
-					bpnodes[bp - 1].cnt--;
-				}
-				if (bpnodes[bp - 1].cnt > 0) {
-					debug_continue();
-					return;
-				}
-				console_out_f(_T("Breakpoint %d triggered.\n"), bp - 1);
+			if (bpnum >= 0) {
+				console_out_f(_T("Breakpoint %d triggered.\n"), bpnum);
 			}
 			debug_cycles(1);
 		}
@@ -7258,7 +7392,7 @@ void debug (void)
 	debugmem_disable();
 
 	if (trace_cycles && last_frame >= 0) {
-		if (last_frame + 2 >= timeframes || trace_cycles > 1) {
+		if (last_frame + 2 >= vsync_counter || trace_cycles > 1) {
 			evt_t c = last_cycles2 - last_cycles1;
 			uae_u32 cc;
 			if (c >= 0x7fffffff) {
@@ -7285,7 +7419,7 @@ void debug (void)
 			savestate_capture (1);
 	}
 	if (!trace_mode) {
-		for (i = 0; i < BREAKPOINT_TOTAL; i++) {
+		for (int i = 0; i < BREAKPOINT_TOTAL; i++) {
 			if (bpnodes[i].enabled)
 				trace_mode = TRACE_CHECKONLY;
 		}

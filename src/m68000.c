@@ -126,6 +126,7 @@ void M68000_CheckCpuSettings(void)
 	changed_prefs.fpu_no_unimplemented = true;
 	changed_prefs.address_space_24 = false;
 	changed_prefs.cpu_data_cache = false;
+	changed_prefs.cachesize = 0;
 
 	check_prefs_changed_cpu();
 }

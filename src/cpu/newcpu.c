@@ -443,14 +443,14 @@ static bool check_trace (void)
 	return true;
 }
 
-static bool get_trace (uaecptr addr, int accessmode, int size, uae_u32 *data)
+static bool get_trace(uaecptr addr, int accessmode, int size, uae_u32 *data)
 {
 	int mode = accessmode | (size << 4);
 	for (int i = 0; i < cputrace.memoryoffset; i++) {
 		struct cputracememory *ctm = &cputrace.ctm[i];
 		if (ctm->addr == addr && ctm->mode == mode) {
 			ctm->mode = 0;
-			write_log (_T("CPU trace: GET %d: PC=%08x %08x=%08x %d %d %08x/%08x/%08x %d/%d (%08llx)\n"),
+			write_log(_T("CPU trace: GET %d: PC=%08x %08x=%08x %d %d %08x/%08x/%08x %d/%d (%08llx)\n"),
 				i, cputrace.pc, addr, ctm->data, accessmode, size,
 				cputrace.cyclecounter, cputrace.cyclecounter_pre, cputrace.cyclecounter_post,
 				cputrace.readcounter, cputrace.writecounter, get_cycles ());
@@ -488,7 +488,7 @@ static bool get_trace (uaecptr addr, int accessmode, int size, uae_u32 *data)
 					}
 				}
 			}
-			check_trace ();
+			check_trace();
 			*data = ctm->data;
 			return false;
 		}
@@ -496,15 +496,17 @@ static bool get_trace (uaecptr addr, int accessmode, int size, uae_u32 *data)
 	if (cputrace.cyclecounter_post) {
 		int c = cputrace.cyclecounter_post;
 		cputrace.cyclecounter_post = 0;
-		check_trace ();
-		check_trace2 ();
-		x_do_cycles (c);
+		check_trace();
+		check_trace2();
+		x_do_cycles(c);
 		return false;
 	}
-	gui_message (_T("CPU trace: GET %08x %d %d NOT FOUND!\n"), addr, accessmode, size);
-	check_trace ();
+	if (cputrace.memoryoffset > 0 || cputrace.cyclecounter_pre) {
+		gui_message(_T("CPU trace: GET %08x %d %d NOT FOUND!\n"), addr, accessmode, size);
+	}
+	check_trace();
 	*data = 0;
-	return false;
+	return true;
 }
 
 static uae_u32 cputracefunc_x_prefetch (int o)
@@ -892,7 +894,7 @@ void(*write_data_030_fc_lput)(uaecptr, uae_u32, uae_u32);
 static void set_x_ifetches(void)
 {
 	if (m68k_pc_indirect) {
-		if (0) {
+		if (currprefs.cachesize) {
 			// indirect via addrbank
 			x_get_ilong = get_iilong_jit;
 			x_get_iword = get_iiword_jit;
@@ -1964,7 +1966,7 @@ static void build_cpufunctbl (void)
 	int lvl, mode, jit;
 
 	jit = 0;
-	if (1) {
+	if (!currprefs.cachesize) {
 		if (currprefs.mmu_model) {
 			if (currprefs.cpu_cycle_exact)
 				mode = 7;
@@ -2494,7 +2496,7 @@ static void activate_trace(void)
 void checkint(void)
 {
 	doint();
-	if (!m68k_accurate_ipl && !(regs.spcflags & SPCFLAG_INT) && (regs.spcflags & SPCFLAG_DOINT))
+	if (!m68k_accurate_ipl && !currprefs.cachesize && !(regs.spcflags & SPCFLAG_INT) && (regs.spcflags & SPCFLAG_DOINT))
 		set_special(SPCFLAG_INT);
 }
 
@@ -2553,7 +2555,7 @@ static void MakeFromSR_x(int t0trace)
 			}
 		} else {
 			if (regs.ipl_pin <= regs.intmask && regs.ipl_pin > newimask) {
-				if (currprefs.cpu_compatible && currprefs.cpu_model < 68020) {
+				if (!currprefs.cachesize) {
 					set_special(SPCFLAG_INT);
 				} else {
 					set_special(SPCFLAG_DOINT);
@@ -2831,6 +2833,7 @@ Interrupt:
 ...
 
 */
+
 #ifndef WINUAE_FOR_PREVIOUS
 static int iack_cycle(int nr)
 {
@@ -3898,9 +3901,9 @@ static void do_interrupt (int nr)
 #endif
 	if (inputrecord_debug & 2) {
 		if (input_record > 0)
-			inprec_recorddebug_cpu (2);
+			inprec_recorddebug_cpu(2, 0);
 		else if (input_play > 0)
-			inprec_playdebug_cpu (2);
+			inprec_playdebug_cpu(2, 0);
 	}
 
 	assert (nr < 8 && nr >= 0);
@@ -4940,10 +4943,12 @@ void ipl_fetch_next(void)
 {
 	evt_t c = get_cycles();
 
-	if (c - regs.ipl_pin_change_evt >= cpuipldelay4) {
+	evt_t cd = c - regs.ipl_pin_change_evt;
+	evt_t cdp = c - regs.ipl_pin_change_evt_p;
+	if (cd >= cpuipldelay4) {
 		regs.ipl[0] = regs.ipl_pin;
 		regs.ipl[1] = 0;
-	} else if (c - regs.ipl_pin_change_evt_p >= cpuipldelay2) {
+	} else if (cdp >= cpuipldelay2) {
 		regs.ipl[0] = regs.ipl_pin_p;
 		regs.ipl[1] = 0;
 	} else {
@@ -5007,7 +5012,7 @@ void doint(void)
 		// Paula does low to high IPL changes about 1.5 CPU clocks later than high to low.
 		// -> CPU detects IPL change 1 CCK later if any IPL pin has high to low transition.
 		// (In real world IPL is active low and delay is added if 0 to 1 transition)
-		if (m68k_accurate_ipl && regs.ipl_pin >= 0 && ipl >= 0 && (
+		if (currprefs.cs_ipldelay && m68k_accurate_ipl && regs.ipl_pin >= 0 && ipl >= 0 && (
 			((regs.ipl_pin & 1) && !(ipl & 1)) ||
 			((regs.ipl_pin & 2) && !(ipl & 2)) ||
 			((regs.ipl_pin & 4) && !(ipl & 4))
@@ -5030,7 +5035,7 @@ void doint(void)
 	}
 
 	if (regs.ipl_pin > regs.intmask || currprefs.cachesize) {
-		if (currprefs.cpu_compatible && currprefs.cpu_model < 68020)
+		if (!currprefs.cachesize)
 			set_special(SPCFLAG_INT);
 		else
 			set_special(SPCFLAG_DOINT);
@@ -5811,8 +5816,8 @@ static void run_cpu_thread(void (*f)(void *))
 				break;
 		}
 
-		if (framecnt != timeframes) {
-			framecnt = timeframes;
+		if (framecnt != vsync_counter) {
+			framecnt = vsync_counter;
 		}
 
 		if (cpu_thread_reset) {
@@ -6829,9 +6834,9 @@ fprintf ( stderr , "cache valid %d tag1 %x lws1 %x ctag %x data %x mem=%x\n" , c
 #ifndef WINUAE_FOR_HATARI
 				if (inputrecord_debug & 4) {
 					if (input_record > 0)
-						inprec_recorddebug_cpu (1);
+						inprec_recorddebug_cpu(1, r->opcode);
 					else if (input_play > 0)
-						inprec_playdebug_cpu (1);
+						inprec_playdebug_cpu(1, r->opcode);
 				}
 
 #ifdef DEBUGGER
@@ -7000,9 +7005,9 @@ static void m68k_run_2p (void)
 #ifndef WINUAE_FOR_HATARI
 				if (inputrecord_debug & 4) {
 					if (input_record > 0)
-						inprec_recorddebug_cpu (1);
+						inprec_recorddebug_cpu(1, r->opcode);
 					else if (input_play > 0)
-						inprec_playdebug_cpu (1);
+						inprec_playdebug_cpu(1, r->opcode);
 				}
 
 #ifdef DEBUGGER
@@ -7454,17 +7459,17 @@ void m68k_go (int may_quit)
 				write_log (_T("hardreset, memory cleared\n"));
 			}
 #endif // WINUAE_FOR_PREVIOUS
+#ifdef DEBUGGER
+#ifndef WINUAE_FOR_HATARI
+			if (debug_dma) {
+				record_dma_reset(1);
+				record_dma_reset(1);
+			}
+#endif
+#endif
 #ifdef SAVESTATE
 			/* We may have been restoring state, but we're done now.  */
 			if (isrestore ()) {
-#ifndef WINUAE_FOR_HATARI
-#ifdef DEBUGGER
-				if (debug_dma) {
-					record_dma_reset(0);
-					record_dma_reset(0);
-				}
-#endif
-#endif
 				restored = savestate_restore_finish ();
 #ifndef WINUAE_FOR_HATARI
 				memory_map_dump ();
@@ -7534,6 +7539,7 @@ void m68k_go (int may_quit)
 			}
 			if (cpu_prefs_changed_flag & 2) {
 				fixup_cpu(&changed_prefs);
+				currprefs.m68k_speed = changed_prefs.m68k_speed;
 				update_68k_cycles();
 #ifndef WINUAE_FOR_HATARI
 				target_cpu_speed();
@@ -7558,10 +7564,26 @@ void m68k_go (int may_quit)
 		}
 		cpu_hardreset = false;
 		cpu_keyboardreset = false;
-		hardboot = 0;
 		event_wait = true;
 #endif
 		unset_special(SPCFLAG_MODE_CHANGE);
+
+#ifndef WINUAE_FOR_HATARI
+		if (!restored && hardboot) {
+			uae_u32 s = uaerandgetseed();
+			uaesetrandseed(s);
+			write_log("rndseed = %08x (%u)\n", s, s);
+			// add random delay before CPU starts
+			int t = uaerand() & 0x7fff;
+			while (t > 255) {
+				x_do_cycles(255 * CYCLE_UNIT);
+				t -= 255;
+			}
+			x_do_cycles(t * CYCLE_UNIT);
+		}
+#endif
+
+		hardboot = 0;
 
 #ifdef SAVESTATE
 		if (restored) {

@@ -12,6 +12,7 @@
 
 
 struct uae_prefs {
+	int cachesize;
 	bool cpu_cycle_exact;
 	int cpu_clock_multiplier;
 	int cpu_frequency;
