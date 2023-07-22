@@ -36,6 +36,7 @@ const char Statusbar_fileid[] = "Hatari statusbar.c";
 #include "statusbar.h"
 #include "screen.h"
 #include "video.h"
+#include "grab.h"
 #include "dimension.hpp"
 #include "str.h"
 
@@ -57,6 +58,7 @@ static struct {
 	int offset;	/* led x-pos on screen */
 } Led[NUM_DEVICE_LEDS];
 
+
 /* drive leds size & y-pos */
 static SDL_Rect LedRect;
 
@@ -70,7 +72,7 @@ static enum {
 	OVERLAY_NONE,
 	OVERLAY_DRAWN,
 	OVERLAY_RESTORED
-} bOverlayState;
+} nOverlayState;
 
 static SDL_Rect SystemLedRect;
 static bool bOldSystemLed;
@@ -199,7 +201,7 @@ static void Statusbar_OverlayInit(const SDL_Surface *surf)
 		SDL_FreeSurface(OverlayUnderside);
 		OverlayUnderside = NULL;
 	}
-	bOverlayState = OVERLAY_NONE;
+	nOverlayState = OVERLAY_NONE;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -392,6 +394,15 @@ void Statusbar_UpdateInfo(void)
 	char memsize[16];
 	char slot[16];
 	
+	/* Recording in progress */
+	if (bRecordingAiff) {
+		end = Statusbar_AddString(end, "Recording sound");
+		*end = '\0';
+		assert(end - DefaultMessage.msg < MAX_MESSAGE_LEN);
+		DefaultMessage.shown = false;
+		return;
+	}
+	
 	/* Message for NeXTdimension */
 	if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
 		end = Statusbar_AddString(end, "33MHz/i860XR/");
@@ -554,11 +565,11 @@ void Statusbar_OverlayRestore(SDL_Surface *surf)
 		/* overlay not used with statusbar */
 		return;
 	}
-	if (bOverlayState == OVERLAY_DRAWN && OverlayUnderside) {
+	if (nOverlayState == OVERLAY_DRAWN && OverlayUnderside) {
 		assert(surf);
 		SDL_BlitSurface(OverlayUnderside, NULL, surf, &OverlayLedRect);
 		/* this will make the draw function to update this the screen */
-		bOverlayState = OVERLAY_RESTORED;
+		nOverlayState = OVERLAY_RESTORED;
 	}
 }
 
@@ -569,11 +580,11 @@ void Statusbar_OverlayRestore(SDL_Surface *surf)
 static void Statusbar_OverlayDrawLed(SDL_Surface *surf, uint32_t color)
 {
 	SDL_Rect rect;
-	if (bOverlayState == OVERLAY_DRAWN) {
+	if (nOverlayState == OVERLAY_DRAWN) {
 		/* some led already drawn */
 		return;
 	}
-	bOverlayState = OVERLAY_DRAWN;
+	nOverlayState = OVERLAY_DRAWN;
 
 	/* enabled led with border */
 	rect = OverlayLedRect;
@@ -609,12 +620,12 @@ static void Statusbar_OverlayDraw(SDL_Surface *surf)
 	 *   NONE -> DRAWN -> RESTORED -> DRAWN -> RESTORED -> NONE
 	 * Other than NONE state needs to be updated on screen
 	 */
-	switch (bOverlayState) {
+	switch (nOverlayState) {
 	case OVERLAY_RESTORED:
-		bOverlayState = OVERLAY_NONE;
+		nOverlayState = OVERLAY_NONE;
 	case OVERLAY_DRAWN:
 		Screen_UpdateRects(surf, 1, &OverlayLedRect);
-		DEBUGPRINT(("Overlay LED = %s\n", bOverlayState==OVERLAY_DRAWN?"ON":"OFF"));
+		DEBUGPRINT(("Overlay LED = %s\n", nOverlayState==OVERLAY_DRAWN?"ON":"OFF"));
 		break;
 	case OVERLAY_NONE:
 		break;

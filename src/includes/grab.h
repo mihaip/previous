@@ -15,4 +15,6 @@ extern void Grab_SoundToggle(void);
 
 extern void Grab_Stop(void);
 
+extern volatile bool bRecordingAiff;
+
 #endif /* PREVIOUS_GRAB_H */

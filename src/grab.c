@@ -251,7 +251,7 @@ static lock_t GrabSoundLock;               /* Protect AIFF file and variables */
 
 static FILE*  AiffFileHndl;                /* Pointer to our AIFF file */
 static int    nAiffOutputBytes;            /* Number of sample bytes saved */
-static bool   bRecordingAiff = false;      /* Is an AIFF file open and recording? */
+volatile bool bRecordingAiff = false;      /* Is an AIFF file open and recording? */
 
 static uint8_t AiffHeader[54] =
 {
