@@ -17,6 +17,14 @@ typedef enum {
     NUM_DEVICE_LEDS
 } drive_index_t;
 
+typedef enum {
+	LED_STATE_OFF,
+	LED_STATE_ON,
+	LED_STATE_ON_BUSY,
+	MAX_LED_STATE
+} drive_led_t;
+
+
 extern int Statusbar_SetHeight(int ScreenWidth, int ScreenHeight);
 extern int Statusbar_GetHeightForSize(int width, int height);
 extern int Statusbar_GetHeight(void);

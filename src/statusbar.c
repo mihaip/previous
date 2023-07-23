@@ -45,15 +45,19 @@ const char Statusbar_fileid[] = "Hatari statusbar.c";
 
 #define DEBUG 0
 #if DEBUG
-#define DEBUGPRINT(x) printf x
+# include <execinfo.h>
+# define DEBUGPRINT(x) printf x
 #else
-#define DEBUGPRINT(x)
+# define DEBUGPRINT(x)
 #endif
+
+/* whole statusbar area, for full updates */
+static SDL_Rect FullRect;
 
 /* whether drive leds should be ON and their previous shown state */
 static struct {
-	bool state;
-	bool oldstate;
+	drive_led_t state;
+	drive_led_t oldstate;
 	uint32_t expire;	/* when to disable led, valid only if >0 && state=TRUE */
 	int offset;	/* led x-pos on screen */
 } Led[NUM_DEVICE_LEDS];
@@ -75,19 +79,22 @@ static enum {
 } nOverlayState;
 
 static SDL_Rect SystemLedRect;
-static bool bOldSystemLed;
+static bool bSystemLed, bOldSystemLed;
 
 static SDL_Rect DspLedRect;
-static bool bOldDspLed;
+static bool bDspLed, bOldDspLed;
 
 static SDL_Rect NdLedRect;
-static int nOldNdLed;
+static int nNdLed, nOldNdLed;
 
 /* led colors */
-static uint32_t LedColorOn, LedColorOnWP, LedColorOff, SysColorOn, SysColorOff, DspColorOn, DspColorOff;
+static Uint32 LedColor[ MAX_LED_STATE ];
+static uint32_t SysColorOn, SysColorOff;
+static uint32_t DspColorOn, DspColorOff;
 static uint32_t NdColorOn, NdColorCS8, NdColorOff;
 static uint32_t GrayBg, LedColorBg;
 
+/* needs to be enough for all messages, but <= MessageRect width / font width */
 #define MAX_MESSAGE_LEN 69
 typedef struct msg_item {
 	struct msg_item *next;
@@ -135,8 +142,15 @@ int Statusbar_GetHeightForSize(int width, int height)
  */
 int Statusbar_SetHeight(int width, int height)
 {
+#if DEBUG
+	/* find out from where the set height is called */
+	void *addr[8];
+	int count = backtrace(addr, sizeof(addr)/sizeof(*addr));
+	backtrace_symbols_fd(addr, count, fileno(stderr));
+#endif
 	ScreenHeight = height;
 	StatusbarHeight = Statusbar_GetHeightForSize(width, height);
+	DEBUGPRINT(("Statusbar_SetHeight(%d, %d) -> %d\n", width, height, StatusbarHeight));
 	return StatusbarHeight;
 }
 
@@ -158,7 +172,7 @@ void Statusbar_BlinkLed(drive_index_t drive)
 {
 	/* leds are shown for 1/2 sec after enabling */
 	Led[drive].expire = SDL_GetTicks() + 1000/2;
-	Led[drive].state = true;
+	Led[drive].state = LED_STATE_ON;
 }
 
 
@@ -168,15 +182,15 @@ void Statusbar_BlinkLed(drive_index_t drive)
  * this needs also to take care of disabling it.
  */
 void Statusbar_SetSystemLed(bool state) {
-	bOldSystemLed = state;
+	bSystemLed = state;
 }
 
 void Statusbar_SetDspLed(bool state) {
-	bOldDspLed = state;
+	bDspLed = state;
 }
 
 void Statusbar_SetNdLed(int state) {
-	nOldNdLed = state;
+	nNdLed = state;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -197,7 +211,8 @@ static void Statusbar_OverlayInit(const SDL_Surface *surf)
 	if (OverlayUnderside &&
 	    OverlayUnderside->w == OverlayLedRect.w &&
 	    OverlayUnderside->h == OverlayLedRect.h &&
-	    OverlayUnderside->format->BitsPerPixel == surf->format->BitsPerPixel) {
+	    OverlayUnderside->format->BitsPerPixel == surf->format->BitsPerPixel)
+	{
 		SDL_FreeSurface(OverlayUnderside);
 		OverlayUnderside = NULL;
 	}
@@ -213,16 +228,17 @@ static void Statusbar_OverlayInit(const SDL_Surface *surf)
 void Statusbar_Init(SDL_Surface *surf)
 {
 	msg_item_t *item;
-	SDL_Rect ledbox, sbarbox;
-	int i, fontw, fonth, offset;
+	SDL_Rect ledbox;
+	int i, fontw, fonth, xoffset;
 	const char *text[NUM_DEVICE_LEDS] = { "EN:", "MO:", "SD:", "FD:" };
 
+	DEBUGPRINT(("Statusbar_Init()\n"));
 	assert(surf);
 
 	/* dark green and light green for leds themselves */
-	LedColorOff  = SDL_MapRGB(surf->format, 0x00, 0x40, 0x00);
-	LedColorOn   = SDL_MapRGB(surf->format, 0x00, 0xe0, 0x00);
-	LedColorOnWP = SDL_MapRGB(surf->format, 0xFF, 0xe0, 0x00);
+	LedColor[ LED_STATE_OFF ]     = SDL_MapRGB(surf->format, 0x00, 0x40, 0x00);
+	LedColor[ LED_STATE_ON ]      = SDL_MapRGB(surf->format, 0x00, 0xe0, 0x00);
+	LedColor[ LED_STATE_ON_BUSY ] = SDL_MapRGB(surf->format, 0xff, 0xe0, 0x00);
 	LedColorBg   = SDL_MapRGB(surf->format, 0x00, 0x00, 0x00);
 	SysColorOff  = SDL_MapRGB(surf->format, 0x40, 0x00, 0x00);
 	SysColorOn   = SDL_MapRGB(surf->format, 0xe0, 0x00, 0x00);
@@ -234,17 +250,21 @@ void Statusbar_Init(SDL_Surface *surf)
 	GrayBg       = SDL_MapRGB(surf->format, 0xb5, 0xb7, 0xaa);
 
 	/* disable leds */
-	for (i = 0; i < NUM_DEVICE_LEDS; i++) {
-		Led[i].state = Led[i].oldstate = false;
+	for (i = 0; i < NUM_DEVICE_LEDS; i++)
+	{
+		Led[i].state = Led[i].oldstate = LED_STATE_OFF;
 		Led[i].expire = 0;
 	}
 	Statusbar_OverlayInit(surf);
 	
 	/* disable statusbar if it doesn't fit to video mode */
-	if (surf->h < ScreenHeight + StatusbarHeight) {
+	if (surf->h < ScreenHeight + StatusbarHeight)
+	{
 		StatusbarHeight = 0;
 	}
-	if (!StatusbarHeight) {
+	if (!StatusbarHeight)
+	{
+		DEBUGPRINT(("Doesn't fit <- Statusbar_Init()\n"));
 		return;
 	}
 
@@ -254,20 +274,23 @@ void Statusbar_Init(SDL_Surface *surf)
 	SDLGui_GetFontSize(&fontw, &fonth);
 
 	/* video mode didn't match, need to recalculate sizes */
-	if (surf->h > ScreenHeight + StatusbarHeight) {
+	if (surf->h > ScreenHeight + StatusbarHeight)
+	{
 		StatusbarHeight = fonth + 2;
 		/* actually statusbar vertical offset */
 		ScreenHeight = surf->h - StatusbarHeight;
-	} else {
+	}
+	else
+	{
 		assert(fonth+2 < StatusbarHeight);
 	}
 
 	/* draw statusbar background gray so that text shows */
-	sbarbox.x = 0;
-	sbarbox.y = surf->h - StatusbarHeight;
-	sbarbox.w = surf->w;
-	sbarbox.h = StatusbarHeight;
-	SDL_FillRect(surf, &sbarbox, GrayBg);
+	FullRect.x = 0;
+	FullRect.y = surf->h - StatusbarHeight;
+	FullRect.w = surf->w;
+	FullRect.h = StatusbarHeight;
+	SDL_FillRect(surf, &FullRect, GrayBg);
 
 	/* led size */
 	LedRect.w = fonth/2;
@@ -280,24 +303,25 @@ void Statusbar_Init(SDL_Surface *surf)
 	ledbox.w += 2;
 	ledbox.h += 2;
 
-	offset = fontw;
+	xoffset = fontw;
 	MessageRect.y = LedRect.y - 2;
 	/* draw led texts and boxes + calculate box offsets */
-	for (i = 0; i < NUM_DEVICE_LEDS; i++) {
-		SDLGui_Text(offset, MessageRect.y, text[i]);
-		offset += strlen(text[i]) * fontw;
-		offset += fontw/2;
+	for (i = 0; i < NUM_DEVICE_LEDS; i++)
+	{
+		SDLGui_Text(xoffset, MessageRect.y, text[i]);
+		xoffset += strlen(text[i]) * fontw;
+		xoffset += fontw/2;
 
-		ledbox.x = offset - 1;
+		ledbox.x = xoffset - 1;
 		SDL_FillRect(surf, &ledbox, LedColorBg);
 
-		LedRect.x = offset;
-		SDL_FillRect(surf, &LedRect, LedColorOff);
+		LedRect.x = xoffset;
+		SDL_FillRect(surf, &LedRect, LedColor[ LED_STATE_OFF ]);
 
-		Led[i].offset = offset;
-		offset += LedRect.w + fontw;
+		Led[i].offset = xoffset;
+		xoffset += LedRect.w + fontw;
 	}
-	MessageRect.x = offset + fontw;
+	MessageRect.x = xoffset + fontw;
 	MessageRect.w = MAX_MESSAGE_LEN * fontw;
 	MessageRect.h = fonth;
 	for (item = MessageList; item; item = item->next) {
@@ -311,7 +335,7 @@ void Statusbar_Init(SDL_Surface *surf)
 	SDLGui_Text(ledbox.x - 3*fontw - fontw/2, MessageRect.y, "ND:");
 	SDL_FillRect(surf, &ledbox, LedColorBg);
 	SDL_FillRect(surf, &NdLedRect, NdColorOff);
-	nOldNdLed = 0;
+	nNdLed = 0;
 
 	/* draw dsp led box */
 	DspLedRect = LedRect;
@@ -320,7 +344,7 @@ void Statusbar_Init(SDL_Surface *surf)
 	SDLGui_Text(ledbox.x - 4*fontw - fontw/2, MessageRect.y, "DSP:");
 	SDL_FillRect(surf, &ledbox, LedColorBg);
 	SDL_FillRect(surf, &DspLedRect, DspColorOff);
-	bOldDspLed = false;
+	bDspLed = false;
 
 	/* draw system led box */
 	SystemLedRect = LedRect;
@@ -329,11 +353,11 @@ void Statusbar_Init(SDL_Surface *surf)
 	SDLGui_Text(ledbox.x - 4*fontw - fontw/2, MessageRect.y, "LED:");
 	SDL_FillRect(surf, &ledbox, LedColorBg);
 	SDL_FillRect(surf, &SystemLedRect, SysColorOff);
-	bOldSystemLed = false;
+	bSystemLed = false;
 
 	/* and blit statusbar on screen */
-	Screen_UpdateRects(surf, 1, &sbarbox);
-	DEBUGPRINT(("Draw statusbar\n"));
+	Screen_UpdateRects(surf, 1, &FullRect);
+	DEBUGPRINT(("Drawn <- Statusbar_Init()\n"));
 }
 
 
@@ -395,7 +419,8 @@ void Statusbar_UpdateInfo(void)
 	char slot[16];
 	
 	/* Recording in progress */
-	if (bRecordingAiff) {
+	if (bRecordingAiff)
+	{
 		end = Statusbar_AddString(end, "Recording sound");
 		*end = '\0';
 		assert(end - DefaultMessage.msg < MAX_MESSAGE_LEN);
@@ -404,7 +429,8 @@ void Statusbar_UpdateInfo(void)
 	}
 	
 	/* Message for NeXTdimension */
-	if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
+	if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION)
+	{
 		end = Statusbar_AddString(end, "33MHz/i860XR/");
 		snprintf(memsize, sizeof(memsize), "%iMB/",
 		         Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[ConfigureParams.Screen.nMonitorNum].nMemoryBankSize));
@@ -422,11 +448,13 @@ void Statusbar_UpdateInfo(void)
 	end = Statusbar_AddString(end, Main_SpeedMsg());
 
 	/* CPU type */
-	if(ConfigureParams.System.nCpuLevel > 0) {
+	if(ConfigureParams.System.nCpuLevel > 0)
+	{
 		*end++ = '6';
 		*end++ = '8';
 		*end++ = '0';
-		switch (ConfigureParams.System.nCpuLevel) {
+		switch (ConfigureParams.System.nCpuLevel)
+		{
 			case 0: *end++ = '0'; break;
 			case 1: *end++ = '1'; break;
 			case 2: *end++ = '2'; break;
@@ -445,7 +473,8 @@ void Statusbar_UpdateInfo(void)
 	end = Statusbar_AddString(end, memsize);
 
 	/* machine type */
-	switch (ConfigureParams.System.nMachineType) {
+	switch (ConfigureParams.System.nMachineType)
+	{
 		case NEXT_CUBE030:
 			end = Statusbar_AddString(end, "NeXT Computer");
 			break;
@@ -459,11 +488,13 @@ void Statusbar_UpdateInfo(void)
 		default:
 			break;
 	}
-	if (ConfigureParams.System.bTurbo) {
+	if (ConfigureParams.System.bTurbo)
+	{
 		end = Statusbar_AddString(end, (ConfigureParams.System.nCpuFreq==40)?" Nitro":" Turbo");
 	}
 
-	if (ConfigureParams.System.bColor) {
+	if (ConfigureParams.System.bColor)
+	{
 		end = Statusbar_AddString(end, " Color");
 	}
 
@@ -479,52 +510,56 @@ void Statusbar_UpdateInfo(void)
 /**
  * Draw 'msg' centered to the message area
  */
-static void Statusbar_DrawMessage(SDL_Surface *surf, const char *msg)
+static SDL_Rect* Statusbar_DrawMessage(SDL_Surface *surf, const char *msg)
 {
 	int fontw, fonth, offset;
 	SDL_FillRect(surf, &MessageRect, GrayBg);
-	if (*msg) {
+	if (*msg)
+	{
 		SDLGui_GetFontSize(&fontw, &fonth);
 		offset = (MessageRect.w - strlen(msg) * fontw) / 2;
 		SDLGui_Text(MessageRect.x + offset, MessageRect.y, msg);
 	}
-	Screen_UpdateRects(surf, 1, &MessageRect);
 	DEBUGPRINT(("Draw message: '%s'\n", msg));
+	return &MessageRect;
 }
 
 /*-----------------------------------------------------------------------*/
 /**
  * If message's not shown, show it.  If message's timed out,
  * remove it and show next one.
+ * 
+ * Return updated area, or NULL if nothing drawn
  */
-static void Statusbar_ShowMessage(SDL_Surface *surf, uint32_t ticks)
+static SDL_Rect* Statusbar_ShowMessage(SDL_Surface *surf, uint32_t ticks)
 {
 	msg_item_t *next;
 
-	if (MessageList->shown) {
-		if (!MessageList->expire) {
+	if (MessageList->shown)
+	{
+		if (!MessageList->expire)
+		{
 			/* last/default message never expires */
-			return;
+			return NULL;
 		}
-		if (MessageList->expire > ticks) {
+		if (MessageList->expire > ticks)
+		{
 			/* not timed out yet */
-			return;
+			return NULL;
 		}
 		assert(MessageList->next); /* last message shouldn't end here */
 		next = MessageList->next;
 		free(MessageList);
+		/* show next */
 		MessageList = next;
-		/* make sure next message gets shown */
-		MessageList->shown = false;
 	}
-	if (!MessageList->shown) {
-		/* not shown yet, show */
-		Statusbar_DrawMessage(surf,  MessageList->msg);
-		if (MessageList->timeout && !MessageList->expire) {
-			MessageList->expire = ticks + MessageList->timeout;
-		}
-		MessageList->shown = true;
+	/* not shown yet, show */
+	MessageList->shown = true;
+	if (MessageList->timeout && !MessageList->expire)
+	{
+		MessageList->expire = ticks + MessageList->timeout;
 	}
+	return Statusbar_DrawMessage(surf, MessageList->msg);
 }
 
 
@@ -535,12 +570,14 @@ static void Statusbar_ShowMessage(SDL_Surface *surf, uint32_t ticks)
 void Statusbar_OverlayBackup(SDL_Surface *surf)
 {
 	if ((StatusbarHeight && ConfigureParams.Screen.bShowStatusbar)
-	    || !ConfigureParams.Screen.bShowDriveLed) {
+	    || !ConfigureParams.Screen.bShowDriveLed)
+	{
 		/* overlay not used with statusbar */
 		return;
 	}
 	assert(surf);
-	if (!OverlayUnderside) {
+	if (!OverlayUnderside)
+	{
 		SDL_Surface *bak;
 		SDL_PixelFormat *fmt = surf->format;
 		bak = SDL_CreateRGBSurface(surf->flags,
@@ -557,15 +594,20 @@ void Statusbar_OverlayBackup(SDL_Surface *surf)
 /*-----------------------------------------------------------------------*/
 /**
  * Restore the area left under overlay led
+ * 
+ * State machine for overlay led handling will return from
+ * Statusbar_Update() call the area that is restored (if any)
  */
 void Statusbar_OverlayRestore(SDL_Surface *surf)
 {
 	if ((StatusbarHeight && ConfigureParams.Screen.bShowStatusbar)
-	    || !ConfigureParams.Screen.bShowDriveLed) {
+	    || !ConfigureParams.Screen.bShowDriveLed)
+	{
 		/* overlay not used with statusbar */
 		return;
 	}
-	if (nOverlayState == OVERLAY_DRAWN && OverlayUnderside) {
+	if (nOverlayState == OVERLAY_DRAWN && OverlayUnderside)
+	{
 		assert(surf);
 		SDL_BlitSurface(OverlayUnderside, NULL, surf, &OverlayLedRect);
 		/* this will make the draw function to update this the screen */
@@ -580,7 +622,8 @@ void Statusbar_OverlayRestore(SDL_Surface *surf)
 static void Statusbar_OverlayDrawLed(SDL_Surface *surf, uint32_t color)
 {
 	SDL_Rect rect;
-	if (nOverlayState == OVERLAY_DRAWN) {
+	if (nOverlayState == OVERLAY_DRAWN)
+	{
 		/* some led already drawn */
 		return;
 	}
@@ -599,20 +642,24 @@ static void Statusbar_OverlayDrawLed(SDL_Surface *surf, uint32_t color)
 /*-----------------------------------------------------------------------*/
 /**
  * Draw overlay led onto screen surface if any drives are enabled.
+ * 
+ * Return updated area, or NULL if nothing drawn
  */
-static void Statusbar_OverlayDraw(SDL_Surface *surf)
+static SDL_Rect* Statusbar_OverlayDraw(SDL_Surface *surf)
 {
 	uint32_t currentticks = SDL_GetTicks();
 	int i;
 
-	assert(surf);
-	for (i = 0; i < NUM_DEVICE_LEDS; i++) {
-		if (Led[i].state) {
-			if (Led[i].expire && Led[i].expire < currentticks) {
-				Led[i].state = false;
+	for (i = 0; i < NUM_DEVICE_LEDS; i++)
+	{
+		if (Led[i].state)
+		{
+			if (Led[i].expire && Led[i].expire < currentticks)
+			{
+				Led[i].state = LED_STATE_OFF;
 				continue;
 			}
-			Statusbar_OverlayDrawLed(surf, ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON && i == DEVICE_LED_SCSI ? LedColorOnWP : LedColorOn);
+			Statusbar_OverlayDrawLed(surf, LedColor[ Led[i].state ]);
 			break;
 		}
 	}
@@ -620,16 +667,18 @@ static void Statusbar_OverlayDraw(SDL_Surface *surf)
 	 *   NONE -> DRAWN -> RESTORED -> DRAWN -> RESTORED -> NONE
 	 * Other than NONE state needs to be updated on screen
 	 */
-	switch (nOverlayState) {
+	switch (nOverlayState)
+	{
 	case OVERLAY_RESTORED:
 		nOverlayState = OVERLAY_NONE;
+		/* fall through */
 	case OVERLAY_DRAWN:
-		Screen_UpdateRects(surf, 1, &OverlayLedRect);
 		DEBUGPRINT(("Overlay LED = %s\n", nOverlayState==OVERLAY_DRAWN?"ON":"OFF"));
-		break;
+		return &OverlayLedRect;
 	case OVERLAY_NONE:
 		break;
 	}
+	return NULL;
 }
 
 
@@ -638,70 +687,126 @@ static void Statusbar_OverlayDraw(SDL_Surface *surf)
  * Update statusbar information (leds etc) if/when needed.
  * 
  * May not be called when screen is locked (SDL limitation).
+ * 
+ * Return updated area, or NULL if nothing is drawn.
  */
-void Statusbar_Update(SDL_Surface *surf) {
+void Statusbar_Update(SDL_Surface *surf)
+{
 	uint32_t color, currentticks;
-	SDL_Rect rect;
-	int i;
+	static SDL_Rect rect;
+	SDL_Rect *last_rect;
+	int i, updates;
 
-	if (!(StatusbarHeight && ConfigureParams.Screen.bShowStatusbar)) {
+	assert(surf);
+	if (!(StatusbarHeight && ConfigureParams.Screen.bShowStatusbar))
+	{
+		last_rect = NULL;
 		/* not enabled (anymore), show overlay led instead? */
-		if (ConfigureParams.Screen.bShowDriveLed) {
-			Statusbar_OverlayDraw(surf);
+		if (ConfigureParams.Screen.bShowDriveLed)
+		{
+			last_rect = Statusbar_OverlayDraw(surf);
+			if (last_rect)
+			{
+				Screen_UpdateRects(surf, 1, last_rect);
+				last_rect = NULL;
+			}
 		}
 		return;
 	}
-	assert(surf);
+
 	/* Statusbar_Init() not called before this? */
+#if DEBUG
+	if (surf->h != ScreenHeight + StatusbarHeight)
+	{
+		printf("DEBUG: %d != %d + %d\n", surf->h, ScreenHeight, StatusbarHeight);
+	}
+#endif
 	assert(surf->h == ScreenHeight + StatusbarHeight);
 
-	rect = LedRect;
 	currentticks = SDL_GetTicks();
-	for (i = 0; i < NUM_DEVICE_LEDS; i++) {
-		if (Led[i].expire && Led[i].expire < currentticks) {
-			Led[i].state = false;
+	last_rect = Statusbar_ShowMessage(surf, currentticks);
+	updates = last_rect ? 1 : 0;
+
+	rect = LedRect;
+	for (i = 0; i < NUM_DEVICE_LEDS; i++)
+	{
+		if (Led[i].expire && Led[i].expire < currentticks)
+		{
+			Led[i].state = LED_STATE_OFF;
 		}
-		if (Led[i].state == Led[i].oldstate) {
+		if (Led[i].state == Led[i].oldstate)
+		{
 			continue;
 		}
 		Led[i].oldstate = Led[i].state;
-		if (Led[i].state) {
-			color = ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON  && i == DEVICE_LED_SCSI ? LedColorOnWP : LedColorOn;
-		} else {
-			color = LedColorOff;
-		}
+		color = LedColor[ Led[i].state ];
 		rect.x = Led[i].offset;
 		SDL_FillRect(surf, &rect, color);
-		Screen_UpdateRects(surf, 1, &rect);
+		DEBUGPRINT(("LED[%d] = %d\n", i, Led[i].state));
+		last_rect = &rect;
+		updates++;
 	}
 
 	Statusbar_ShowMessage(surf, currentticks);
 
-	/* Draw dsp LED */
-	if (bOldDspLed) {
-		color = DspColorOn;
-	} else {
-		color = DspColorOff;
+	/* Draw DSP LED */
+	if (bDspLed != bOldDspLed)
+	{
+		bOldDspLed = bDspLed;
+		if (bDspLed)
+		{
+			color = DspColorOn;
+		}
+		else
+		{
+			color = DspColorOff;
+		}
+		SDL_FillRect(surf, &DspLedRect, color);
+		last_rect = &DspLedRect;
+		updates++;
 	}
-	SDL_FillRect(surf, &DspLedRect, color);
-	Screen_UpdateRects(surf, 1, &DspLedRect);
-
-	/* Draw scr2 LED */
-	if (bOldSystemLed) {
-		color = SysColorOn;
-	} else {
-		color = SysColorOff;
+	
+	/* Draw SCR2 LED */
+	if (bSystemLed != bOldSystemLed)
+	{
+		bOldSystemLed = bSystemLed;
+		if (bSystemLed)
+		{
+			color = SysColorOn;
+		}
+		else
+		{
+			color = SysColorOff;
+		}
+		SDL_FillRect(surf, &SystemLedRect, color);
+		last_rect = &SystemLedRect;
+		updates++;
 	}
-	SDL_FillRect(surf, &SystemLedRect, color);
-	Screen_UpdateRects(surf, 1, &SystemLedRect);
 
 	/* Draw NeXTdimension LED */
-	switch(nOldNdLed) {
-		case 0:  color = NdColorOff; break;
-		case 1:  color = NdColorCS8;  break;
-		case 2:  color = NdColorOn;  break;
-		default: color = NdColorOff; break;
+	if (nNdLed != nOldNdLed)
+	{
+		nOldNdLed = nNdLed;
+		switch(nNdLed)
+		{
+			case 0:  color = NdColorOff; break;
+			case 1:  color = NdColorCS8; break;
+			case 2:  color = NdColorOn;  break;
+			default: color = NdColorOff; break;
+		}
+		SDL_FillRect(surf, &NdLedRect, color);
+		last_rect = &NdLedRect;
+		updates++;
 	}
-	SDL_FillRect(surf, &NdLedRect, color);
-	Screen_UpdateRects(surf, 1, &NdLedRect);
+
+	if (updates > 1)
+	{
+		/* multiple items updated -> update whole statusbar */
+		last_rect = &FullRect;
+	}
+	if (last_rect)
+	{
+		Screen_UpdateRects(surf, 1, last_rect);
+		last_rect = NULL;
+	}
 }
