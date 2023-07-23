@@ -88,7 +88,7 @@ static SDL_Rect NdLedRect;
 static int nNdLed, nOldNdLed;
 
 /* led colors */
-static Uint32 LedColor[ MAX_LED_STATE ];
+static uint32_t LedColor[ MAX_LED_STATE ];
 static uint32_t SysColorOn, SysColorOff;
 static uint32_t DspColorOn, DspColorOff;
 static uint32_t NdColorOn, NdColorCS8, NdColorOff;
