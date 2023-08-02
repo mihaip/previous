@@ -7,7 +7,6 @@
 
 #include "nfsd.h"
 #include "NetInfoBindProg.h"
-#include "configuration.h"
 #include "UFS.h"
 
 #include <sstream>
@@ -53,138 +52,6 @@ static string ip_addr_str(uint32_t addr, size_t count) {
     return ss.str();
 }
 
-extern "C" int nfsd_read(const char* path, size_t fileOffset, void* dst, size_t dstSize);
-
-int CNetInfoBindProg::tryRead(const std::string& path, void* dst, size_t dstSize) {
-    int count = nfsd_read(path.c_str(), 0, dst, dstSize);
-    if(count > 0) {
-        log("read '%s' from '%s%s'", path.c_str(), ConfigureParams.Ethernet.szNFSroot, path.c_str());
-        return count;
-    }
-    
-    for(int i = 0; i < 6; i++) {
-        DiskImage im(ConfigureParams.SCSI.target[i].szImageName);
-        if(im.valid()) {
-            for(size_t part = 0; part < im.parts.size(); part++) {
-                if(im.parts[part].isUFS()) {
-                    UFS ufs(im.parts[part]);
-                    icommon inode;
-                    if(ufs.findInode(inode, path, true)) {
-                        dstSize = ufs.fileSize(inode);
-                        if(ufs.readFile(inode, 0, dstSize, static_cast<uint8_t*>(dst)) == ERR_NO) {
-                            log("read '%s' from '%s:%d'", path.c_str(), ConfigureParams.SCSI.target[i].szImageName, part);
-                            return dstSize;
-                        }
-                        else
-                            break;
-                    }
-                }
-            }
-        }
-    }
-    
-    return 0;
-}
-
-static vector<string> tokenize(const char *data, const char *sep) {
-    vector<string> tokens;
-    const char *p;
-    int i, j, len;
-    char buf[4096];
-    int scanning;
-
-    if (!(data)) return tokens;
-    if (!(sep)) {
-        tokens.push_back((char *)data);
-        return tokens;
-    }
-
-    len = strlen(sep);
-
-    p = data;
-
-    while (p[0] != '\0') {
-        /* skip leading white space */
-        while ((p[0] == ' ') || (p[0] == '\t') || (p[0] == '\n')) p++;
-
-        /* check for end of line */
-        if (p[0] == '\0') break;
-
-        /* copy data */
-        i = 0;
-        scanning = 1;
-        for (j = 0; (j < len) && (scanning == 1); j++)
-            if (p[0] == sep[j] || (p[0] == '\0')) scanning = 0;
-
-        while (scanning == 1) {
-            buf[i++] = p[0];
-            p++;
-            for (j = 0; (j < len) && (scanning == 1); j++)
-                if (p[0] == sep[j] || (p[0] == '\0')) scanning = 0;
-        }
-    
-        /* back over trailing whitespace */
-        i--;
-        if (i > -1) /* did we actually copy anything? */
-            while ((buf[i] == ' ') || (buf[i] == '\t') || (buf[i] == '\n')) i--;
-        buf[++i] = '\0';
-    
-        tokens.push_back(buf);
-
-        /* check for end of line */
-        if (p[0] == '\0') break;
-
-        /* skip separator */
-        scanning = 1;
-        for (j = 0; (j < len) && (scanning == 1); j++) {
-            if (p[0] == sep[j]) {
-                p++;
-                scanning = 0;
-            }
-        }
-
-        if ((scanning == 0) && p[0] == '\0') {
-            /* line ended at a separator - add a null member */
-            tokens.push_back("");
-            return tokens;
-        }
-    }
-    return tokens;
-}
-
-static bool parse_user(char* data, NIProps& props) {
-    if (data == NULL) return false;
-
-    vector<string> tokens = tokenize(data, ":");
-    if (tokens.size() !=  7) return false;
-
-    props("name",            tokens[0]);
-    props("_writers_passwd", tokens[0]);
-    props("passwd",          "");
-    props("uid",             tokens[2]);
-    props("gid",             tokens[3]);
-    props("realname",        tokens[4]);
-    props("home",            tokens[5]);
-    props("shell",           tokens[6]);
-    
-    return true;
-}
-
-static bool parse_group(char* data, NIProps& props) {
-    if (data == NULL) return false;
-
-    vector<string> tokens = tokenize(data, ":");
-    if (tokens.size() !=  4) return false;
-
-    props("name",            tokens[0]);
-    props("passwd",          tokens[1]);
-    props("gid",             tokens[2]);
-    if(!(tokens[3]).empty())
-        props("users",       tokens[3]);
-    
-    return true;
-}
-
 void CNetInfoBindProg::addHost(CNetInfoProg& host, const string& name, const string& systemType) {
     add_rpc_program(&host);
     doRegister(host.mTag, host.getPortUDP(), host.getPortTCP());
@@ -206,7 +73,7 @@ void CNetInfoBindProg::configure(bool ntp) {
     static const char* domain = (NAME_DOMAIN[0] == '.' ? &NAME_DOMAIN[1] : &NAME_DOMAIN[0]);
     NetInfoNode* locations = m_Network.mRoot.add(NIProps("name","locations"));
     locations->add(NIProps("name","resolver")("nameserver",ip_addr_str(CTL_NET|CTL_DNS, 4))("domain",domain)("search",domain));
-    if (ConfigureParams.Ethernet.bNetworkTime) {
+    if (ntp) {
         locations->add(NIProps("name","ntp")("server",NAME_NFSD)("host",NAME_NFSD));
     }
 }
@@ -227,9 +94,7 @@ CNetInfoBindProg::CNetInfoBindProg()
     SET_PROC(7, DESTROYDOMAIN);
     SET_PROC(8, BIND);
     
-    string systemType = ConfigureParams.System.nMachineType == NEXT_STATION ? "NeXTstation" : "NeXTcube";
-    if(ConfigureParams.System.nMachineType == NEXT_STATION && ConfigureParams.System.bColor)
-        systemType += " Color";
+    string systemType = "NeXT";
 
     addHost(m_Local, NAME_HOST, systemType);
 

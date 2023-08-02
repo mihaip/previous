@@ -768,11 +768,7 @@ static void Main_Loop(void) {
  * Call this on emulated machine VBL.
  */
 void Main_CheckStatusbarUpdate(void) {
-	static int i = 0;
-	if (++i > 9) {
-		Statusbar_Update(sdlscrn);
-		i = 0;
-	}
+	Statusbar_Update(sdlscrn);
 }
 
 /*-----------------------------------------------------------------------*/
