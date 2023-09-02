@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
 # Set build type to "Release" if user did not specify any build type yet
 # Other possible values: Debug, Release, RelWithDebInfo and MinSizeRel
