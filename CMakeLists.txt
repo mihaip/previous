@@ -20,6 +20,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
 include(CheckStructHasMember)
+include(CheckSymbolExists)
 include(CheckCCompilerFlag)
 include(DistClean)
 

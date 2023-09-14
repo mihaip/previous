@@ -2861,11 +2861,12 @@ static int iack_cycle(int nr)
 	 * To update pending interrupts, we call CycInt_Process() just before the IACK sequence
 	 *
 	 * We need to handle MFP/DSP and HBL/VBL cases for this :
-	 * - Level 6 (MFP/DSP) use vectored interrupts
+	 * - Level 6 (MFP/DSP) uses vectored interrupts
+	 * - Level 5 (SCC) uses vectored interrupts
 	 * - Level 2 (HBL) and 4 (VBL) use auto-vectored interrupts and require sync with E-clock
 	 */
 	vector = nr;
-	if ( nr == 30 )								/* MFP or DSP */
+	if ( nr == 30 )								/* MFP or DSP (level 6) */
         {
 		vector = -1;
 		if (bDspEnabled)						/* Check DSP first */
@@ -2909,7 +2910,11 @@ static int iack_cycle(int nr)
 				pendingInterrupts &= ~( 1 << 6 );
 		}
 	}
-	else if ( ( nr == 26 ) || ( nr == 28 ) )				/* HBL / VBL */
+	if ( nr == 29 )								/* SCC (level 5) */
+        {
+		vector = SCC_Process_IACK ();
+	}
+	else if ( ( nr == 26 ) || ( nr == 28 ) )				/* HBL (level 2) or VBL (level 6) */
 	{
 		/* Update cycles counter before the IACK sequence */
 		if (cycle_exact)
@@ -2959,10 +2964,11 @@ static int iack_cycle(int nr)
 		CPU_IACK = false;
 	}
 
-	/* TODO If there was no DSP and no MFP IRQ, then we have a spurious interrupt */
+	/* If none of DSP, MFP or SCC returned a vector during the IACK sequence, then we have a spurious interrupt */
 	/* In that case, we use vector 24 and we jump to $60 */
 	if ( vector < 0 )
 	{
+		vector = 24;
 	}
 
 	/* Add 4 idle cycles for CE mode. For non-CE mode, this will be counted in add_approximate_exception_cycles() */
@@ -5044,43 +5050,6 @@ void doint(void)
 }
 
 
-#ifdef WINUAE_FOR_HATARI
-/*
- * Handle special flags
- */
-
-static bool do_specialties_interrupt (int Pending)
-{
-#if ENABLE_DSP_EMU
-    /* Check for DSP int first (if enabled) (level 6) */
-    if (regs.spcflags & SPCFLAG_DSP) {
-       if (DSP_ProcessIRQ() == true)
-         return true;
-    }
-#endif
-#ifndef WINUAE_FOR_PREVIOUS
-    /* Check for MFP ints (level 6) */
-    if (regs.spcflags & SPCFLAG_MFP) {
-       if (MFP_ProcessIRQ_All() == true)
-         return true;					/* MFP exception was generated, no higher interrupt can happen */
-    }
-#endif // WINUAE_FOR_PREVIOUS
-    /* No MFP int, check for VBL/HBL ints (levels 4/2) */
-    if (regs.spcflags & (SPCFLAG_INT | SPCFLAG_DOINT)) {
-	int intr = intlev ();
-	/* SPCFLAG_DOINT will be enabled again in MakeFromSR to handle pending interrupts! */
-//	unset_special (SPCFLAG_DOINT);
-	unset_special (SPCFLAG_INT | SPCFLAG_DOINT);
-	if (intr != -1 && intr > regs.intmask) {
-	    do_interrupt (intr);			/* process the interrupt */
-	    return true;
-	}
-    }
-
-    return false;					/* no interrupt was found */
-}
-#endif
-
 static void check_debugger(void)
 {
 	if (regs.spcflags & SPCFLAG_BRK) {
@@ -5364,7 +5333,7 @@ static void m68k_run_1 (void)
 				WaitStateCycles = 0;
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
-				/* We must check for pending interrupt and call do_specialties_interrupt() only */
+				/* We must check for pending interrupt and call do_specialties() only */
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
@@ -6556,7 +6525,7 @@ static void m68k_run_3ce (void)
 				currcycle = 0;
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
-				/* We must check for pending interrupt and call do_specialties_interrupt() only */
+				/* We must check for pending interrupt and call do_specialties() only */
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
@@ -6664,7 +6633,7 @@ static void m68k_run_3p(void)
 				currcycle = 0;
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
-				/* We must check for pending interrupt and call do_specialties_interrupt() only */
+				/* We must check for pending interrupt and call do_specialties() only */
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
@@ -6859,7 +6828,7 @@ fprintf ( stderr , "cache valid %d tag1 %x lws1 %x ctag %x data %x mem=%x\n" , c
 				currcycle = 0;
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
-				/* We must check for pending interrupt and call do_specialties_interrupt() only */
+				/* We must check for pending interrupt and call do_specialties() only */
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
@@ -7055,7 +7024,7 @@ cont:
 				currcycle = 0;
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
-				/* We must check for pending interrupt and call do_specialties_interrupt() only */
+				/* We must check for pending interrupt and call do_specialties() only */
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
@@ -7184,7 +7153,7 @@ static void m68k_run_2_000(void)
 				}
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
-				/* We must check for pending interrupt and call do_specialties_interrupt() only */
+				/* We must check for pending interrupt and call do_specialties() only */
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
@@ -7273,7 +7242,7 @@ static void m68k_run_2_020(void)
 				}
 
 				/* We can have several interrupts at the same time before the next CPU instruction */
-				/* We must check for pending interrupt and call do_specialties_interrupt() only */
+				/* We must check for pending interrupt and call do_specialties() only */
 				/* if the cpu is not in the STOP state. Else, the int could be acknowledged now */
 				/* and prevent exiting the STOP state when calling do_specialties() after. */
 				/* For performance, we first test PendingInterruptCount, then regs.spcflags */
