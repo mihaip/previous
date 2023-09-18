@@ -7331,6 +7331,16 @@ bool is_keyboardreset(void)
 	return  cpu_keyboardreset;
 }
 
+#ifndef WINUAE_FOR_HATARI
+static void warpmode_reset(void)
+{
+	if (currprefs.turbo_boot && currprefs.turbo_emulation < 2) {
+		warpmode(1);
+		currprefs.turbo_emulation = changed_prefs.turbo_emulation = 2;
+	}
+}
+#endif
+
 void m68k_go (int may_quit)
 {
 	int hardboot = 1;
@@ -7525,11 +7535,7 @@ void m68k_go (int may_quit)
 			protect_roms (true);
 		}
 		if ((cpu_keyboardreset || hardboot) && !restored) {
-			if (currprefs.turbo_boot) {
-				warpmode(1);
-				currprefs.turbo_emulation = changed_prefs.turbo_emulation = 2;
-
-			}
+			warpmode_reset();
 		}
 		cpu_hardreset = false;
 		cpu_keyboardreset = false;
@@ -8800,6 +8806,7 @@ bool cpureset (void)
 	unset_special(SPCFLAG_CPUINRESET);
 #ifndef WINUAE_FOR_HATARI
 	send_internalevent(INTERNALEVENT_CPURESET);
+	warpmode_reset();
 	if (cpuboard_forced_hardreset()) {
 		custom_reset_cpu(false, false);
 		m68k_reset();
