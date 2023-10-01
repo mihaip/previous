@@ -131,6 +131,7 @@
 #define WITH_X86
 #define WITH_THREADED_CPU
 #endif /* ! WINUAE_FOR_HATARI */
+#define WITH_SOFTFLOAT
 
 #else
 

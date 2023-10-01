@@ -1040,7 +1040,6 @@ void DebugUI_Init(void)
  */
 void DebugUI_UnInit(void)
 {
-	Log_ResetMsgRepeat();
 	free(debugCommand);
 	debugCommands = 0;
 }
