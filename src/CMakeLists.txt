@@ -71,6 +71,9 @@ if(ENABLE_OSX_BUNDLE)
 	else()
 		set(BUNDLE_CONTENTS ${CMAKE_CURRENT_BINARY_DIR}/Previous.app/Contents)
 	endif()
+	if(PNG_FOUND)
+		set(COPY_PNG cp -R ${PNG_LIBRARY} ${BUNDLE_CONTENTS}/Frameworks/)
+	endif()
 	# Create Previous.app bundle
 	add_custom_target(osx_bundle_dirs
 			COMMAND mkdir -p ${BUNDLE_CONTENTS}/Resources
@@ -82,6 +85,9 @@ if(ENABLE_OSX_BUNDLE)
 			COMMAND cp -R ${CMAKE_CURRENT_SOURCE_DIR}/gui-osx/*.lproj ${BUNDLE_CONTENTS}/Resources/
 			# Copy ROM Images to Bundle
 			COMMAND cp ${CMAKE_CURRENT_SOURCE_DIR}/*.BIN ${BUNDLE_CONTENTS}/Resources/
+			# Copy Frameworks to Bundle
+			COMMAND cp -R ${SDL2_LIBDIR} ${BUNDLE_CONTENTS}/Frameworks/
+			COMMAND ${COPY_PNG}
 	)
 	add_dependencies(Previous osx_bundle_dirs)
 	set_source_files_properties(${GUIOSX_RSRCS} PROPERTIES
