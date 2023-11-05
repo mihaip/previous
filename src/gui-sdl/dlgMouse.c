@@ -14,18 +14,19 @@ const char DlgMouse_fileid[] = "Previous dlgMouse.c";
 #include "paths.h"
 
 
-#define DLGMOUSE_AUTOLOCK    15
-#define DLGMOUSE_EXIT        16
+#define DLGMOUSE_MAPTOKEY    15
+#define DLGMOUSE_AUTOLOCK    16
+#define DLGMOUSE_EXIT        17
 
-char lin_normal[8];
-char lin_locked[8];
-char exp_normal[8];
-char exp_locked[8];
+static char lin_normal[8];
+static char lin_locked[8];
+static char exp_normal[8];
+static char exp_locked[8];
 
 /* The Boot options dialog: */
 static SGOBJ mousedlg[] =
 {
-	{ SGBOX, 0, 0, 0,0, 45,24, NULL },
+	{ SGBOX, 0, 0, 0,0, 45,26, NULL },
 	{ SGTEXT, 0, 0, 16,1, 13,1, "Mouse options" },
 	
 	{ SGTEXT, 0, 0, 2,4, 30,1, "Mouse motion speed adjustment:" },
@@ -44,9 +45,10 @@ static SGOBJ mousedlg[] =
 	{ SGTEXT, 0, 0, 25,15, 12,1, "Locked mode:" },
 	{ SGEDITFIELD, 0, 0, 38,15, 5,1, exp_locked },
 	
-	{ SGCHECKBOX, 0, 0, 2,18, 21,1, "Enable auto-locking" },
+	{ SGCHECKBOX, 0, 0, 2,18, 32,1, "Map scroll wheel to arrow keys" },
+	{ SGCHECKBOX, 0, 0, 2,20, 21,1, "Enable auto-locking" },
 	
-	{ SGBUTTON, SG_DEFAULT, 0, 12,21, 21,1, "Back to main menu" },
+	{ SGBUTTON, SG_DEFAULT, 0, 12,23, 21,1, "Back to main menu" },
 	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -109,8 +111,12 @@ void Dialog_MouseDlg(void)
 	/* Set up the dialog from actual values */
 	
 	mousedlg[DLGMOUSE_AUTOLOCK].state &= ~SG_SELECTED;
-	if (ConfigureParams.Mouse.bEnableAutoGrab)
+	if (ConfigureParams.Mouse.bEnableMapToKey) {
+		mousedlg[DLGMOUSE_MAPTOKEY].state |= SG_SELECTED;
+	}
+	if (ConfigureParams.Mouse.bEnableAutoGrab) {
 		mousedlg[DLGMOUSE_AUTOLOCK].state |= SG_SELECTED;
+	}
 	
 	snprintf(lin_normal, sizeof(lin_normal), "%#.1f", ConfigureParams.Mouse.fLinSpeedNormal);
 	snprintf(lin_locked, sizeof(lin_locked), "%#.1f", ConfigureParams.Mouse.fLinSpeedLocked);
@@ -129,6 +135,7 @@ void Dialog_MouseDlg(void)
 	
 
 	/* Read values from dialog */
+	ConfigureParams.Mouse.bEnableMapToKey = mousedlg[DLGMOUSE_MAPTOKEY].state&SG_SELECTED ? true : false;
 	ConfigureParams.Mouse.bEnableAutoGrab = mousedlg[DLGMOUSE_AUTOLOCK].state&SG_SELECTED ? true : false;
 	ConfigureParams.Mouse.fLinSpeedNormal = read_float_string(lin_normal, MOUSE_LIN_MIN, MOUSE_LIN_MAX, 1);
 	ConfigureParams.Mouse.fLinSpeedLocked = read_float_string(lin_locked, MOUSE_LIN_MIN, MOUSE_LIN_MAX, 1);

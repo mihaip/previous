@@ -367,6 +367,12 @@ Previous v2.9:
   > Adds support for saving sound output to a file.
   > Improves SCC emulation for booting Mac OS 7.5.3 via Daydream.
 
+Previous v3.0 (unreleased):
+  > Adds support for mapping scroll wheel to cursor keys.
+  > Improves CPU emulation accuracy.
+  > Fixes bug that caused mouse to be unlocked after resuming emulation.
+  > Fixes bug that caused stuck modifier keys after using shortcuts.
+
 
  7) Running Previous
  -------------------

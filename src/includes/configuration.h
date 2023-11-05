@@ -120,6 +120,7 @@ typedef struct
 typedef struct
 {
   bool bEnableAutoGrab;
+  bool bEnableMapToKey;
   float fLinSpeedNormal;
   float fLinSpeedLocked;
   float fExpSpeedNormal;

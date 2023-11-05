@@ -73,7 +73,7 @@ struct {
  * ---- ---- ---- ---- ---- --x- ---- ----  kms enable (return from reset state) (r/w)
  * ---- ---- ---- ---- ---- ---x ---- ----  loop back transmitter data (r/w)
  *
- * ---- ---- ---- ---- ---- ---- xxxx xxxx  command to append on kms data (r/w)
+ * ---- ---- ---- ---- ---- ---- xxxx xxxx  command to apply on kms data (r/w)
  *
  * ---x ---x ---- ---x ---- ---- ---- ----  zero bits
  */

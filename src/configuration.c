@@ -87,6 +87,7 @@ static const struct Config_Tag configs_Keyboard[] =
 static const struct Config_Tag configs_Mouse[] =
 {
 	{ "bEnableAutoGrab", Bool_Tag, &ConfigureParams.Mouse.bEnableAutoGrab },
+	{ "bEnableMapToKey", Bool_Tag, &ConfigureParams.Mouse.bEnableMapToKey },
 	{ "fLinSpeedNormal", Float_Tag, &ConfigureParams.Mouse.fLinSpeedNormal },
 	{ "fLinSpeedLocked", Float_Tag, &ConfigureParams.Mouse.fLinSpeedLocked },
 	{ "fExpSpeedNormal", Float_Tag, &ConfigureParams.Mouse.fExpSpeedNormal },
@@ -432,6 +433,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Mouse.fExpSpeedNormal = 1.0;
 	ConfigureParams.Mouse.fExpSpeedLocked = 1.0;
 	ConfigureParams.Mouse.bEnableAutoGrab = true;
+	ConfigureParams.Mouse.bEnableMapToKey = false;
 
 	/* Set defaults for Shortcuts */
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS]    = SDLK_F12;

@@ -4,7 +4,7 @@
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
-  Here we process a key press and the remapping of the scancodes.
+  Here we translate key presses and mouse motion.
 */
 const char Keymap_fileid[] = "Hatari keymap.c";
 
@@ -21,24 +21,7 @@ const char Keymap_fileid[] = "Hatari keymap.c";
 
 #define  LOG_KEYMAP_LEVEL   LOG_DEBUG
 
-/* Definitions for NeXT scancodes *
- 
- Byte at address 0x0200e00a contains modifier key values:
- x--- ----  valid
- -x-- ----  alt_right
- --x- ----  alt_left
- ---x ----  command_right
- ---- x---  command_left
- ---- -x--  shift_right
- ---- --x-  shift_left
- ---- ---x  control
- 
- Byte at address 0x0200e00b contains key values:
- x--- ----  key up (1) or down (0)
- -xxx xxxx  key_code
- 
- */
-
+/* ------- NeXT scancodes ------- */
 #define NEXTKEY_NONE            0x00
 #define NEXTKEY_BRGHTNESS_DOWN  0x01
 #define NEXTKEY_VOLUME_DOWN     0x02
@@ -131,10 +114,7 @@ const char Keymap_fileid[] = "Hatari keymap.c";
 #define NEXTKEY_MOD_RALT        0x40
 
 
-void Keymap_Init(void)
-{
-
-}
+void Keymap_Init(void) {}
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -146,100 +126,100 @@ static uint8_t Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode)
 	Log_Printf(LOG_KEYMAP_LEVEL, "[Keymap] Scancode: %i (%s)\n", sdlscancode, SDL_GetScancodeName(sdlscancode));
 
 	switch (sdlscancode) {
-		case SDL_SCANCODE_ESCAPE: return 0x49;
-		case SDL_SCANCODE_GRAVE: return 0x49;
-		case SDL_SCANCODE_1: return 0x4a;
-		case SDL_SCANCODE_2: return 0x4b;
-		case SDL_SCANCODE_3: return 0x4c;
-		case SDL_SCANCODE_4: return 0x4d;
-		case SDL_SCANCODE_5: return 0x50;
-		case SDL_SCANCODE_6: return 0x4f;
-		case SDL_SCANCODE_7: return 0x4e;
-		case SDL_SCANCODE_8: return 0x1e;
-		case SDL_SCANCODE_9: return 0x1f;
-		case SDL_SCANCODE_0: return 0x20;
-		case SDL_SCANCODE_MINUS: return 0x1d;
-		case SDL_SCANCODE_EQUALS: return 0x1c;
-		case SDL_SCANCODE_BACKSPACE: return 0x1b;
+		case SDL_SCANCODE_ESCAPE:
+		case SDL_SCANCODE_GRAVE:          return NEXTKEY_ESC;
+		case SDL_SCANCODE_1:              return NEXTKEY_1;
+		case SDL_SCANCODE_2:              return NEXTKEY_2;
+		case SDL_SCANCODE_3:              return NEXTKEY_3;
+		case SDL_SCANCODE_4:              return NEXTKEY_4;
+		case SDL_SCANCODE_5:              return NEXTKEY_5;
+		case SDL_SCANCODE_6:              return NEXTKEY_6;
+		case SDL_SCANCODE_7:              return NEXTKEY_7;
+		case SDL_SCANCODE_8:              return NEXTKEY_8;
+		case SDL_SCANCODE_9:              return NEXTKEY_9;
+		case SDL_SCANCODE_0:              return NEXTKEY_0;
+		case SDL_SCANCODE_MINUS:          return NEXTKEY_MINUS;
+		case SDL_SCANCODE_EQUALS:         return NEXTKEY_EQUALS;
+		case SDL_SCANCODE_BACKSPACE:      return NEXTKEY_DELETE;
 
-		case SDL_SCANCODE_TAB: return 0x41;
-		case SDL_SCANCODE_Q: return 0x42;
-		case SDL_SCANCODE_W: return 0x43;
-		case SDL_SCANCODE_E: return 0x44;
-		case SDL_SCANCODE_R: return 0x45;
-		case SDL_SCANCODE_T: return 0x48;
-		case SDL_SCANCODE_Y: return 0x47;
-		case SDL_SCANCODE_U: return 0x46;
-		case SDL_SCANCODE_I: return 0x06;
-		case SDL_SCANCODE_O: return 0x07;
-		case SDL_SCANCODE_P: return 0x08;
-		case SDL_SCANCODE_LEFTBRACKET: return 0x05;
-		case SDL_SCANCODE_RIGHTBRACKET: return 0x04;
-		case SDL_SCANCODE_BACKSLASH: return 0x03;
+		case SDL_SCANCODE_TAB:            return NEXTKEY_TAB;
+		case SDL_SCANCODE_Q:              return NEXTKEY_q;
+		case SDL_SCANCODE_W:              return NEXTKEY_w;
+		case SDL_SCANCODE_E:              return NEXTKEY_e;
+		case SDL_SCANCODE_R:              return NEXTKEY_r;
+		case SDL_SCANCODE_T:              return NEXTKEY_t;
+		case SDL_SCANCODE_Y:              return NEXTKEY_y;
+		case SDL_SCANCODE_U:              return NEXTKEY_u;
+		case SDL_SCANCODE_I:              return NEXTKEY_i;
+		case SDL_SCANCODE_O:              return NEXTKEY_o;
+		case SDL_SCANCODE_P:              return NEXTKEY_p;
+		case SDL_SCANCODE_LEFTBRACKET:    return NEXTKEY_OPENBRACKET;
+		case SDL_SCANCODE_RIGHTBRACKET:   return NEXTKEY_CLOSEBRACKET;
+		case SDL_SCANCODE_BACKSLASH:      return NEXTKEY_BACKSLASH;
 
-		case SDL_SCANCODE_A: return 0x39;
-		case SDL_SCANCODE_S: return 0x3a;
-		case SDL_SCANCODE_D: return 0x3b;
-		case SDL_SCANCODE_F: return 0x3c;
-		case SDL_SCANCODE_G: return 0x3d;
-		case SDL_SCANCODE_H: return 0x40;
-		case SDL_SCANCODE_J: return 0x3f;
-		case SDL_SCANCODE_K: return 0x3e;
-		case SDL_SCANCODE_L: return 0x2d;
-		case SDL_SCANCODE_SEMICOLON: return 0x2c;
-		case SDL_SCANCODE_APOSTROPHE: return 0x2b;
-		case SDL_SCANCODE_RETURN: return 0x2a;
+		case SDL_SCANCODE_A:              return NEXTKEY_a;
+		case SDL_SCANCODE_S:              return NEXTKEY_s;
+		case SDL_SCANCODE_D:              return NEXTKEY_d;
+		case SDL_SCANCODE_F:              return NEXTKEY_f;
+		case SDL_SCANCODE_G:              return NEXTKEY_g;
+		case SDL_SCANCODE_H:              return NEXTKEY_h;
+		case SDL_SCANCODE_J:              return NEXTKEY_j;
+		case SDL_SCANCODE_K:              return NEXTKEY_k;
+		case SDL_SCANCODE_L:              return NEXTKEY_l;
+		case SDL_SCANCODE_SEMICOLON:      return NEXTKEY_SEMICOLON;
+		case SDL_SCANCODE_APOSTROPHE:     return NEXTKEY_QUOTE;
+		case SDL_SCANCODE_RETURN:         return NEXTKEY_RETURN;
 
-		case SDL_SCANCODE_NONUSBACKSLASH: return 0x26;
-		case SDL_SCANCODE_Z: return 0x31;
-		case SDL_SCANCODE_X: return 0x32;
-		case SDL_SCANCODE_C: return 0x33;
-		case SDL_SCANCODE_V: return 0x34;
-		case SDL_SCANCODE_B: return 0x35;
-		case SDL_SCANCODE_N: return 0x37;
-		case SDL_SCANCODE_M: return 0x36;
-		case SDL_SCANCODE_COMMA: return 0x2e;
-		case SDL_SCANCODE_PERIOD: return 0x2f;
-		case SDL_SCANCODE_SLASH: return 0x30;
-		case SDL_SCANCODE_SPACE: return 0x38;
+		case SDL_SCANCODE_NONUSBACKSLASH: return NEXTKEY_BACKQUOTE;
+		case SDL_SCANCODE_Z:              return NEXTKEY_z;
+		case SDL_SCANCODE_X:              return NEXTKEY_x;
+		case SDL_SCANCODE_C:              return NEXTKEY_c;
+		case SDL_SCANCODE_V:              return NEXTKEY_v;
+		case SDL_SCANCODE_B:              return NEXTKEY_b;
+		case SDL_SCANCODE_N:              return NEXTKEY_n;
+		case SDL_SCANCODE_M:              return NEXTKEY_m;
+		case SDL_SCANCODE_COMMA:          return NEXTKEY_COMMA;
+		case SDL_SCANCODE_PERIOD:         return NEXTKEY_PERIOD;
+		case SDL_SCANCODE_SLASH:          return NEXTKEY_SLASH;
+		case SDL_SCANCODE_SPACE:          return NEXTKEY_SPACE;
 
-		case SDL_SCANCODE_NUMLOCKCLEAR: return 0x26;
-		case SDL_SCANCODE_KP_EQUALS: return 0x27;
-		case SDL_SCANCODE_KP_DIVIDE: return 0x28;
-		case SDL_SCANCODE_KP_MULTIPLY: return 0x25;
-		case SDL_SCANCODE_KP_7: return 0x21;
-		case SDL_SCANCODE_KP_8: return 0x22;
-		case SDL_SCANCODE_KP_9: return 0x23;
-		case SDL_SCANCODE_KP_MINUS: return 0x24;
-		case SDL_SCANCODE_KP_4: return 0x12;
-		case SDL_SCANCODE_KP_5: return 0x18;
-		case SDL_SCANCODE_KP_6: return 0x13;
-		case SDL_SCANCODE_KP_PLUS: return 0x15;
-		case SDL_SCANCODE_KP_1: return 0x11;
-		case SDL_SCANCODE_KP_2: return 0x17;
-		case SDL_SCANCODE_KP_3: return 0x14;
-		case SDL_SCANCODE_KP_0: return 0x0b;
-		case SDL_SCANCODE_KP_PERIOD: return 0x0c;
-		case SDL_SCANCODE_KP_ENTER: return 0x0d;
+		case SDL_SCANCODE_NUMLOCKCLEAR:   return NEXTKEY_BACKQUOTE;
+		case SDL_SCANCODE_KP_EQUALS:      return NEXTKEY_KEYPAD_EQUALS;
+		case SDL_SCANCODE_KP_DIVIDE:      return NEXTKEY_KEYPAD_DIVIDE;
+		case SDL_SCANCODE_KP_MULTIPLY:    return NEXTKEY_KEYPAD_MULTIPLY;
+		case SDL_SCANCODE_KP_7:           return NEXTKEY_KEYPAD_7;
+		case SDL_SCANCODE_KP_8:           return NEXTKEY_KEYPAD_8;
+		case SDL_SCANCODE_KP_9:           return NEXTKEY_KEYPAD_9;
+		case SDL_SCANCODE_KP_MINUS:       return NEXTKEY_KEYPAD_MINUS;
+		case SDL_SCANCODE_KP_4:           return NEXTKEY_KEYPAD_4;
+		case SDL_SCANCODE_KP_5:           return NEXTKEY_KEYPAD_5;
+		case SDL_SCANCODE_KP_6:           return NEXTKEY_KEYPAD_6;
+		case SDL_SCANCODE_KP_PLUS:        return NEXTKEY_KEYPAD_PLUS;
+		case SDL_SCANCODE_KP_1:           return NEXTKEY_KEYPAD_1;
+		case SDL_SCANCODE_KP_2:           return NEXTKEY_KEYPAD_2;
+		case SDL_SCANCODE_KP_3:           return NEXTKEY_KEYPAD_3;
+		case SDL_SCANCODE_KP_0:           return NEXTKEY_KEYPAD_0;
+		case SDL_SCANCODE_KP_PERIOD:      return NEXTKEY_KEYPAD_PERIOD;
+		case SDL_SCANCODE_KP_ENTER:       return NEXTKEY_KEYPAD_ENTER;
 
-		case SDL_SCANCODE_LEFT: return 0x09;
-		case SDL_SCANCODE_RIGHT: return 0x10;
-		case SDL_SCANCODE_UP: return 0x16;
-		case SDL_SCANCODE_DOWN: return 0x0f;
+		case SDL_SCANCODE_LEFT:           return NEXTKEY_LEFT_ARROW;
+		case SDL_SCANCODE_RIGHT:          return NEXTKEY_RIGHT_ARROW;
+		case SDL_SCANCODE_UP:             return NEXTKEY_UP_ARROW;
+		case SDL_SCANCODE_DOWN:           return NEXTKEY_DOWN_ARROW;
 
 		/* Special keys */
 		case SDL_SCANCODE_F10:
-		case SDL_SCANCODE_DELETE: return 0x58;   /* Power */
+		case SDL_SCANCODE_DELETE:         return NEXTKEY_POWER;
 		case SDL_SCANCODE_F5:
-		case SDL_SCANCODE_END: return 0x02;      /* Sound down */
+		case SDL_SCANCODE_END:            return NEXTKEY_VOLUME_DOWN;
 		case SDL_SCANCODE_F6:
-		case SDL_SCANCODE_HOME: return 0x1a;     /* Sound up */
+		case SDL_SCANCODE_HOME:           return NEXTKEY_VOLUME_UP;
 		case SDL_SCANCODE_F1:
-		case SDL_SCANCODE_PAGEDOWN: return 0x01; /* Brightness down */
+		case SDL_SCANCODE_PAGEDOWN:       return NEXTKEY_BRGHTNESS_DOWN;
 		case SDL_SCANCODE_F2:
-		case SDL_SCANCODE_PAGEUP: return 0x19;   /* Brightness up */
+		case SDL_SCANCODE_PAGEUP:         return NEXTKEY_BRIGHTNESS_UP;
 
-		default: return 0x00;
+		default:                          return NEXTKEY_NONE;
 	}
 }
 
@@ -254,93 +234,93 @@ static uint8_t Keymap_GetKeyFromSymbol(SDL_Keycode sdlkey)
 	Log_Printf(LOG_KEYMAP_LEVEL, "[Keymap] Symkey: %s\n", SDL_GetKeyName(sdlkey));
 
 	switch (sdlkey) {
-		case SDLK_BACKSLASH: return 0x03;
-		case SDLK_RIGHTBRACKET: return 0x04;
-		case SDLK_LEFTBRACKET: return 0x05;
-		case SDLK_i: return 0x06;
-		case SDLK_o: return 0x07;
-		case SDLK_p: return 0x08;
-		case SDLK_LEFT: return 0x09;
-		case SDLK_KP_0: return 0x0B;
-		case SDLK_KP_PERIOD: return 0x0C;
-		case SDLK_KP_ENTER: return 0x0D;
-		case SDLK_DOWN: return 0x0F;
-		case SDLK_RIGHT: return 0x10;
-		case SDLK_KP_1: return 0x11;
-		case SDLK_KP_4: return 0x12;
-		case SDLK_KP_6: return 0x13;
-		case SDLK_KP_3: return 0x14;
-		case SDLK_KP_PLUS: return 0x15;
-		case SDLK_UP: return 0x16;
-		case SDLK_KP_2: return 0x17;
-		case SDLK_KP_5: return 0x18;
-		case SDLK_BACKSPACE: return 0x1B;
-		case SDLK_EQUALS: return 0x1C;
-		case SDLK_MINUS: return 0x1D;
-		case SDLK_8: return 0x1E;
-		case SDLK_9: return 0x1F;
-		case SDLK_0: return 0x20;
-		case SDLK_KP_7: return 0x21;
-		case SDLK_KP_8: return 0x22;
-		case SDLK_KP_9: return 0x23;
-		case SDLK_KP_MINUS: return 0x24;
-		case SDLK_KP_MULTIPLY: return 0x25;
-		case SDLK_BACKQUOTE: return 0x26;
-		case SDLK_KP_EQUALS: return 0x27;
-		case SDLK_KP_DIVIDE: return 0x28;
-		case SDLK_RETURN: return 0x2A;
-		case SDLK_QUOTE: return 0x2B;
-		case SDLK_SEMICOLON: return 0x2C;
-		case SDLK_l: return 0x2D;
-		case SDLK_COMMA: return 0x2E;
-		case SDLK_PERIOD: return 0x2F;
-		case SDLK_SLASH: return 0x30;
-		case SDLK_z: return 0x31;
-		case SDLK_x: return 0x32;
-		case SDLK_c: return 0x33;
-		case SDLK_v: return 0x34;
-		case SDLK_b: return 0x35;
-		case SDLK_m: return 0x36;
-		case SDLK_n: return 0x37;
-		case SDLK_SPACE: return 0x38;
-		case SDLK_a: return 0x39;
-		case SDLK_s: return 0x3A;
-		case SDLK_d: return 0x3B;
-		case SDLK_f: return 0x3C;
-		case SDLK_g: return 0x3D;
-		case SDLK_k: return 0x3E;
-		case SDLK_j: return 0x3F;
-		case SDLK_h: return 0x40;
-		case SDLK_TAB: return 0x41;
-		case SDLK_q: return 0x42;
-		case SDLK_w: return 0x43;
-		case SDLK_e: return 0x44;
-		case SDLK_r: return 0x45;
-		case SDLK_u: return 0x46;
-		case SDLK_y: return 0x47;
-		case SDLK_t: return 0x48;
-		case SDLK_ESCAPE: return 0x49;
-		case SDLK_1: return 0x4A;
-		case SDLK_2: return 0x4B;
-		case SDLK_3: return 0x4C;
-		case SDLK_4: return 0x4D;
-		case SDLK_7: return 0x4E;
-		case SDLK_6: return 0x4F;
-		case SDLK_5: return 0x50;
+		case SDLK_BACKSLASH:              return NEXTKEY_BACKSLASH;
+		case SDLK_RIGHTBRACKET:           return NEXTKEY_CLOSEBRACKET;
+		case SDLK_LEFTBRACKET:            return NEXTKEY_OPENBRACKET;
+		case SDLK_i:                      return NEXTKEY_i;
+		case SDLK_o:                      return NEXTKEY_o;
+		case SDLK_p:                      return NEXTKEY_p;
+		case SDLK_LEFT:                   return NEXTKEY_LEFT_ARROW;
+		case SDLK_KP_0:                   return NEXTKEY_KEYPAD_0;
+		case SDLK_KP_PERIOD:              return NEXTKEY_KEYPAD_PERIOD;
+		case SDLK_KP_ENTER:               return NEXTKEY_KEYPAD_ENTER;
+		case SDLK_DOWN:                   return NEXTKEY_DOWN_ARROW;
+		case SDLK_RIGHT:                  return NEXTKEY_RIGHT_ARROW;
+		case SDLK_KP_1:                   return NEXTKEY_KEYPAD_1;
+		case SDLK_KP_4:                   return NEXTKEY_KEYPAD_4;
+		case SDLK_KP_6:                   return NEXTKEY_KEYPAD_6;
+		case SDLK_KP_3:                   return NEXTKEY_KEYPAD_3;
+		case SDLK_KP_PLUS:                return NEXTKEY_KEYPAD_PLUS;
+		case SDLK_UP:                     return NEXTKEY_UP_ARROW;
+		case SDLK_KP_2:                   return NEXTKEY_KEYPAD_2;
+		case SDLK_KP_5:                   return NEXTKEY_KEYPAD_5;
+		case SDLK_BACKSPACE:              return NEXTKEY_DELETE;
+		case SDLK_EQUALS:                 return NEXTKEY_EQUALS;
+		case SDLK_MINUS:                  return NEXTKEY_MINUS;
+		case SDLK_8:                      return NEXTKEY_8;
+		case SDLK_9:                      return NEXTKEY_9;
+		case SDLK_0:                      return NEXTKEY_0;
+		case SDLK_KP_7:                   return NEXTKEY_KEYPAD_7;
+		case SDLK_KP_8:                   return NEXTKEY_KEYPAD_8;
+		case SDLK_KP_9:                   return NEXTKEY_KEYPAD_9;
+		case SDLK_KP_MINUS:               return NEXTKEY_KEYPAD_MINUS;
+		case SDLK_KP_MULTIPLY:            return NEXTKEY_KEYPAD_MULTIPLY;
+		case SDLK_BACKQUOTE:              return NEXTKEY_BACKQUOTE;
+		case SDLK_KP_EQUALS:              return NEXTKEY_KEYPAD_EQUALS;
+		case SDLK_KP_DIVIDE:              return NEXTKEY_KEYPAD_DIVIDE;
+		case SDLK_RETURN:                 return NEXTKEY_RETURN;
+		case SDLK_QUOTE:                  return NEXTKEY_QUOTE;
+		case SDLK_SEMICOLON:              return NEXTKEY_SEMICOLON;
+		case SDLK_l:                      return NEXTKEY_l;
+		case SDLK_COMMA:                  return NEXTKEY_COMMA;
+		case SDLK_PERIOD:                 return NEXTKEY_PERIOD;
+		case SDLK_SLASH:                  return NEXTKEY_SLASH;
+		case SDLK_z:                      return NEXTKEY_z;
+		case SDLK_x:                      return NEXTKEY_x;
+		case SDLK_c:                      return NEXTKEY_c;
+		case SDLK_v:                      return NEXTKEY_v;
+		case SDLK_b:                      return NEXTKEY_b;
+		case SDLK_m:                      return NEXTKEY_m;
+		case SDLK_n:                      return NEXTKEY_n;
+		case SDLK_SPACE:                  return NEXTKEY_SPACE;
+		case SDLK_a:                      return NEXTKEY_a;
+		case SDLK_s:                      return NEXTKEY_s;
+		case SDLK_d:                      return NEXTKEY_d;
+		case SDLK_f:                      return NEXTKEY_f;
+		case SDLK_g:                      return NEXTKEY_g;
+		case SDLK_k:                      return NEXTKEY_k;
+		case SDLK_j:                      return NEXTKEY_j;
+		case SDLK_h:                      return NEXTKEY_h;
+		case SDLK_TAB:                    return NEXTKEY_TAB;
+		case SDLK_q:                      return NEXTKEY_q;
+		case SDLK_w:                      return NEXTKEY_w;
+		case SDLK_e:                      return NEXTKEY_e;
+		case SDLK_r:                      return NEXTKEY_r;
+		case SDLK_u:                      return NEXTKEY_u;
+		case SDLK_y:                      return NEXTKEY_y;
+		case SDLK_t:                      return NEXTKEY_t;
+		case SDLK_ESCAPE:                 return NEXTKEY_ESC;
+		case SDLK_1:                      return NEXTKEY_1;
+		case SDLK_2:                      return NEXTKEY_2;
+		case SDLK_3:                      return NEXTKEY_3;
+		case SDLK_4:                      return NEXTKEY_4;
+		case SDLK_7:                      return NEXTKEY_7;
+		case SDLK_6:                      return NEXTKEY_6;
+		case SDLK_5:                      return NEXTKEY_5;
 
 		/* Special Keys */
 		case SDLK_F10:
-		case SDLK_DELETE: return 0x58;   /* Power */
+		case SDLK_DELETE:                 return NEXTKEY_POWER;
 		case SDLK_F5:
-		case SDLK_END: return 0x02;      /* Sound down */
+		case SDLK_END:                    return NEXTKEY_VOLUME_DOWN;
 		case SDLK_F6:
-		case SDLK_HOME: return 0x1a;     /* Sound up */
+		case SDLK_HOME:                   return NEXTKEY_VOLUME_UP;
 		case SDLK_F1:
-		case SDLK_PAGEDOWN: return 0x01; /* Brightness down */
+		case SDLK_PAGEDOWN:               return NEXTKEY_BRGHTNESS_DOWN;
 		case SDLK_F2:
-		case SDLK_PAGEUP: return 0x19;   /* Brightness up */
+		case SDLK_PAGEUP:                 return NEXTKEY_BRIGHTNESS_UP;
 
-		default: return 0x00;
+		default:                          return NEXTKEY_NONE;
 	}
 }
 
@@ -355,28 +335,28 @@ static uint8_t Keymap_GetModifiers(uint16_t mod)
 	uint8_t modifiers = 0;
 
 	if (mod & KMOD_CTRL) {
-		modifiers |= 0x01;
+		modifiers |= NEXTKEY_MOD_META;
 	}
 	if (mod & KMOD_LSHIFT) {
-		modifiers |= 0x02;
+		modifiers |= NEXTKEY_MOD_LSHIFT;
 	}
 	if (mod & KMOD_RSHIFT) {
-		modifiers |= 0x04;
+		modifiers |= NEXTKEY_MOD_RSHIFT;
 	}
 	if (mod & KMOD_LGUI) {
-		modifiers |= ConfigureParams.Keyboard.bSwapCmdAlt?0x20:0x08;
+		modifiers |= ConfigureParams.Keyboard.bSwapCmdAlt?NEXTKEY_MOD_LALT:NEXTKEY_MOD_LCTRL;
 	}
 	if (mod & KMOD_RGUI) {
-		modifiers |= ConfigureParams.Keyboard.bSwapCmdAlt?0x40:0x10;
+		modifiers |= ConfigureParams.Keyboard.bSwapCmdAlt?NEXTKEY_MOD_RALT:NEXTKEY_MOD_RCTRL;
 	}
 	if (mod & KMOD_LALT) {
-		modifiers |= ConfigureParams.Keyboard.bSwapCmdAlt?0x08:0x20;
+		modifiers |= ConfigureParams.Keyboard.bSwapCmdAlt?NEXTKEY_MOD_LCTRL:NEXTKEY_MOD_LALT;
 	}
 	if (mod & KMOD_RALT) {
-		modifiers |= ConfigureParams.Keyboard.bSwapCmdAlt?0x10:0x40;
+		modifiers |= ConfigureParams.Keyboard.bSwapCmdAlt?NEXTKEY_MOD_RCTRL:NEXTKEY_MOD_RALT;
 	}
 	if (mod & KMOD_CAPS) {
-		modifiers |= 0x02;
+		modifiers |= NEXTKEY_MOD_LSHIFT;
 	}
 	return modifiers;
 }
@@ -384,37 +364,43 @@ static uint8_t Keymap_GetModifiers(uint16_t mod)
 
 /*-----------------------------------------------------------------------*/
 /**
- * Mouse wheel mapped to cursor keys (currently disabled)
+ * Mouse wheel mapped to cursor keys
  */
-
-static bool pendingX = true;
-static bool pendingY = true;
-
 static void post_key_event(int sym, int scan)
 {
 	SDL_Event sdlevent;
 	sdlevent.type = SDL_KEYDOWN;
 	sdlevent.key.keysym.sym      = sym;
 	sdlevent.key.keysym.scancode = scan;
+	sdlevent.key.keysym.mod      = KMOD_NONE;
 	SDL_PushEvent(&sdlevent);
 	sdlevent.type = SDL_KEYUP;
 	sdlevent.key.keysym.sym      = sym;
 	sdlevent.key.keysym.scancode = scan;
+	sdlevent.key.keysym.mod      = KMOD_NONE;
 	SDL_PushEvent(&sdlevent);
 }
 
 void Keymap_MouseWheel(SDL_MouseWheelEvent* event)
 {
-	if(!(pendingX)) {
-		pendingX = true;
-		if     (event->x > 0) post_key_event(SDLK_LEFT,  SDL_SCANCODE_LEFT);
-		else if(event->x < 0) post_key_event(SDLK_RIGHT, SDL_SCANCODE_RIGHT);
-	}
-
-	if(!(pendingY)) {
-		pendingY = true;
-		if     (event->y < 0) post_key_event(SDLK_UP,   SDL_SCANCODE_UP);
-		else if(event->y > 0) post_key_event(SDLK_DOWN, SDL_SCANCODE_DOWN);
+	int32_t x, y;
+	
+	if (ConfigureParams.Mouse.bEnableMapToKey) {
+		x = event->x;
+		y = event->y;
+		
+		if (event->direction == SDL_MOUSEWHEEL_FLIPPED) {
+			x = -x;
+			y = -y;
+		}
+		
+		if      (x < 0) post_key_event(SDLK_LEFT,  SDL_SCANCODE_LEFT);
+		else if (x > 0) post_key_event(SDLK_RIGHT, SDL_SCANCODE_RIGHT);
+		
+		if      (y < 0) post_key_event(SDLK_DOWN,  SDL_SCANCODE_DOWN);
+		else if (y > 0) post_key_event(SDLK_UP,    SDL_SCANCODE_UP);
+		
+		Log_Printf(LOG_KEYMAP_LEVEL, "[Keymap] Scrolling x = %d, y = %d\n", x, y);
 	}
 }
 
@@ -427,7 +413,7 @@ void Keymap_KeyDown(const SDL_Keysym *sdlkey)
 {
 	uint8_t next_mod, next_key;
 
-	if (ConfigureParams.Keyboard.nKeymapType==KEYMAP_SYMBOLIC) {
+	if (ConfigureParams.Keyboard.nKeymapType == KEYMAP_SYMBOLIC) {
 		next_key = Keymap_GetKeyFromSymbol(sdlkey->sym);
 	} else {
 		next_key = Keymap_GetKeyFromScancode(sdlkey->scancode);
@@ -449,7 +435,7 @@ void Keymap_KeyUp(const SDL_Keysym *sdlkey)
 {
 	uint8_t next_mod, next_key;
 
-	if (ConfigureParams.Keyboard.nKeymapType==KEYMAP_SYMBOLIC) {
+	if (ConfigureParams.Keyboard.nKeymapType == KEYMAP_SYMBOLIC) {
 		next_key = Keymap_GetKeyFromSymbol(sdlkey->sym);
 	} else {
 		next_key = Keymap_GetKeyFromScancode(sdlkey->scancode);
@@ -460,46 +446,6 @@ void Keymap_KeyUp(const SDL_Keysym *sdlkey)
 	Log_Printf(LOG_KEYMAP_LEVEL, "[Keymap] NeXT Keycode: $%02x, Modifiers: $%02x\n", next_key, next_mod);
 
 	kms_keyup(next_mod, next_key);
-}
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Simulate press or release of a key corresponding to given character
- */
-void Keymap_SimulateCharacter(char asckey, bool press)
-{
-	SDL_Keysym sdlkey;
-
-	sdlkey.mod = KMOD_NONE;
-	sdlkey.scancode = 0;
-	if (isupper((unsigned char)asckey))
-	{
-		if (press)
-		{
-			sdlkey.sym = SDLK_LSHIFT;
-			Keymap_KeyDown(&sdlkey);
-		}
-		sdlkey.sym = tolower((unsigned char)asckey);
-		sdlkey.mod = KMOD_LSHIFT;
-	}
-	else
-	{
-		sdlkey.sym = asckey;
-	}
-	if (press)
-	{
-		Keymap_KeyDown(&sdlkey);
-	}
-	else
-	{
-		Keymap_KeyUp(&sdlkey);
-		if (isupper((unsigned char)asckey))
-		{
-			sdlkey.sym = SDLK_LSHIFT;
-			Keymap_KeyUp(&sdlkey);
-		}
-	}
 }
 
 
@@ -523,6 +469,7 @@ void Keymap_MouseMove(int dx, int dy)
 	kms_mouse_move(dx, left, dy, up);
 }
 
+
 /*-----------------------------------------------------------------------*/
 /**
  * User pressed mouse button
@@ -531,6 +478,7 @@ void Keymap_MouseDown(bool left)
 {
 	kms_mouse_button(left,true);
 }
+
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -542,6 +490,10 @@ void Keymap_MouseUp(bool left)
 }
 
 
+/*-----------------------------------------------------------------------*/
+/**
+ * For use in configuration file routines
+ */
 int Keymap_GetKeyFromName(const char *name)
 {
 	return SDL_GetKeyFromName(name);
