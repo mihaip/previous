@@ -140,7 +140,7 @@ check_symbol_exists(_aligned_malloc "stdlib.h" HAVE__ALIGNED_MALLOC)
 # ########################################
 # Check for non-POSIXness on macOS et al.:
 # ########################################
-message("-- The following HAVE_STRUCT_* tests are checking for non-POSIX systems such as MacOS; 'Failed' does not indicate a problem")
+message("-- The following HAVE_STRUCT_* tests are checking for non-POSIX systems such as macOS; 'Failed' does not indicate a problem")
 check_struct_has_member("struct stat" st_atimespec.tv_nsec
     "sys/types.h;sys/stat.h" HAVE_STRUCT_STAT_ST_ATIMESPEC)
 check_struct_has_member("struct stat" st_mtimespec.tv_nsec
@@ -266,6 +266,10 @@ configure_file(${CMAKE_SOURCE_DIR}/cmake/config-cmake.h
 
 add_subdirectory(src)
 
+add_custom_target(uninstall
+    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/Uninstall.cmake)
+
+
 # ###################################################################
 # Print a summary of the optional libraries with a short explanation:
 # ###################################################################
@@ -294,5 +298,35 @@ if(HAVE_SYS_XATTR_H)
 else()
   message( "  - xattr.h :\tnot found, no netboot possible" )
 endif(HAVE_SYS_XATTR_H)
+
+
+# #####################################
+# Print a summary of the configuration:
+# #####################################
+
+message( "
+Configuration summary :
+-----------------------
+")
+
+message( "  - Build configuration : ${CMAKE_BUILD_TYPE}" )
+
+if(ENABLE_OSX_BUNDLE)
+  message( "  - Build macOS bundle :  Enabled" )
+else()
+  message( "  - Build macOS bundle :  Disabled" )
+endif(ENABLE_OSX_BUNDLE)
+
+if(ENABLE_TRACING)
+  message( "  - Tracing :             Enabled" )
+else()
+  message( "  - Tracing :             Disabled" )
+endif(ENABLE_TRACING)
+
+if(ENABLE_RENDERING_THREAD)
+  message( "  - Rendering thread :    Enabled" )
+else()
+  message( "  - Rendering thread :    Disabled" )
+endif(ENABLE_RENDERING_THREAD)
 
 message( "" )
