@@ -8,8 +8,7 @@
 */
 const char ZIP_fileid[] = "Hatari zip.c";
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "main.h"
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/types.h>
@@ -17,7 +16,6 @@ const char ZIP_fileid[] = "Hatari zip.c";
 #include <zlib.h>
 #endif
 
-#include "main.h"
 #include "file.h"
 #include "log.h"
 #include "str.h"
@@ -306,7 +304,7 @@ struct dirent **ZIP_GetFilesDir(const zip_dir *zip, const char *dir, int *entrie
 			ZIP_FreeZipDir(files);
 			return NULL;
 		}
-		strncpy(fentries[i]->d_name, files->names[i], sizeof(fentries[i]->d_name));
+		strncpy(fentries[i]->d_name, files->names[i], sizeof(fentries[i]->d_name)-1);
 		fentries[i]->d_name[sizeof(fentries[i]->d_name) - 1] = 0;
 	}
 
@@ -531,7 +529,7 @@ uint8_t *ZIP_ReadDisk(int Drive, const char *pszFileName, const char *pszZipPath
 
 	/* return buffer */
 	pDiskBuffer = buf;
-   
+	
 	if (pDiskBuffer)
 	{
 		*pImageSize = ImageSize;

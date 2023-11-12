@@ -456,7 +456,7 @@ void Main_ResetKeys(void) {
 
 	SDL_ResetKeyboard();
 
-	/* Send special key sequence to avoid stuck keys */
+	/* Send magic key sequence to avoid stuck keys */
 	event.type                = SDL_KEYDOWN;
 	event.key.keysym.scancode = SDL_SCANCODE_LCTRL;
 	event.key.keysym.sym      = SDLK_LCTRL;
