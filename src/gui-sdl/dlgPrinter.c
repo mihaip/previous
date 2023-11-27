@@ -42,17 +42,10 @@ static SGOBJ printerdlg[] =
 	{ SGRADIOBUT, 0, 0, 25,7, 8,1, "Letter" },
 	{ SGRADIOBUT, 0, 0, 25,8, 4,1, "B5" },
 	{ SGRADIOBUT, 0, 0, 25,9, 7,1, "Legal" },
-#if HAVE_LIBPNG
 	{ SGBOX, 0, 0, 1,12, 45,5, NULL },
 	{ SGTEXT, 0, 0, 2,13, 19,1, "Directory to save printer output:" },
 	{ SGBUTTON, 0, 0, 37,13, 8,1, "Browse" },
 	{ SGTEXT, 0, 0, 2,15, 43,1, dlgprint_dirname },
-#else
-	{ SGBOX, 0, 0, 1,12, 45,5, NULL },
-	{ SGTEXT, 0, 0, 2,13, 40,1, "This build of Previous is not configured" },
-	{ SGTEXT, 0, 0, 2,14, 1,1, "" },
-	{ SGTEXT, 0, 0, 2,15, 17,1, "for PNG printing." },
-#endif
 	{ SGBUTTON, SG_DEFAULT, 0, 13,19, 21,1, "Back to main menu" },
 	{ SGSTOP, 0, 0, 0,0, 0,0, NULL }
 };
