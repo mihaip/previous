@@ -144,6 +144,10 @@ typedef u_int32_t uint32;
 #define gettimeofday(x, y) gettimeofday(x)
 #endif
 
+#ifdef __MINGW32__
+#define gettimeofday mingw_gettimeofday
+#endif
+
 /* Systems lacking strdup() definition in <string.h>. */
 #if defined(ultrix)
 char *strdup(const char *);

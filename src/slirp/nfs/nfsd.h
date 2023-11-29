@@ -8,7 +8,6 @@
 #include "RPCProg.h"
 
 #ifdef _WIN32
-#define _SC_HOST_NAME_MAX 64
 #include <Winsock2.h>
 #include <ws2tcpip.h>
 #endif
@@ -29,7 +28,7 @@ enum {
     PROG_VDNS        = 200053, // virtual DNS
 };
 
-extern char nfsd_hostname[_SC_HOST_NAME_MAX];
+extern char nfsd_hostname[NAME_HOST_MAX];
 
 #ifdef __cplusplus
 extern "C" {

@@ -105,7 +105,7 @@ CNetInfoBindProg::CNetInfoBindProg()
     m_Network.mRoot.add("trusted_networks", ip_addr_str(CTL_NET, 3));
     NetInfoNode* machines   = m_Network.mRoot.add(NIProps("name","machines"));
     
-    char hostname[_SC_HOST_NAME_MAX];
+    char hostname[NAME_HOST_MAX];
     hostname[0] = '\0';
     gethostname(hostname, sizeof(hostname));
 

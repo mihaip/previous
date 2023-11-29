@@ -43,7 +43,7 @@ static const char    kernel_next[] = "mach";
 static const char    tftp_root[]   = "/private/tftpboot/";
 static const char    root_path[]   = "/";
 
-static char hostname[_SC_HOST_NAME_MAX];
+static char hostname[NAME_HOST_MAX];
 
 static BOOTPClient *get_new_addr(struct in_addr *paddr)
 {
@@ -126,7 +126,7 @@ static void bootp_reply(struct bootp_t *bp)
     struct bootp_t *rbp;
     struct sockaddr_in saddr, daddr;
     struct in_addr dns_addr;
-    int val;
+    uint32_t val;
     int dhcp_msg_type;
     uint8_t *q;
 
@@ -212,7 +212,6 @@ static void bootp_reply(struct bootp_t *bp)
         DHCP_OPT_LEN + BOOTP_VENDOR_LEN -
         sizeof(struct ip) - sizeof(struct udphdr);
     } else if (memcmp(bp->bp_vend, rfc1533_cookie, 4) == 0) { /* DHCP */
-        uint32_t val;
         memcpy(q, rfc1533_cookie, 4);
         q += 4;
         if (dhcp_msg_type == DHCPDISCOVER) {

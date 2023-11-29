@@ -90,7 +90,7 @@ extern "C" void nfsd_start(void) {
     
     if(initialized) return;
 
-    char nfsd_hostname[_SC_HOST_NAME_MAX];
+    char nfsd_hostname[NAME_HOST_MAX];
     gethostname(nfsd_hostname, sizeof(nfsd_hostname));
     
     printf("[NFSD] starting local NFS daemon on '%s', exporting '%s'\n", nfsd_hostname, ConfigureParams.Ethernet.szNFSroot);

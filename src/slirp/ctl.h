@@ -15,6 +15,9 @@
 #define NAME_NFSD   "nfs"
 #define FQDN_NFSD   NAME_NFSD NAME_DOMAIN
 
+#define NAME_HOST_MAX    256
+#define NAME_DOMAIN_MAX  256
+
 #define CTL_NET          0x0A000200 //10.0.2.0
 #define CTL_NET_MASK     0xFFFFFF00 //255.255.255.0
 #define CTL_BROADCAST    0xFFFFFFFF //255.255.255.255

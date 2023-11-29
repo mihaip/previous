@@ -171,9 +171,10 @@ void i860_cpu_device::handle_trap(UINT32 savepc) {
     if(!(m_single_stepping) && !((GET_PSR_IAT() || GET_PSR_DAT() || GET_PSR_IN())))
         debugger('d', trap_info());
     
-    if(m_dim)
+    if(m_dim) {
         Log_Printf(LOG_DEBUG, "[i860] Trap while DIM %s pc=%08X m_flow=%08X", trap_info(), savepc, m_flow);
-
+    }
+    
     /* If we need to trap, change PC to trap address.
      Also set supervisor mode, copy U and IM to their
      previous versions, clear IM.  */

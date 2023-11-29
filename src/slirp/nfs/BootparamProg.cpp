@@ -57,12 +57,12 @@ int CBootparamProg::procedureWHOAMI(void) {
         default:
             return PRC_FAIL;
     }
-    char hostname[_SC_HOST_NAME_MAX];
+    char hostname[NAME_HOST_MAX];
     strcpy(hostname, NAME_HOST);
-    char domain[_SC_HOST_NAME_MAX];
+    char domain[NAME_DOMAIN_MAX];
     strcpy(domain, ""); // no NIS domain
-    m_out->write(_SC_HOST_NAME_MAX,  hostname);
-    m_out->write(_SC_HOST_NAME_MAX,  &domain[domain[0] == '.' ? 1 : 0]);
+    m_out->write(NAME_HOST_MAX, hostname);
+    m_out->write(NAME_DOMAIN_MAX, &domain[domain[0] == '.' ? 1 : 0]);
     WriteInAddr(m_out, ntohl(special_addr.s_addr) | CTL_GATEWAY);
     return PRC_OK;
 }
@@ -78,7 +78,7 @@ int CBootparamProg::procedureGETFILE(void) {
     }
 
     if(path.length()) {
-        m_out->write(_SC_HOST_NAME_MAX, NAME_NFSD);
+        m_out->write(NAME_HOST_MAX, NAME_NFSD);
         WriteInAddr(m_out, ntohl(special_addr.s_addr) | CTL_NFSD);
         m_out->write(PATH_MAX, path.c_str());
         return PRC_OK;
