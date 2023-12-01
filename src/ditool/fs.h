@@ -73,15 +73,15 @@ typedef uint8_t u_char;
 #define BBSIZE		8192
 #define SBSIZE		8192
 #define MAXFRAG     8
-#define	BBLOCK		((daddr_t)(0))
+#define	BBLOCK		((int32_t)(0))
 #if	NeXT
 /*
  *  SBLOCK gives the address in bytes.  It's up to code to convert to
  *  device blocks based on the blocksize of the device...
  */
-#define	SBLOCK		((daddr_t)(BBLOCK + BBSIZE))
+#define	SBLOCK		((int32_t)(BBLOCK + BBSIZE))
 #else	// NeXT
-#define	SBLOCK		((daddr_t)(BBLOCK + BBSIZE) / DEV_BSIZE)
+#define	SBLOCK		((int32_t)(BBLOCK + BBSIZE) / DEV_BSIZE)
 #endif	// NeXT
 
 /*
@@ -382,7 +382,7 @@ struct csum {
 #define blkstofrags(fs, blks)    /* calculates (blks * fs->fs_frag) */ \
 ((blks) << fsv((fs)->fs_fragshift))
 
-#define    cgbase(fs, c)    ((daddr_t)(fsv((fs)->fs_fpg) * (c)))
+#define    cgbase(fs, c)    ((int32_t)(fsv((fs)->fs_fpg) * (c)))
 
 #define cgstart(fs, c) \
 (cgbase(fs, c) + fsv((fs)->fs_cgoffset) * ((c) & ~(fsv((fs)->fs_cgmask))))
@@ -392,7 +392,7 @@ struct csum {
 #define    itoo(fs, x)    ((x) % INOPB(fs))
 #define    itog(fs, x)    ((x) / fsv((fs)->fs_ipg))
 #define    itod(fs, x) \
-((daddr_t)(cgimin(fs, itog(fs, x)) + \
+((int32_t)(cgimin(fs, itog(fs, x)) + \
 (blkstofrags((fs), (((x) % fsv((fs)->fs_ipg)) / INOPB(fs))))))
 
 /*

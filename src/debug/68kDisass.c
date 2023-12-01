@@ -8,10 +8,6 @@
 #include "main.h"
 #include <ctype.h>
 
-#if HAVE_CAPSTONE_M68K
-#include <capstone.h>
-#endif
-
 #include "sysdeps.h"
 #include "configuration.h"
 #include "m68000.h"
@@ -22,6 +18,12 @@
 #include "str.h"
 #include "68kDisass.h"
 #include "disasm.h"
+
+#if HAVE_CAPSTONE_M68K
+#include <capstone.h>
+#include "stMemory.h"
+#include "tos.h"
+#endif
 
 typedef enum {
 	doptNoSpace       = (1 << 0),	// ext: no space after a comma in the operands list

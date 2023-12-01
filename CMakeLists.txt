@@ -22,6 +22,7 @@ include(CheckFunctionExists)
 include(CheckStructHasMember)
 include(CheckSymbolExists)
 include(CheckCCompilerFlag)
+include(CheckCXXCompilerFlag)
 include(DistClean)
 
 # set(CMAKE_VERBOSE_MAKEFILE 1)
@@ -198,6 +199,12 @@ endif(ENABLE_WERROR)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpointer-bool-conversion -Wtautological-compare -Wno-unused-parameter ${CMAKE_CXX_FLAGS}")
 endif()
+
+# Silence warnings in DiskImage.cpp
+CHECK_CXX_COMPILER_FLAG("-Wimplicit-fallthrough=0" WARN_CXX_FALLTRHOUGH_AVAILABLE)
+if(WARN_CXX_FALLTRHOUGH_AVAILABLE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wimplicit-fallthrough=0")
+endif(WARN_CXX_FALLTRHOUGH_AVAILABLE)
 
 # Building Previous w/o optimization is no fun...
 IF (CMAKE_BUILD_TYPE STREQUAL "Debug")

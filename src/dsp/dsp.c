@@ -219,7 +219,7 @@ void DSP_UnInit(void)
 void DSP_Reset(void)
 {
 #if ENABLE_DSP_EMU
-	//LogTraceFlags = TRACE_DSP_ALL;
+//	LogTraceFlags = TRACE_DSP_ALL;
 	if (ConfigureParams.System.bDSPMemoryExpansion) {
 		DSP_RAMSIZE = DSP_RAMSIZE_96kB;
 	} else {
