@@ -34,6 +34,7 @@
 #include "dma.h"
 
 #if ENABLE_DSP_EMU
+#include "debugdsp.h"
 #include "dsp_cpu.h"
 #include "dsp_disasm.h"
 #endif
@@ -45,12 +46,12 @@
 #define Dprintf(a)
 #endif
 
-#define LOG_DSP_LEVEL  LOG_DEBUG
-
-#define DSP_HW_OFFSET  0xFFA200
+#define LOG_DSP_LEVEL       LOG_DEBUG
+#define LOG_DSP_REG_LEVEL   LOG_DEBUG
 
 uint8_t dsp_dma_unpacked = 0;
 uint8_t dsp_intr_at_block_end = 0;
+
 
 #if ENABLE_DSP_EMU
 static const char* x_ext_memory_addr_name[] = {
@@ -69,7 +70,6 @@ static bool bDspDebugging;
 
 bool bDspEnabled = false;
 bool bDspEmulated = false;
-bool bDspHostInterruptPending = false;
 
 
 /**
@@ -370,7 +370,7 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 	static const char *spaces[3][4] = {
 		{ "X ram", "X rom", "X", "X periph" },
 		{ "Y ram", "Y rom", "Y", "Y periph" },
-		{ "P ram", "P ram", "P ext memory", "P ext memory" }
+		{ "P ram", "P rom", "P ext memory", "P ext memory" }
 	};
 	int idx, space;
 
@@ -393,12 +393,6 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 	}
 	address &= 0xFFFF;
 
-	/* Internal RAM ? */
-	if (address < 0x100) {
-		*mem_str = spaces[idx][0];
-		return dsp_core.ramint[space][address];
-	}
-
 	if (space == DSP_SPACE_P) {
 		/* Internal RAM ? */
 		if (address < 0x200) {
@@ -408,6 +402,12 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 		/* External RAM, mask address to available ram size */
 		*mem_str = spaces[idx][2];
 		return dsp_core.ramext[address & (DSP_RAMSIZE-1)];
+	}
+
+	/* Internal RAM ? */
+	if (address < 0x100) {
+		*mem_str = spaces[idx][0];
+		return dsp_core.ramint[space][address];
 	}
 
 	/* Internal ROM ? */
@@ -427,13 +427,17 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 		return dsp_core.periph[space][address-0xffc0];
 	}
 
-	/* Falcon: External RAM, map X to upper 16K of matching space in Y,P */
-	address &= (DSP_RAMSIZE>>1) - 1;
-	if (space == DSP_SPACE_X) {
-		address += DSP_RAMSIZE>>1;
+	/* Access to contiguous or separated space ? */
+	if (address&0x8000) {
+		/* Map Y to lower half of available RAM size */
+		address &= (DSP_RAMSIZE>>1) - 1;
+		if (space == DSP_SPACE_X) {
+			/* Map X to upper half of available RAM size */
+			address += DSP_RAMSIZE>>1;
+		}
 	}
 
-	/* Falcon: External RAM, finally map X,Y to P */
+	/* External RAM, finally map X,Y to P */
 	*mem_str = spaces[idx][2];
 	return dsp_core.ramext[address & (DSP_RAMSIZE-1)];
 #endif
@@ -801,7 +805,6 @@ void DSP_SsiReceive_SC1(uint32_t FrameCounter)
 void DSP_SsiTransmit_SC1(void)
 {
 #if ENABLE_DSP_EMU
-//	Crossbar_DmaPlayInHandShakeMode();
 #endif
 }
 
@@ -815,7 +818,6 @@ void DSP_SsiReceive_SC2(uint32_t FrameCounter)
 void DSP_SsiTransmit_SC2(uint32_t frame)
 {
 #if ENABLE_DSP_EMU
-//	Crossbar_DmaRecordInHandShakeMode_Frame(frame);
 #endif
 }
 
@@ -833,61 +835,8 @@ void DSP_SsiTransmit_SCK(void)
 }
 
 /**
- * Read access wrapper for ioMemTabFalcon (DSP Host port)
- * DSP Host interface port is accessed by the 68030 in Byte mode.
- * A move.w value,$ffA206 results in 2 bus access for the 68030.
+ * DSP Host interface port is accessed by the 68k in Byte mode.
  */
-void DSP_HandleReadAccess(void)
-{
-	uint32_t addr;
-	uint8_t value;
-	bool multi_access = false;
-
-	for (addr = IoAccessBaseAddress; addr < IoAccessBaseAddress+nIoMemAccessSize; addr++)
-	{
-#if ENABLE_DSP_EMU
-		value = dsp_core_read_host(addr-DSP_HW_OFFSET);
-#else
-		/* this value prevents TOS from hanging in the DSP init code */
-		value = 0xff;
-#endif
-		if (multi_access == true)
-			M68000_AddCycles(4);
-		multi_access = true;
-
-		Dprintf(("HWget_b(0x%08x)=0x%02x at 0x%08x\n", addr, value, m68k_getpc()));
-		IoMem_WriteByte(addr, value);
-	}
-}
-
-/**
- * Write access wrapper for ioMemTabFalcon (DSP Host port)
- * DSP Host interface port is accessed by the 68030 in Byte mode.
- * A move.w value,$ffA206 results in 2 bus access for the 68030.
- */
-void DSP_HandleWriteAccess(void)
-{
-	uint32_t addr;
-	bool multi_access = false;
-
-	for (addr = IoAccessBaseAddress; addr < IoAccessBaseAddress+nIoMemAccessSize; addr++)
-	{
-#if ENABLE_DSP_EMU
-		uint8_t value = IoMem_ReadByte(addr);
-		Dprintf(("HWput_b(0x%08x,0x%02x) at 0x%08x\n", addr, value, m68k_getpc()));
-		dsp_core_write_host(addr-DSP_HW_OFFSET, value);
-#endif
-		if (multi_access == true)
-			M68000_AddCycles(4);
-		multi_access = true;
-	}
-}
-
-
-
-/* Previous Register Access */
-#define LOG_DSP_REG_LEVEL   LOG_DEBUG
-
 #define IO_SEG_MASK	0x1FFFF
 
 /* Register bits */

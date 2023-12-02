@@ -692,7 +692,6 @@ void dsp_core_setPortCDataRegister(uint32_t value)
 		}
 	}
 
-	
 	/* if DSP Record is in handshake mode with DMA Play */
 	if ((dsp_core.periph[DSP_SPACE_X][DSP_PCDDR] & 0x10) == 0x10) {
 		if ((value & 0x10) == 0x10) {
