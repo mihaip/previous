@@ -850,10 +850,8 @@ void DSP_ICR_Read(void) { // 0x02008000
 	if (bDspEmulated)
 		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = dsp_core_read_host(CPU_HOST_ICR);
 	else
-		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x7F;
-#else
-	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x7F;
 #endif
+		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x7F;
 	Log_Printf(LOG_DSP_REG_LEVEL,"[DSP] ICR read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -870,10 +868,8 @@ void DSP_CVR_Read(void) { // 0x02008001
 	if (bDspEmulated)
 		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = dsp_core_read_host(CPU_HOST_CVR);
 	else
-		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0xFF;
-#else
-	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0xFF;
 #endif
+		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0xFF;
 	Log_Printf(LOG_DSP_REG_LEVEL,"[DSP] CVR read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -890,10 +886,8 @@ void DSP_ISR_Read(void) { // 0x02008002
 	if (bDspEmulated)
 		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = dsp_core_read_host(CPU_HOST_ISR);
 	else
-		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0xFF;
-#else
-	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0xFF;
 #endif
+		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0xFF;
 	Log_Printf(LOG_DSP_REG_LEVEL,"[DSP] ISR read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -910,10 +904,8 @@ void DSP_IVR_Read(void) { // 0x02008003
 	if (bDspEmulated)
 		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = dsp_core_read_host(CPU_HOST_IVR);
 	else
-		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0xFF;
-#else
-	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0xFF;
 #endif
+		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0xFF;
 	Log_Printf(LOG_DSP_REG_LEVEL,"[DSP] IVR read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -930,10 +922,8 @@ void DSP_Data0_Read(void) { // 0x02008004
 	if (bDspEmulated)
 		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = dsp_core_read_host(CPU_HOST_TRX0);
 	else
-		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
-#else
-	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
 #endif
+		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
 	Log_Printf(LOG_DSP_REG_LEVEL,"[DSP] Data0 read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -950,10 +940,8 @@ void DSP_Data1_Read(void) { // 0x02008005
 	if (bDspEmulated)
 		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = dsp_core_read_host(CPU_HOST_TRXH);
 	else
-		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
-#else
-	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
 #endif
+		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
 	Log_Printf(LOG_DSP_REG_LEVEL,"[DSP] Data1 read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -970,10 +958,8 @@ void DSP_Data2_Read(void) { // 0x02008006
 	if (bDspEmulated)
 		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = dsp_core_read_host(CPU_HOST_TRXM);
 	else
-		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
-#else
-	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
 #endif
+		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
 	Log_Printf(LOG_DSP_REG_LEVEL,"[DSP] Data2 read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
@@ -990,10 +976,8 @@ void DSP_Data3_Read(void) { // 0x02008007
 	if (bDspEmulated)
 		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = dsp_core_read_host(CPU_HOST_TRXL);
 	else
-		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
-#else
-	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
 #endif
+		IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
 	Log_Printf(LOG_DSP_REG_LEVEL,"[DSP] Data3 read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 

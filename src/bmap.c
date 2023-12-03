@@ -1,3 +1,13 @@
+/*  
+  Previous - bmap.c
+
+  This file is distributed under the GNU Public License, version 2 or at
+  your option any later version. Read the file gpl.txt for details.
+
+  NeXT BMAP chip emulation.
+*/
+const char Bmap_fileid[] = "Previous bmap.c";
+
 #include "main.h"
 #include "configuration.h"
 #include "m68000.h"
@@ -5,23 +15,104 @@
 #include "bmap.h"
 
 
-/* NeXT bmap chip emulation */
+#define LOG_BMAP_LEVEL  LOG_DEBUG
 
+static uae_u32 NEXTbmap[16];
 
-uae_u32  NEXTbmap[16];
-
-int bmap_tpe_select = 0;
-
-uae_u32 bmap_get(uae_u32 addr);
-void bmap_put(uae_u32 addr, uae_u32 val);
-
-
+#define BMAP_DSP_INT    0x3
 #define BMAP_DATA_RW    0xD
 
+/* Bits in DSP interrupt control */
+#define BMAP_DSP_HREQ   0x20000000
+#define BMAP_DSP_TXD    0x10000000
+
+/* Bits in data RW */
 #define BMAP_TPE_RXSEL  0x80000000
 #define BMAP_HEARTBEAT  0x20000000
 #define BMAP_TPE_ILBC   0x10000000
 #define BMAP_TPE        (BMAP_TPE_RXSEL|BMAP_TPE_ILBC)
+
+/* Externally accessible variables */
+int bmap_tpe_select  = 0;
+int bmap_hreq_enable = 0;
+int bmap_txd_enable  = 0;
+
+static uae_u32 bmap_get(uae_u32 bmap_reg) {
+    uae_u32 val;
+    
+    switch (bmap_reg) {
+        case BMAP_DATA_RW:
+            /* This is for detecting thin wire ethernet.
+             * It prevents from switching ethernet
+             * transceiver to loopback mode.
+             */
+            val = NEXTbmap[BMAP_DATA_RW];
+            
+            val &= ~(BMAP_HEARTBEAT | BMAP_TPE_ILBC);
+            
+            if (ConfigureParams.Ethernet.bEthernetConnected && ConfigureParams.Ethernet.bTwistedPair) {
+                val |= BMAP_TPE_ILBC;
+            } else {
+                val |= BMAP_HEARTBEAT;
+            }
+            break;
+            
+        default:
+            val = NEXTbmap[bmap_reg];
+            break;
+    }
+    
+    return val;
+}
+
+static void bmap_put(uae_u32 bmap_reg, uae_u32 val) {
+    switch (bmap_reg) {
+        case BMAP_DSP_INT:
+            if (!bmap_hreq_enable && (val&BMAP_DSP_HREQ)) {
+                Log_Printf(LOG_BMAP_LEVEL, "[BMAP] Enable DSP HREQ interrupt.");
+                bmap_hreq_enable = 1
+            } else if (bmap_hreq_enable && !(val&BMAP_DSP_HREQ)) {
+                Log_Printf(LOG_BMAP_LEVEL, "[BMAP] Disable DSP HREQ interrupt.");
+                bmap_hreq_enable = 0
+            }
+            if (!bmap_txd_enable && (val&BMAP_DSP_TXD)) {
+                Log_Printf(LOG_WARN, "[BMAP] Enable DSP TXD interrupt.");
+                bmap_txd_enable = 1;
+            } else if (bmap_txd_enable && !(val&BMAP_DSP_TXD)) {
+                Log_Printf(LOG_WARN, "[BMAP] Disable DSP TXD interrupt.");
+                bmap_txd_enable = 0;
+            }
+            break;
+        case BMAP_DATA_RW:
+            if ((val&BMAP_TPE) != (NEXTbmap[bmap_reg]&BMAP_TPE)) {
+                if ((val&BMAP_TPE)==BMAP_TPE) {
+                    Log_Printf(LOG_WARN, "[BMAP] Switching to twisted pair ethernet.");
+                    bmap_tpe_select = 1;
+                } else if ((val&BMAP_TPE)==0) {
+                    Log_Printf(LOG_WARN, "[BMAP] Switching to thin ethernet.");
+                    bmap_tpe_select = 0;
+                }
+            }
+            break;
+            
+        default:
+            break;
+    }
+    
+    NEXTbmap[bmap_reg] = val;
+}
+
+
+void bmap_init(void) {
+    int i;
+    
+    for (i = 0; i < 16; i++) {
+        NEXTbmap[i] = 0;
+    }
+    bmap_tpe_select  = 0;
+    bmap_hreq_enable = 0;
+    bmap_txd_enable  = 0;
+}
 
 uae_u32 bmap_lget(uaecptr addr) {
     uae_u32 l;
@@ -105,63 +196,4 @@ void bmap_bput(uaecptr addr, uae_u32 b) {
     val |= b << shift;
     
     bmap_put(addr>>2, val);
-}
-
-
-uae_u32 bmap_get(uae_u32 bmap_reg) {
-    uae_u32 val;
-    
-    switch (bmap_reg) {
-        case BMAP_DATA_RW:
-            /* This is for detecing thin wire ethernet.
-             * It prevents from switching ethernet
-             * transceiver to loopback mode.
-             */
-            val = NEXTbmap[BMAP_DATA_RW];
-            
-            val &= ~(BMAP_HEARTBEAT | BMAP_TPE_ILBC);
-            
-            if (ConfigureParams.Ethernet.bEthernetConnected && ConfigureParams.Ethernet.bTwistedPair) {
-                val |= BMAP_TPE_ILBC;
-            } else {
-                val |= BMAP_HEARTBEAT;
-            }
-            break;
-            
-        default:
-            val = NEXTbmap[bmap_reg];
-            break;
-    }
-    
-    return val;
-}
-
-void bmap_put(uae_u32 bmap_reg, uae_u32 val) {
-    switch (bmap_reg) {
-        case BMAP_DATA_RW:
-            if ((val&BMAP_TPE) != (NEXTbmap[bmap_reg]&BMAP_TPE)) {
-                if ((val&BMAP_TPE)==BMAP_TPE) {
-                    Log_Printf(LOG_WARN, "[BMAP] Switching to twisted pair ethernet.");
-                    bmap_tpe_select = 1;
-                } else if ((val&BMAP_TPE)==0) {
-                    Log_Printf(LOG_WARN, "[BMAP] Switching to thin ethernet.");
-                    bmap_tpe_select = 0;
-                }
-            }
-            break;
-            
-        default:
-            break;
-    }
-    
-    NEXTbmap[bmap_reg] = val;
-}
-
-void bmap_init(void) {
-    int i;
-    
-    for (i = 0; i < 16; i++) {
-        NEXTbmap[i] = 0;
-    }
-    bmap_tpe_select = 0;
 }

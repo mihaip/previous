@@ -297,6 +297,9 @@ void SCR1_Read3(void)
 #define SCR2_SOFTINT2       0x02
 #define SCR2_SOFTINT1       0x01
 
+/* byte 1 */
+#define SCR2_DSP_TXD_EN     0x80 /* Turbo only */
+
 /* byte 2 */
 #define SCR2_TIMERIPL7      0x80
 #define SCR2_RTDATA         0x04
@@ -306,7 +309,7 @@ void SCR1_Read3(void)
 /* byte 3 */
 #define SCR2_ROM            0x80
 #define SCR2_DSP_INT_EN     0x40
-#define SCR2_DSP_MEM_EN     0x20
+#define SCR2_DSP_MEM_EN     0x20 /* inverted on non-Turbo */
 #define SCR2_LED            0x01
 
 
@@ -369,8 +372,16 @@ void SCR2_Read0(void)
 
 void SCR2_Write1(void)
 {
+    uint8_t changed_bits=scr2_1;
     Log_Printf(LOG_SCR_LEVEL,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress&IO_SEG_MASK],m68k_getpc());
     scr2_1=IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
+    changed_bits^=scr2_1;
+    
+    if (ConfigureParams.System.bTurbo) {
+        if (changed_bits&SCR2_DSP_TXD_EN) {
+            Log_Printf(LOG_WARN,"[SCR2] %s DSP TXD interrupt at level 4",(scr2_1&SCR2_DSP_TXD_EN)?"enable":"disable");
+        }
+    }
 }
 
 void SCR2_Read1(void)
@@ -442,7 +453,11 @@ void SCR2_Write3(void)
         }
     }
     if (changed_bits&SCR2_DSP_MEM_EN) {
-        Log_Printf(LOG_WARN,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"disable":"enable");
+        if (ConfigureParams.System.bTurbo) {
+            Log_Printf(LOG_WARN,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"enable":"disable");
+        } else {
+            Log_Printf(LOG_WARN,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"disable":"enable");
+        }
     }
 }
 
