@@ -1270,6 +1270,7 @@ static void dsp_ccr_update_e_u_n_z(uint32_t reg0, uint32_t reg1, uint32_t reg2)
 
 static uint32_t read_memory_disasm(int space, uint16_t address)
 {
+	/* Program memory space ? */
 	if (space==DSP_SPACE_P) {
 		return read_memory_p(address);
 	}
@@ -1326,6 +1327,7 @@ static uint32_t read_memory(int space, uint16_t address)
 {
 	uint32_t value;
 
+	/* Program memory space ? */
 	if (space == DSP_SPACE_P) {
 		return read_memory_p(address);
 	}

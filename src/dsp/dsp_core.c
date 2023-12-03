@@ -643,12 +643,12 @@ void dsp_core_reset(void)
 	dsp_core.hostport[CPU_HOST_ISR] = (1<<CPU_HOST_ISR_TRDY)|(1<<CPU_HOST_ISR_TXDE);
 	dsp_core.hostport[CPU_HOST_IVR] = 0x0f;
 	dsp_core.hostport[CPU_HOST_RX0] = 0x0;
-	
+
 	/* host port init, dma */
 	dsp_core.dma_mode = 0;
 	dsp_core.dma_direction = 0;
 	dsp_core.dma_address_counter = 0;
-	
+
 	/* host port init, hreq */
 	dsp_core.dma_request = 0;
 	dsp_host_interrupt(0);

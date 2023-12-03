@@ -116,11 +116,7 @@ static void DSP_HandleHREQ(int set)
 
 
 /**
- * Host DSP DMA interface
- */
-
-/**
- * Set DSP IRQB at the end of a DMA block.
+ * Host DSP DMA interface: Set DSP IRQB at the end of a DMA block.
  */
 void DSP_SetIRQB(void)
 {
@@ -133,7 +129,7 @@ void DSP_SetIRQB(void)
 
 
 /**
- * Handling DMA transfers.
+ * Host DSP DMA interface: Handling DMA transfers.
  */
 #if ENABLE_DSP_EMU
 static void DSP_HandleDMA(void)
@@ -166,19 +162,6 @@ static void DSP_HandleDMA(void)
 			return;
 		}
 	}
-}
-#endif
-
-
-/**
- * This function is called from the CPU emulation part when SPCFLAG_DSP is set.
- * If the DSP's IRQ signal is set, we check that SR allows a level 6 interrupt,
- * and if so, we call M68000_Exception.
- */
-#if ENABLE_DSP_EMU
-bool	DSP_ProcessIRQ(void)
-{
-	return false;
 }
 #endif
 
@@ -473,7 +456,8 @@ uint16_t DSP_DisasmMemory(FILE *fp, uint16_t dsp_memdump_addr, uint16_t dsp_memd
 			continue;
 		}
 		/* special printing of X & Y external RAM values */
-		if ((space == 'X' || space == 'Y') &&
+		if ((space == 'X' || space == 'Y') && 
+			(mem & 0x8000) &&
 		    mem >= 0x200 && mem < 0xffc0) {
 			mem2 = mem & ((DSP_RAMSIZE>>1)-1);
 			if (space == 'X') {
