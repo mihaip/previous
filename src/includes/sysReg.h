@@ -61,7 +61,8 @@ extern "C" {
 #define RELEASE_INT     0
 
 void set_interrupt(uint32_t intr, uint8_t state);
-int scr_get_interrupt_level(uint32_t interrupt);
+void scr_check_dsp_interrupt(void);
+int  scr_get_interrupt_level(uint32_t interrupt);
 
 extern uint32_t scrIntStat;
 extern uint32_t scrIntMask;
@@ -78,8 +79,6 @@ static inline int intlev(void) {
     uint32_t interrupt = scrIntStat&scrIntMask;
     return interrupt ? scr_get_interrupt_level(interrupt) : 0;
 }
-
-void set_dsp_interrupt(uint8_t state);
 
 void SCR_Reset(void);
     

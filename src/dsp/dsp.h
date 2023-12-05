@@ -92,6 +92,8 @@ extern void DSP_Data3_Write(void);
 
 extern uint8_t dsp_intr_at_block_end;
 extern uint8_t dsp_dma_unpacked;
+extern uint8_t dsp_hreq_intr;
+extern uint8_t dsp_txdn_intr;
 extern void DSP_SetIRQB(void);
 
 /* See statusbar.c */

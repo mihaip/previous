@@ -10,4 +10,4 @@ extern void bmap_init(void);
 
 extern int bmap_tpe_select;
 extern int bmap_hreq_enable;
-extern int bmap_txd_enable;
+extern int bmap_txdn_enable;

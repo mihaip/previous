@@ -11,6 +11,7 @@ const char Bmap_fileid[] = "Previous bmap.c";
 #include "main.h"
 #include "configuration.h"
 #include "m68000.h"
+#include "sysReg.h"
 #include "sysdeps.h"
 #include "bmap.h"
 
@@ -35,7 +36,7 @@ static uae_u32 NEXTbmap[16];
 /* Externally accessible variables */
 int bmap_tpe_select  = 0;
 int bmap_hreq_enable = 0;
-int bmap_txd_enable  = 0;
+int bmap_txdn_enable = 0;
 
 static uae_u32 bmap_get(uae_u32 bmap_reg) {
     uae_u32 val;
@@ -70,18 +71,19 @@ static void bmap_put(uae_u32 bmap_reg, uae_u32 val) {
         case BMAP_DSP_INT:
             if (!bmap_hreq_enable && (val&BMAP_DSP_HREQ)) {
                 Log_Printf(LOG_BMAP_LEVEL, "[BMAP] Enable DSP HREQ interrupt.");
-                bmap_hreq_enable = 1
+                bmap_hreq_enable = 1;
             } else if (bmap_hreq_enable && !(val&BMAP_DSP_HREQ)) {
                 Log_Printf(LOG_BMAP_LEVEL, "[BMAP] Disable DSP HREQ interrupt.");
-                bmap_hreq_enable = 0
+                bmap_hreq_enable = 0;
             }
-            if (!bmap_txd_enable && (val&BMAP_DSP_TXD)) {
+            if (!bmap_txdn_enable && (val&BMAP_DSP_TXD)) {
                 Log_Printf(LOG_WARN, "[BMAP] Enable DSP TXD interrupt.");
-                bmap_txd_enable = 1;
-            } else if (bmap_txd_enable && !(val&BMAP_DSP_TXD)) {
+                bmap_txdn_enable = 1;
+            } else if (bmap_txdn_enable && !(val&BMAP_DSP_TXD)) {
                 Log_Printf(LOG_WARN, "[BMAP] Disable DSP TXD interrupt.");
-                bmap_txd_enable = 0;
+                bmap_txdn_enable = 0;
             }
+            scr_check_dsp_interrupt();
             break;
         case BMAP_DATA_RW:
             if ((val&BMAP_TPE) != (NEXTbmap[bmap_reg]&BMAP_TPE)) {
@@ -111,7 +113,7 @@ void bmap_init(void) {
     }
     bmap_tpe_select  = 0;
     bmap_hreq_enable = 0;
-    bmap_txd_enable  = 0;
+    bmap_txdn_enable = 0;
 }
 
 uae_u32 bmap_lget(uaecptr addr) {

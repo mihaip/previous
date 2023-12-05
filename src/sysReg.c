@@ -11,6 +11,7 @@
 #include "dsp.h"
 #include "sysReg.h"
 #include "rtcnvram.h"
+#include "bmap.h"
 #include "statusbar.h"
 #include "host.h"
 
@@ -164,6 +165,8 @@ void SCR_Reset(void) {
     SCR_ROM_overlay = 0;
     dsp_intr_at_block_end = 0;
     dsp_dma_unpacked = 0;
+    dsp_hreq_intr = 0;
+    dsp_txdn_intr = 0;
     
     scr1=0x00000000;
     scr2_0=0x00;
@@ -298,7 +301,7 @@ void SCR1_Read3(void)
 #define SCR2_SOFTINT1       0x01
 
 /* byte 1 */
-#define SCR2_DSP_TXD_EN     0x80 /* Turbo only */
+#define SCR2_DSP_TXD_EN     0x80 /* only on Turbo */
 
 /* byte 2 */
 #define SCR2_TIMERIPL7      0x80
@@ -308,7 +311,7 @@ void SCR1_Read3(void)
 
 /* byte 3 */
 #define SCR2_ROM            0x80
-#define SCR2_DSP_INT_EN     0x40
+#define SCR2_DSP_INT_EN     0x40 /* only on non-Turbo */
 #define SCR2_DSP_MEM_EN     0x20 /* inverted on non-Turbo */
 #define SCR2_LED            0x01
 
@@ -379,7 +382,8 @@ void SCR2_Write1(void)
     
     if (ConfigureParams.System.bTurbo) {
         if (changed_bits&SCR2_DSP_TXD_EN) {
-            Log_Printf(LOG_WARN,"[SCR2] %s DSP TXD interrupt at level 4",(scr2_1&SCR2_DSP_TXD_EN)?"enable":"disable");
+            Log_Printf(LOG_WARN,"[SCR2] %s DSP TXD interrupt",(scr2_1&SCR2_DSP_TXD_EN)?"enable":"disable");
+            scr_check_dsp_interrupt();
         }
     }
 }
@@ -444,12 +448,14 @@ void SCR2_Write3(void)
         Statusbar_SetSystemLed(scr2_3&SCR2_LED);
     }
     
-    if (changed_bits&SCR2_DSP_INT_EN) {
-        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP interrupt at level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
-        if (scrIntStat&(INT_DSP_L3|INT_DSP_L4)) {
-            Log_Printf(LOG_DSP_LEVEL,"[SCR2] Switching DSP interrupt to level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
-            set_interrupt(INT_DSP_L3|INT_DSP_L4, RELEASE_INT);
-            set_dsp_interrupt(SET_INT);
+    if (!ConfigureParams.System.bTurbo) {
+        if (changed_bits&SCR2_DSP_INT_EN) {
+            Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP interrupt at level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
+            if (scrIntStat&(INT_DSP_L3|INT_DSP_L4)) {
+                Log_Printf(LOG_DSP_LEVEL,"[SCR2] Switching DSP interrupt to level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
+                set_interrupt(INT_DSP_L3|INT_DSP_L4, RELEASE_INT);
+                scr_check_dsp_interrupt();
+            }
         }
     }
     if (changed_bits&SCR2_DSP_MEM_EN) {
@@ -461,13 +467,11 @@ void SCR2_Write3(void)
     }
 }
 
-
 void SCR2_Read3(void)
 {
     Log_Printf(LOG_SCR_LEVEL,"SCR2 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
     IoMem[IoAccessCurrentAddress&IO_SEG_MASK]=scr2_3;
 }
-
 
 
 /* Interrupt Status Register */
@@ -480,13 +484,32 @@ void IntRegStatWrite(void) {
     Log_Printf(LOG_WARN, "[INT] Interrupt status register is read-only.");
 }
 
-void set_dsp_interrupt(uint8_t state) {
-    if (scr2_3&SCR2_DSP_INT_EN || ConfigureParams.System.bTurbo) {
+
+/* DSP interrupt */
+void scr_check_dsp_interrupt(void) {
+    uint8_t state = RELEASE_INT;
+    
+    if (ConfigureParams.System.bTurbo) {
+        state = dsp_hreq_intr;
+        if (scr2_1&SCR2_DSP_TXD_EN) {
+            state |= dsp_txdn_intr;
+        }
         set_interrupt(INT_DSP_L4, state);
     } else {
-        set_interrupt(INT_DSP_L3, state);
+        if (scr2_3&SCR2_DSP_INT_EN) {
+            if (ConfigureParams.System.nMachineType == NEXT_CUBE030) {
+                state = dsp_hreq_intr | dsp_txdn_intr;
+            } else {
+                state = (dsp_hreq_intr & bmap_hreq_enable) | (dsp_txdn_intr & bmap_txdn_enable);
+            }
+            set_interrupt(INT_DSP_L4, state);
+        } else {
+            state = dsp_hreq_intr; /* diagnostics expect this */
+            set_interrupt(INT_DSP_L3, state);
+        }
     }
 }
+
 
 void set_interrupt(uint32_t intr, uint8_t state) {
     /* The interrupt gets polled by the cpu via intlev()
@@ -617,7 +640,7 @@ void HardclockReadCSR(void) {
 /* Event counter register */
 
 static uint64_t sysTimerOffset = 0;
-static bool   resetTimer;
+static bool resetTimer;
 
 void System_Timer_Read(void) {
     uint64_t now = host_time_us();

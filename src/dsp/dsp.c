@@ -51,7 +51,8 @@
 
 uint8_t dsp_dma_unpacked = 0;
 uint8_t dsp_intr_at_block_end = 0;
-
+uint8_t dsp_hreq_intr = 0;
+uint8_t dsp_txdn_intr = 0;
 
 #if ENABLE_DSP_EMU
 static const char* x_ext_memory_addr_name[] = {
@@ -79,11 +80,12 @@ bool bDspEmulated = false;
 void DSP_HandleTXD(int set) {
 	if (set) {
 		Log_Printf(LOG_WARN, "[DSP] Set TXD interrupt");
-		//set_dsp_interrupt(SET_INT);
+		dsp_txdn_intr = 1;
 	} else {
 		Log_Printf(LOG_WARN, "[DSP] Release TXD interrupt");
-		//set_dsp_interrupt(RELEASE_INT);
+		dsp_txdn_intr = 0;
 	}
+	scr_check_dsp_interrupt();
 }
 #endif
 
@@ -95,7 +97,7 @@ void DSP_HandleTXD(int set) {
 static void DSP_HandleHREQ(int set)
 {
 	if (dsp_core.dma_mode) {
-		set_dsp_interrupt(RELEASE_INT);
+		dsp_hreq_intr = 0;
 		if (set) {
 			dsp_core.dma_request = 1;
 		} else {
@@ -105,12 +107,13 @@ static void DSP_HandleHREQ(int set)
 		dsp_core.dma_request = 0;
 		if (set) {
 			Log_Printf(LOG_DSP_LEVEL, "[DSP] Set HREQ interrupt");
-			set_dsp_interrupt(SET_INT);
+			dsp_hreq_intr = 1;
 		} else {
 			Log_Printf(LOG_DSP_LEVEL, "[DSP] Release HREQ interrupt");
-			set_dsp_interrupt(RELEASE_INT);
+			dsp_hreq_intr = 0;
 		}
 	}
+	scr_check_dsp_interrupt();
 }
 #endif
 
@@ -457,7 +460,7 @@ uint16_t DSP_DisasmMemory(FILE *fp, uint16_t dsp_memdump_addr, uint16_t dsp_memd
 		}
 		/* special printing of X & Y external RAM values */
 		if ((space == 'X' || space == 'Y') && 
-			(mem & 0x8000) &&
+		    (mem & 0x8000) &&
 		    mem >= 0x200 && mem < 0xffc0) {
 			mem2 = mem & ((DSP_RAMSIZE>>1)-1);
 			if (space == 'X') {
