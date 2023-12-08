@@ -574,8 +574,10 @@ static uint32_t read_memory(uint32_t currPc)
 
 	if (currPc<0x200) {
 		value = dsp_core.ramint[DSP_SPACE_P][currPc];
-	} else {
+	} else if (dsp_core.ramext) {
 		value = dsp_core.ramext[currPc & (DSP_RAMSIZE-1)];
+	} else {
+		value = 0;
 	}
 
 	return value & BITMASK(24);

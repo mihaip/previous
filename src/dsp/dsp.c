@@ -49,6 +49,13 @@
 #define LOG_DSP_LEVEL       LOG_DEBUG
 #define LOG_DSP_REG_LEVEL   LOG_DEBUG
 
+
+#define DSP_RAMSIZE_MAX  (3*64*1024)
+#define DSP_RAMSIZE_24kB (8*1024)
+#define DSP_RAMSIZE_96kB (32*1024)
+
+static uint32_t dsp_ram[DSP_RAMSIZE_MAX];
+
 uint8_t dsp_dma_unpacked = 0;
 uint8_t dsp_intr_at_block_end = 0;
 uint8_t dsp_hreq_intr = 0;
@@ -206,21 +213,42 @@ void DSP_Reset(void)
 {
 #if ENABLE_DSP_EMU
 //	LogTraceFlags = TRACE_DSP_ALL;
-	if (ConfigureParams.System.bDSPMemoryExpansion) {
-		DSP_RAMSIZE = DSP_RAMSIZE_96kB;
-	} else {
-		DSP_RAMSIZE = DSP_RAMSIZE_24kB;
-	}
 	if (ConfigureParams.System.nDSPType==DSP_TYPE_EMU) {
 		bDspEmulated = true;
 	} else {
 		bDspEmulated = false;
 	}
 	Statusbar_SetDspLed(false);
-	DSP_HandleTXD(0);
+	dsp_txdn_intr = 0;
 
 	dsp_core_reset();
 	save_cycles = 0;
+#endif
+}
+
+
+/**
+ * Enable DSP memory
+ */
+void DSP_EnableMemory(void)
+{
+#if ENABLE_DSP_EMU
+	if (ConfigureParams.System.bDSPMemoryExpansion) {
+		dsp_core_config_ramext(dsp_ram, DSP_RAMSIZE_96kB);
+	} else {
+		dsp_core_config_ramext(dsp_ram, DSP_RAMSIZE_24kB);
+	}
+#endif
+}
+
+
+/**
+ * Disable DSP memory
+ */
+void DSP_DisableMemory(void)
+{
+#if ENABLE_DSP_EMU
+	dsp_core_config_ramext(NULL, 0);
 #endif
 }
 
@@ -388,7 +416,10 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 		}
 		/* External RAM, mask address to available ram size */
 		*mem_str = spaces[idx][2];
-		return dsp_core.ramext[address & (DSP_RAMSIZE-1)];
+		if (dsp_core.ramext) {
+			return dsp_core.ramext[address & (DSP_RAMSIZE-1)];
+		}
+		return 0;
 	}
 
 	/* Internal RAM ? */
@@ -414,19 +445,20 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 		return dsp_core.periph[space][address-0xffc0];
 	}
 
-	/* Access to contiguous or separated space ? */
-	if (address&0x8000) {
-		/* Map Y to lower half of available RAM size */
-		address &= (DSP_RAMSIZE>>1) - 1;
-		if (space == DSP_SPACE_X) {
-			/* Map X to upper half of available RAM size */
-			address += DSP_RAMSIZE>>1;
-		}
-	}
-
 	/* External RAM, finally map X,Y to P */
 	*mem_str = spaces[idx][2];
-	return dsp_core.ramext[address & (DSP_RAMSIZE-1)];
+	if (dsp_core.ramext) {
+		/* Access to contiguous or separated space ? */
+		if (address&0x8000) {
+			/* Map Y to lower half of available RAM size */
+			address &= (DSP_RAMSIZE>>1) - 1;
+			if (space == DSP_SPACE_X) {
+				/* Map X to upper half of available RAM size */
+				address += DSP_RAMSIZE>>1;
+			}
+		}
+		return dsp_core.ramext[address & (DSP_RAMSIZE-1)];
+	}
 #endif
 	return 0;
 }
@@ -468,7 +500,7 @@ uint16_t DSP_DisasmMemory(FILE *fp, uint16_t dsp_memdump_addr, uint16_t dsp_memd
 				mem2 += (DSP_RAMSIZE>>1);
 			}
 			fprintf(fp, "%c:%04x (P:%04x): %06x\n", space,
-				mem, mem2, dsp_core.ramext[mem2 & (DSP_RAMSIZE-1)]);
+				mem, mem2, dsp_core.ramext?dsp_core.ramext[mem2 & (DSP_RAMSIZE-1)]:0);
 			continue;
 		}
 		value = DSP_ReadMemory(mem, space, &mem_str);

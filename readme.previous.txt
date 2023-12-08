@@ -370,6 +370,7 @@ Previous v2.9:
 Previous v3.0 (unreleased):
   > Adds support for mapping scroll wheel to cursor keys.
   > Improves CPU emulation accuracy.
+  > Improves DSP emulation accuracy.
   > Fixes bug that caused mouse to be unlocked after resuming emulation.
   > Fixes bug that caused stuck modifier keys after using shortcuts.
 
@@ -412,7 +413,8 @@ Many thanks go to the members of the NeXT International Forums for their help.
 Special thanks go to Gavin Thomas Nicol, Piotr Twarecki, Toni Wilen, Michael 
 Bosshard, Thomas Huth, Olivier Galibert, Jason Eckhardt, Jason Stevens, Daniel 
 L'Hommedieu, Tomaz Slivnik, Vaughan Kaufman, Peter Leonard, Brent Spillner, 
-Frank Wegmann, Grzegorz Szwoch, Michael Engel and Izumi Tsutsui!
+Frank Wegmann, Grzegorz Szwoch, Michael Engel, Izumi Tsutsui and William
+Barnett-Lewis!
 
 This emulator would not exist without their help.
 

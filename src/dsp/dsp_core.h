@@ -28,10 +28,6 @@
 extern "C" {
 #endif
 
-#define DSP_RAMSIZE_MAX (3*64*1024)
-#define DSP_RAMSIZE_24kB 8192
-#define DSP_RAMSIZE_96kB 32768
-	
 extern uint32_t DSP_RAMSIZE;
 
 /* Host port, CPU side */
@@ -236,7 +232,7 @@ struct dsp_core_s {
 	uint16_t stack[2][16];
 
 	/* External ram[] (mapped to p:) */
-	uint32_t ramext[DSP_RAMSIZE_MAX];
+	uint32_t *ramext;
 
 	/* rom[0] is x:, rom[1] is y:, rom[2] is p: */
 	uint32_t rom[3][512];
@@ -291,6 +287,7 @@ extern void dsp_core_init(void (*host_interrupt)(int));
 extern void dsp_core_shutdown(void);
 extern void dsp_core_reset(void);
 extern void dsp_core_start(uint8_t mode);
+extern void dsp_core_config_ramext(uint32_t* mem, int size);
 
 /* host port read/write by emulator, addr is 0-7, not 0xffa200-0xffa207 */
 extern uint8_t dsp_core_read_host(int addr);

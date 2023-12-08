@@ -51,7 +51,7 @@ static const char* Reset_NeXT(bool bCold)
 	CycInt_Reset();               /* Reset interrupts */
 	Main_SpeedReset();            /* Reset speed reporting system */
 	Video_Reset();                /* Reset video */
-	TMC_Reset();				  /* Reset TMC Registers */
+	TMC_Reset();                  /* Reset TMC Registers */
 	SCR_Reset();                  /* Reset System Control Registers */
 	RTC_Reset();                  /* Reset RTC and NVRAM */
 	SCSI_Reset();                 /* Reset SCSI disks */

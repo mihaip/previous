@@ -1297,16 +1297,20 @@ static uint32_t read_memory_disasm(int space, uint16_t address)
 		return dsp_core.periph[space][address-0xffc0] & BITMASK(24);
 	}
 
-	/* NeXT: Upper external X and Y memory are physically separate */
-	if (address&0x8000) {
-		address &= (DSP_RAMSIZE>>1) - 1;
-		if (space == DSP_SPACE_X) {
-			address += DSP_RAMSIZE>>1;
+	/* External RAM, finally map X,Y to P */
+	if (dsp_core.ramext) {
+		/* NeXT: Upper external X and Y memory are physically separate */
+		if (address&0x8000) {
+			address &= (DSP_RAMSIZE>>1) - 1;
+			if (space == DSP_SPACE_X) {
+				address += DSP_RAMSIZE>>1;
+			}
 		}
+		
+		/* Mask address to available RAM size */
+		return dsp_core.ramext[address & (DSP_RAMSIZE-1)] & BITMASK(24);
 	}
-
-	/* Mask address to available RAM size */
-	return dsp_core.ramext[address & (DSP_RAMSIZE-1)] & BITMASK(24);
+	return 0;
 }
 
 static inline uint32_t read_memory_p(uint16_t address)
@@ -1320,7 +1324,10 @@ static inline uint32_t read_memory_p(uint16_t address)
 	access_to_ext_memory |= 1 << EXT_P_MEMORY;
 
 	/* External RAM, mask address to available ram size */
-	return dsp_core.ramext[address & (DSP_RAMSIZE-1)] & BITMASK(24);
+	if (dsp_core.ramext) {
+		return dsp_core.ramext[address & (DSP_RAMSIZE-1)] & BITMASK(24);
+	}
+	return 0;
 }
 
 static uint32_t read_memory(int space, uint16_t address)
@@ -1368,18 +1375,22 @@ static uint32_t read_memory(int space, uint16_t address)
 		access_to_ext_memory |= 1 << EXT_Y_MEMORY;
 	}
 
-	/* Access to contiguous or separated space ? */
-	if (address&0x8000) {
-		/* Map Y to lower half of available RAM size */
-		address &= (DSP_RAMSIZE>>1) - 1;
-		if (space == DSP_SPACE_X) {
-			/* Map X to upper half of available RAM size */
-			address += DSP_RAMSIZE>>1;
+	/* External RAM, finally map X,Y to P */
+	if (dsp_core.ramext) {
+		/* Access to contiguous or separated space ? */
+		if (address&0x8000) {
+			/* Map Y to lower half of available RAM size */
+			address &= (DSP_RAMSIZE>>1) - 1;
+			if (space == DSP_SPACE_X) {
+				/* Map X to upper half of available RAM size */
+				address += DSP_RAMSIZE>>1;
+			}
 		}
+		
+		/* Mask address to available RAM size */
+		return dsp_core.ramext[address & (DSP_RAMSIZE-1)] & BITMASK(24);
 	}
-
-	/* Mask address to available RAM size */
-	return dsp_core.ramext[address & (DSP_RAMSIZE-1)] & BITMASK(24);
+	return 0;
 }
 
 static inline void write_memory(int space, uint16_t address, uint32_t value)
@@ -1490,15 +1501,17 @@ static void write_memory_raw(int space, uint16_t address, uint32_t value)
 		/* Access to the P external RAM */
 		access_to_ext_memory |= 1 << EXT_P_MEMORY;
 	}
+	else if (space == DSP_SPACE_X) {
+		/* Access to the X external RAM */
+		access_to_ext_memory |= 1 << EXT_X_MEMORY;
+	}
 	else {
-		if (space == DSP_SPACE_X) {
-			/* Access to the X external RAM */
-			access_to_ext_memory |= 1 << EXT_X_MEMORY;
-		}
-		else {
-			/* Access to the Y external RAM */
-			access_to_ext_memory |= 1 << EXT_Y_MEMORY;
-		}
+		/* Access to the Y external RAM */
+		access_to_ext_memory |= 1 << EXT_Y_MEMORY;
+	}
+
+	/* External RAM, map X,Y to P */
+	if (dsp_core.ramext) {
 		/* Access to contiguous or separated space ? */
 		if (address&0x8000) {
 			/* Map Y to lower half of available RAM size */
@@ -1508,10 +1521,10 @@ static void write_memory_raw(int space, uint16_t address, uint32_t value)
 				address += DSP_RAMSIZE>>1;
 			}
 		}
+		
+		/* Mask address to available RAM size */
+		dsp_core.ramext[address & (DSP_RAMSIZE-1)] = value;
 	}
-
-	/* Mask address to available RAM size */
-	dsp_core.ramext[address & (DSP_RAMSIZE-1)] = value;
 }
 
 static void write_memory_disasm(int space, uint16_t address, uint32_t value)

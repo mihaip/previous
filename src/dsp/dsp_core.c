@@ -38,7 +38,7 @@
 dsp_core_t dsp_core;
 
 /*--- Memory size ---*/
-uint32_t DSP_RAMSIZE = DSP_RAMSIZE_24kB;
+uint32_t DSP_RAMSIZE = 0;
 
 /*--- Functions prototypes ---*/
 static void dsp_core_dsp2host(void);
@@ -627,6 +627,19 @@ void dsp_core_start(uint8_t mode)
 		dsp_core.pc = 0x0000;
 	}
 	LOG_TRACE(TRACE_DSP_STATE, "Dsp: core start in mode %i\n",mode);
+}
+
+/* Configure external DSP memory */
+void dsp_core_config_ramext(uint32_t* mem, int size)
+{
+	if (mem && (size > 0)) {
+		DSP_RAMSIZE = size;
+		dsp_core.ramext = mem;
+		memset(dsp_core.ramext, 0, DSP_RAMSIZE * sizeof(uint32_t));
+	} else {
+		DSP_RAMSIZE = 0;
+		dsp_core.ramext = NULL;
+	}
 }
 
 /* Shutdown DSP emulation */

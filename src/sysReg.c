@@ -93,6 +93,8 @@ static uint8_t scr2_1=0x00;
 static uint8_t scr2_2=0x00;
 static uint8_t scr2_3=0x00;
 
+static uint8_t scr_have_dsp_memreset=0;
+
 uint32_t scrIntStat=0x00000000;
 uint32_t scrIntMask=0x00000000;
 
@@ -242,6 +244,12 @@ void SCR_Reset(void) {
         cpu_speed = CPU_33MHZ;
     }
     scr1 |= cpu_speed;
+
+    if (system_type != TYPE_NEXT || board_rev > BOARD_REV1) {
+        scr_have_dsp_memreset = 1;
+    } else {
+        scr_have_dsp_memreset = 0;
+    }
 }
 
 void SCR1_Read0(void)
@@ -352,9 +360,17 @@ void SCR2_Write0(void)
             }
             Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Start (mode %i)",(~(scr2_0>>3))&3);
             DSP_Start((~(scr2_0>>3))&3);
+            if (!scr_have_dsp_memreset) {
+                Log_Printf(LOG_WARN,"[SCR2] Enable DSP memory");
+                DSP_EnableMemory();
+            }
         } else {
             Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Reset");
             DSP_Reset();
+            if (!scr_have_dsp_memreset) {
+                Log_Printf(LOG_WARN,"[SCR2] Disable DSP memory");
+                DSP_DisableMemory();
+            }
         }
     }
     if (changed_bits&SCR2_DSP_BLK_END) {
@@ -461,8 +477,18 @@ void SCR2_Write3(void)
     if (changed_bits&SCR2_DSP_MEM_EN) {
         if (ConfigureParams.System.bTurbo) {
             Log_Printf(LOG_WARN,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"enable":"disable");
-        } else {
+            if (scr2_3&SCR2_DSP_MEM_EN) {
+                DSP_EnableMemory();
+            } else {
+                DSP_DisableMemory();
+            }
+       } else if (scr_have_dsp_memreset) {
             Log_Printf(LOG_WARN,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"disable":"enable");
+            if (scr2_3&SCR2_DSP_MEM_EN) {
+                DSP_DisableMemory();
+            } else {
+                DSP_EnableMemory();
+            }
         }
     }
 }
