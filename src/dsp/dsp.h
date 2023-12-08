@@ -70,7 +70,6 @@ extern void DSP_HandleTXD(int set);
 /* Dsp Host interface commands */
 extern void DSP_HandleReadAccess(void);
 extern void DSP_HandleWriteAccess(void);
-extern uint16_t DSP_Get_HREQ(void);
 
 extern void DSP_ICR_Read(void);
 extern void DSP_ICR_Write(void);

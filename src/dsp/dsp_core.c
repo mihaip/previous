@@ -568,6 +568,42 @@ static uint32_t const y_rom[0x100] = {
 	/* S_FF */ 0xfcdbd5  /* -0.0245412588 */
 };
 
+/* bootstrap program */
+static uint32_t const p_rom[0x20] = {
+	/* P_00 */ 0x62f400, /* MOVE  #$FFE9,R2       */
+	/* P_01 */ 0x00ffe9, /*                       */
+	/* P_02 */ 0x61f400, /* MOVE  #$c000,R1       */
+	/* P_03 */ 0x00c000, /*                       */
+	/* P_04 */ 0x300000, /* MOVE  #0,R0           */
+	/* P_05 */ 0x07e18c, /* MOVE  P:(R1),A1       */
+	/* P_06 */ 0x200037, /* ROL   A               */
+	/* P_07 */ 0x0e0009, /* JCC   P_09            */
+	/* P_08 */ 0x0040f9, /* ORI   #$40,CCR        */
+	/* P_09 */ 0x060082, /* DO    #512,P_1B       */
+	/* P_0A */ 0x00001b, /*                       */
+	/* P_0B */ 0x0e6012, /* JLC   P_12            */
+	/* P_0C */ 0x060380, /* DO    #3,P_10         */
+	/* P_0D */ 0x000010, /*                       */
+	/* P_0E */ 0x07d98a, /* MOVE  P:(R1)+,A2      */
+	/* P_0F */ 0x0608a0, /* REP   #8              */
+	/* P_10 */ 0x200022, /* ASR   A               */
+	/* P_11 */ 0x0c001b, /* JMP   P_1B            */
+	/* P_12 */ 0x0aa020, /* BSET  #0,X:$FFE0      */
+	/* P_13 */ 0x0aa983, /* JCLR  #3,X:$FFE9,P_17 */
+	/* P_14 */ 0x000017, /*                       */
+	/* P_15 */ 0x00008c, /* ENDDO                 */
+	/* P_16 */ 0x0c001c, /* JMP   P_1C            */
+	/* P_17 */ 0x0a6280, /* JCLR  #0,X:(R2),P_13  */
+	/* P_18 */ 0x000013, /*                       */
+	/* P_19 */ 0x54f000, /* MOVE  X:$FFEB,A1      */
+	/* P_1A */ 0x00ffeb, /*                       */
+	/* P_1B */ 0x07588c, /* MOVE  A1,P:(R0)+      */
+	/* P_1C */ 0x0502ba, /* MOVEC #2,OMR          */
+	/* P_1D */ 0x0000b9, /* ANDI  #0,CCR          */
+	/* P_1E */ 0x0c0000, /* JMP   $0              */
+	/* P_1F */ 0x000000, /*                       */
+};
+
 
 /* Init DSP emulation */
 void dsp_core_init(void (*host_interrupt)(int))
@@ -578,6 +614,7 @@ void dsp_core_init(void (*host_interrupt)(int))
 	memset(&dsp_core, 0, sizeof(dsp_core_t));
 	memcpy(&dsp_core.rom[DSP_SPACE_X][0x100], x_rom, sizeof(x_rom));
 	memcpy(&dsp_core.rom[DSP_SPACE_Y][0x100], y_rom, sizeof(y_rom));
+	memcpy(&dsp_core.rom[DSP_SPACE_P][0x000], p_rom, sizeof(p_rom));
 }
 
 /* Start DSP emulation */

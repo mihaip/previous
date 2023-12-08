@@ -217,6 +217,7 @@ void DSP_Reset(void)
 		bDspEmulated = false;
 	}
 	Statusbar_SetDspLed(false);
+	DSP_HandleTXD(0);
 
 	dsp_core_reset();
 	save_cycles = 0;
