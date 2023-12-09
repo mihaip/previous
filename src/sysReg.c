@@ -185,7 +185,9 @@ void SCR_Reset(void) {
     if (ConfigureParams.System.bTurbo) {
         scr2_2=0x10; // video mode is 25 MHz
         scr2_3=0x80; // local only resets to 1
-
+        
+        scr_have_dsp_memreset = 1;
+        
         if (ConfigureParams.System.nMachineType==NEXT_STATION) {
             scr1 |= 0xF<<28;
         } else {

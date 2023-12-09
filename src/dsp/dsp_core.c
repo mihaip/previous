@@ -618,21 +618,29 @@ void dsp_core_init(void (*host_interrupt)(int))
 }
 
 /* Start DSP emulation */
-void dsp_core_start(uint8_t mode)
+void dsp_core_start(uint8_t mode, int bootstrap)
 {
-	dsp_core.registers[DSP_REG_OMR] = mode;
+	dsp_core.registers[DSP_REG_OMR] = dsp_core.mode = mode;
 	if (mode==2) {
 		dsp_core.pc = 0xe000;
 	} else {
 		dsp_core.pc = 0x0000;
 	}
+	dsp_core.mode_wait = 0;
+
+	/* Start using bootstrap ROM */
+	if (bootstrap) {
+		Statusbar_SetDspLed(true);
+		dsp_core.running = 1;
+	}
+
 	LOG_TRACE(TRACE_DSP_STATE, "Dsp: core start in mode %i\n",mode);
 }
 
 /* Configure external DSP memory */
-void dsp_core_config_ramext(uint32_t* mem, int size)
+void dsp_core_config_ramext(uint32_t* mem, uint32_t size)
 {
-	if (mem && (size > 0)) {
+	if (mem && size) {
 		DSP_RAMSIZE = size;
 		dsp_core.ramext = mem;
 		memset(dsp_core.ramext, 0, DSP_RAMSIZE * sizeof(uint32_t));
@@ -1173,7 +1181,7 @@ void dsp_core_write_host(int addr, uint8_t value)
 				LOG_TRACE(TRACE_DSP_STATE, "Dsp: stop waiting bootstrap\n");
 				Statusbar_SetDspLed(true);
 				dsp_core.registers[DSP_REG_R0] = dsp_core.bootstrap_pos;
-				dsp_core.registers[DSP_REG_OMR] = 0x02;
+				dsp_core.registers[DSP_REG_OMR] = dsp_core.mode = 0x02;
 				dsp_core.running = 1;
 			}
 			dsp_core_hostport_update_hreq();
@@ -1224,7 +1232,7 @@ void dsp_core_write_host(int addr, uint8_t value)
 					LOG_TRACE(TRACE_DSP_STATE, "Dsp: wait bootstrap done\n");
 					Statusbar_SetDspLed(true);
 					dsp_core.registers[DSP_REG_R0] = dsp_core.bootstrap_pos;
-					dsp_core.registers[DSP_REG_OMR] = 0x02;
+					dsp_core.registers[DSP_REG_OMR] = dsp_core.mode = 0x02;
 					dsp_core.running = 1;
 				}
 			} else {

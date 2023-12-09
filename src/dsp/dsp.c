@@ -213,10 +213,10 @@ void DSP_Reset(void)
 {
 #if ENABLE_DSP_EMU
 //	LogTraceFlags = TRACE_DSP_ALL;
-	if (ConfigureParams.System.nDSPType==DSP_TYPE_EMU) {
-		bDspEmulated = true;
-	} else {
+	if (ConfigureParams.System.nDSPType==DSP_TYPE_NONE) {
 		bDspEmulated = false;
+	} else {
+		bDspEmulated = true;
 	}
 	Statusbar_SetDspLed(false);
 	dsp_txdn_intr = 0;
@@ -262,7 +262,11 @@ void DSP_Start(uint8_t mode)
 		return;
 	}
 #if ENABLE_DSP_EMU
-	dsp_core_start(mode);
+	if (ConfigureParams.System.nDSPType==DSP_TYPE_ACCURATE) {
+		dsp_core_start(mode, 1);
+	} else if (ConfigureParams.System.nDSPType==DSP_TYPE_EMU) {
+		dsp_core_start(mode, 0);
+	}
 	save_cycles = 0;
 #endif
 }
@@ -409,6 +413,11 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 	address &= 0xFFFF;
 
 	if (space == DSP_SPACE_P) {
+		/* bootstrap ROM ? */
+		if (dsp_core.mode == 1) {
+			*mem_str = spaces[idx][1];
+			return dsp_core.rom[DSP_SPACE_P][address & 0x1f];
+		}
 		/* Internal RAM ? */
 		if (address < 0x200) {
 			*mem_str = spaces[idx][0];

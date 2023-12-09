@@ -259,6 +259,8 @@ struct dsp_core_s {
 
 	/* For bootstrap routine */
 	uint16_t bootstrap_pos;
+	uint32_t mode;
+	uint32_t mode_wait;
 
 	/* Interruptions */
 	uint16_t interrupt_state;		/* NONE, FAST or LONG interrupt */
@@ -286,8 +288,8 @@ extern dsp_core_t dsp_core;
 extern void dsp_core_init(void (*host_interrupt)(int));
 extern void dsp_core_shutdown(void);
 extern void dsp_core_reset(void);
-extern void dsp_core_start(uint8_t mode);
-extern void dsp_core_config_ramext(uint32_t* mem, int size);
+extern void dsp_core_start(uint8_t mode, int bootstrap);
+extern void dsp_core_config_ramext(uint32_t* mem, uint32_t size);
 
 /* host port read/write by emulator, addr is 0-7, not 0xffa200-0xffa207 */
 extern uint8_t dsp_core_read_host(int addr);

@@ -849,6 +849,13 @@ void dsp56k_execute_instruction(void)
 		dsp_set_interrupt(DSP_INTER_TRACE, 1);
 	}
 
+	/* Check for pending change of operating mode */
+	if (dsp_core.mode_wait > 0) {
+		if (--dsp_core.mode_wait == 0) {
+			dsp_core.mode = dsp_core.registers[DSP_REG_OMR] & ((1<<DSP_OMR_MA) | (1<<DSP_OMR_MB));
+		}
+	}
+
 	/* Decode and execute current instruction */
 	cur_inst = read_memory_p(dsp_core.pc);
 
@@ -1315,6 +1322,11 @@ static uint32_t read_memory_disasm(int space, uint16_t address)
 
 static inline uint32_t read_memory_p(uint16_t address)
 {
+	/* Internal ROM ? */
+	if (dsp_core.mode == 1) {
+		return dsp_core.rom[DSP_SPACE_P][address & 0x1f] & BITMASK(24);
+	}
+
 	/* Internal RAM ? */
 	if (address < 0x200) {
 		return dsp_core.ramint[DSP_SPACE_P][address] & BITMASK(24);
@@ -1597,6 +1609,7 @@ static void dsp_write_reg(uint32_t numreg, uint32_t value)
 			break;
 		case DSP_REG_OMR:
 			dsp_core.registers[DSP_REG_OMR] = value & 0xc7;
+			dsp_core.mode_wait = 3;
 			break;
 		case DSP_REG_SR:
 			dsp_core.registers[DSP_REG_SR] = value & 0xaf7f;
@@ -2050,6 +2063,7 @@ static void dsp_andi(void)
 		case 2:
 			/* omr */
 			dsp_core.registers[DSP_REG_OMR] &= value;
+			dsp_core.mode_wait = 3;
 			break;
 	}
 }
@@ -3414,6 +3428,7 @@ static void dsp_ori(void)
 		case 2:
 			/* omr */
 			dsp_core.registers[DSP_REG_OMR] |= value;
+			dsp_core.mode_wait = 3;
 			break;
 	}
 }

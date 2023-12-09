@@ -572,7 +572,9 @@ static uint32_t read_memory(uint32_t currPc)
 {
 	uint32_t value;
 
-	if (currPc<0x200) {
+	if (dsp_core.mode == 1) {
+		value = dsp_core.rom[DSP_SPACE_P][currPc & 0x1f];
+	} else if (currPc<0x200) {
 		value = dsp_core.ramint[DSP_SPACE_P][currPc];
 	} else if (dsp_core.ramext) {
 		value = dsp_core.ramext[currPc & (DSP_RAMSIZE-1)];
