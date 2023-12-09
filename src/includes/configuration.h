@@ -308,7 +308,7 @@ typedef enum
 typedef enum
 {
   DSP_TYPE_NONE,
-  DSP_TYPE_DUMMY,
+  DSP_TYPE_ACCURATE,
   DSP_TYPE_EMU
 } DSPTYPE;
 

@@ -201,7 +201,6 @@ void DlgEthernet_Main(void)
 			case DLGENET_MAC:
 				DlgEthernetAdvanced_ConfigureMAC(mac_addr);
 				break;
-				
 			case DLGENET_NFSBROWSE:
 				SDLGui_DirConfSelect(nfs_root_string,
 				                     ConfigureParams.Ethernet.szNFSroot,

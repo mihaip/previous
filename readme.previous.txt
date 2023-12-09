@@ -191,6 +191,9 @@ Issues in Previous:
     Monitor/Sound fail in certain situations due to timing issues. Disable 
     variable speed mode to reliably pass SCSI Disk diagnostics. Disable sound to 
     pass Monitor/Sound diagnostics.
+  > Background DMA Read from DSP test menu of the diagnostics utility fails for 
+    an unknown reason. The test program is probably faulty. It sets the DMA 
+    channel to the wrong direction.
 
 Issues in NeXTstep:
   > The MO drive causes slow downs and hangs when both drives are connected, but 
@@ -369,8 +372,9 @@ Previous v2.9:
 
 Previous v3.0 (unreleased):
   > Adds support for mapping scroll wheel to cursor keys.
-  > Improves CPU emulation accuracy.
+  > Adds option for simulating DSP bootstrap ROM.
   > Improves DSP emulation accuracy.
+  > Improves CPU emulation accuracy.
   > Fixes bug that caused mouse to be unlocked after resuming emulation.
   > Fixes bug that caused stuck modifier keys after using shortcuts.
 

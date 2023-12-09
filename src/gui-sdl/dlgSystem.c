@@ -105,7 +105,7 @@ void print_system_overview(void) {
 		default: break;
 	}
 	
-	if(ConfigureParams.System.bRealtime) snprintf(cpu_clock, sizeof(cpu_clock), "Variable");
+	if(ConfigureParams.System.bRealtime) snprintf(cpu_clock, sizeof(cpu_clock), "variable");
 	else                                 snprintf(cpu_clock, sizeof(cpu_clock), "%i MHz", ConfigureParams.System.nCpuFreq);
 	
 	snprintf(main_memory, sizeof(main_memory), "%i MB", Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
@@ -126,11 +126,11 @@ void print_system_overview(void) {
 	
 	switch (ConfigureParams.System.nDSPType) {
 		case DSP_TYPE_NONE:
-		case DSP_TYPE_DUMMY:
 			snprintf(dsp_type, sizeof(dsp_type), "none"); break;
 		case DSP_TYPE_EMU:
 			snprintf(dsp_type, sizeof(dsp_type), "56001"); break;
-			
+		case DSP_TYPE_ACCURATE:
+			snprintf(dsp_type, sizeof(dsp_type), "accurate"); break;
 		default: break;
 	}
 	

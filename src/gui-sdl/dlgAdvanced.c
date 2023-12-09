@@ -33,18 +33,19 @@ const char DlgAdvanced_fileid[] = "Previous dlgAdvanced.c";
 
 #define DLGADV_DSPNONE    26
 #define DLGADV_DSP56001   27
-#define DLGADV_DSPMEM24   29
-#define DLGADV_DSPMEM96   30
+#define DLGADV_DSPROM     28
+#define DLGADV_DSPMEM24   30
+#define DLGADV_DSPMEM96   31
 
-#define DLGADV_NBIC       33
+#define DLGADV_NBIC       34
 
-#define DLGADV_SCSI_OLD   36
-#define DLGADV_SCSI_NEW   37
+#define DLGADV_SCSI_OLD   37
+#define DLGADV_SCSI_NEW   38
 
-#define DLGADV_RTC_OLD    40
-#define DLGADV_RTC_NEW    41
+#define DLGADV_RTC_OLD    41
+#define DLGADV_RTC_NEW    42
 
-#define DLGADV_EXIT       42
+#define DLGADV_EXIT       43
 
 char custom_memory[16] = "Customize";
 
@@ -85,13 +86,14 @@ static SGOBJ advanceddlg[] =
 	{ SGTEXT, 0, 0, 48,4, 12,1, "DSP type" },
 	{ SGRADIOBUT, 0, 0, 49,6, 6,1, "none" },
 	{ SGRADIOBUT, 0, 0, 49,8, 7,1, "56001" },
-	{ SGTEXT, 0, 0, 48,10, 8,1, "DSP memory" },
-	{ SGRADIOBUT, 0, 0, 49,12, 7,1, "24 kB" },
-	{ SGRADIOBUT, 0, 0, 49,14, 7,1, "96 kB" },
+	{ SGCHECKBOX, 0, 0, 49,10, 10,1, "Accurate" },
+	{ SGTEXT, 0, 0, 48,12, 8,1, "DSP memory" },
+	{ SGRADIOBUT, 0, 0, 49,14, 7,1, "24 kB" },
+	{ SGRADIOBUT, 0, 0, 49,16, 7,1, "96 kB" },
 
 	{ SGBOX, 0, 0, 2,19, 19,7, NULL },
 	{ SGTEXT, 0, 0, 3,20, 14,1, "NBIC" },
-	{ SGCHECKBOX, 0, 0, 4,22, 10,1, "present" },
+	{ SGCHECKBOX, 0, 0, 4,22, 9,1, "Present" },
 
 	{ SGBOX, 0, 0, 22,19, 19,7, NULL },
 	{ SGTEXT, 0, 0, 23,20, 14,1, "SCSI chip" },
@@ -296,11 +298,13 @@ void Dialog_AdvancedDlg(void) {
 
 	advanceddlg[DLGADV_DSPNONE].state &= ~SG_SELECTED;
 	advanceddlg[DLGADV_DSP56001].state &= ~SG_SELECTED;
+	advanceddlg[DLGADV_DSPROM].state &= ~SG_SELECTED;
 	switch (ConfigureParams.System.nDSPType) {
 		case DSP_TYPE_NONE:
-		case DSP_TYPE_DUMMY:
 			advanceddlg[DLGADV_DSPNONE].state |= SG_SELECTED;
 			break;
+		case DSP_TYPE_ACCURATE:
+			advanceddlg[DLGADV_DSPROM].state |= SG_SELECTED;
 		case DSP_TYPE_EMU:
 			advanceddlg[DLGADV_DSP56001].state |= SG_SELECTED;
 			break;
@@ -410,6 +414,17 @@ void Dialog_AdvancedDlg(void) {
 				Dialog_MemAdvancedDlg(ConfigureParams.Memory.nMemoryBankSize);
 				Dialog_AdvancedDlg_MemDraw();
 				break;
+			case DLGADV_DSPNONE:
+				if (advanceddlg[DLGADV_DSPNONE].state & SG_SELECTED) {
+					advanceddlg[DLGADV_DSPROM].state &= ~SG_SELECTED;
+				}
+				break;
+			case DLGADV_DSPROM:
+				if (advanceddlg[DLGADV_DSPROM].state & SG_SELECTED) {
+					advanceddlg[DLGADV_DSPNONE].state &= ~SG_SELECTED;
+					advanceddlg[DLGADV_DSP56001].state |= SG_SELECTED;
+				}
+				break;
 
 			default:
 				break;
@@ -447,7 +462,10 @@ void Dialog_AdvancedDlg(void) {
 		ConfigureParams.Memory.nMemorySpeed = MEMORY_60NS;
 
 	if (advanceddlg[DLGADV_DSP56001].state & SG_SELECTED)
-		ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
+		if (advanceddlg[DLGADV_DSPROM].state & SG_SELECTED)
+			ConfigureParams.System.nDSPType = DSP_TYPE_ACCURATE;
+		else
+			ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
 	else
 		ConfigureParams.System.nDSPType = DSP_TYPE_NONE;
 
