@@ -127,10 +127,9 @@ void print_system_overview(void) {
 	switch (ConfigureParams.System.nDSPType) {
 		case DSP_TYPE_NONE:
 			snprintf(dsp_type, sizeof(dsp_type), "none"); break;
+		case DSP_TYPE_ACCURATE:
 		case DSP_TYPE_EMU:
 			snprintf(dsp_type, sizeof(dsp_type), "56001"); break;
-		case DSP_TYPE_ACCURATE:
-			snprintf(dsp_type, sizeof(dsp_type), "accurate"); break;
 		default: break;
 	}
 	

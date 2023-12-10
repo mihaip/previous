@@ -86,7 +86,7 @@ static SGOBJ advanceddlg[] =
 	{ SGTEXT, 0, 0, 48,4, 12,1, "DSP type" },
 	{ SGRADIOBUT, 0, 0, 49,6, 6,1, "none" },
 	{ SGRADIOBUT, 0, 0, 49,8, 7,1, "56001" },
-	{ SGCHECKBOX, 0, 0, 49,10, 10,1, "Accurate" },
+	{ SGCHECKBOX, 0, 0, 49,10, 9,1, "Use ROM" },
 	{ SGTEXT, 0, 0, 48,12, 8,1, "DSP memory" },
 	{ SGRADIOBUT, 0, 0, 49,14, 7,1, "24 kB" },
 	{ SGRADIOBUT, 0, 0, 49,16, 7,1, "96 kB" },
