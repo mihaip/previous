@@ -1304,13 +1304,15 @@ static uint32_t read_memory_disasm(int space, uint16_t address)
 		return dsp_core.periph[space][address-0xffc0] & BITMASK(24);
 	}
 
-	/* External RAM, finally map X,Y to P */
+	/* External RAM, map X,Y to P */
 	if (dsp_core.ramext) {
-		/* NeXT: Upper external X and Y memory are physically separate */
+		/* External X and Y memories are physically separate if A15 is high */
 		if (address&0x8000) {
+			/* Map Y to lower half of available RAM size */
 			address &= (DSP_RAMSIZE>>1) - 1;
 			if (space == DSP_SPACE_X) {
-				address += DSP_RAMSIZE>>1;
+				/* Map X to upper half of available RAM size */
+				address |= DSP_RAMSIZE>>1;
 			}
 		}
 		
@@ -1379,7 +1381,7 @@ static uint32_t read_memory(int space, uint16_t address)
 	}
 
 	if (space == DSP_SPACE_X) {
-		/* Set one access to the X external memory */
+		/* Access to the X external memory */
 		access_to_ext_memory |= 1 << EXT_X_MEMORY;
 	}
 	else {
@@ -1387,15 +1389,15 @@ static uint32_t read_memory(int space, uint16_t address)
 		access_to_ext_memory |= 1 << EXT_Y_MEMORY;
 	}
 
-	/* External RAM, finally map X,Y to P */
+	/* External RAM, map X,Y to P */
 	if (dsp_core.ramext) {
-		/* Access to contiguous or separated space ? */
+		/* External X and Y memories are physically separate if A15 is high */
 		if (address&0x8000) {
 			/* Map Y to lower half of available RAM size */
 			address &= (DSP_RAMSIZE>>1) - 1;
 			if (space == DSP_SPACE_X) {
 				/* Map X to upper half of available RAM size */
-				address += DSP_RAMSIZE>>1;
+				address |= DSP_RAMSIZE>>1;
 			}
 		}
 		
@@ -1524,13 +1526,13 @@ static void write_memory_raw(int space, uint16_t address, uint32_t value)
 
 	/* External RAM, map X,Y to P */
 	if (dsp_core.ramext) {
-		/* Access to contiguous or separated space ? */
+		/* External X and Y memories are physically separate if A15 is high */
 		if (address&0x8000) {
 			/* Map Y to lower half of available RAM size */
 			address &= (DSP_RAMSIZE>>1) - 1;
 			if (space == DSP_SPACE_X) {
 				/* Map X to upper half of available RAM size */
-				address += DSP_RAMSIZE>>1;
+				address |= DSP_RAMSIZE>>1;
 			}
 		}
 		

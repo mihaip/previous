@@ -51,8 +51,8 @@
 
 
 #define DSP_RAMSIZE_MAX  (3*64*1024)
-#define DSP_RAMSIZE_24kB (8*1024)
-#define DSP_RAMSIZE_96kB (32*1024)
+#define DSP_RAMSIZE_24kB (1<<13)  /*  8k DSP words */
+#define DSP_RAMSIZE_96kB (1<<15)  /* 32k DSP words */
 
 static uint32_t dsp_ram[DSP_RAMSIZE_MAX];
 
@@ -454,7 +454,7 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 		return dsp_core.periph[space][address-0xffc0];
 	}
 
-	/* External RAM, finally map X,Y to P */
+	/* External RAM, map X,Y to P */
 	*mem_str = spaces[idx][2];
 	if (dsp_core.ramext) {
 		/* Access to contiguous or separated space ? */
@@ -463,7 +463,7 @@ uint32_t DSP_ReadMemory(uint16_t address, char space_id, const char **mem_str)
 			address &= (DSP_RAMSIZE>>1) - 1;
 			if (space == DSP_SPACE_X) {
 				/* Map X to upper half of available RAM size */
-				address += DSP_RAMSIZE>>1;
+				address |= DSP_RAMSIZE>>1;
 			}
 		}
 		return dsp_core.ramext[address & (DSP_RAMSIZE-1)];
