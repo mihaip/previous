@@ -11,8 +11,8 @@ extern "C" {
 #endif /* __cplusplus */
 
 /* NeXTdimension board and slot memory */
-#define ND_BOARD_SIZE    0x10000000
-#define ND_BOARD_MASK    0x0FFFFFFF
+#define ND_BOARD_SIZE   0x10000000
+#define ND_BOARD_MASK   0x0FFFFFFF
 #define ND_BOARD_BITS   0xF0000000
     
 #define ND_SLOT_SIZE    0x01000000
