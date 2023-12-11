@@ -84,19 +84,24 @@
  * Turbo:    3dd189ff
  */
 
-int SCR_ROM_overlay=0;
+int SCR_ROM_overlay = 0;
 
-static uint32_t scr1=0x00000000;
+static uint32_t scr1  = 0x00000000;
 
-static uint8_t scr2_0=0x00;
-static uint8_t scr2_1=0x00;
-static uint8_t scr2_2=0x00;
-static uint8_t scr2_3=0x00;
+static uint8_t scr2_0 = 0x00;
+static uint8_t scr2_1 = 0x00;
+static uint8_t scr2_2 = 0x00;
+static uint8_t scr2_3 = 0x00;
 
-static uint8_t scr_have_dsp_memreset=0;
+static uint8_t scr_have_dsp_memreset = 0;
 
-uint32_t scrIntStat=0x00000000;
-uint32_t scrIntMask=0x00000000;
+uint8_t dsp_dma_unpacked      = 0;
+uint8_t dsp_intr_at_block_end = 0;
+uint8_t dsp_hreq_intr         = 0;
+uint8_t dsp_txdn_intr         = 0;
+
+uint32_t scrIntStat = 0x00000000;
+uint32_t scrIntMask = 0x00000000;
 
 /* System Control Register 1
  *

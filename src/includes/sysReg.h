@@ -67,6 +67,11 @@ int  scr_get_interrupt_level(uint32_t interrupt);
 extern uint32_t scrIntStat;
 extern uint32_t scrIntMask;
 
+extern uint8_t dsp_intr_at_block_end;
+extern uint8_t dsp_dma_unpacked;
+extern uint8_t dsp_hreq_intr;
+extern uint8_t dsp_txdn_intr;
+
 /**
  * Return interrupt number (1 - 7), 0 means no interrupt.
  * Note that the interrupt stays pending if it can't be executed yet

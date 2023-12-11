@@ -56,11 +56,6 @@
 
 static uint32_t dsp_ram[DSP_RAMSIZE_MAX];
 
-uint8_t dsp_dma_unpacked = 0;
-uint8_t dsp_intr_at_block_end = 0;
-uint8_t dsp_hreq_intr = 0;
-uint8_t dsp_txdn_intr = 0;
-
 #if ENABLE_DSP_EMU
 static const char* x_ext_memory_addr_name[] = {
 	"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "",

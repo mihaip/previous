@@ -161,14 +161,6 @@ static uint32_t num_inst;
 #define SIGN_PLUS  0
 #define SIGN_MINUS 1
 
-/* Defines some bits values for access to external memory (X, Y, P) */
-/* These values will set/unset the corresponding bits in the variable access_to_ext_memory */
-/* to detect how many access to the external memory were done for a single instruction */
-#define EXT_X_MEMORY 0
-#define EXT_Y_MEMORY 1
-#define EXT_P_MEMORY 2
-
-
 /**********************************
  *	Variables
  **********************************/
@@ -889,9 +881,9 @@ void dsp56k_execute_instruction(void)
 	/* Add the waitstate due to external memory access */
 	/* (2 extra cycles per extra access to the external memory after the first one */
 	if (access_to_ext_memory != 0) {
-		value = access_to_ext_memory & 1;
-		value += (access_to_ext_memory & 2) >> 1;
-		value += (access_to_ext_memory & 4) >> 2;
+		value  = (access_to_ext_memory >> DSP_SPACE_X) & 1;
+		value += (access_to_ext_memory >> DSP_SPACE_Y) & 1;
+		value += (access_to_ext_memory >> DSP_SPACE_P) & 1;
 
 		if (value > 1)
 			dsp_core.instr_cycle += (value - 1) * 2;
@@ -1335,7 +1327,7 @@ static inline uint32_t read_memory_p(uint16_t address)
 	}
 
 	/* Access to the external P memory */
-	access_to_ext_memory |= 1 << EXT_P_MEMORY;
+	access_to_ext_memory |= 1 << DSP_SPACE_P;
 
 	/* External RAM, mask address to available ram size */
 	if (dsp_core.ramext) {
@@ -1380,14 +1372,8 @@ static uint32_t read_memory(int space, uint16_t address)
 		return value;
 	}
 
-	if (space == DSP_SPACE_X) {
-		/* Access to the X external memory */
-		access_to_ext_memory |= 1 << EXT_X_MEMORY;
-	}
-	else {
-		/* Access to the Y external memory */
-		access_to_ext_memory |= 1 << EXT_Y_MEMORY;
-	}
+	/* Access to external memory */
+	access_to_ext_memory |= 1 << space;
 
 	/* External RAM, map X,Y to P */
 	if (dsp_core.ramext) {
@@ -1509,20 +1495,8 @@ static void write_memory_raw(int space, uint16_t address, uint32_t value)
 		}
 	}
 
-	/* Access to X, Y or P external RAM */
-
-	if (space == DSP_SPACE_P) {
-		/* Access to the P external RAM */
-		access_to_ext_memory |= 1 << EXT_P_MEMORY;
-	}
-	else if (space == DSP_SPACE_X) {
-		/* Access to the X external RAM */
-		access_to_ext_memory |= 1 << EXT_X_MEMORY;
-	}
-	else {
-		/* Access to the Y external RAM */
-		access_to_ext_memory |= 1 << EXT_Y_MEMORY;
-	}
+	/* Access to external memory */
+	access_to_ext_memory |= 1 << space;
 
 	/* External RAM, map X,Y to P */
 	if (dsp_core.ramext) {
