@@ -375,6 +375,7 @@ Previous v3.0 (unreleased):
   > Adds option for simulating DSP bootstrap ROM.
   > Improves DSP emulation accuracy.
   > Improves CPU emulation accuracy.
+  > Improves keyboard options to show actual shortcuts.
   > Fixes bug that caused mouse to be unlocked after resuming emulation.
   > Fixes bug that caused stuck modifier keys after using shortcuts.
 
