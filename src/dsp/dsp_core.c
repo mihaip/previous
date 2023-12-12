@@ -675,6 +675,8 @@ void dsp_core_reset(void)
 	dsp_core.bootstrap_pos = 0;
 
 	/* Registers */
+	dsp_core.pc = 0x0000;
+	dsp_core.registers[DSP_REG_OMR] = dsp_core.mode = 0;
 	for (i=0;i<8;i++) {
 		dsp_core.registers[DSP_REG_M0+i]=0x00ffff;
 	}
@@ -1177,7 +1179,7 @@ void dsp_core_write_host(int addr, uint8_t value)
 				dsp_core.hostport[CPU_HOST_ICR] &= ~(1<<CPU_HOST_ICR_INIT);
 			}
 			/* This stops the bootstrap loader and starts normal execution */
-			if (!dsp_core.running && (dsp_core.hostport[CPU_HOST_ICR] & (1<<CPU_HOST_ICR_HF0))) {
+			if (!dsp_core.running && dsp_core.mode == 1 && (dsp_core.hostport[CPU_HOST_ICR] & (1<<CPU_HOST_ICR_HF0))) {
 				LOG_TRACE(TRACE_DSP_STATE, "Dsp: stop waiting bootstrap\n");
 				Statusbar_SetDspLed(true);
 				dsp_core.registers[DSP_REG_R0] = dsp_core.bootstrap_pos;
@@ -1218,7 +1220,7 @@ void dsp_core_write_host(int addr, uint8_t value)
 		case CPU_HOST_TRXL:
 			dsp_core.hostport[CPU_HOST_TXL]=value;
 
-			if (!dsp_core.running) {
+			if (!dsp_core.running && dsp_core.mode == 1) {
 				dsp_core.ramint[DSP_SPACE_P][dsp_core.bootstrap_pos] =
 					(dsp_core.hostport[CPU_HOST_TXH]<<16) |
 					(dsp_core.hostport[CPU_HOST_TXM]<<8) |
