@@ -12,10 +12,7 @@ const char DlgKeyboard_fileid[] = "Previous dlgKeyboard.c";
 #include "configuration.h"
 #include "dialog.h"
 #include "sdlgui.h"
-#include "file.h"
 #include "keymap.h"
-
-#define ENABLE_LOADED_OPTION 0
 
 #define DLGKEY_SCANCODE  4
 #define DLGKEY_SYMBOLIC  5
@@ -89,9 +86,7 @@ static SGOBJ keyboarddlg[] =
 void Dialog_KeyboardDlg(void)
 {
 	int i, but;
-#if ENABLE_LOADED_OPTION
-	char dlgmapfile[44];
-#endif
+
 	SDLGui_CenterDlg(keyboarddlg);
 
 	/* Set up dialog from actual values: */
@@ -109,10 +104,6 @@ void Dialog_KeyboardDlg(void)
 		default:
 			break;
 	}
-#if ENABLE_LOADED_OPTION
-	File_ShrinkName(dlgmapfile, ConfigureParams.Keyboard.szMappingFileName, keyboarddlg[DLGKEY_MAPNAME].w);
-	keyboarddlg[DLGKEY_MAPNAME].txt = dlgmapfile;
-#endif
 	
 	if (ConfigureParams.Keyboard.bSwapCmdAlt) {
 		keyboarddlg[DLGKEY_SWAP].state |= SG_SELECTED;
@@ -123,7 +114,7 @@ void Dialog_KeyboardDlg(void)
 
 	/* Load actual shortcut keys */
 	for (i = 0; i < SHORTCUT_NONE; i++) {
-		snprintf(key_names[i][0], 8, "-%s", Keymap_GetKeyName(ConfigureParams.Shortcut.withModifier[i]));
+		snprintf(key_names[i][0], 8,"-%s", Keymap_GetKeyName(ConfigureParams.Shortcut.withModifier[i]));
 		snprintf(key_names[i][1],11, "%s", Keymap_GetKeyName(ConfigureParams.Shortcut.withoutModifier[i]));
 	}
 
@@ -131,26 +122,15 @@ void Dialog_KeyboardDlg(void)
 	do
 	{
 		but = SDLGui_DoDialog(keyboarddlg);
-#if ENABLE_LOADED_OPTION
-		if (but == DLGKEY_MAPBROWSE)
-		{
-			SDLGui_FileConfSelect(dlgmapfile,
-								  ConfigureParams.Keyboard.szMappingFileName,
-								  keyboarddlg[DLGKEY_MAPNAME].w, false);
-		}
-#endif
 	}
 	while (but != DLGKEY_EXIT && but != SDLGUI_QUIT
-			&& but != SDLGUI_ERROR && !bQuitProgram);
+	       && but != SDLGUI_ERROR && !bQuitProgram);
 
 	/* Read values from dialog: */
 	if (keyboarddlg[DLGKEY_SCANCODE].state & SG_SELECTED)
 		ConfigureParams.Keyboard.nKeymapType = KEYMAP_SCANCODE;
 	else
 		ConfigureParams.Keyboard.nKeymapType = KEYMAP_SYMBOLIC;
-#if ENABLE_LOADED_OPTION
-	else
-		ConfigureParams.Keyboard.nKeymapType = KEYMAP_LOADED;
-#endif
+
 	ConfigureParams.Keyboard.bSwapCmdAlt = (keyboarddlg[DLGKEY_SWAP].state & SG_SELECTED);
 }

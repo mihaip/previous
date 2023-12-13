@@ -386,9 +386,11 @@ Previous v3.0 (unreleased):
 For running the emulator, you need an image of the boot ROM of the emulated 
 machine.
 
+You can initiate a clean shut down of the emulator using the simulated power 
+key. The power key is mapped to F10 and the Delete key of your keyboard.
+
 While the emulator is running, you can open the configuration menu by pressing 
-F12, toggle between fullscreen and windowed mode by pressing F11 and initiate a 
-clean shut down by pressing F10 (emulates the power button).
+F12 and toggle between fullscreen and windowed mode by pressing F11.
 
 Further shortcuts can be invoked by simultaneously pressing ctrl and alt and
 one of the following keys:
@@ -407,6 +409,12 @@ F: Toggles between fullscreen and windowed mode (same as F11).
 B: Hides the statusbar and shows it when pressed again.
 S: Disables sound output and re-enables it when pressed again.
 Q: Requests to quit Previous. All unsaved changes will be lost.
+
+Shortcuts can be changed by modifying the preferences file. To modify single 
+key shortcuts change or add key names in the section ShortcutsWithoutModifiers. 
+To modify shortcuts that are invoked with ctrl and alt change or add key names 
+in the section ShortcutsWithModifiers. The appropriate key names can be found 
+under https://wiki.libsdl.org/SDL2/SDL_Keycode.
 
 
  8) Contributors
