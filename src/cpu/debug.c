@@ -540,8 +540,11 @@ static bool iscancel (int counter)
 
 static bool isoperator(TCHAR **cp)
 {
-	TCHAR c = **cp;
-	return c == '+' || c == '-' || c == '/' || c == '*' || c == '(' || c == ')' || c == '|' || c == '&' || c == '^' || c == '=' || c == '>' || c == '<';
+	TCHAR c = _totupper(**cp);
+	TCHAR c1 = _totupper((*cp)[1]);
+	return c == '+' || c == '-' || c == '/' || c == '*' || c == '(' || c == ')' ||
+		c == '|' || c == '&' || c == '^' || c == '=' || c == '>' || c == '<' ||
+		(c == 'R' && (c1 == 'L' || c1 == 'W' || c1 == 'B'));
 }
 
 static void ignore_ws (TCHAR **c)
@@ -688,7 +691,7 @@ static const TCHAR *debugregs[] = {
 	NULL
 };
 
-static int getregidx(TCHAR **c)
+int getregidx(TCHAR **c)
 {
 	int i;
 	TCHAR *p = *c;
@@ -712,7 +715,7 @@ static int getregidx(TCHAR **c)
 	return -1;
 }
 
-static uae_u32 returnregx(int regid)
+uae_u32 returnregx(int regid)
 {
 	if (regid < BREAKPOINT_REG_PC)
 		return regs.regs[regid];
@@ -887,11 +890,11 @@ static int checkvaltype2 (TCHAR **c, uae_u32 *val, TCHAR def)
 	}
 	if (nc == '$') {
 		(*c)++;
-		return  readhexx (c, val) ? 1 : 0;
+		return readhexx (c, val) ? 1 : 0;
 	}
 	if (nc == '0' && _totupper ((*c)[1]) == 'X') {
 		(*c)+= 2;
-		return  readhexx (c, val) ? 1 : 0;
+		return readhexx (c, val) ? 1 : 0;
 	}
 	if (nc == '%') {
 		(*c)++;
@@ -6912,7 +6915,7 @@ static bool debug_line (TCHAR *input)
 		case 'v':
 		case 'V':
 			{
-				int v1 = vpos, v2 = 0, v3 = 0;
+				static int v1 = 0, v2 = 0, v3 = 0;
 				if (*inptr == 'h') {
 					inptr++;
 					if (more_params(&inptr) && *inptr == '?') {
