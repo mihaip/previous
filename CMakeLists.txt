@@ -7,13 +7,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif(NOT CMAKE_BUILD_TYPE)
 
 if(APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
-	set(CMAKE_OSX_ARCHITECTURES "x86_64;arm64" CACHE STRING "Target architectures")
+	set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Target architectures")
 	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Target minimum macOS version")
 endif(APPLE AND CMAKE_BUILD_TYPE STREQUAL "Release")
 
 project(Previous)
-
-set(APP_NAME "Previous")
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -50,6 +48,12 @@ else()
 	set(ENABLE_OSX_BUNDLE 0
 	    CACHE BOOL "Built Previous as macOS application bundle")
 endif(APPLE)
+
+if(ENABLE_OSX_BUNDLE OR WIN32)
+	set(APP_NAME "Previous")
+else()
+	set(APP_NAME "previous")
+endif(ENABLE_OSX_BUNDLE OR WIN32)
 
 # ####################
 # Check for libraries:
