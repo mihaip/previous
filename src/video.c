@@ -47,6 +47,22 @@ static void Video_Interrupt(void) {
 
 /*-----------------------------------------------------------------------*/
 /**
+ * Return true if video output is enabled.
+ */
+bool Video_Enabled(void) {
+	if (ConfigureParams.Boot.bVisible) {
+		return true;
+	} else if (ConfigureParams.System.bTurbo) {
+		return tmc_video_enabled();
+	} else if (ConfigureParams.System.bColor) {
+		return color_video_enabled();
+	} else {
+		return brighness_video_enabled();
+	}
+}
+
+/*-----------------------------------------------------------------------*/
+/**
  * Check if it is time for vertical video retrace interrupt.
  */
 void Video_InterruptHandler(void) {

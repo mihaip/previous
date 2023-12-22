@@ -95,6 +95,9 @@ static uint8_t scr2_3 = 0x00;
 
 static uint8_t scr_have_dsp_memreset = 0;
 
+static uint8_t col_vid_intr   = 0;
+static uint8_t bright_reg     = 0;
+
 uint8_t dsp_dma_unpacked      = 0;
 uint8_t dsp_intr_at_block_end = 0;
 uint8_t dsp_hreq_intr         = 0;
@@ -170,6 +173,8 @@ void SCR_Reset(void) {
     uint8_t memory_speed = 0;
     
     SCR_ROM_overlay = 0;
+    col_vid_intr = 0;
+    bright_reg = 0;
     dsp_intr_at_block_end = 0;
     dsp_dma_unpacked = 0;
     dsp_hreq_intr = 0;
@@ -695,8 +700,6 @@ void System_Timer_Write(void) {
 #define VID_CMD_ENABLE_INT   0x02
 #define VID_CMD_UNBLANK      0x04
 
-uint8_t col_vid_intr = 0;
-
 void ColorVideo_CMD_Write(void) {
     col_vid_intr=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
     Log_Printf(LOG_DEBUG,"[Color Video] Command write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
@@ -706,9 +709,30 @@ void ColorVideo_CMD_Write(void) {
     }
 }
 
+uint8_t color_video_enabled(void) {
+    return col_vid_intr&VID_CMD_UNBLANK;
+}
+
 void color_video_interrupt(void) {
     if (col_vid_intr&VID_CMD_ENABLE_INT) {
         set_interrupt(INT_DISK, SET_INT);
         col_vid_intr &= ~VID_CMD_ENABLE_INT;
+    }
+}
+
+/* Brightness Register */
+
+#define BRIGHTNESS_UNBLANK 0x40
+#define BRIGHTNESS_MASK    0x3F
+
+uint8_t brighness_video_enabled(void) {
+    return bright_reg&BRIGHTNESS_UNBLANK;
+}
+
+void Brightness_Write(void) {
+    bright_reg=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    Log_Printf(LOG_DEBUG,"[Brightness] Write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    if (bright_reg&BRIGHTNESS_UNBLANK) {
+        Log_Printf(LOG_WARN,"[Brightness] Setting brightness to %02x\n", bright_reg&BRIGHTNESS_MASK);
     }
 }

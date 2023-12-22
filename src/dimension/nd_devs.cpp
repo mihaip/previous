@@ -522,6 +522,10 @@ void NextDimension::set_blank_state(int src, bool state) {
     mc.check_interrupt();
 }
 
+bool NextDimension::unblanked(void) {
+    return (mc.vram&CSRVRAM_VBLANK) || ConfigureParams.Boot.bVisible;
+}
+
 static const char* nd_dump_path = "nd_memory.bin";
 
 /* debugger stuff */

@@ -166,6 +166,7 @@ static const struct Config_Tag configs_Boot[] =
 	{ "bLoopPot", Bool_Tag, &ConfigureParams.Boot.bLoopPot },
 	{ "bVerbose", Bool_Tag, &ConfigureParams.Boot.bVerbose },
 	{ "bExtendedPot", Bool_Tag, &ConfigureParams.Boot.bExtendedPot },
+	{ "bVisible", Bool_Tag, &ConfigureParams.Boot.bVisible },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -386,6 +387,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Boot.bLoopPot = false;
 	ConfigureParams.Boot.bVerbose = true;
 	ConfigureParams.Boot.bExtendedPot = false;
+	ConfigureParams.Boot.bVisible = false;
 
 	/* Set defaults for SCSI disks */
 	for (i = 0; i < ESP_MAX_DEVS; i++) {

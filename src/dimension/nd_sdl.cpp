@@ -22,10 +22,7 @@ int NDSDL::repainter(void) {
 
     while (doRepaint) {
         if (SDL_AtomicGet(&blitNDFB)) {
-            Screen_BlitDimension(vram, ndTexture);
-            SDL_RenderClear(ndRenderer);
-            SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
-            SDL_RenderPresent(ndRenderer);
+            repaint();
         } else {
             host_sleep_ms(100);
         }
@@ -35,14 +32,18 @@ int NDSDL::repainter(void) {
 }
 #else // !ENABLE_RENDERING_THREAD
 NDSDL::NDSDL(int slot, uint32_t* vram) : slot(slot), vram(vram), ndWindow(NULL), ndRenderer(NULL), ndTexture(NULL) {}
+#endif // !ENABLE_RENDERING_THREAD
 
 void NDSDL::repaint(void) {
-    Screen_BlitDimension(vram, ndTexture);
+    if (nd_video_enabled(slot)) {
+        Screen_BlitDimension(vram, ndTexture);
+    } else {
+        Screen_Blank(ndTexture);
+    }
     SDL_RenderClear(ndRenderer);
     SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
     SDL_RenderPresent(ndRenderer);
 }
-#endif // !ENABLE_RENDERING_THREAD
 
 void NDSDL::init(void) {
     int x, y, w, h;

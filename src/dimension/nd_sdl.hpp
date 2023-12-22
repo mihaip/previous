@@ -25,9 +25,7 @@ class NDSDL {
 #endif
 public:
     NDSDL(int slot, uint32_t* vram);
-#ifndef ENABLE_RENDERING_THREAD
     void    repaint(void);
-#endif
     void    init(void);
     void    uninit(void);
     void    destroy(void);
@@ -36,7 +34,7 @@ public:
 };
 
 extern "C" {
-#endif
+#endif /* __cplusplus */
 #ifndef ENABLE_RENDERING_THREAD
     void nd_sdl_repaint(void);
 #endif

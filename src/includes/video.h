@@ -15,6 +15,7 @@
 /*--------------------------------------------------------------*/
 
 extern void Video_Reset(void);
+extern bool Video_Enabled(void);
 extern void Video_InterruptHandler(void);
 
 #endif  /* HATARI_VIDEO_H */

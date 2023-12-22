@@ -233,7 +233,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x0200f004, SIZE_LONG, LP_Data_Read, LP_Data_Write },
 	
 	/* Brightness */
-	{ 0x02010000, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02010000, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, Brightness_Write },
 	
 	/* Magneto-Optical Drive Controller (Fujitsu MB600310) */
 	{ 0x02012000, SIZE_BYTE, MO_TrackNumH_Read, MO_TrackNumH_Write },

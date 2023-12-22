@@ -371,6 +371,14 @@ extern "C" {
         CycInt_AddRelativeInterruptUs((1000*1000)/120, 0, INTERRUPT_ND_VIDEO_VBL);
     }
 
+    bool nd_video_enabled(int slot) {
+        IF_NEXT_DIMENSION(slot, nd) {
+            return nd->unblanked();
+        } else {
+            return false;
+        }
+    }
+
     uint32_t* nd_vram_for_slot(int slot) {
         IF_NEXT_DIMENSION(slot, nd) {
             return (uint32_t*)nd->vram;

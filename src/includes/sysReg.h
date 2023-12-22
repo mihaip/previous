@@ -121,7 +121,12 @@ void System_Timer_Write(void);
 
 void ColorVideo_CMD_Write(void);
 void color_video_interrupt(void);
-    
+
+void Brightness_Write(void);
+
+uint8_t color_video_enabled(void);
+uint8_t brighness_video_enabled(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -166,6 +166,7 @@ typedef struct
   bool bEnableSCSITest;
   bool bLoopPot;
   bool bVerbose;
+  bool bVisible;
 } CNF_BOOT;
 
 

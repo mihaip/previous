@@ -169,7 +169,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_Turbo[] =
 	{ 0x0200f004, SIZE_LONG, LP_Data_Read, LP_Data_Write },
 	
 	/* Brightness */
-	{ 0x02010000, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02010000, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, Brightness_Write },
 
 	/* GPIO Register */
 	{ 0x02012000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
