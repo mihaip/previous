@@ -95,13 +95,13 @@ For using Previous, you need to have installed the following libraries:
 
 Required:
   > The SDL2 library v2.26.0 or later (http://www.libsdl.org)
-  > The zlib compression library (http://www.gzip.org/zlib/)
 
 Optional:
+  > The zlib compression library (https://www.zlib.net)
+    This is required for using libpng.
   > The libpng PNG reference library (http://www.libpng.org)
     This is required for printing to files.
-  > The pcap library (https://github.com/the-tcpdump-group/libpcap or 
-    https://www.winpcap.org)
+  > The pcap library (https://www.tcpdump.org or https://www.winpcap.org)
     This is required if networking via PCAP is preferred over SLiRP.
 
 
@@ -373,7 +373,7 @@ Previous v2.9:
 Previous v3.0 (unreleased):
   > Adds support for mapping scroll wheel to cursor keys.
   > Adds option for simulating DSP bootstrap ROM.
-  > Adds support for CPU reset instruction.
+  > Adds support for RESET instruction.
   > Improves screen simulation to not show screen contents while blanked.
   > Improves DSP emulation accuracy.
   > Improves CPU emulation accuracy.
