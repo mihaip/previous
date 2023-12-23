@@ -105,7 +105,7 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 	}
 
 	/* Did we change the realtime flag? */
-	if(current->System.bRealtime != changed->System.bRealtime) {
+	if (current->System.bRealtime != changed->System.bRealtime) {
 		printf("realtime flag reset\n");
 		return true;
 	}
@@ -152,35 +152,15 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 	}
 
 	/* Did we change boot options? */
-	if (current->Boot.nBootDevice != changed->Boot.nBootDevice) {
-		printf("boot options reset\n");
-		return true;
-	}
-	if (current->Boot.bEnableDRAMTest != changed->Boot.bEnableDRAMTest) {
-		printf("boot options reset\n");
-		return true;
-	}
-	if (current->Boot.bEnablePot != changed->Boot.bEnablePot) {
-		printf("boot options reset\n");
-		return true;
-	}
-	if (current->Boot.bEnableSoundTest != changed->Boot.bEnableSoundTest) {
-		printf("boot options reset\n");
-		return true;
-	}
-	if (current->Boot.bEnableSCSITest != changed->Boot.bEnableSCSITest) {
-		printf("boot options reset\n");
-		return true;
-	}
-	if (current->Boot.bLoopPot != changed->Boot.bLoopPot) {
-		printf("boot options reset\n");
-		return true;
-	}
-	if (current->Boot.bVerbose != changed->Boot.bVerbose) {
-		printf("boot options reset\n");
-		return true;
-	}
-	if (current->Boot.bExtendedPot != changed->Boot.bExtendedPot) {
+	if ((current->Boot.nBootDevice != changed->Boot.nBootDevice) ||
+		(current->Boot.bEnableDRAMTest != changed->Boot.bEnableDRAMTest) ||
+		(current->Boot.bEnablePot != changed->Boot.bEnablePot) ||
+		(current->Boot.bEnableSoundTest != changed->Boot.bEnableSoundTest) ||
+		(current->Boot.bEnableSCSITest != changed->Boot.bEnableSCSITest) ||
+		(current->Boot.bLoopPot != changed->Boot.bLoopPot) ||
+		(current->Boot.bVerbose != changed->Boot.bVerbose) ||
+		(current->Boot.bExtendedPot != changed->Boot.bExtendedPot) ||
+		(current->Boot.bVisible != changed->Boot.bVisible)) {
 		printf("boot options reset\n");
 		return true;
 	}
@@ -195,7 +175,7 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 				 return true;
 			 }
 	}
-	if(current->SCSI.nWriteProtection != changed->SCSI.nWriteProtection) {
+	if (current->SCSI.nWriteProtection != changed->SCSI.nWriteProtection) {
 		printf("scsi disk reset\n");
 		return true;
 	}
