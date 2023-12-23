@@ -373,11 +373,14 @@ Previous v2.9:
 Previous v3.0 (unreleased):
   > Adds support for mapping scroll wheel to cursor keys.
   > Adds option for simulating DSP bootstrap ROM.
+  > Adds support for CPU reset instruction.
+  > Improves screen simulation to only show screen contents when unblanked.
   > Improves DSP emulation accuracy.
   > Improves CPU emulation accuracy.
   > Improves keyboard options to show actual shortcuts.
   > Fixes bug that caused mouse to be unlocked after resuming emulation.
   > Fixes bug that caused stuck modifier keys after using shortcuts.
+  > Fixes bug that caused sporadic display errors in the boot options dialog.
 
 
  7) Running Previous

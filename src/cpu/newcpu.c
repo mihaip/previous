@@ -42,6 +42,7 @@
 #ifdef WINUAE_FOR_HATARI
 #include "debug.h"
 #include "m68000.h"
+#include "reset.h"
 #include "cycInt.h"
 #include "dsp.h"
 #include "dimension.hpp"
@@ -8773,7 +8774,10 @@ void exception2_fetch(uae_u32 opcode, int offset, int pcoffset)
 
 bool cpureset (void)
 {
-#ifndef WINUAE_FOR_PREVIOUS
+#ifdef WINUAE_FOR_PREVIOUS
+	write_log (_T("CPU reset PC=%08x\n"), m68k_getpc());
+	m68k_reset(); /* TODO: Reset CPU board */
+#else
     /* RESET hasn't increased PC yet, 1 word offset */
 	uaecptr pc;
 #ifndef WINUAE_FOR_HATARI
@@ -8835,7 +8839,7 @@ bool cpureset (void)
 	write_log (_T("CPU Reset PC=%x (%s), invalid memory\n"), pc, ab->name);
 	customreset ();			/* From hatari-glue.c */
 #endif
-#endif // WINUAE_FOR_PREVIOUS
+#endif // !WINUAE_FOR_PREVIOUS
 	return false;
 }
 
