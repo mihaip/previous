@@ -995,17 +995,18 @@ mem_put_func bank_bput[65536];
 /*
  * Initialize the memory banks
  */
-const char* memory_init(int *nNewNEXTMemSize)
+int memory_init (void)
 {
+	int i;
+	uae_u32 bankstart[4];
+	int* nNewNEXTMemSize = ConfigureParams.Memory.nMemoryBankSize;
+	
     if(!(NEXTRam)) {
         NEXTRam   = malloc_aligned(NEXT_RAM_MAX_SIZE);
         NEXTVideo = malloc_aligned(NEXT_VRAM_COLOR_SIZE);
         NEXTIo    = malloc_aligned(NEXT_IO_SIZE);
         NEXTRom   = malloc_aligned(NEXT_EPROM_SIZE);
     }
-
-	int i;
-	uae_u32 bankstart[4];
 	
 	/* Set machine dependent variables */
 	if (ConfigureParams.System.bTurbo) {
@@ -1176,7 +1177,8 @@ const char* memory_init(int *nNewNEXTMemSize)
 			fin=fopen(ConfigureParams.Rom.szRom040FileName, "rb");
 		
 		if (fin==NULL) {
-			return "Cannot open ROM file";
+			write_log("Cannot open ROM file\n");
+			return 1;
 		}
 		
 		ret=fread(ROMmemory,1,NEXT_EPROM_SIZE,fin);
@@ -1215,7 +1217,7 @@ const char* memory_init(int *nNewNEXTMemSize)
 	
 	IoMem_Init();
 	
-	return NULL;
+	return 0;
 }
 
 

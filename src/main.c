@@ -846,8 +846,7 @@ static bool Main_Init(void) {
 	/* Call menu at startup */
 	if (Main_StartMenu()) {
 		/* Reset emulated machine */
-		Reset_Cold();
-		return true;
+		return !Reset_Cold();
 	}
 	return false;
 }

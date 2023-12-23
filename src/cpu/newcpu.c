@@ -8776,7 +8776,7 @@ bool cpureset (void)
 {
 #ifdef WINUAE_FOR_PREVIOUS
 	write_log (_T("CPU reset PC=%08x\n"), m68k_getpc());
-	m68k_reset(); /* TODO: Reset CPU board */
+	Reset_Warm();
 #else
     /* RESET hasn't increased PC yet, 1 word offset */
 	uaecptr pc;

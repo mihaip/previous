@@ -48,7 +48,7 @@ extern mem_put_func bank_bput[65536];
 #define get_mem_bank(bank, addr)    (bank[bankindex(addr)])
 #define put_mem_bank(bank, addr, b) (bank[bankindex(addr)] = (b))
 
-const char* memory_init(int *membanks);
+int  memory_init (void);
 void memory_uninit (void);
 void map_banks(addrbank *bank, int first, int count);
 

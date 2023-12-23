@@ -99,7 +99,7 @@ static inline void M68000_AddCycles(int cycles) {
 }
 
 extern void M68000_Init(void);
-extern void M68000_Reset(bool bCold);
+extern void M68000_Reset(void);
 extern void M68000_Stop(void);
 extern void M68000_Start(void);
 extern void M68000_CheckCpuSettings(void);

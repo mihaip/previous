@@ -1,28 +1,29 @@
 /*
   Hatari
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
   Reset emulation state.
 */
-const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
+const char Reset_fileid[] = "Hatari reset.c";
 
 #include "main.h"
-#include "host.h"
 #include "configuration.h"
+#include "host.h"
 #include "cycInt.h"
 #include "m68000.h"
 #include "reset.h"
+#include "scc.h"
 #include "screen.h"
 #include "tmc.h"
 #include "video.h"
 #include "debugcpu.h"
+#include "debugdsp.h"
 #include "scsi.h"
 #include "mo.h"
 #include "sysReg.h"
 #include "rtcnvram.h"
-#include "scc.h"
 #include "ethernet.h"
 #include "floppy.h"
 #include "snd.h"
@@ -35,22 +36,23 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 /**
  * Reset NEXT emulator states, chips, interrupts and registers.
  */
-static const char* Reset_NeXT(bool bCold)
+static int Reset_NeXT(bool bCold)
 {
 	if (bCold) {
-		const char* error_str;
-		error_str=memory_init(ConfigureParams.Memory.nMemoryBankSize);
-		if (error_str!=NULL) {
-			return error_str;
+		int ret = memory_init();  /* Reset memory */
+		if (ret) {
+			return ret;
 		}
+		host_reset();             /* Reset host related timing vars */
+		CycInt_Reset();           /* Reset interrupts */
+		Video_Reset();            /* Reset video */
+		Screen_ModeChanged();     /* Reset Screen Mode */
+		DebugCpu_SetDebugging();  /* Reset debugging flag if needed */
+		DebugDsp_SetDebugging();  /* Reset debugging flag if needed */
+		Main_SpeedReset();        /* Reset speed reporting system */
 	}
 
-	host_reset();                 /* Reset host related timing vars */
-
-	M68000_Reset(bCold);          /* Reset CPU */
-	CycInt_Reset();               /* Reset interrupts */
-	Main_SpeedReset();            /* Reset speed reporting system */
-	Video_Reset();                /* Reset video */
+	M68000_Reset();               /* Reset CPU */
 	TMC_Reset();                  /* Reset TMC Registers */
 	SCR_Reset();                  /* Reset System Control Registers */
 	RTC_Reset();                  /* Reset RTC and NVRAM */
@@ -64,18 +66,16 @@ static const char* Reset_NeXT(bool bCold)
 	Printer_Reset();              /* Reset Printer */
 	DSP_Reset();                  /* Reset DSP */
 	NextBus_Reset();              /* Reset NextBus */
-	Screen_ModeChanged();         /* Reset Screen Mode */
-	DebugCpu_SetDebugging();      /* Reset debugging flag if needed */
 
-	return NULL;
+	return 0;
 }
 
 
 /*-----------------------------------------------------------------------*/
 /**
- * Cold reset ST (reset memory, all registers and reboot)
+ * Cold reset NeXT (reset memory, all registers and reboot)
  */
-const char* Reset_Cold(void)
+int Reset_Cold(void)
 {
 	return Reset_NeXT(true);
 }
@@ -83,9 +83,9 @@ const char* Reset_Cold(void)
 
 /*-----------------------------------------------------------------------*/
 /**
- * Warm reset ST (reset registers, leave in same state and reboot)
+ * Warm reset NeXT (reset registers, leave in same state and reboot)
  */
-const char* Reset_Warm(void)
+int Reset_Warm(void)
 {
 	return Reset_NeXT(false);
 }

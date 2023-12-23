@@ -12,6 +12,7 @@ const char Bmap_fileid[] = "Previous bmap.c";
 #include "configuration.h"
 #include "m68000.h"
 #include "sysReg.h"
+#include "reset.h"
 #include "sysdeps.h"
 #include "bmap.h"
 
@@ -52,16 +53,16 @@ int bmap_hreq_enable = 0;
 int bmap_txdn_enable = 0;
 
 static uae_u32 bmap_get(uae_u32 bmap_reg) {
-    uae_u32 val;
+    uae_u32 val = NEXTbmap[bmap_reg];
+    
+    Log_Printf(LOG_BMAP_LEVEL, "BMAP read register %d val=$%08x", bmap_reg, val);
     
     switch (bmap_reg) {
         case BMAP_DRW:
             /* This is for detecting thin wire ethernet.
              * It prevents from switching ethernet
              * transceiver to loopback mode.
-             */
-            val = NEXTbmap[BMAP_DRW];
-            
+             */            
             val &= ~(BMAP_HEARTBEAT | BMAP_TPE_ILBC);
             
             if (ConfigureParams.Ethernet.bEthernetConnected && ConfigureParams.Ethernet.bTwistedPair) {
@@ -72,7 +73,6 @@ static uae_u32 bmap_get(uae_u32 bmap_reg) {
             break;
             
         default:
-            val = NEXTbmap[bmap_reg];
             break;
     }
     
@@ -80,6 +80,8 @@ static uae_u32 bmap_get(uae_u32 bmap_reg) {
 }
 
 static void bmap_put(uae_u32 bmap_reg, uae_u32 val) {
+    Log_Printf(LOG_BMAP_LEVEL, "[BMAP] write register %d val=$%08x", bmap_reg, val);
+    
     switch (bmap_reg) {
         case BMAP_BURWREN:
             if (!bmap_hreq_enable && (val&BMAP_DSP_HREQ)) {
@@ -101,7 +103,7 @@ static void bmap_put(uae_u32 bmap_reg, uae_u32 val) {
         case BMAP_DDIR:
             if (val&BMAP_RESET) {
                 Log_Printf(LOG_WARN, "[BMAP] CPU reset.");
-                M68000_Reset(true);
+                Reset_Warm();
             }
             break;
         case BMAP_DRW:

@@ -13,6 +13,7 @@
 #include "ioMem.h"
 #include "ioMemTables.h"
 #include "m68000.h"
+#include "reset.h"
 #include "kms.h"
 #include "sysReg.h"
 #include "dma.h"
@@ -204,7 +205,7 @@ static void kms_km_receive(uint32_t data) {
     switch (data&KMS_MAGIC_MASK) {
         case KMS_MAGIC_RESET:
             Log_Printf(LOG_WARN, "Keyboard initiated CPU reset!");
-            M68000_Reset(true);
+            Reset_Warm();
             return;
         case KMS_MAGIC_NMI_L:
         case KMS_MAGIC_NMI_R:

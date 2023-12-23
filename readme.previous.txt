@@ -374,7 +374,7 @@ Previous v3.0 (unreleased):
   > Adds support for mapping scroll wheel to cursor keys.
   > Adds option for simulating DSP bootstrap ROM.
   > Adds support for CPU reset instruction.
-  > Improves screen simulation to only show screen contents when unblanked.
+  > Improves screen simulation to not show screen contents while blanked.
   > Improves DSP emulation accuracy.
   > Improves CPU emulation accuracy.
   > Improves keyboard options to show actual shortcuts.
