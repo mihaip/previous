@@ -18,12 +18,8 @@
 #include "newcpu.h"
 #include "main.h"
 #include "cpummu.h"
-#include "m68000.h"
-#include "debugui.h"
-#include "debugcpu.h"
-#ifdef WINUAE_FOR_HATARI
 #include "debug.h"
-#endif
+#include "savestate.h"
 
 #define WRITE_LOG_BUF_SIZE 4096
 
@@ -36,7 +32,7 @@ extern struct regstruct mmu_backup_regs;
 evt_t currcycle;
 /* declared in savestate.h */
 int savestate_state = 0;
-TCHAR *savestate_fname;
+TCHAR savestate_fname[MAX_DPATH];
 /* declared in custom.h */
 uae_u32 hsync_counter = 0, vsync_counter = 0;
 #endif
@@ -591,9 +587,26 @@ void fixup_cpu (struct uae_prefs *p)
 		break;
 	}
 
-	if (p->cpu_model < 68030 && p->mmu_model) {
+	if (p->cpu_model < 68020 && p->cachesize) {
+		p->cachesize = 0;
+		error_log (_T("JIT requires 68020 or better CPU."));
+	}
+
+	if (p->cpu_model >= 68040 && p->cachesize && p->cpu_compatible)
+		p->cpu_compatible = false;
+
+	if ((p->cpu_model < 68030 || p->cachesize) && p->mmu_model) {
 		error_log (_T("MMU emulation requires 68030/040/060 and it is not JIT compatible."));
 		p->mmu_model = 0;
+	}
+
+	if (p->cachesize && p->cpu_cycle_exact) {
+		error_log (_T("JIT and cycle-exact can't be enabled simultaneously."));
+		p->cachesize = 0;
+	}
+	if (p->cachesize && (p->fpu_no_unimplemented || p->int_no_unimplemented)) {
+		error_log (_T("JIT is not compatible with unimplemented CPU/FPU instruction emulation."));
+		p->fpu_no_unimplemented = p->int_no_unimplemented = false;
 	}
 
 #ifndef WINUAE_FOR_HATARI
