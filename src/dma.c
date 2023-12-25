@@ -1247,3 +1247,15 @@ void tdma_flush_buffer(int channel) {
     
     dma_interrupt(CHANNEL_SCSI);
 }
+
+void DMA_Reset(void) {
+    int i;
+    
+    Log_Printf(LOG_WARN, "[DMA] Reset");
+    
+    for (i = 0; i < 12; i++) {
+        dma[i].csr = 0;
+        dma_initialize_buffer(i, 0);
+    }
+    CycInt_RemovePendingInterrupt(INTERRUPT_M2M_IO);
+}

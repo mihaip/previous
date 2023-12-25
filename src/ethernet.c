@@ -769,6 +769,7 @@ void Ethernet_Reset(bool hard) {
         enet_rx_buffer.size=enet_tx_buffer.size=0;
         enet_rx_buffer.limit=enet_tx_buffer.limit=EN_BUF_MAX;
         enet.tx_status=ConfigureParams.System.bTurbo?0:TXSTAT_READY;
+        CycInt_RemovePendingInterrupt(INTERRUPT_ENET_IO);
     }
     
     if (init_done) {

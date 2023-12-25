@@ -273,6 +273,7 @@ void floppy_stop(void) {
     flp.sra &= ~SRA_INT;
     set_interrupt(INT_PHONE, RELEASE_INT);
     flp_io_state = FLP_STATE_DONE;
+    CycInt_RemovePendingInterrupt(INTERRUPT_FLP_IO);
 }
 
 void floppy_reset(void) {

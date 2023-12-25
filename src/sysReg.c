@@ -98,6 +98,8 @@ static uint8_t scr_have_dsp_memreset = 0;
 static uint8_t col_vid_intr   = 0;
 static uint8_t bright_reg     = 0;
 
+static uint8_t hardclock_csr  = 0;
+
 uint8_t dsp_dma_unpacked      = 0;
 uint8_t dsp_intr_at_block_end = 0;
 uint8_t dsp_hreq_intr         = 0;
@@ -173,6 +175,7 @@ void SCR_Reset(void) {
     uint8_t memory_speed = 0;
     
     SCR_ROM_overlay = 0;
+    hardclock_csr = 0;
     col_vid_intr = 0;
     bright_reg = 0;
     dsp_intr_at_block_end = 0;
@@ -613,7 +616,6 @@ void IntRegMaskWrite(void) {
 #define HARDCLOCK_LATCH  0x40
 #define HARDCLOCK_ZERO   0x3F
 
-static uint8_t hardclock_csr=0;
 static uint8_t hardclock1=0;
 static uint8_t hardclock0=0;
 static int latch_hardclock=0;

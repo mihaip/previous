@@ -314,6 +314,7 @@ static void scc_hard_reset(void) {
     scc[1].wreg[14] = (scc[1].wreg[14]&~0x3F)|0x20;
 
     set_interrupt(INT_SCC, RELEASE_INT);
+    CycInt_RemovePendingInterrupt(INTERRUPT_SCC_IO);
 }
 
 

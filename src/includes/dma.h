@@ -44,6 +44,9 @@ void TDMA_CSR_Write(void);
 void TDMA_Saved_Limit_Read(void);
 void tdma_flush_buffer(int channel);
 
+/* Reset function */
+void DMA_Reset(void);
+
 /* Device functions */
 void dma_esp_write_memory(void);
 void dma_esp_read_memory(void);

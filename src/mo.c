@@ -1710,6 +1710,11 @@ void MO_Reset(void) {
     /* Initialize formatter variables */
     fmt_mode=FMT_MODE_IDLE;
     ecc_state=ECC_STATE_DONE;
+    
+    /* Stop all periodic operations */
+    CycInt_RemovePendingInterrupt(INTERRUPT_MO);
+    CycInt_RemovePendingInterrupt(INTERRUPT_MO_IO);
+    CycInt_RemovePendingInterrupt(INTERRUPT_ECC_IO);
 }
 
 void MO_Insert(int drive) {

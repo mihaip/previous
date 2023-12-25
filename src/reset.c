@@ -21,7 +21,9 @@ const char Reset_fileid[] = "Hatari reset.c";
 #include "debugcpu.h"
 #include "debugdsp.h"
 #include "scsi.h"
+#include "esp.h"
 #include "mo.h"
+#include "dma.h"
 #include "sysReg.h"
 #include "rtcnvram.h"
 #include "ethernet.h"
@@ -56,6 +58,8 @@ static int Reset_NeXT(bool bCold)
 	TMC_Reset();                  /* Reset TMC Registers */
 	SCR_Reset();                  /* Reset System Control Registers */
 	RTC_Reset();                  /* Reset RTC and NVRAM */
+	DMA_Reset();                  /* Reset DMA controller */
+	ESP_Reset();                  /* Reset SCSI controller */
 	SCSI_Reset();                 /* Reset SCSI disks */
 	MO_Reset();                   /* Reset MO disks */
 	Floppy_Reset();               /* Reset Floppy disks */

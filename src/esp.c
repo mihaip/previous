@@ -720,6 +720,7 @@ void esp_reset_hard(void) {
     status &= ~(STAT_VGC | STAT_PE | STAT_GE); // clear transfer complete aka valid group code, parity error, gross error
     esp_reset_soft();
     esp_finish_command();
+    CycInt_RemovePendingInterrupt(INTERRUPT_ESP);
 }
 
 
@@ -737,6 +738,8 @@ void esp_reset_soft(void) {
     /* This part is "disconnect reset" */
     esp_command_clear();
     esp_state = DISCONNECTED;
+    esp_io_state = ESP_IO_STATE_DONE;
+    CycInt_RemovePendingInterrupt(INTERRUPT_ESP_IO);
 }
 
 
@@ -974,24 +977,7 @@ void esp_message_accepted(void) {
     CycInt_AddRelativeInterruptUs(ESP_DELAY, 20, INTERRUPT_ESP);
 }
 
-
-
-#if 0 /* this is for target commands! */
-/* Decode command to determine the command group and thus the
- * length of the incoming command. Set "valid group code" bit
- * in status register if the group is 0, 1, 5, 6, or 7 (group
- * 2 is also valid on NCR53C90A).
- */
-uint8_t scsi_command_group = (commandbuf[0] & 0xE0) >> 5;
-if(scsi_command_group < 3 || scsi_command_group > 4) {
-    if(ConfigureParams.System.nSCSI == NCR53C90 && scsi_command_group == 2) {
-        Log_Printf(LOG_WARN, "[ESP] Select: Invalid command group %i on NCR53C90\n", scsi_command_group);
-        status &= ~STAT_VGC;
-    } else {
-        status |= STAT_VGC;
-    }
-} else {
-    Log_Printf(LOG_WARN, "[ESP] Select: Invalid command group %i on NCR53C90A\n", scsi_command_group);
-    status &= ~STAT_VGC;
+void ESP_Reset(void) {
+    Log_Printf(LOG_WARN, "[ESP] Reset");
+    esp_reset_hard();
 }
-#endif

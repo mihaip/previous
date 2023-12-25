@@ -87,3 +87,5 @@ extern bool ESP_Send_Ready(void);
 extern uint8_t ESP_Send_Data(void);
 extern bool ESP_Receive_Ready(void);
 extern void ESP_Receive_Data(uint8_t val);
+
+extern void ESP_Reset(void);
