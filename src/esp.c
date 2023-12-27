@@ -832,7 +832,7 @@ bool esp_transfer_done(bool write) {
                esp_counter,scsi_buffer.size);
     
     if (esp_counter == 0) { /* Transfer done */
-        if ((write && SCSIbus.phase==PHASE_DI) || (!write && SCSIbus.phase==PHASE_DO)) { /* Still requesting */
+        if (1/*(write && SCSIbus.phase==PHASE_DI) || (!write && SCSIbus.phase==PHASE_DO)*/) { /* Still requesting */
             intstatus = INTR_BS;
         } else {
             intstatus = INTR_FC;

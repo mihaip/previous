@@ -19,11 +19,14 @@ extern SCSIBusStatus SCSIbus;
 /* Command Descriptor Block */
 #define SCSI_CDB_MAX_SIZE 12
 
+/* Block size */
+#define SCSI_BLOCKSIZE 512
+#define SCSI_MAX_BLOCK 1024
 
 /* This buffer temporarily stores data to be written to memory or disk */
 
 typedef struct {
-    uint8_t data[512]; /* FIXME: BLOCKSIZE */
+    uint8_t data[SCSI_MAX_BLOCK];
     int limit;
     int size;
     bool disk;

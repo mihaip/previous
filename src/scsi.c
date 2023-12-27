@@ -17,8 +17,6 @@
 #define COMMAND_ReadInt32(a, i) (((unsigned) a[i] << 24) | ((unsigned) a[i + 1] << 16) | ((unsigned) a[i + 2] << 8) | a[i + 3])
 
 
-#define BLOCKSIZE 512
-
 #define LUN_DISK 0 // for now only LUN 0 is valid for our phys drives
 
 /* Status Codes */
@@ -120,6 +118,8 @@ int SCSI_GetTransferLength(uint8_t opcode, uint8_t *cdb);
 uint64_t SCSI_GetOffset(uint8_t opcode, uint8_t *cdb);
 int SCSI_GetCount(uint8_t opcode, uint8_t *cdb);
 
+int SCSI_LookupDisk(int target);
+
 void scsi_read_sector(void);
 void scsi_write_sector(void);
 
@@ -129,6 +129,7 @@ struct {
     SCSI_DEVTYPE devtype;
     FILE* dsk;
     uint64_t size;
+    uint32_t blocksize;
     bool readonly;
     uint8_t lun;
     uint8_t status;
@@ -145,6 +146,7 @@ struct {
     uint32_t blockcounter;
     uint32_t lastlba;
     
+    int known;
     uint8_t** shadow;
 } SCSIdisk[ESP_MAX_DEVS];
 
@@ -194,7 +196,9 @@ void SCSI_Insert(uint8_t i) {
     SCSIdisk[i].sense.code = SCSIdisk[i].sense.key = SCSIdisk[i].sense.info = 0;
     SCSIdisk[i].sense.valid = false;
     SCSIdisk[i].lba = SCSIdisk[i].lastlba = SCSIdisk[i].blockcounter = 0;
+    SCSIdisk[i].blocksize = SCSI_BLOCKSIZE;
     
+    SCSIdisk[i].known = -1;
     SCSIdisk[i].shadow = NULL;
     
     Log_Printf(LOG_WARN, "SCSI Disk%i: %s",i,ConfigureParams.SCSI.target[i].szImageName);
@@ -238,6 +242,7 @@ void SCSI_Insert(uint8_t i) {
                 SCSIdisk[i].readonly = false;
             }
         }
+        SCSIdisk[i].known = SCSI_LookupDisk(i);
     } else {
         SCSIdisk[i].size = 0;
         SCSIdisk[i].dsk = NULL;
@@ -257,23 +262,60 @@ void SCSI_Insert(uint8_t i) {
 #define DEVTYPE_NOTPRESENT  0x7f    /* logical unit not present */
 
 
-static uint8_t inquiry_bytes[54] =
+static const uint8_t inquiry_bytes[54] =
 {
     0x00,             /* 0: device type: see above */
     0x00,             /* 1: &0x7F - device type qualifier 0x00 unsupported, &0x80 - rmb: 0x00 = nonremovable, 0x80 = removable */
     0x01,             /* 2: ANSI SCSI standard (first release) compliant */
-    0x02,             /* 3: Response format (format of following data): 0x01 SCSI-1 compliant */
+    0x01,             /* 3: Response format (format of following data): 0x01 SCSI-1 compliant */
     0x31,             /* 4: additional length of the following data */
     0x00,             /* 5: reserved */
     0x00,             /* 6: reserved */
     0x1C,             /* 7: RelAdr=0, Wbus32=0, Wbus16=0, Sync=1, Linked=1, RSVD=1, CmdQue=0, SftRe=0 */
     'P','r','e','v','i','o','u','s',        /*  8-15: Vendor ASCII */
-    'H','D','D',' ',' ',' ',' ',' ',        /* 16-23: Model ASCII */
-    ' ',' ',' ',' ',' ',' ',' ',' ',        /* 24-31: Blank space ASCII */
-    '0','0','0','0','0','0','0','1',        /* 32-39: Revision ASCII */
-    '0','0','0','0','0','0','0','0',        /* 40-47: Serial Number ASCII */
-    ' ',' ',' ',' ',' ',' '                 /* 48-53: Blank space ASCII */
+    'H','D','D',' ',' ',' ',' ',' ',        /* 16-31: Model ASCII */
+    ' ',' ',' ',' ',' ',' ',' ',' ',        /*        (unused data is filled with spaces) */
+    'B',  0,  0,  0,  0,  0,  0,  0,        /* 32-55: Revision ASCII (null-terminated) */
+      0,  0,  0,  0,  0,  0,  0,  0,        /*        (may also contain serial number) */
+      0,  0,  0,  0,  0,  0                 /*        (may be shorter than 24 bytes) */
 };
+
+
+struct known_disk {
+    char vend[8];
+    char name[16];
+    char vers[24];
+    uint8_t len;
+    uint32_t c;
+    uint32_t h;
+    uint32_t s;
+    uint32_t bs;
+};
+
+static const struct known_disk known_disks[] =
+{
+    { "MAXTOR", "XT-8380S", "B3C", 31, 1626, 10, 22, 1024 },
+    { "MAXTOR", "XT-8760S", "B3C", 31, 1626, 16, 26, 1024 }
+};
+
+#define KNOWN_SIZE(x,n) (x[n].c * x[n].h * x[n].s * x[n].bs)
+
+int SCSI_LookupDisk(int target) {
+    int i;
+
+    if (SCSIdisk[target].devtype == DEVTYPE_HARDDISK) {
+        for (i = 0; i < ARRAY_SIZE(known_disks); i++) {
+            if (KNOWN_SIZE(known_disks, i) == SCSIdisk[target].size) {
+                if (known_disks[i].bs <= SCSI_MAX_BLOCK) {
+                    Log_Printf(LOG_WARN, "[SCSI] Known disk found (%s %s)", known_disks[i].vend, known_disks[i].name);
+                    SCSIdisk[target].blocksize = known_disks[i].bs;
+                    return i;
+                }
+            }
+        }       
+    }
+    return -1;
+}
 
 
 uint8_t SCSIdisk_Send_Status(void) {
@@ -516,7 +558,7 @@ static int64_t SCSI_GetTime(uint8_t target) {
     } else {
         seekoffset = SCSIdisk[target].lba - SCSIdisk[target].lastlba;
     }
-    disksize = SCSIdisk[target].size/BLOCKSIZE;
+    disksize = SCSIdisk[target].size/SCSIdisk[target].blocksize;
     
     if (disksize < 1) { /* make sure no zero divide occurs */
         disksize = 1;
@@ -586,21 +628,28 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
             
         case 0x04: // rigid disc geometry page
         {
-            uint32_t num_sectors = SCSIdisk[target].size/BLOCKSIZE;
+            uint32_t c, h, s;
             
-            uint32_t cylinders, heads, sectors;
+            int i = SCSIdisk[target].known;
+            uint32_t num_sectors = SCSIdisk[target].size/SCSIdisk[target].blocksize;
             
-            SCSI_GuessGeometry(num_sectors, &cylinders, &heads, &sectors);
+            if (i < 0) {
+                SCSI_GuessGeometry(num_sectors, &c, &h, &s);
+            } else {
+                c = known_disks[i].c;
+                h = known_disks[i].h;
+                s = known_disks[i].s;
+            }
             
-            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk geometry: %i sectors, %i cylinders, %i heads", sectors, cylinders, heads);
+            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk geometry: %i cylinders, %i heads, %i sectors", c, h, s);
             
             pagesize = 20;
             page[0] = 0x04; // &0x80: page savable? (not supported!), &0x7F: page code = 0x04
             page[1] = 0x12;
-            page[2] = (cylinders >> 16) & 0xFF;
-            page[3] = (cylinders >> 8) & 0xFF;
-            page[4] = cylinders & 0xFF;
-            page[5] = heads;
+            page[2] = (c >> 16) & 0xFF;
+            page[3] = (c >> 8) & 0xFF;
+            page[4] = c & 0xFF;
+            page[5] = h;
             page[6] = 0x00; // 6,7,8: starting cylinder - write precomp (not supported)
             page[7] = 0x00;
             page[8] = 0x00;
@@ -660,18 +709,19 @@ void SCSI_TestUnitReady(uint8_t *cdb) {
 void SCSI_ReadCapacity(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
-    uint32_t sectors = (SCSIdisk[target].size / BLOCKSIZE) - 1; /* last LBA */
+    uint32_t blocksize = SCSIdisk[target].blocksize;
+    uint32_t sectors = (SCSIdisk[target].size / blocksize) - 1; /* last LBA */
     
-    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Read capacity: %d sectors (blocksize: %d)", sectors, BLOCKSIZE);
+    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Read capacity: %d sectors (blocksize: %d)", sectors, blocksize);
     
     scsi_buffer.data[0] = (sectors >> 24) & 0xFF;
     scsi_buffer.data[1] = (sectors >> 16) & 0xFF;
     scsi_buffer.data[2] = (sectors >> 8) & 0xFF;
     scsi_buffer.data[3] = sectors & 0xFF;
-    scsi_buffer.data[4] = (BLOCKSIZE >> 24) & 0xFF;
-    scsi_buffer.data[5] = (BLOCKSIZE >> 16) & 0xFF;
-    scsi_buffer.data[6] = (BLOCKSIZE >> 8) & 0xFF;
-    scsi_buffer.data[7] = BLOCKSIZE & 0xFF;
+    scsi_buffer.data[4] = (blocksize >> 24) & 0xFF;
+    scsi_buffer.data[5] = (blocksize >> 16) & 0xFF;
+    scsi_buffer.data[6] = (blocksize >> 8) & 0xFF;
+    scsi_buffer.data[7] = blocksize & 0xFF;
     
     scsi_buffer.size = scsi_buffer.limit = 8;
     scsi_buffer.disk = false;
@@ -702,7 +752,7 @@ void SCSI_WriteSector(uint8_t *cdb) {
         return;
     }
     scsi_buffer.size = 0;
-    scsi_buffer.limit = BLOCKSIZE;
+    scsi_buffer.limit = SCSIdisk[target].blocksize;
     scsi_buffer.disk = true;
     scsi_buffer.time = SCSI_GetTime(target);
     
@@ -714,7 +764,7 @@ void SCSI_WriteSector(uint8_t *cdb) {
     SCSIbus.phase = SCSIdisk[target].blockcounter ? PHASE_DO : PHASE_ST;
     
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Write sector: %i block(s) at offset %i (blocksize: %i byte)",
-               SCSIdisk[target].blockcounter, SCSIdisk[target].lba, BLOCKSIZE);
+               SCSIdisk[target].blockcounter, SCSIdisk[target].lba, SCSIdisk[target].blocksize);
 }
 
 void scsi_write_sector(void) {
@@ -724,26 +774,26 @@ void scsi_write_sector(void) {
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Writing block at offset %i (%i blocks remaining).",
                SCSIdisk[target].lba,SCSIdisk[target].blockcounter-1);
     
-    offset = ((uint64_t)SCSIdisk[target].lba)*BLOCKSIZE;
+    offset = ((uint64_t)SCSIdisk[target].lba)*SCSIdisk[target].blocksize;
     
     if (offset < SCSIdisk[target].size) {
         if (ConfigureParams.SCSI.nWriteProtection != WRITEPROT_ON) {
-            File_Write(scsi_buffer.data, BLOCKSIZE, offset, SCSIdisk[target].dsk);
+            File_Write(scsi_buffer.data, SCSIdisk[target].blocksize, offset, SCSIdisk[target].dsk);
         } else {
             Log_Printf(LOG_SCSI_LEVEL, "[SCSI] WARNING: File write disabled!");
             if(SCSIdisk[target].shadow) {
                 if(!(SCSIdisk[target].shadow[SCSIdisk[target].lba]))
-                    SCSIdisk[target].shadow[SCSIdisk[target].lba] = malloc(BLOCKSIZE);
-                memcpy(SCSIdisk[target].shadow[SCSIdisk[target].lba], scsi_buffer.data, BLOCKSIZE);
+                    SCSIdisk[target].shadow[SCSIdisk[target].lba] = malloc(SCSIdisk[target].blocksize);
+                memcpy(SCSIdisk[target].shadow[SCSIdisk[target].lba], scsi_buffer.data, SCSIdisk[target].blocksize);
             } else {
-                uint32_t blocks = SCSIdisk[target].size / BLOCKSIZE;
+                uint32_t blocks = SCSIdisk[target].size / SCSIdisk[target].blocksize;
                 SCSIdisk[target].shadow = malloc(sizeof(uint8_t*) * blocks);
                 for(int i = blocks; --i >= 0;)
                     SCSIdisk[target].shadow[i] = NULL;
             }
         }
         scsi_buffer.size = 0;
-        scsi_buffer.limit = BLOCKSIZE;
+        scsi_buffer.limit = SCSIdisk[target].blocksize;
 
         SCSIdisk[target].lba++;
         SCSIdisk[target].blockcounter--;
@@ -794,7 +844,7 @@ void SCSI_ReadSector(uint8_t *cdb) {
     SCSIbus.phase = SCSIdisk[target].blockcounter ? PHASE_DI : PHASE_ST;
     
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Read sector: %i block(s) at offset %i (blocksize: %i byte)",
-               SCSIdisk[target].blockcounter, SCSIdisk[target].lba, BLOCKSIZE);
+               SCSIdisk[target].blockcounter, SCSIdisk[target].lba, SCSIdisk[target].blocksize);
     
     scsi_read_sector();
 }
@@ -811,15 +861,15 @@ void scsi_read_sector(void) {
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Reading block at offset %i (%i blocks remaining).",
                SCSIdisk[target].lba,SCSIdisk[target].blockcounter-1);
     
-    offset = ((uint64_t)SCSIdisk[target].lba)*BLOCKSIZE;
+    offset = ((uint64_t)SCSIdisk[target].lba)*SCSIdisk[target].blocksize;
     
     if (offset < SCSIdisk[target].size) {
         if (SCSIdisk[target].shadow && SCSIdisk[target].shadow[SCSIdisk[target].lba]) {
-            memcpy(scsi_buffer.data, SCSIdisk[target].shadow[SCSIdisk[target].lba], BLOCKSIZE);
+            memcpy(scsi_buffer.data, SCSIdisk[target].shadow[SCSIdisk[target].lba], SCSIdisk[target].blocksize);
         } else {
-            File_Read(scsi_buffer.data, BLOCKSIZE, offset, SCSIdisk[target].dsk);
+            File_Read(scsi_buffer.data, SCSIdisk[target].blocksize, offset, SCSIdisk[target].dsk);
         }
-        scsi_buffer.size = scsi_buffer.limit = BLOCKSIZE;
+        scsi_buffer.size = scsi_buffer.limit = SCSIdisk[target].blocksize;
         
         SCSIdisk[target].lba++;
         SCSIdisk[target].blockcounter--;
@@ -849,63 +899,81 @@ uint8_t SCSIdisk_Send_Data(void) {
 }
 
 
-void SCSI_Inquiry (uint8_t *cdb) {
+void SCSI_Inquiry(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
-    int len = sizeof(inquiry_bytes);
-    int maxlen = SCSI_GetTransferLength(cdb[0], cdb);
+    int l = 0;
+    int i = SCSIdisk[target].known;
+    int len = SCSI_GetTransferLength(cdb[0], cdb);
+    
+    memset(scsi_buffer.data, 0, sizeof(scsi_buffer.data));
+    
+    if (i < 0) {
+        l = sizeof(inquiry_bytes);
+        memcpy(scsi_buffer.data, inquiry_bytes, sizeof(inquiry_bytes));
         
-    if (len > maxlen) {
-        Log_Printf(LOG_WARN, "[SCSI] Inquiry: Allocated length is short (len = %d, max = %d)!", len, maxlen);
-        len = maxlen;
-    }
-
-    memcpy(scsi_buffer.data, inquiry_bytes, sizeof(inquiry_bytes));
-
-    switch (SCSIdisk[target].devtype) {
-        case DEVTYPE_HARDDISK:
-            scsi_buffer.data[0] = DEVTYPE_DISK;
-            scsi_buffer.data[1] &= ~0x80;
-            scsi_buffer.data[16] = 'H';
-            scsi_buffer.data[17] = 'D';
-            scsi_buffer.data[18] = 'D';
-            scsi_buffer.data[19] = ' ';
-            scsi_buffer.data[20] = ' ';
-            scsi_buffer.data[21] = ' ';
-            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is HDD");
-            break;
-        case DEVTYPE_CD:
-            scsi_buffer.data[0] = DEVTYPE_READONLY;
-            scsi_buffer.data[1] |= 0x80;
-            scsi_buffer.data[16] = 'C';
-            scsi_buffer.data[17] = 'D';
-            scsi_buffer.data[18] = '-';
-            scsi_buffer.data[19] = 'R';
-            scsi_buffer.data[20] = 'O';
-            scsi_buffer.data[21] = 'M';
-            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is CD-ROM");
-            break;
-        case DEVTYPE_FLOPPY:
-            scsi_buffer.data[0] = DEVTYPE_DISK;
-            scsi_buffer.data[1] |= 0x80;
-            scsi_buffer.data[16] = 'F';
-            scsi_buffer.data[17] = 'L';
-            scsi_buffer.data[18] = 'O';
-            scsi_buffer.data[19] = 'P';
-            scsi_buffer.data[20] = 'P';
-            scsi_buffer.data[21] = 'Y';
-            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is Floppy");
-            break;
-            
-        default:
-            break;
+        switch (SCSIdisk[target].devtype) {
+            case DEVTYPE_HARDDISK:
+                scsi_buffer.data[0] = DEVTYPE_DISK;
+                scsi_buffer.data[1] &= ~0x80;
+                scsi_buffer.data[16] = 'H';
+                scsi_buffer.data[17] = 'D';
+                scsi_buffer.data[18] = 'D';
+                scsi_buffer.data[19] = ' ';
+                scsi_buffer.data[20] = ' ';
+                scsi_buffer.data[21] = ' ';
+                Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is HDD");
+                break;
+            case DEVTYPE_CD:
+                scsi_buffer.data[0] = DEVTYPE_READONLY;
+                scsi_buffer.data[1] |= 0x80;
+                scsi_buffer.data[16] = 'C';
+                scsi_buffer.data[17] = 'D';
+                scsi_buffer.data[18] = '-';
+                scsi_buffer.data[19] = 'R';
+                scsi_buffer.data[20] = 'O';
+                scsi_buffer.data[21] = 'M';
+                Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is CD-ROM");
+                break;
+            case DEVTYPE_FLOPPY:
+                scsi_buffer.data[0] = DEVTYPE_DISK;
+                scsi_buffer.data[1] |= 0x80;
+                scsi_buffer.data[16] = 'F';
+                scsi_buffer.data[17] = 'L';
+                scsi_buffer.data[18] = 'O';
+                scsi_buffer.data[19] = 'P';
+                scsi_buffer.data[20] = 'P';
+                scsi_buffer.data[21] = 'Y';
+                Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is Floppy");
+                break;
+                
+            default:
+                break;
+        }
+    } else {
+        l = 5 + known_disks[i].len;
+        scsi_buffer.data[0] = DEVTYPE_DISK;
+        scsi_buffer.data[1] = 0x00;
+        scsi_buffer.data[2] = 0x01;
+        scsi_buffer.data[3] = 0x01;
+        scsi_buffer.data[4] = known_disks[i].len;
+        scsi_buffer.data[5] = scsi_buffer.data[6] = scsi_buffer.data[7] = 0x00;
+        memset(scsi_buffer.data +  8, 0x20, 8 + 16);
+        memcpy(scsi_buffer.data +  8, known_disks[i].vend, strlen(known_disks[i].vend));
+        memcpy(scsi_buffer.data + 16, known_disks[i].name, strlen(known_disks[i].name));
+        memcpy(scsi_buffer.data + 32, known_disks[i].vers, strlen(known_disks[i].vers));
     }
     
-    if (SCSIdisk[target].lun!=LUN_DISK) {
+    if (SCSIdisk[target].lun != LUN_DISK) {
         scsi_buffer.data[0] = DEVTYPE_NOTPRESENT;
     }
     
-    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Inquiry data length: %d", len);
+    if (l > len) {
+        Log_Printf(LOG_WARN, "[SCSI] Inquiry: Allocated length is short (len = %d, max = %d)!", l, len);
+    } else if (l < len) {
+        len = l;
+    }
+    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Inquiry: Data length: %d", len);
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Inquiry Data: %c,%c,%c,%c,%c,%c,%c,%c",scsi_buffer.data[8],
                scsi_buffer.data[9],scsi_buffer.data[10],scsi_buffer.data[11],scsi_buffer.data[12],
                scsi_buffer.data[13],scsi_buffer.data[14],scsi_buffer.data[15]);
@@ -1004,7 +1072,8 @@ void SCSI_ModeSense(uint8_t *cdb) {
     int maxlen = SCSI_GetTransferLength(cdb[0], cdb);
     int pagesize = 0;
     
-    uint32_t sectors = SCSIdisk[target].size / BLOCKSIZE;
+    uint32_t blocksize = SCSIdisk[target].blocksize;
+    uint32_t sectors = SCSIdisk[target].size / blocksize;
     
     uint8_t pagecontrol = (cdb[2] & 0xC0) >> 6;
     uint8_t pagecode = cdb[2] & 0x3F;
@@ -1026,12 +1095,12 @@ void SCSI_ModeSense(uint8_t *cdb) {
         scsi_buffer.data[len+2] = (sectors >> 8) & 0xFF;    // Number of blocks, med
         scsi_buffer.data[len+3] = sectors & 0xFF;           // Number of blocks, low
         scsi_buffer.data[len+4] = 0x00;                     // Reserved
-        scsi_buffer.data[len+5] = (BLOCKSIZE >> 16) & 0xFF; // Block size in bytes, high
-        scsi_buffer.data[len+6] = (BLOCKSIZE >> 8) & 0xFF;  // Block size in bytes, med
-        scsi_buffer.data[len+7] = BLOCKSIZE & 0xFF;         // Block size in bytes, low
+        scsi_buffer.data[len+5] = (blocksize >> 16) & 0xFF; // Block size in bytes, high
+        scsi_buffer.data[len+6] = (blocksize >> 8) & 0xFF;  // Block size in bytes, med
+        scsi_buffer.data[len+7] = blocksize & 0xFF;         // Block size in bytes, low
         len += 8;
         Log_Printf(LOG_WARN, "[SCSI] Mode sense: Block descriptor data: %s, size = %i blocks, blocksize = %i byte",
-                   SCSIdisk[target].readonly ? "disk is read-only" : "disk is read/write" , sectors, BLOCKSIZE);
+                   SCSIdisk[target].readonly ? "disk is read-only" : "disk is read/write" , sectors, SCSIdisk[target].blocksize);
     }
 
     /* Check page control */

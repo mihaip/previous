@@ -374,6 +374,7 @@ Previous v3.0 (unreleased):
   > Adds support for mapping scroll wheel to cursor keys.
   > Adds option for simulating DSP bootstrap ROM.
   > Adds support for RESET instruction.
+  > Adds support for identifying some SCSI disk models for easier setup.
   > Improves screen simulation to not show screen contents while blanked.
   > Improves DSP emulation accuracy.
   > Improves CPU emulation accuracy.
@@ -418,6 +419,16 @@ key shortcuts change or add key names in the section ShortcutsWithoutModifiers.
 To modify shortcuts that are invoked with ctrl and alt change or add key names 
 in the section ShortcutsWithModifiers. The appropriate key names can be found 
 under https://wiki.libsdl.org/SDL2/SDL_Keycode.
+
+Previous comes with some empty disk images of different types and sizes. The 
+suffix of the respective file name indicates the image type:
+sd: Hard disk (SCSI disk)
+od: Magneto-optical disk
+fd: Floppy disk
+
+When working with versions of NeXTstep prior to 2.0 it is recommended to use
+the images marked with an 'x'. Only these are automatically detected by early 
+versions of BuildDisk.
 
 
  8) Contributors
