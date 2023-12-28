@@ -379,6 +379,7 @@ Previous v3.0 (unreleased):
   > Improves DSP emulation accuracy.
   > Improves CPU emulation accuracy.
   > Improves keyboard options to show actual shortcuts.
+  > Fixes bug that caused SCSI diagnostics to fail with 1024 byte blocks.
   > Fixes bug that caused mouse to be unlocked after resuming emulation.
   > Fixes bug that caused stuck modifier keys after using shortcuts.
   > Fixes bug that caused sporadic display errors in the boot options dialog.

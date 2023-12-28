@@ -277,7 +277,7 @@ void floppy_stop(void) {
 }
 
 void floppy_reset(void) {
-    Log_Printf(LOG_WARN,"[Floppy] Reset.");
+    Log_Printf(LOG_WARN,"[Floppy] Reset");
     
     flp.dor = flp.sel = 0;
     
@@ -1200,19 +1200,18 @@ static void Floppy_Init(void) {
     int i;
     
     for (i=0; i<FLP_MAX_DRIVES; i++) {
-        flpdrv[i].spinning=false;
+        flpdrv[i].spinning = false;
         /* Check if files exist. */
         if (ConfigureParams.Floppy.drive[i].bDriveConnected) {
-            flpdrv[i].connected=true;
-            if (ConfigureParams.Floppy.drive[i].bDiskInserted &&
-                File_Exists(ConfigureParams.Floppy.drive[i].szImageName)) {
+            flpdrv[i].connected = true;
+            if (ConfigureParams.Floppy.drive[i].bDiskInserted) {
                 Floppy_Insert(i);
             } else {
-                flpdrv[i].dsk = NULL;
-                flpdrv[i].inserted=false;
+                flpdrv[i].dsk = File_Close(flpdrv[i].dsk);
+                flpdrv[i].inserted = false;
             }
         } else {
-            flpdrv[i].connected=false;
+            flpdrv[i].connected = false;
         }
     }
     
@@ -1220,12 +1219,9 @@ static void Floppy_Init(void) {
 }
 
 static void Floppy_Uninit(void) {
-    if (flpdrv[0].dsk)
-        File_Close(flpdrv[0].dsk);
-    if (flpdrv[1].dsk) {
-        File_Close(flpdrv[1].dsk);
-    }
-    flpdrv[0].dsk = flpdrv[1].dsk = NULL;
+    flpdrv[0].dsk = File_Close(flpdrv[0].dsk);
+    flpdrv[1].dsk = File_Close(flpdrv[1].dsk);
+    
     flpdrv[0].inserted = flpdrv[1].inserted = false;
 }
 
@@ -1239,88 +1235,60 @@ static uint32_t Floppy_CheckSize(int drive) {
             return size;
             
         default:
-            Log_Printf(LOG_WARN, "Floppy Disk%i: Invalid size (%i byte)\n",drive,size);
+            Log_Printf(LOG_WARN, "Floppy disk %i: Invalid size (%i byte)\n",drive,size);
             return 0;
     }
 }
 
 int Floppy_Insert(int drive) {
-    uint32_t size;
+    flpdrv[drive].floppysize = Floppy_CheckSize(drive);
     
-    /* Check floppy size. */
-    size = Floppy_CheckSize(drive);
-    if (size) {
-        flpdrv[drive].floppysize = size;
-        flpdrv[drive].blocksize = 2; /* 512 byte */
-        flpdrv[drive].cyl = flpdrv[drive].head = flpdrv[drive].sector = 0;
-        flpdrv[drive].seekoffset = 0;
-    } else {
-        flpdrv[drive].dsk = NULL;
-        flpdrv[drive].inserted=false;
-        flpdrv[drive].floppysize = 0;
-        return 1; /* bad size, do not insert */
-    }
+    Log_Printf(LOG_WARN, "Floppy disk %i: Insert %s, %iK", drive,
+               ConfigureParams.Floppy.drive[drive].szImageName, flpdrv[drive].floppysize/1024);
     
-    if (ConfigureParams.Floppy.drive[drive].bWriteProtected) {
-        flpdrv[drive].dsk = File_Open(ConfigureParams.Floppy.drive[drive].szImageName, "rb");
-        if (flpdrv[drive].dsk == NULL) {
-            Log_Printf(LOG_WARN, "Floppy Disk%i: Cannot open image file %s\n",
-                       drive, ConfigureParams.Floppy.drive[drive].szImageName);
-            flpdrv[drive].inserted=false;
-            flpdrv[drive].spinning=false;
-            Statusbar_AddMessage("Cannot insert floppy disk", 0);
-            return 1;
-        }
-        flpdrv[drive].protected=true;
-    } else {
+    if (!ConfigureParams.Floppy.drive[drive].bWriteProtected) {
         flpdrv[drive].dsk = File_Open(ConfigureParams.Floppy.drive[drive].szImageName, "rb+");
-        flpdrv[drive].protected=false;
-        if (flpdrv[drive].dsk == NULL) {
-            flpdrv[drive].dsk = File_Open(ConfigureParams.Floppy.drive[drive].szImageName, "rb");
-            if (flpdrv[drive].dsk == NULL) {
-                Log_Printf(LOG_WARN, "Floppy Disk%i: Cannot open image file %s\n",
-                           drive, ConfigureParams.Floppy.drive[drive].szImageName);
-                flpdrv[drive].inserted=false;
-                flpdrv[drive].spinning=false;
-                Statusbar_AddMessage("Cannot insert floppy disk", 0);
-                return 1;
-            }
-            flpdrv[drive].protected=true;
-            Log_Printf(LOG_WARN, "Floppy Disk%i: Image file is not writable. Enabling write protection.\n",
-                       drive);
-        }
+        flpdrv[drive].protected = false;
+    }
+    if (ConfigureParams.Floppy.drive[drive].bWriteProtected || flpdrv[drive].dsk == NULL) {
+        flpdrv[drive].dsk = File_Open(ConfigureParams.Floppy.drive[drive].szImageName, "rb");
+        flpdrv[drive].protected = true;
+    }
+    if (flpdrv[drive].dsk == NULL || flpdrv[drive].floppysize == 0) {
+        Log_Printf(LOG_WARN, "Floppy disk %i: Cannot open image file %s", drive,
+                   ConfigureParams.Floppy.drive[drive].szImageName);
+        flpdrv[drive].inserted = false;
+        flpdrv[drive].protected = false;
+        Statusbar_AddMessage("Cannot insert floppy disk.", 0);
+        return 1;
     }
     
-    flpdrv[drive].inserted=true;
-    flpdrv[drive].spinning=false;
-
-    Log_Printf(LOG_WARN, "Floppy Disk%i: %s, %iK\n",drive,
-               ConfigureParams.Floppy.drive[drive].szImageName,flpdrv[drive].floppysize/1024);
-    
+    flpdrv[drive].inserted = true;
+    flpdrv[drive].spinning = false;
+    flpdrv[drive].blocksize = 2; /* 512 byte */
+    flpdrv[drive].cyl = flpdrv[drive].head = flpdrv[drive].sector = 0;
+    flpdrv[drive].seekoffset = 0;
     Statusbar_AddMessage("Inserting floppy disk.", 0);
-    
     return 0;
 }
 
 void Floppy_Eject(int drive) {
-    if (drive<0) { /* Called from emulator, else called from GUI */
-        drive=flp.sel;
+    if (drive < 0) { /* Called from emulator, else called from GUI */
+        drive = flp.sel;
         
         Statusbar_AddMessage("Ejecting floppy disk.", 0);
     }
     
-    Log_Printf(LOG_WARN, "Unloading floppy disk %i",drive);
     Log_Printf(LOG_WARN, "Floppy disk %i: Eject",drive);
     
-    File_Close(flpdrv[drive].dsk);
+    flpdrv[drive].dsk = File_Close(flpdrv[drive].dsk);
     flpdrv[drive].floppysize = 0;
     flpdrv[drive].blocksize = 0;
-    flpdrv[drive].dsk=NULL;
-    flpdrv[drive].inserted=false;
-    flpdrv[drive].spinning=false;
+    flpdrv[drive].inserted = false;
+    flpdrv[drive].spinning = false;
     
-    ConfigureParams.Floppy.drive[drive].bDiskInserted=false;
-    ConfigureParams.Floppy.drive[drive].szImageName[0]='\0';
+    ConfigureParams.Floppy.drive[drive].bDiskInserted = false;
+    ConfigureParams.Floppy.drive[drive].szImageName[0] = '\0';
 }
 
 void Floppy_Reset(void) {

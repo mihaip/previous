@@ -35,18 +35,15 @@ typedef struct {
 
 extern SCSIBuffer scsi_buffer;
 
+extern void SCSI_Reset(void);
+extern void SCSI_Insert(uint8_t target);
+extern void SCSI_Eject(uint8_t target);
 
-void SCSI_Init(void);
-void SCSI_Uninit(void);
-void SCSI_Reset(void);
-void SCSI_Insert(uint8_t target);
-void SCSI_Eject(uint8_t target);
+extern uint8_t SCSIdisk_Send_Status(void);
+extern uint8_t SCSIdisk_Send_Message(void);
+extern uint8_t SCSIdisk_Send_Data(void);
+extern void SCSIdisk_Receive_Data(uint8_t val);
+extern bool SCSIdisk_Select(uint8_t target);
+extern void SCSIdisk_Receive_Command(uint8_t *commandbuf, uint8_t identify);
 
-uint8_t SCSIdisk_Send_Status(void);
-uint8_t SCSIdisk_Send_Message(void);
-uint8_t SCSIdisk_Send_Data(void);
-void SCSIdisk_Receive_Data(uint8_t val);
-bool SCSIdisk_Select(uint8_t target);
-void SCSIdisk_Receive_Command(uint8_t *commandbuf, uint8_t identify);
-
-int64_t SCSIdisk_Time(void);
+extern int64_t SCSIdisk_Time(void);

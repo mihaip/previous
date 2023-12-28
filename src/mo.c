@@ -1488,8 +1488,7 @@ void mo_eject_disk(int drive) {
 
     Log_Printf(LOG_WARN, "MO disk %i: Eject",drive);
     
-    File_Close(mo[drive].dsk);
-    mo[drive].dsk=NULL;
+    mo[drive].dsk=File_Close(mo[drive].dsk);;
     mo[drive].inserted=false;
     mo[drive].spinning=false;
     mo[drive].spiraling=false;
@@ -1499,30 +1498,28 @@ void mo_eject_disk(int drive) {
 }
 
 void mo_insert_disk(int drive) {
-    Log_Printf(LOG_WARN, "MO disk %i: Insert",drive);
+    Log_Printf(LOG_WARN, "MO disk %i: Insert %s",drive,ConfigureParams.MO.drive[drive].szImageName);
     
     if (!ConfigureParams.MO.drive[drive].bWriteProtected) {
         mo[drive].dsk = File_Open(ConfigureParams.MO.drive[drive].szImageName, "rb+");
-        mo[drive].inserted=true;
         mo[drive].protected=false;
     }
     if (ConfigureParams.MO.drive[drive].bWriteProtected || mo[drive].dsk == NULL) {
         mo[drive].dsk = File_Open(ConfigureParams.MO.drive[drive].szImageName, "rb");
+        mo[drive].protected=true;
         if (mo[drive].dsk == NULL) {
-            Log_Printf(LOG_WARN, "MO disk %i: Cannot open image file %s\n",
+            Log_Printf(LOG_WARN, "MO disk %i: Cannot open image file %s",
                        drive, ConfigureParams.MO.drive[drive].szImageName);
             mo[drive].inserted=false;
             mo[drive].protected=false;
             Statusbar_AddMessage("Cannot insert magneto-optical disk.", 0);
             return;
-        } else {
-            mo[drive].inserted=true;
-            mo[drive].protected=true;
         }
     }
     
     Statusbar_AddMessage("Inserting magneto-optical disk.", 0);
     mo[drive].dstat|=DS_INSERT;
+    mo[drive].inserted=true;
     mo[drive].spinning=false;
     mo[drive].spiraling=false;
     mo_set_signals(true, false, drive);
@@ -1686,10 +1683,7 @@ void MO_Reset(void) {
     Log_Printf(LOG_WARN, "Loading magneto-optical disks:");
     
     for (dnum=0; dnum<MO_MAX_DRIVES; dnum++) {
-        if (mo[dnum].dsk) {
-            File_Close(mo[dnum].dsk);
-            mo[dnum].dsk=NULL;
-        }
+        mo[dnum].dsk=File_Close(mo[dnum].dsk);
         mo[dnum].connected=false;
         mo[dnum].inserted=false;
         mo_stop();

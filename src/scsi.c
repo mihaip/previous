@@ -118,8 +118,6 @@ int SCSI_GetTransferLength(uint8_t opcode, uint8_t *cdb);
 uint64_t SCSI_GetOffset(uint8_t opcode, uint8_t *cdb);
 int SCSI_GetCount(uint8_t opcode, uint8_t *cdb);
 
-int SCSI_LookupDisk(int target);
-
 void scsi_read_sector(void);
 void scsi_write_sector(void);
 
@@ -151,104 +149,7 @@ struct {
 } SCSIdisk[ESP_MAX_DEVS];
 
 
-/* Initialize/Uninitialize SCSI disks */
-void SCSI_Init(void) {
-    Log_Printf(LOG_WARN, "Loading SCSI disks:");
-    
-    int i;
-    for (i = 0; i < ESP_MAX_DEVS; i++) {
-        SCSIdisk[i].devtype = ConfigureParams.SCSI.target[i].nDeviceType;
-        SCSI_Insert(i);
-    }
-}
 
-void SCSI_Uninit(void) {
-    int i;
-    for (i = 0; i < ESP_MAX_DEVS; i++) {
-        if (SCSIdisk[i].dsk) {
-            SCSI_Eject(i);
-        }
-    }
-}
-
-void SCSI_Reset(void) {
-    SCSI_Uninit();
-    SCSI_Init();
-}
-
-void SCSI_Eject(uint8_t i) {
-    File_Close(SCSIdisk[i].dsk);
-    SCSIdisk[i].dsk = NULL;
-    SCSIdisk[i].size = 0;
-    SCSIdisk[i].readonly = false;
-    SCSIdisk[i].shadow = NULL;
-}
-
-static void SCSI_EjectDisk(uint8_t i) {
-    ConfigureParams.SCSI.target[i].bDiskInserted = false;
-    ConfigureParams.SCSI.target[i].szImageName[0] = '\0';
-    
-    SCSI_Eject(i);
-}
-
-void SCSI_Insert(uint8_t i) {
-    SCSIdisk[i].lun = SCSIdisk[i].status = SCSIdisk[i].message = 0;
-    SCSIdisk[i].sense.code = SCSIdisk[i].sense.key = SCSIdisk[i].sense.info = 0;
-    SCSIdisk[i].sense.valid = false;
-    SCSIdisk[i].lba = SCSIdisk[i].lastlba = SCSIdisk[i].blockcounter = 0;
-    SCSIdisk[i].blocksize = SCSI_BLOCKSIZE;
-    
-    SCSIdisk[i].known = -1;
-    SCSIdisk[i].shadow = NULL;
-    
-    Log_Printf(LOG_WARN, "SCSI Disk%i: %s",i,ConfigureParams.SCSI.target[i].szImageName);
-    
-    if (File_Exists(ConfigureParams.SCSI.target[i].szImageName) &&
-        ConfigureParams.SCSI.target[i].bDiskInserted) {
-        if (ConfigureParams.SCSI.target[i].bWriteProtected ||
-            ConfigureParams.SCSI.target[i].nDeviceType==DEVTYPE_CD) {
-            SCSIdisk[i].dsk = File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb");
-            if (SCSIdisk[i].dsk == NULL) {
-                Log_Printf(LOG_WARN, "SCSI Disk%i: Cannot open image file %s",
-                           i, ConfigureParams.SCSI.target[i].szImageName);
-                SCSIdisk[i].size = 0;
-                SCSIdisk[i].readonly = false;
-                if (SCSIdisk[i].devtype == DEVTYPE_HARDDISK) {
-                    SCSIdisk[i].devtype = DEVTYPE_NONE;
-                }
-            } else {
-                SCSIdisk[i].size = File_Length(ConfigureParams.SCSI.target[i].szImageName);
-                SCSIdisk[i].readonly = true;
-            }
-        } else {
-            SCSIdisk[i].dsk = File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb+");
-            if (SCSIdisk[i].dsk == NULL) {
-                SCSIdisk[i].dsk = File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb");
-                if (SCSIdisk[i].dsk == NULL) {
-                    Log_Printf(LOG_WARN, "SCSI Disk%i: Cannot open image file %s",
-                               i, ConfigureParams.SCSI.target[i].szImageName);
-                    SCSIdisk[i].size = 0;
-                    SCSIdisk[i].readonly = false;
-                    if (SCSIdisk[i].devtype == DEVTYPE_HARDDISK) {
-                        SCSIdisk[i].devtype = DEVTYPE_NONE;
-                    }
-                } else {
-                    SCSIdisk[i].size = File_Length(ConfigureParams.SCSI.target[i].szImageName);
-                    SCSIdisk[i].readonly = true;
-                    Log_Printf(LOG_WARN, "SCSI Disk%i: Image file is not writable. Enabling write protection.", i);
-                }
-            } else {
-                SCSIdisk[i].size = File_Length(ConfigureParams.SCSI.target[i].szImageName);
-                SCSIdisk[i].readonly = false;
-            }
-        }
-        SCSIdisk[i].known = SCSI_LookupDisk(i);
-    } else {
-        SCSIdisk[i].size = 0;
-        SCSIdisk[i].dsk = NULL;
-        SCSIdisk[i].readonly = false;
-    }
-}
 
 
 
@@ -300,7 +201,7 @@ static const struct known_disk known_disks[] =
 
 #define KNOWN_SIZE(x,n) (x[n].c * x[n].h * x[n].s * x[n].bs)
 
-int SCSI_LookupDisk(int target) {
+static int SCSI_LookupDisk(int target) {
     int i;
 
     if (SCSIdisk[target].devtype == DEVTYPE_HARDDISK) {
@@ -1003,8 +904,10 @@ void SCSI_StartStop(uint8_t *cdb) {
             break;
         case 2:
             Log_Printf(LOG_WARN, "[SCSI] Eject disk %i", target);
-            if (SCSIdisk[target].devtype!=DEVTYPE_HARDDISK) {
-                SCSI_EjectDisk(target);
+            if (SCSIdisk[target].devtype != DEVTYPE_HARDDISK) {
+                SCSI_Eject(target);
+                ConfigureParams.SCSI.target[target].bDiskInserted = false;
+                ConfigureParams.SCSI.target[target].szImageName[0] = '\0';
                 Statusbar_AddMessage("Ejecting SCSI media.", 0);
             }
             break;
@@ -1200,4 +1103,77 @@ void SCSI_ReassignBlocks(uint8_t *cdb) {
     SCSIdisk[target].sense.valid = false;
     
     SCSIbus.phase = PHASE_ST;
+}
+
+
+/* Insert/Eject SCSI disks */
+void SCSI_Insert(uint8_t i) {
+    SCSIdisk[i].devtype = ConfigureParams.SCSI.target[i].nDeviceType;
+    
+    SCSIdisk[i].lun = SCSIdisk[i].status = SCSIdisk[i].message = 0;
+    SCSIdisk[i].sense.code = SCSIdisk[i].sense.key = SCSIdisk[i].sense.info = 0;
+    SCSIdisk[i].sense.valid = false;
+    SCSIdisk[i].lba = SCSIdisk[i].lastlba = SCSIdisk[i].blockcounter = 0;
+    SCSIdisk[i].blocksize = SCSI_BLOCKSIZE;
+    
+    SCSIdisk[i].shadow = NULL;
+    
+    if (SCSIdisk[i].devtype != DEVTYPE_NONE && ConfigureParams.SCSI.target[i].bDiskInserted) {
+        Log_Printf(LOG_WARN, "SCSI disk %i: Insert %s", i, ConfigureParams.SCSI.target[i].szImageName);
+        
+        SCSIdisk[i].size = File_Length(ConfigureParams.SCSI.target[i].szImageName);
+        SCSIdisk[i].known = SCSI_LookupDisk(i);
+        
+        if (ConfigureParams.SCSI.target[i].nDeviceType == DEVTYPE_CD) {
+            ConfigureParams.SCSI.target[i].bWriteProtected = true;
+        }
+        if (!ConfigureParams.SCSI.target[i].bWriteProtected) {
+            SCSIdisk[i].dsk = File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb+");
+            SCSIdisk[i].readonly = false;
+        }
+        if (ConfigureParams.SCSI.target[i].bWriteProtected || SCSIdisk[i].dsk == NULL) {
+            SCSIdisk[i].dsk = File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb");
+            SCSIdisk[i].readonly = true;
+            if (SCSIdisk[i].dsk == NULL) {
+                Log_Printf(LOG_WARN, "SCSI disk %i: Cannot open image file %s",
+                           i, ConfigureParams.SCSI.target[i].szImageName);
+                SCSI_Eject(i);
+                if (SCSIdisk[i].devtype == DEVTYPE_HARDDISK) {
+                    SCSIdisk[i].devtype = DEVTYPE_NONE;
+                }
+                Statusbar_AddMessage("Cannot open SCSI disk.", 0);
+            }
+        }
+    }
+}
+
+void SCSI_Eject(uint8_t i) {    
+    SCSIdisk[i].dsk = File_Close(SCSIdisk[i].dsk);
+    SCSIdisk[i].size = 0;
+    SCSIdisk[i].readonly = false;
+}
+
+
+/* Initialize/Uninitialize SCSI disks */
+static void SCSI_Init(void) {
+    Log_Printf(LOG_WARN, "Loading SCSI disks:");
+    
+    int i;
+    for (i = 0; i < ESP_MAX_DEVS; i++) {
+        SCSI_Insert(i);
+    }
+}
+
+static void SCSI_Uninit(void) {
+    int i;
+    for (i = 0; i < ESP_MAX_DEVS; i++) {
+        if (SCSIdisk[i].dsk) {
+            SCSI_Eject(i);
+        }
+    }
+}
+
+void SCSI_Reset(void) {
+    SCSI_Uninit();
+    SCSI_Init();
 }
