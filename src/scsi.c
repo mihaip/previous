@@ -95,31 +95,10 @@
 #define CMD_SHIP            0x1B    /* Ship drive */
 #define CMD_READ_CAPACITY1  0x25    /* Read capacity (class 1) */
 
+
+/* Externally accessible */
 SCSIBusStatus SCSIbus;
 SCSIBuffer scsi_buffer;
-
-void SCSI_Emulate_Command(uint8_t *cdb);
-
-void SCSI_Inquiry(uint8_t *cdb);
-void SCSI_StartStop(uint8_t *cdb);
-void SCSI_TestUnitReady(uint8_t *cdb);
-void SCSI_ReadCapacity(uint8_t *cdb);
-void SCSI_ReadSector(uint8_t *cdb);
-void SCSI_WriteSector(uint8_t *cdb);
-void SCSI_RequestSense(uint8_t *cdb);
-void SCSI_ModeSense(uint8_t *cdb);
-void SCSI_FormatDrive(uint8_t *cdb);
-void SCSI_ReassignBlocks(uint8_t *cdb);
-
-
-/* Helpers */
-int SCSI_GetCommandLength(uint8_t opcode);
-int SCSI_GetTransferLength(uint8_t opcode, uint8_t *cdb);
-uint64_t SCSI_GetOffset(uint8_t opcode, uint8_t *cdb);
-int SCSI_GetCount(uint8_t opcode, uint8_t *cdb);
-
-void scsi_read_sector(void);
-void scsi_write_sector(void);
 
 
 /* SCSI disk */
@@ -147,10 +126,6 @@ struct {
     int known;
     uint8_t** shadow;
 } SCSIdisk[ESP_MAX_DEVS];
-
-
-
-
 
 
 /* INQUIRY response data */
@@ -181,7 +156,6 @@ static const uint8_t inquiry_bytes[54] =
       0,  0,  0,  0,  0,  0                 /*        (may be shorter than 24 bytes) */
 };
 
-
 struct known_disk {
     char vend[8];
     char name[16];
@@ -193,20 +167,25 @@ struct known_disk {
     uint32_t bs;
 };
 
+#define KNOWN_SIZE(x,n) (x[n].c * x[n].h * x[n].s * x[n].bs)
+
 static const struct known_disk known_disks[] =
 {
     { "MAXTOR", "XT-8380S", "B3C", 31, 1626, 10, 22, 1024 },
     { "MAXTOR", "XT-8760S", "B3C", 31, 1626, 16, 26, 1024 }
 };
 
-#define KNOWN_SIZE(x,n) (x[n].c * x[n].h * x[n].s * x[n].bs)
 
+/* Helpers */
 static int SCSI_LookupDisk(int target) {
     int i;
-
+    off_t size = File_Length(ConfigureParams.SCSI.target[target].szImageName);
+    
+    SCSIdisk[target].size = (size < 0) ? 0 : size;
+    
     if (SCSIdisk[target].devtype == DEVTYPE_HARDDISK) {
         for (i = 0; i < ARRAY_SIZE(known_disks); i++) {
-            if (KNOWN_SIZE(known_disks, i) == SCSIdisk[target].size) {
+            if (KNOWN_SIZE(known_disks, i) == size) {
                 if (known_disks[i].bs <= SCSI_MAX_BLOCK) {
                     Log_Printf(LOG_WARN, "[SCSI] Known disk found (%s %s)", known_disks[i].vend, known_disks[i].name);
                     SCSIdisk[target].blocksize = known_disks[i].bs;
@@ -218,146 +197,7 @@ static int SCSI_LookupDisk(int target) {
     return -1;
 }
 
-
-uint8_t SCSIdisk_Send_Status(void) {
-    SCSIbus.phase = PHASE_MI;
-    return SCSIdisk[SCSIbus.target].status;
-}
-
-uint8_t SCSIdisk_Send_Message(void) {
-    return SCSIdisk[SCSIbus.target].message;
-}
-
-
-bool SCSIdisk_Select(uint8_t target) {
-    
-    /* If there is no disk drive present, return timeout true */
-    if (SCSIdisk[target].devtype==DEVTYPE_NONE) {
-        Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Selection timeout, target = %i", target);
-        SCSIbus.phase = PHASE_ST;
-        return true;
-    } else {
-        SCSIbus.target = target;
-        return false;
-    }
-}
-
-
-void SCSIdisk_Receive_Command(uint8_t *cdb, uint8_t identify) {
-    uint8_t lun = 0;
-    
-    /* Get logical unit number */
-    if (identify&MSG_IDENTIFY_MASK) { /* if identify message is valid */
-        lun = identify&MSG_LUNMASK; /* use lun from identify message */
-    } else {
-        lun = (cdb[1]&0xE0)>>5; /* use lun specified in CDB */
-    }
-    
-    SCSIdisk[SCSIbus.target].lun = lun;
-    
-    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Opcode = $%02x, target = %i, lun = %i", cdb[0], SCSIbus.target,lun);
-    
-    SCSI_Emulate_Command(cdb);
-}
-
-
-void SCSI_Emulate_Command(uint8_t *cdb) {
-    uint8_t opcode = cdb[0];
-    uint8_t target = SCSIbus.target;
-    
-    /* First check for lun-independent commands */
-    switch (opcode) {
-        case CMD_INQUIRY:
-            Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Inquiry");
-            SCSI_Inquiry(cdb);
-            break;
-        case CMD_REQ_SENSE:
-            Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Request sense");
-            SCSI_RequestSense(cdb);
-            break;
-        /* Check if the specified lun is valid for our disk */
-        default:
-            if (SCSIdisk[target].lun!=LUN_DISK) {
-                Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Invalid lun! Check condition.");
-                SCSIdisk[target].status = STAT_CHECK_COND;
-                SCSIdisk[target].sense.key = SK_ILLEGAL_REQ;
-                SCSIdisk[target].sense.code = SC_INVALID_LUN;
-                SCSIdisk[target].sense.valid = false;
-                SCSIdisk[target].message = MSG_COMPLETE;
-                SCSIbus.phase = PHASE_ST;
-                return;
-            }
-            
-            /* Then check for lun-dependent commands */
-            switch(opcode) {
-                case CMD_TEST_UNIT_RDY:
-                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Test unit ready");
-                    SCSI_TestUnitReady(cdb);
-                    break;
-                case CMD_READ_CAPACITY1:
-                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Read capacity");
-                    SCSI_ReadCapacity(cdb);
-                    break;
-                case CMD_READ_SECTOR:
-                case CMD_READ_SECTOR1:
-                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Read sector");
-                    SCSI_ReadSector(cdb);
-                    break;
-                case CMD_WRITE_SECTOR:
-                case CMD_WRITE_SECTOR1:
-                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Write sector");
-                    SCSI_WriteSector(cdb);
-                    break;
-                case CMD_SEEK:
-                    Log_Printf(LOG_WARN, "SCSI command: Seek");
-                    abort();
-                    break;
-                case CMD_SHIP:
-                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Ship");
-                    SCSI_StartStop(cdb);
-                    break;
-                case CMD_MODESELECT:
-                    Log_Printf(LOG_WARN, "SCSI command: Mode select");
-                    abort();
-                    break;
-                case CMD_MODESENSE:
-                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Mode sense");
-                    SCSI_ModeSense(cdb);
-                    break;
-                case CMD_FORMAT_DRIVE:
-                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Format drive");
-                    SCSI_FormatDrive(cdb);
-                    break;
-                case CMD_REASSIGN:
-                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Reassign blocks");
-                    SCSI_ReassignBlocks(cdb);
-                    break;
-                /* as of yet unsupported commands */
-                case CMD_VERIFY_TRACK:
-                case CMD_FORMAT_TRACK:
-                case CMD_CORRECTION:
-                default:
-                    Log_Printf(LOG_WARN, "SCSI command: Unknown Command (%02X)",opcode);
-                    SCSIdisk[target].status = STAT_CHECK_COND;
-                    SCSIdisk[target].sense.key = SK_ILLEGAL_REQ;
-                    SCSIdisk[target].sense.code = SC_INVALID_CMD;
-                    SCSIdisk[target].sense.valid = false;
-                    SCSIbus.phase = PHASE_ST;
-                    break;
-            }
-            break;
-    }
-    
-    SCSIdisk[target].message = MSG_COMPLETE;
-    
-    /* Update the led each time a command is processed */
-    Statusbar_BlinkLed(DEVICE_LED_SCSI);
-}
-
-
-/* Helpers */
-
-int SCSI_GetCommandLength(uint8_t opcode) {
+static int SCSI_GetCommandLength(uint8_t opcode) {
     uint8_t group_code = (opcode&0xE0)>>5;
     switch (group_code) {
         case 0: return 6;
@@ -369,7 +209,7 @@ int SCSI_GetCommandLength(uint8_t opcode) {
     }
 }
 
-int SCSI_GetTransferLength(uint8_t opcode, uint8_t *cdb)
+static int SCSI_GetTransferLength(uint8_t opcode, uint8_t *cdb)
 {
     return opcode < 0x20?
     // class 0
@@ -378,7 +218,7 @@ int SCSI_GetTransferLength(uint8_t opcode, uint8_t *cdb)
     COMMAND_ReadInt16(cdb, 7);
 }
 
-uint64_t SCSI_GetOffset(uint8_t opcode, uint8_t *cdb)
+static uint64_t SCSI_GetOffset(uint8_t opcode, uint8_t *cdb)
 {
     return opcode < 0x20?
     // class 0
@@ -388,7 +228,7 @@ uint64_t SCSI_GetOffset(uint8_t opcode, uint8_t *cdb)
 }
 
 // get reserved count for SCSI reply
-int SCSI_GetCount(uint8_t opcode, uint8_t *cdb)
+static int SCSI_GetCount(uint8_t opcode, uint8_t *cdb)
 {
     return opcode < 0x20?
     // class 0
@@ -432,7 +272,6 @@ static void SCSI_GuessGeometry(uint32_t size, uint32_t *cylinders, uint32_t *hea
 #define SCSI_SEEK_TIME_CD       500000 /* 500 ms max seek time */
 #define SCSI_SECTOR_TIME_CD     3250   /* 150 kB/sec */
 
-
 static int64_t SCSI_GetTime(uint8_t target) {
     int64_t seektime, sectortime;
     int64_t seekoffset, disksize, sectors;
@@ -459,7 +298,7 @@ static int64_t SCSI_GetTime(uint8_t target) {
     } else {
         seekoffset = SCSIdisk[target].lba - SCSIdisk[target].lastlba;
     }
-    disksize = SCSIdisk[target].size/SCSIdisk[target].blocksize;
+    disksize = SCSIdisk[target].size / SCSIdisk[target].blocksize;
     
     if (disksize < 1) { /* make sure no zero divide occurs */
         disksize = 1;
@@ -479,18 +318,6 @@ static int64_t SCSI_GetTime(uint8_t target) {
     sectortime *= sectors;
 
     return seektime + sectortime;
-}
-
-int64_t SCSIdisk_Time(void) {
-    int64_t scsitime = scsi_buffer.time;
-    
-    if (scsitime < 100) {
-        scsitime = 100;
-    }
-    
-    scsi_buffer.time = 0;
-    
-    return scsitime;
 }
 
 static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
@@ -532,7 +359,7 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
             uint32_t c, h, s;
             
             int i = SCSIdisk[target].known;
-            uint32_t num_sectors = SCSIdisk[target].size/SCSIdisk[target].blocksize;
+            uint32_t num_sectors = SCSIdisk[target].size / SCSIdisk[target].blocksize;
             
             if (i < 0) {
                 SCSI_GuessGeometry(num_sectors, &c, &h, &s);
@@ -585,10 +412,8 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
 }
 
 
-
-/* SCSI Commands */
-
-void SCSI_TestUnitReady(uint8_t *cdb) {
+/* SCSI commands */
+static void SCSI_TestUnitReady(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
     if (SCSIdisk[target].devtype!=DEVTYPE_NONE &&
@@ -607,7 +432,7 @@ void SCSI_TestUnitReady(uint8_t *cdb) {
     SCSIbus.phase = PHASE_ST;
 }
 
-void SCSI_ReadCapacity(uint8_t *cdb) {
+static void SCSI_ReadCapacity(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
     uint32_t blocksize = SCSIdisk[target].blocksize;
@@ -636,7 +461,50 @@ void SCSI_ReadCapacity(uint8_t *cdb) {
     SCSIbus.phase = PHASE_DI;
 }
 
-void SCSI_WriteSector(uint8_t *cdb) {
+static void scsi_write_sector(void) {
+    uint8_t target = SCSIbus.target;
+    uint64_t offset = 0;
+    
+    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Writing block at offset %i (%i blocks remaining).",
+               SCSIdisk[target].lba,SCSIdisk[target].blockcounter-1);
+    
+    offset = ((uint64_t)SCSIdisk[target].lba)*SCSIdisk[target].blocksize;
+    
+    if (offset < SCSIdisk[target].size) {
+        if (ConfigureParams.SCSI.nWriteProtection != WRITEPROT_ON) {
+            File_Write(scsi_buffer.data, SCSIdisk[target].blocksize, offset, SCSIdisk[target].dsk);
+        } else {
+            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] WARNING: File write disabled!");
+            if(SCSIdisk[target].shadow) {
+                if(!(SCSIdisk[target].shadow[SCSIdisk[target].lba]))
+                    SCSIdisk[target].shadow[SCSIdisk[target].lba] = malloc(SCSIdisk[target].blocksize);
+                memcpy(SCSIdisk[target].shadow[SCSIdisk[target].lba], scsi_buffer.data, SCSIdisk[target].blocksize);
+            } else {
+                uint32_t blocks = SCSIdisk[target].size / SCSIdisk[target].blocksize;
+                SCSIdisk[target].shadow = malloc(sizeof(uint8_t*) * blocks);
+                for(int i = blocks; --i >= 0;)
+                    SCSIdisk[target].shadow[i] = NULL;
+            }
+        }
+        scsi_buffer.size = 0;
+        scsi_buffer.limit = SCSIdisk[target].blocksize;
+        
+        SCSIdisk[target].lba++;
+        SCSIdisk[target].blockcounter--;
+        if (SCSIdisk[target].blockcounter==0) {
+            SCSIbus.phase = PHASE_ST;
+        }
+    } else {
+        SCSIdisk[target].status = STAT_CHECK_COND;
+        SCSIdisk[target].sense.key = SK_ILLEGAL_REQ;
+        SCSIdisk[target].sense.code = SC_INVALID_LBA;
+        SCSIdisk[target].sense.info = SCSIdisk[target].lba;
+        SCSIdisk[target].sense.valid = true;
+        
+        SCSIbus.phase = PHASE_ST;
+    }
+}
+static void SCSI_WriteSector(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
     SCSIdisk[target].lastlba = SCSIdisk[target].lba;
@@ -668,89 +536,7 @@ void SCSI_WriteSector(uint8_t *cdb) {
                SCSIdisk[target].blockcounter, SCSIdisk[target].lba, SCSIdisk[target].blocksize);
 }
 
-void scsi_write_sector(void) {
-    uint8_t target = SCSIbus.target;
-    uint64_t offset = 0;
-
-    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Writing block at offset %i (%i blocks remaining).",
-               SCSIdisk[target].lba,SCSIdisk[target].blockcounter-1);
-    
-    offset = ((uint64_t)SCSIdisk[target].lba)*SCSIdisk[target].blocksize;
-    
-    if (offset < SCSIdisk[target].size) {
-        if (ConfigureParams.SCSI.nWriteProtection != WRITEPROT_ON) {
-            File_Write(scsi_buffer.data, SCSIdisk[target].blocksize, offset, SCSIdisk[target].dsk);
-        } else {
-            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] WARNING: File write disabled!");
-            if(SCSIdisk[target].shadow) {
-                if(!(SCSIdisk[target].shadow[SCSIdisk[target].lba]))
-                    SCSIdisk[target].shadow[SCSIdisk[target].lba] = malloc(SCSIdisk[target].blocksize);
-                memcpy(SCSIdisk[target].shadow[SCSIdisk[target].lba], scsi_buffer.data, SCSIdisk[target].blocksize);
-            } else {
-                uint32_t blocks = SCSIdisk[target].size / SCSIdisk[target].blocksize;
-                SCSIdisk[target].shadow = malloc(sizeof(uint8_t*) * blocks);
-                for(int i = blocks; --i >= 0;)
-                    SCSIdisk[target].shadow[i] = NULL;
-            }
-        }
-        scsi_buffer.size = 0;
-        scsi_buffer.limit = SCSIdisk[target].blocksize;
-
-        SCSIdisk[target].lba++;
-        SCSIdisk[target].blockcounter--;
-        if (SCSIdisk[target].blockcounter==0) {
-            SCSIbus.phase = PHASE_ST;
-        }
-    } else {
-        SCSIdisk[target].status = STAT_CHECK_COND;
-        SCSIdisk[target].sense.key = SK_ILLEGAL_REQ;
-        SCSIdisk[target].sense.code = SC_INVALID_LBA;
-        SCSIdisk[target].sense.info = SCSIdisk[target].lba;
-        SCSIdisk[target].sense.valid = true;
-        
-        SCSIbus.phase = PHASE_ST;
-    }
-}
-
-void SCSIdisk_Receive_Data(uint8_t val) {
-    /* Receive one byte. If the transfer is complete, set status phase
-     * and write the buffer contents to the disk. */
-    scsi_buffer.data[scsi_buffer.size]=val;
-    scsi_buffer.size++;
-    if (scsi_buffer.size==scsi_buffer.limit) {
-        if (scsi_buffer.disk==true) {
-            scsi_write_sector();  /* sets status phase if done or error */
-        } else {
-            SCSIbus.phase = PHASE_ST;
-        }
-    }
-}
-
-
-void SCSI_ReadSector(uint8_t *cdb) {
-    uint8_t target = SCSIbus.target;
-    
-    SCSIdisk[target].lastlba = SCSIdisk[target].lba;
-    SCSIdisk[target].lba = SCSI_GetOffset(cdb[0], cdb);
-    SCSIdisk[target].blockcounter = SCSI_GetCount(cdb[0], cdb);
-    scsi_buffer.size = scsi_buffer.limit = 0;
-    scsi_buffer.disk = true;
-    scsi_buffer.time = SCSI_GetTime(target);
-    
-    SCSIdisk[target].status = STAT_GOOD;
-    SCSIdisk[target].sense.key = SK_NOSENSE;
-    SCSIdisk[target].sense.code = SC_NO_ERROR;
-    SCSIdisk[target].sense.valid = false;
-
-    SCSIbus.phase = SCSIdisk[target].blockcounter ? PHASE_DI : PHASE_ST;
-    
-    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Read sector: %i block(s) at offset %i (blocksize: %i byte)",
-               SCSIdisk[target].blockcounter, SCSIdisk[target].lba, SCSIdisk[target].blocksize);
-    
-    scsi_read_sector();
-}
-
-void scsi_read_sector(void) {
+static void scsi_read_sector(void) {
     uint8_t target = SCSIbus.target;
     uint64_t offset = 0;
     
@@ -784,23 +570,30 @@ void scsi_read_sector(void) {
         SCSIbus.phase = PHASE_ST;
     }
 }
+static void SCSI_ReadSector(uint8_t *cdb) {
+    uint8_t target = SCSIbus.target;
+    
+    SCSIdisk[target].lastlba = SCSIdisk[target].lba;
+    SCSIdisk[target].lba = SCSI_GetOffset(cdb[0], cdb);
+    SCSIdisk[target].blockcounter = SCSI_GetCount(cdb[0], cdb);
+    scsi_buffer.size = scsi_buffer.limit = 0;
+    scsi_buffer.disk = true;
+    scsi_buffer.time = SCSI_GetTime(target);
+    
+    SCSIdisk[target].status = STAT_GOOD;
+    SCSIdisk[target].sense.key = SK_NOSENSE;
+    SCSIdisk[target].sense.code = SC_NO_ERROR;
+    SCSIdisk[target].sense.valid = false;
 
-uint8_t SCSIdisk_Send_Data(void) {
-    /* Send one byte. If the transfer is complete, set status phase */
-    uint8_t val=scsi_buffer.data[scsi_buffer.limit-scsi_buffer.size];
-    scsi_buffer.size--;
-    if (scsi_buffer.size==0) {
-        if (scsi_buffer.disk==true) {
-            scsi_read_sector(); /* sets status phase if done or error */
-        } else {
-            SCSIbus.phase = PHASE_ST;
-        }
-    }
-    return val;
+    SCSIbus.phase = SCSIdisk[target].blockcounter ? PHASE_DI : PHASE_ST;
+    
+    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Read sector: %i block(s) at offset %i (blocksize: %i byte)",
+               SCSIdisk[target].blockcounter, SCSIdisk[target].lba, SCSIdisk[target].blocksize);
+    
+    scsi_read_sector();
 }
 
-
-void SCSI_Inquiry(uint8_t *cdb) {
+static void SCSI_Inquiry(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
     int l = 0;
@@ -891,8 +684,7 @@ void SCSI_Inquiry(uint8_t *cdb) {
     SCSIbus.phase = scsi_buffer.size ? PHASE_DI : PHASE_ST;
 }
 
-
-void SCSI_StartStop(uint8_t *cdb) {
+static void SCSI_StartStop(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
     switch (cdb[4]&0x03) {
@@ -924,8 +716,7 @@ void SCSI_StartStop(uint8_t *cdb) {
     SCSIbus.phase = PHASE_ST;
 }
 
-
-void SCSI_RequestSense(uint8_t *cdb) {
+static void SCSI_RequestSense(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
     int len = SCSI_GetTransferLength(cdb[0], cdb);
@@ -967,8 +758,7 @@ void SCSI_RequestSense(uint8_t *cdb) {
     SCSIbus.phase = PHASE_DI;
 }
 
-
-void SCSI_ModeSense(uint8_t *cdb) {
+static void SCSI_ModeSense(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
     int len = 0;
@@ -1070,8 +860,7 @@ void SCSI_ModeSense(uint8_t *cdb) {
     SCSIbus.phase = scsi_buffer.size ? PHASE_DI : PHASE_ST;
 }
 
-
-void SCSI_FormatDrive(uint8_t *cdb) {
+static void SCSI_FormatDrive(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
 
     uint8_t format_data = cdb[1]&0x10;
@@ -1091,8 +880,7 @@ void SCSI_FormatDrive(uint8_t *cdb) {
     }
 }
 
-
-void SCSI_ReassignBlocks(uint8_t *cdb) {
+static void SCSI_ReassignBlocks(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Reassign blocks");
@@ -1105,10 +893,187 @@ void SCSI_ReassignBlocks(uint8_t *cdb) {
     SCSIbus.phase = PHASE_ST;
 }
 
+static void SCSI_Command(uint8_t *cdb) {
+    uint8_t opcode = cdb[0];
+    uint8_t target = SCSIbus.target;
+    
+    /* First check for lun-independent commands */
+    switch (opcode) {
+        case CMD_INQUIRY:
+            Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Inquiry");
+            SCSI_Inquiry(cdb);
+            break;
+        case CMD_REQ_SENSE:
+            Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Request sense");
+            SCSI_RequestSense(cdb);
+            break;
+            /* Check if the specified lun is valid for our disk */
+        default:
+            if (SCSIdisk[target].lun!=LUN_DISK) {
+                Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Invalid lun! Check condition.");
+                SCSIdisk[target].status = STAT_CHECK_COND;
+                SCSIdisk[target].sense.key = SK_ILLEGAL_REQ;
+                SCSIdisk[target].sense.code = SC_INVALID_LUN;
+                SCSIdisk[target].sense.valid = false;
+                SCSIdisk[target].message = MSG_COMPLETE;
+                SCSIbus.phase = PHASE_ST;
+                return;
+            }
+            
+            /* Then check for lun-dependent commands */
+            switch(opcode) {
+                case CMD_TEST_UNIT_RDY:
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Test unit ready");
+                    SCSI_TestUnitReady(cdb);
+                    break;
+                case CMD_READ_CAPACITY1:
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Read capacity");
+                    SCSI_ReadCapacity(cdb);
+                    break;
+                case CMD_READ_SECTOR:
+                case CMD_READ_SECTOR1:
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Read sector");
+                    SCSI_ReadSector(cdb);
+                    break;
+                case CMD_WRITE_SECTOR:
+                case CMD_WRITE_SECTOR1:
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Write sector");
+                    SCSI_WriteSector(cdb);
+                    break;
+                case CMD_SEEK:
+                    Log_Printf(LOG_WARN, "SCSI command: Seek");
+                    abort();
+                    break;
+                case CMD_SHIP:
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Ship");
+                    SCSI_StartStop(cdb);
+                    break;
+                case CMD_MODESELECT:
+                    Log_Printf(LOG_WARN, "SCSI command: Mode select");
+                    abort();
+                    break;
+                case CMD_MODESENSE:
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Mode sense");
+                    SCSI_ModeSense(cdb);
+                    break;
+                case CMD_FORMAT_DRIVE:
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Format drive");
+                    SCSI_FormatDrive(cdb);
+                    break;
+                case CMD_REASSIGN:
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Reassign blocks");
+                    SCSI_ReassignBlocks(cdb);
+                    break;
+                    /* as of yet unsupported commands */
+                case CMD_VERIFY_TRACK:
+                case CMD_FORMAT_TRACK:
+                case CMD_CORRECTION:
+                default:
+                    Log_Printf(LOG_WARN, "SCSI command: Unknown Command (%02X)",opcode);
+                    SCSIdisk[target].status = STAT_CHECK_COND;
+                    SCSIdisk[target].sense.key = SK_ILLEGAL_REQ;
+                    SCSIdisk[target].sense.code = SC_INVALID_CMD;
+                    SCSIdisk[target].sense.valid = false;
+                    SCSIbus.phase = PHASE_ST;
+                    break;
+            }
+            break;
+    }
+    
+    SCSIdisk[target].message = MSG_COMPLETE;
+    
+    /* Update the led each time a command is processed */
+    Statusbar_BlinkLed(DEVICE_LED_SCSI);
+}
+
+
+/* SCSI disk access */
+bool SCSIdisk_Select(uint8_t target) {
+    
+    /* If there is no disk drive present, return timeout true */
+    if (SCSIdisk[target].devtype==DEVTYPE_NONE) {
+        Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Selection timeout, target = %i", target);
+        SCSIbus.phase = PHASE_ST;
+        return true;
+    } else {
+        SCSIbus.target = target;
+        return false;
+    }
+}
+
+void SCSIdisk_Receive_Data(uint8_t val) {
+    /* Receive one byte. If the transfer is complete, set status phase
+     * and write the buffer contents to the disk. */
+    scsi_buffer.data[scsi_buffer.size]=val;
+    scsi_buffer.size++;
+    if (scsi_buffer.size==scsi_buffer.limit) {
+        if (scsi_buffer.disk==true) {
+            scsi_write_sector();  /* sets status phase if done or error */
+        } else {
+            SCSIbus.phase = PHASE_ST;
+        }
+    }
+}
+
+uint8_t SCSIdisk_Send_Data(void) {
+    /* Send one byte. If the transfer is complete, set status phase */
+    uint8_t val=scsi_buffer.data[scsi_buffer.limit-scsi_buffer.size];
+    scsi_buffer.size--;
+    if (scsi_buffer.size==0) {
+        if (scsi_buffer.disk==true) {
+            scsi_read_sector(); /* sets status phase if done or error */
+        } else {
+            SCSIbus.phase = PHASE_ST;
+        }
+    }
+    return val;
+}
+
+uint8_t SCSIdisk_Send_Status(void) {
+    SCSIbus.phase = PHASE_MI;
+    return SCSIdisk[SCSIbus.target].status;
+}
+
+uint8_t SCSIdisk_Send_Message(void) {
+    return SCSIdisk[SCSIbus.target].message;
+}
+
+void SCSIdisk_Receive_Command(uint8_t *cdb, uint8_t identify) {
+    uint8_t lun = 0;
+    
+    /* Get logical unit number */
+    if (identify&MSG_IDENTIFY_MASK) { /* if identify message is valid */
+        lun = identify&MSG_LUNMASK; /* use lun from identify message */
+    } else {
+        lun = (cdb[1]&0xE0)>>5; /* use lun specified in CDB */
+    }
+    
+    SCSIdisk[SCSIbus.target].lun = lun;
+    
+    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Opcode = $%02x, target = %i, lun = %i", cdb[0], SCSIbus.target,lun);
+    
+    SCSI_Command(cdb);
+}
+
+int64_t SCSIdisk_Time(void) {
+    int64_t scsitime = scsi_buffer.time;
+    
+    if (scsitime < 100) {
+        scsitime = 100;
+    }
+    
+    scsi_buffer.time = 0;
+    
+    return scsitime;
+}
+
 
 /* Insert/Eject SCSI disks */
 void SCSI_Insert(uint8_t i) {
     SCSIdisk[i].devtype = ConfigureParams.SCSI.target[i].nDeviceType;
+    if (SCSIdisk[i].devtype == DEVTYPE_HARDDISK) {
+        ConfigureParams.SCSI.target[i].bDiskInserted = true;
+    }
     
     SCSIdisk[i].lun = SCSIdisk[i].status = SCSIdisk[i].message = 0;
     SCSIdisk[i].sense.code = SCSIdisk[i].sense.key = SCSIdisk[i].sense.info = 0;
@@ -1121,8 +1086,7 @@ void SCSI_Insert(uint8_t i) {
     if (SCSIdisk[i].devtype != DEVTYPE_NONE && ConfigureParams.SCSI.target[i].bDiskInserted) {
         Log_Printf(LOG_WARN, "SCSI disk %i: Insert %s", i, ConfigureParams.SCSI.target[i].szImageName);
         
-        SCSIdisk[i].size = File_Length(ConfigureParams.SCSI.target[i].szImageName);
-        SCSIdisk[i].known = SCSI_LookupDisk(i);
+        SCSIdisk[i].known = SCSI_LookupDisk(i); /* Sets size and blocksize */
         
         if (ConfigureParams.SCSI.target[i].nDeviceType == DEVTYPE_CD) {
             ConfigureParams.SCSI.target[i].bWriteProtected = true;
@@ -1134,15 +1098,15 @@ void SCSI_Insert(uint8_t i) {
         if (ConfigureParams.SCSI.target[i].bWriteProtected || SCSIdisk[i].dsk == NULL) {
             SCSIdisk[i].dsk = File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb");
             SCSIdisk[i].readonly = true;
-            if (SCSIdisk[i].dsk == NULL) {
-                Log_Printf(LOG_WARN, "SCSI disk %i: Cannot open image file %s",
-                           i, ConfigureParams.SCSI.target[i].szImageName);
-                SCSI_Eject(i);
-                if (SCSIdisk[i].devtype == DEVTYPE_HARDDISK) {
-                    SCSIdisk[i].devtype = DEVTYPE_NONE;
-                }
-                Statusbar_AddMessage("Cannot open SCSI disk.", 0);
+        }
+        if (SCSIdisk[i].dsk == NULL || SCSIdisk[i].size == 0) {
+            Log_Printf(LOG_WARN, "SCSI disk %i: Cannot open image file %s",
+                       i, ConfigureParams.SCSI.target[i].szImageName);
+            SCSI_Eject(i);
+            if (SCSIdisk[i].devtype == DEVTYPE_HARDDISK) {
+                SCSIdisk[i].devtype = DEVTYPE_NONE;
             }
+            Statusbar_AddMessage("Cannot open SCSI disk.", 0);
         }
     }
 }
