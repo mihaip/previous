@@ -5077,63 +5077,71 @@ static inline void run_other_MPUs(void)
 static int do_specialties (int cycles)
 {
 	uaecptr pc = m68k_getpc();
+	uae_atomic spcflags = regs.spcflags;
 
-	if (regs.spcflags & SPCFLAG_MODE_CHANGE)
+	if (spcflags & SPCFLAG_MODE_CHANGE)
 		return 1;
 
+	if (spcflags & SPCFLAG_MMURESTART) {
+		// can't have interrupt when 040/060 CPU reruns faulted instruction
+		unset_special(SPCFLAG_MMURESTART);
+	} else {
+
 #ifndef WINUAE_FOR_PREVIOUS
-	while ((regs.spcflags & SPCFLAG_CPUINRESET)) {
-		x_do_cycles(4 * CYCLE_UNIT);
-		if (!(regs.spcflags & SPCFLAG_CPUINRESET) || (regs.spcflags & SPCFLAG_BRK) || (regs.spcflags & SPCFLAG_MODE_CHANGE)) {
-			break;
+		if (spcflags & SPCFLAG_BUSERROR) {
+			/* We can not execute bus errors directly in the memory handler
+			* functions since the PC should point to the address of the next
+			* instruction, so we're executing the bus errors here: */
+			unset_special(SPCFLAG_BUSERROR);
+			Exception(2);
 		}
-	}
-#endif // WINUAE_FOR_PREVIOUS
-
-	if (regs.spcflags & SPCFLAG_DOTRACE)
-		Exception(9);
-
-#ifndef WINUAE_FOR_HATARI
-	if (regs.spcflags & SPCFLAG_TRAP) {
-		unset_special (SPCFLAG_TRAP);
-		Exception(3);
-	}
 #endif
 
-	if (regs.spcflags & SPCFLAG_TRACE)
-		do_trace();
+		if (spcflags & SPCFLAG_DOTRACE) {
+			Exception(9);
+		}
+
+#ifndef WINUAE_FOR_HATARI
+		if (spcflags & SPCFLAG_TRAP) {
+			unset_special (SPCFLAG_TRAP);
+			Exception(3);
+		}
+#endif
+		if (regs.spcflags & SPCFLAG_TRACE)
+			do_trace();
 
 #ifndef WINUAE_FOR_PREVIOUS // Previous: for now this is done inside the run-loops
-//fprintf ( stderr , "dospec1 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , regs.spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
-	if (m68k_interrupt_delay) {
-		int ipl = time_for_interrupt();
-		if (ipl) {
-			unset_special(SPCFLAG_INT);
-			do_interrupt(ipl);
+//fprintf ( stderr , "dospec1 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
+		if (m68k_interrupt_delay) {
+			int ipl = time_for_interrupt();
+			if (ipl) {
+				unset_special(SPCFLAG_INT);
+				do_interrupt(ipl);
+			}
+		} else {
+			if (spcflags & SPCFLAG_INT) {
+				int intr = intlev();
+				unset_special (SPCFLAG_INT | SPCFLAG_DOINT);
+				if (intr > 0 && (intr > regs.intmask || intr == 7))
+					do_interrupt(intr);
+			}
 		}
-	} else {
-		if (regs.spcflags & SPCFLAG_INT) {
-			int intr = intlev();
-			unset_special (SPCFLAG_INT | SPCFLAG_DOINT);
-			if (intr > 0 && (intr > regs.intmask || intr == 7))
-				do_interrupt(intr);
-		}
-	}
 
-//fprintf ( stderr , "dospec2 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , regs.spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
-	if (regs.spcflags & SPCFLAG_DOINT) {
-		unset_special(SPCFLAG_DOINT);
-		set_special(SPCFLAG_INT);
-	}
-//fprintf ( stderr , "dospec3 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , regs.spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
+//fprintf ( stderr , "dospec2 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
+		if (spcflags & SPCFLAG_DOINT) {
+			unset_special(SPCFLAG_DOINT);
+			set_special(SPCFLAG_INT);
+		}
+//fprintf ( stderr , "dospec3 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
 #endif // WINUAE_FOR_PREVIOUS
+	}
 
 #ifdef WINUAE_FOR_HATARI
-	if (regs.spcflags & SPCFLAG_DEBUGGER)
+	if (spcflags & SPCFLAG_DEBUGGER)
 		DebugCpu_Check();
 #endif
 
-	if (regs.spcflags & SPCFLAG_BRK) {
+	if (spcflags & SPCFLAG_BRK) {
 #ifndef WINUAE_FOR_PREVIOUS
 		unset_special(SPCFLAG_BRK);
 #endif // WINUAE_FOR_PREVIOUS
@@ -5584,7 +5592,9 @@ static bool m68k_cs_initialized;
 
 static int do_specialties_thread(void)
 {
-	if (regs.spcflags & SPCFLAG_MODE_CHANGE)
+	uae_atomic spcflags = regs.spcflags;
+
+	if (spcflags & SPCFLAG_MODE_CHANGE)
 		return 1;
 
 #ifdef JIT
@@ -5593,20 +5603,20 @@ static int do_specialties_thread(void)
 	}
 #endif
 
-	if (regs.spcflags & SPCFLAG_DOTRACE)
+	if (spcflags & SPCFLAG_DOTRACE)
 		Exception(9);
 
-	if (regs.spcflags & SPCFLAG_TRAP) {
+	if (spcflags & SPCFLAG_TRAP) {
 		unset_special(SPCFLAG_TRAP);
 		Exception(3);
 	}
 
-	if (regs.spcflags & SPCFLAG_TRACE)
+	if (spcflags & SPCFLAG_TRACE)
 		do_trace();
 
 	for (;;) {
 
-		if (regs.spcflags & (SPCFLAG_BRK | SPCFLAG_MODE_CHANGE)) {
+		if (spcflags & (SPCFLAG_BRK | SPCFLAG_MODE_CHANGE)) {
 			return 1;
 		}
 
