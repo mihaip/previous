@@ -127,7 +127,7 @@ static void lp_png_finish(void) {
             png_set_rows(png_ptr, png_info_ptr, png_row_pointers);
             png_write_png(png_ptr, png_info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
         } else {
-            Statusbar_AddMessage("Laser Printer Error: Could not create output file!", 10000);
+            Statusbar_AddMessage("Laser printer error: Could not create output file", 10000);
         }
         
         File_Close(png_fp);
@@ -682,7 +682,7 @@ static void lp_command_in(uint8_t cmd, uint32_t data) {
                         lp_png_print();
                         lp_buffer.size = 0;
                     }
-                    Statusbar_AddMessage("Laser Printer Printing Page.", 0);
+                    Statusbar_AddMessage("Laser printer printing page", 0);
                     CycInt_AddRelativeInterruptUs(1000, 100, INTERRUPT_LP_IO);
                 } else {
                     Log_Printf(LOG_LP_LEVEL, "[LP] Disable printer data transfer");
@@ -773,10 +773,10 @@ void LP_CSR1_Write(void) {
     
     if (((val&LP_ON) != (lp.csr.printer&LP_ON)) && ConfigureParams.Printer.bPrinterConnected) {
         if (val&LP_ON) {
-            Statusbar_AddMessage("Switching Laser Printer ON.", 0);
+            Statusbar_AddMessage("Switching laser printer ON", 0);
             lp_power_on();
         } else {
-            Statusbar_AddMessage("Switching Laser Printer OFF.", 0);
+            Statusbar_AddMessage("Switching laser printer OFF", 0);
             lp_power_off();
         }
     }

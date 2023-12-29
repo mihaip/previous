@@ -1259,7 +1259,7 @@ int Floppy_Insert(int drive) {
                    ConfigureParams.Floppy.drive[drive].szImageName);
         flpdrv[drive].inserted = false;
         flpdrv[drive].protected = false;
-        Statusbar_AddMessage("Cannot insert floppy disk.", 0);
+        Statusbar_AddMessage("Cannot insert floppy disk", 0);
         return 1;
     }
     
@@ -1268,7 +1268,7 @@ int Floppy_Insert(int drive) {
     flpdrv[drive].blocksize = 2; /* 512 byte */
     flpdrv[drive].cyl = flpdrv[drive].head = flpdrv[drive].sector = 0;
     flpdrv[drive].seekoffset = 0;
-    Statusbar_AddMessage("Inserting floppy disk.", 0);
+    Statusbar_AddMessage("Inserting floppy disk", 0);
     return 0;
 }
 
@@ -1276,7 +1276,7 @@ void Floppy_Eject(int drive) {
     if (drive < 0) { /* Called from emulator, else called from GUI */
         drive = flp.sel;
         
-        Statusbar_AddMessage("Ejecting floppy disk.", 0);
+        Statusbar_AddMessage("Ejecting floppy disk", 0);
     }
     
     Log_Printf(LOG_WARN, "Floppy disk %i: Eject",drive);

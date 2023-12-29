@@ -1461,7 +1461,7 @@ void mo_stop_spinning(void) {
     if (mo_empty()) {
         return;
     }
-    Statusbar_AddMessage("Stop magneto-optical disk spin.", 0);
+    Statusbar_AddMessage("Stopping magneto-optical disk spin", 0);
     mo[dnum].spinning=false;
     mo[dnum].spiraling=false;
     mo_set_signals_delayed(true, false, CMD_DELAY);
@@ -1471,7 +1471,7 @@ void mo_start_spinning(void) {
     if (mo_empty()) {
         return;
     }
-    Statusbar_AddMessage("Spin-up magneto-optical disk.", 0);
+    Statusbar_AddMessage("Starting magneto-optical disk spin", 0);
     mo[dnum].spinning=true;
     mo_set_signals_delayed(true, false, 1600000);
 }
@@ -1482,7 +1482,7 @@ void mo_eject_disk(int drive) {
         if (mo_empty())
             return;
         
-        Statusbar_AddMessage("Ejecting magneto-optical disk.", 0);
+        Statusbar_AddMessage("Ejecting magneto-optical disk", 0);
         mo_set_signals_delayed(true, false, CMD_DELAY);
     }
 
@@ -1512,12 +1512,12 @@ void mo_insert_disk(int drive) {
                        drive, ConfigureParams.MO.drive[drive].szImageName);
             mo[drive].inserted=false;
             mo[drive].protected=false;
-            Statusbar_AddMessage("Cannot insert magneto-optical disk.", 0);
+            Statusbar_AddMessage("Cannot insert magneto-optical disk", 0);
             return;
         }
     }
     
-    Statusbar_AddMessage("Inserting magneto-optical disk.", 0);
+    Statusbar_AddMessage("Inserting magneto-optical disk", 0);
     mo[drive].dstat|=DS_INSERT;
     mo[drive].inserted=true;
     mo[drive].spinning=false;

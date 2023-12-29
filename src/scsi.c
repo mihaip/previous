@@ -700,7 +700,7 @@ static void SCSI_StartStop(uint8_t *cdb) {
                 SCSI_Eject(target);
                 ConfigureParams.SCSI.target[target].bDiskInserted = false;
                 ConfigureParams.SCSI.target[target].szImageName[0] = '\0';
-                Statusbar_AddMessage("Ejecting SCSI media.", 0);
+                Statusbar_AddMessage("Ejecting SCSI disk", 0);
             }
             break;
         default:
@@ -1106,7 +1106,7 @@ void SCSI_Insert(uint8_t i) {
             if (SCSIdisk[i].devtype == DEVTYPE_HARDDISK) {
                 SCSIdisk[i].devtype = DEVTYPE_NONE;
             }
-            Statusbar_AddMessage("Cannot open SCSI disk.", 0);
+            Statusbar_AddMessage("Cannot open SCSI disk", 0);
         }
     }
 }
