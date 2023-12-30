@@ -11,7 +11,7 @@ extern "C" {
 #if defined (_WIN32) && defined (scr1)
 #undef scr1
 #endif
-        
+
 /* NeXT system registers emulation */
 
 /* Interrupts */
@@ -86,7 +86,7 @@ static inline int intlev(void) {
 }
 
 void SCR_Reset(void);
-    
+
 void SCR1_Read0(void);
 void SCR1_Read1(void);
 void SCR1_Read2(void);
