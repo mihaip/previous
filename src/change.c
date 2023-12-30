@@ -76,12 +76,6 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 		}
 	}
 
-	/* Did we change NFS root directory? */
-	if (strcmp(current->Ethernet.szNFSroot, changed->Ethernet.szNFSroot)) {
-		printf("nfs reset\n");
-		return true;
-	}
-
 	/* Did we change network interface? */
 	if ((current->Ethernet.nHostInterface != changed->Ethernet.nHostInterface) ||
 		(current->Ethernet.bNetworkTime != changed->Ethernet.bNetworkTime)) {
@@ -252,7 +246,8 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Do we need to change Ethernet connection? */
 	if (!NeedReset &&
 		(current->Ethernet.bEthernetConnected != changed->Ethernet.bEthernetConnected ||
-		 strcmp(current->Ethernet.szInterfaceName, changed->Ethernet.szInterfaceName))) {
+		 strcmp(current->Ethernet.szInterfaceName, changed->Ethernet.szInterfaceName) ||
+		 strcmp(current->Ethernet.szNFSroot, changed->Ethernet.szNFSroot))) {
 		bReInitEnetEmu = true;
 	}
 

@@ -371,8 +371,9 @@ Previous v2.9:
   > Improves SCC emulation for booting Mac OS 7.5.3 via Daydream.
 
 Previous v3.0 (unreleased):
-  > Adds support for mapping scroll wheel to cursor keys.
   > Adds option for simulating DSP bootstrap ROM.
+  > Adds support for changing shared directory without reset.
+  > Adds support for mapping scroll wheel to cursor keys.
   > Adds support for RESET instruction.
   > Adds support for identifying some SCSI disk models for easier setup.
   > Improves screen simulation to not show screen contents while blanked.
