@@ -378,6 +378,7 @@ Previous v3.0 (unreleased):
   > Improves screen simulation to not show screen contents while blanked.
   > Improves DSP emulation accuracy.
   > Improves CPU emulation accuracy.
+  > Improves SCSI disk emulation accuracy.
   > Improves keyboard options to show actual shortcuts.
   > Fixes bug that caused SCSI diagnostics to fail with 1024 byte blocks.
   > Fixes bug that caused mouse to be unlocked after resuming emulation.

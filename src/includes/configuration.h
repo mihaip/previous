@@ -173,11 +173,11 @@ typedef struct
 /* Hard drives configuration */
 #define ESP_MAX_DEVS 7
 typedef enum {
-  DEVTYPE_NONE,
-  DEVTYPE_HARDDISK,
-  DEVTYPE_CD,
-  DEVTYPE_FLOPPY,
-  NUM_DEVTYPES
+  SD_NONE,
+  SD_HARDDISK,
+  SD_CD,
+  SD_FLOPPY,
+  NUM_SD
 } SCSI_DEVTYPE;
 
 typedef struct {

@@ -168,7 +168,7 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 	/* Did we change SCSI disk? */
 	for (i = 0; i < ESP_MAX_DEVS; i++) {
 		if (current->SCSI.target[i].nDeviceType != changed->SCSI.target[i].nDeviceType ||
-			(current->SCSI.target[i].nDeviceType==DEVTYPE_HARDDISK &&
+			(current->SCSI.target[i].nDeviceType == SD_HARDDISK &&
 			 (current->SCSI.target[i].bWriteProtected != changed->SCSI.target[i].bWriteProtected ||
 			  strcmp(current->SCSI.target[i].szImageName, changed->SCSI.target[i].szImageName)))) {
 				 printf("scsi disk reset\n");

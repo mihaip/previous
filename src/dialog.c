@@ -134,16 +134,16 @@ void Dialog_CheckFiles(void) {
 	/* Check if SCSI disk images exist. Present a dialog to select missing files. */
 	for (i = 0; i < ESP_MAX_DEVS; i++) {
 		while (!bQuitProgram &&
-		       (ConfigureParams.SCSI.target[i].nDeviceType!=DEVTYPE_NONE) &&
+		       (ConfigureParams.SCSI.target[i].nDeviceType!=SD_NONE) &&
 		       ConfigureParams.SCSI.target[i].bDiskInserted &&
 		       !File_Exists(ConfigureParams.SCSI.target[i].szImageName)) {
 			DlgMissing_Disk("SCSI disk", i,
 			                ConfigureParams.SCSI.target[i].szImageName,
 			                &ConfigureParams.SCSI.target[i].bDiskInserted,
 			                &ConfigureParams.SCSI.target[i].bWriteProtected);
-			if (ConfigureParams.SCSI.target[i].nDeviceType==DEVTYPE_HARDDISK &&
+			if (ConfigureParams.SCSI.target[i].nDeviceType==SD_HARDDISK &&
 			    !ConfigureParams.SCSI.target[i].bDiskInserted) {
-				ConfigureParams.SCSI.target[i].nDeviceType=DEVTYPE_NONE;
+				ConfigureParams.SCSI.target[i].nDeviceType=SD_NONE;
 			}
 		}
 	}

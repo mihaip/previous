@@ -117,11 +117,11 @@ static void DlgSCSI_DrawDevtypeSelect(void) {
 	
 	for (i = 0; i < ESP_MAX_DEVS; i++) {
 		switch (ConfigureParams.SCSI.target[i].nDeviceType) {
-			case DEVTYPE_HARDDISK:
+			case SD_HARDDISK:
 				scsidlg[PUT_BUTTON(i,SCSIDLG_DEVTYPE)].txt = "Harddisk";
 				scsidlg[PUT_BUTTON(i,SCSIDLG_SELECT)].txt = "Select";
 				break;
-			case DEVTYPE_CD:
+			case SD_CD:
 				scsidlg[PUT_BUTTON(i,SCSIDLG_DEVTYPE)].txt = " CD-ROM ";
 				if (ConfigureParams.SCSI.target[i].bDiskInserted) {
 					scsidlg[PUT_BUTTON(i,SCSIDLG_SELECT)].txt = "Eject";
@@ -129,7 +129,7 @@ static void DlgSCSI_DrawDevtypeSelect(void) {
 					scsidlg[PUT_BUTTON(i,SCSIDLG_SELECT)].txt = "Insert";
 				}
 				break;
-			case DEVTYPE_FLOPPY:
+			case SD_FLOPPY:
 				scsidlg[PUT_BUTTON(i,SCSIDLG_DEVTYPE)].txt = " Floppy ";
 				if (ConfigureParams.SCSI.target[i].bDiskInserted) {
 					scsidlg[PUT_BUTTON(i,SCSIDLG_SELECT)].txt = "Eject";
@@ -137,7 +137,7 @@ static void DlgSCSI_DrawDevtypeSelect(void) {
 					scsidlg[PUT_BUTTON(i,SCSIDLG_SELECT)].txt = "Insert";
 				}
 				break;
-			case DEVTYPE_NONE:
+			case SD_NONE:
 				scsidlg[PUT_BUTTON(i,SCSIDLG_DEVTYPE)].txt = "";
 				scsidlg[PUT_BUTTON(i,SCSIDLG_SELECT)].txt = "Select";
 				break;
@@ -191,18 +191,18 @@ void DlgSCSI_Main(void)
 			
 			switch (GET_BUTTON(but)) {
 				case SCSIDLG_LEFT:
-					ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType+=NUM_DEVTYPES-1;
-					ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType%=NUM_DEVTYPES;
+					ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType+=NUM_SD-1;
+					ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType%=NUM_SD;
 					DlgSCSI_DrawDevtypeSelect();
 					break;
 				case SCSIDLG_RIGHT:
 					ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType++;
-					ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType%=NUM_DEVTYPES;
+					ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType%=NUM_SD;
 					DlgSCSI_DrawDevtypeSelect();
 					break;
 				case SCSIDLG_SELECT:
-					if ((ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType == DEVTYPE_CD ||
-						 ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType == DEVTYPE_FLOPPY) &&
+					if ((ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType == SD_CD ||
+						 ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType == SD_FLOPPY) &&
 						ConfigureParams.SCSI.target[GET_TARGET(but)].bDiskInserted) {
 						if (DlgAlert_Query(SCSIDLG_EJECT_WARNING)) {
 							ConfigureParams.SCSI.target[GET_TARGET(but)].bDiskInserted = false;
@@ -215,10 +215,10 @@ void DlgSCSI_Main(void)
 												 scsidlg[PUT_BUTTON(GET_TARGET(but),SCSIDLG_NAME)].w,
 												 &ConfigureParams.SCSI.target[GET_TARGET(but)].bWriteProtected, false)) {
 						ConfigureParams.SCSI.target[GET_TARGET(but)].bDiskInserted = true;
-						if (ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType == DEVTYPE_NONE) {
-							ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType = DEVTYPE_HARDDISK;
+						if (ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType == SD_NONE) {
+							ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType = SD_HARDDISK;
 						}
-						if (ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType != DEVTYPE_HARDDISK) {
+						if (ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType != SD_HARDDISK) {
 							SCSI_Insert(GET_TARGET(but));
 						}
 					}
@@ -240,18 +240,18 @@ void DlgSCSI_Main(void)
 	
 	/* Check for invalid combinations */
 	for (i = 0; i < ESP_MAX_DEVS; i++) {
-		if (ConfigureParams.SCSI.target[i].nDeviceType==DEVTYPE_NONE) {
+		if (ConfigureParams.SCSI.target[i].nDeviceType==SD_NONE) {
 			ConfigureParams.SCSI.target[i].bDiskInserted = false;
 			ConfigureParams.SCSI.target[i].szImageName[0] = '\0';
 			ConfigureParams.SCSI.target[i].bWriteProtected = false;
 		}
-		if (ConfigureParams.SCSI.target[i].nDeviceType==DEVTYPE_HARDDISK &&
+		if (ConfigureParams.SCSI.target[i].nDeviceType==SD_HARDDISK &&
 			ConfigureParams.SCSI.target[i].bDiskInserted == false) {
 			DlgAlert_Notice(SCSIDLG_NODEV_NOTICE);
-			ConfigureParams.SCSI.target[i].nDeviceType = DEVTYPE_NONE;
+			ConfigureParams.SCSI.target[i].nDeviceType = SD_NONE;
 			ConfigureParams.SCSI.target[i].bWriteProtected = false;
 		}
-		if (ConfigureParams.SCSI.target[i].nDeviceType==DEVTYPE_CD) {
+		if (ConfigureParams.SCSI.target[i].nDeviceType==SD_CD) {
 			ConfigureParams.SCSI.target[i].bWriteProtected = true;
 		}
 	}

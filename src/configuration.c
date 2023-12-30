@@ -392,7 +392,7 @@ void Configuration_SetDefault(void)
 	/* Set defaults for SCSI disks */
 	for (i = 0; i < ESP_MAX_DEVS; i++) {
 		strcpy(ConfigureParams.SCSI.target[i].szImageName, psWorkingDir);
-		ConfigureParams.SCSI.target[i].nDeviceType = DEVTYPE_NONE;
+		ConfigureParams.SCSI.target[i].nDeviceType = SD_NONE;
 		ConfigureParams.SCSI.target[i].bDiskInserted = false;
 		ConfigureParams.SCSI.target[i].bWriteProtected = false;
 	}

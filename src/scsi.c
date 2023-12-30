@@ -183,7 +183,7 @@ static int SCSI_LookupDisk(int target) {
     
     SCSIdisk[target].size = (size < 0) ? 0 : size;
     
-    if (SCSIdisk[target].devtype == DEVTYPE_HARDDISK) {
+    if (SCSIdisk[target].devtype == SD_HARDDISK) {
         for (i = 0; i < ARRAY_SIZE(known_disks); i++) {
             if (KNOWN_SIZE(known_disks, i) == size) {
                 if (known_disks[i].bs <= SCSI_MAX_BLOCK) {
@@ -237,32 +237,37 @@ static int SCSI_GetCount(uint8_t opcode, uint8_t *cdb)
     COMMAND_ReadInt16(cdb, 7);
 }
 
-static void SCSI_GuessGeometry(uint32_t size, uint32_t *cylinders, uint32_t *heads, uint32_t *sectors)
+#define FLP_CYLS     80
+#define FLP_HEADS    2
+#define HDD_SECTS    32
+#define HDD_HEADS    4
+
+static void SCSI_GuessGeometry(SCSI_DEVTYPE type, uint32_t sectors, uint32_t *nc, uint32_t *nt, uint32_t *ns)
 {
-    uint32_t c,h,s;
+    uint32_t c, h, s;
     
-    for (h=16; h>0; h--) {
-        for (s=63; s>15; s--) {
-            if ((size%(s*h))==0) {
-                c=size/(s*h);
-                *cylinders=c;
-                *heads=h;
-                *sectors=s;
-                return;
-            }
+    if (type == SD_FLOPPY) {
+        c = FLP_CYLS;
+        h = FLP_HEADS;
+        s = sectors / (c * h);
+    } else {
+        h = HDD_HEADS;
+        s = HDD_SECTS;
+        c = sectors / (h * s);
+    }
+    
+    if (sectors % (c * h * s)) {
+        Log_Printf(LOG_WARN, "[SCSI] Disk geometry: No valid geometry found!");
+        if (type == SD_FLOPPY) {
+            s++;
+        } else {
+            c++;
         }
     }
-    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk geometry: No valid geometry found! Using default.");
     
-    h=16;
-    s=63;
-    c=size/(s*h);
-    if ((size%(s*h))!=0) {
-        c+=1;
-    }
-    *cylinders=c;
-    *heads=h;
-    *sectors=s;
+    *nc = c;
+    *nt = h;
+    *ns = s;
 }
 
 #define SCSI_SEEK_TIME_HD       20000  /* 20 ms max seek time */
@@ -277,15 +282,15 @@ static int64_t SCSI_GetTime(uint8_t target) {
     int64_t seekoffset, disksize, sectors;
     
     switch (SCSIdisk[target].devtype) {
-        case DEVTYPE_HARDDISK:
+        case SD_HARDDISK:
             seektime = SCSI_SEEK_TIME_HD;
             sectortime = SCSI_SECTOR_TIME_HD;
             break;
-        case DEVTYPE_CD:
+        case SD_CD:
             seektime = SCSI_SEEK_TIME_CD;
             sectortime = SCSI_SECTOR_TIME_CD;
             break;
-        case DEVTYPE_FLOPPY:
+        case SD_FLOPPY:
             seektime = SCSI_SEEK_TIME_FD;
             sectortime = SCSI_SECTOR_TIME_FD;
             break;
@@ -323,7 +328,24 @@ static int64_t SCSI_GetTime(uint8_t target) {
 static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
     uint8_t target = SCSIbus.target;
     
+    uint32_t c, h, s;
+    uint32_t blocksize = SCSIdisk[target].blocksize;
+    uint32_t sectors = SCSIdisk[target].size / blocksize;
+    SCSI_DEVTYPE type = SCSIdisk[target].devtype;
+    
     int pagesize = 0;
+    
+    int i = SCSIdisk[target].known;
+    
+    if (i < 0) {
+        SCSI_GuessGeometry(type, sectors, &c, &h, &s);
+    } else {
+        c = known_disks[i].c;
+        h = known_disks[i].h;
+        s = known_disks[i].s;
+    }
+    
+    Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk geometry: %i cylinders, %i heads, %i sectors", c, h, s);
     
     switch (pagecode) {
         case 0x00: // operating page
@@ -335,42 +357,42 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
             break;
             
         case 0x01: // error recovery page
-            pagesize = 8;
+            pagesize = 4;
             page[0] = 0x01; // &0x80: page savable? (not supported!), &0x7F: page code = 0x01
-            page[1] = 0x06; // page length = 6
+            page[1] = 0x02; // page length = 2
             page[2] = 0x00; // AWRE, ARRE, TB, RC, EER, PER, DTE, DCR
             page[3] = 0x1B; // retry count
-            page[4] = 0x0B; // correction span in bits
-            page[5] = 0x00; // head offset count
-            page[6] = 0x00; // data strobe offset count
-            page[7] = 0xFF; // recovery time limit
             break;
             
         case 0x03: // format device page
-            
-            Log_Printf(LOG_WARN, "[SCSI] Mode sense: Format device page not supported!");
-
             pagesize = 24;
-            memset(page, 0, pagesize);
+            page[0] = 0x03; // &0x80: page savable? (not supported!), &0x7F: page code = 0x03
+            page[1] = 0x16; // page length = 22
+            page[2] = 0x00; // tracks per zone (msb)
+            page[3] = 0x00; // tracks per zone (lsb)
+            page[4] = 0x00; // alternate sectors per zone (msb)
+            page[5] = 0x00; // alternate sectors per zone (lsb)
+            page[6] = 0x00; // not used
+            page[7] = 0x00; // not used
+            page[8] = 0x00; // alternate tracks per volume (msb)
+            page[9] = 0x00; // alternate tracks per volume (lsb)
+            page[10] = (s >> 8) & 0xFF;         // sectors per track (msb)
+            page[11] = s & 0xFF;                // sectors per track (lsb)
+            page[12] = (blocksize >> 8) & 0xFF; // data bytes per physical sector (msb)
+            page[13] = blocksize & 0xFF;        // data bytes per physical sector (lsb)
+            page[14] = 0x00; // interleave (msb)
+            page[15] = 0x01; // interleave (lsb)
+            page[16] = 0x00; // not used
+            page[17] = 0x00; // not used
+            page[18] = 0x00; // not used
+            page[19] = 0x00; // not used
+            page[20] = (type==SD_HARDDISK)?0x80:0xA0; // &0x80: SSEC=1, &0x20: RMB
+            page[21] = 0x00; // reserved
+            page[22] = 0x00; // reserved
+            page[23] = 0x00; // reserved
             break;
             
-        case 0x04: // rigid disc geometry page
-        {
-            uint32_t c, h, s;
-            
-            int i = SCSIdisk[target].known;
-            uint32_t num_sectors = SCSIdisk[target].size / SCSIdisk[target].blocksize;
-            
-            if (i < 0) {
-                SCSI_GuessGeometry(num_sectors, &c, &h, &s);
-            } else {
-                c = known_disks[i].c;
-                h = known_disks[i].h;
-                s = known_disks[i].s;
-            }
-            
-            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk geometry: %i cylinders, %i heads, %i sectors", c, h, s);
-            
+        case 0x04: // rigid disc geometry page            
             pagesize = 20;
             page[0] = 0x04; // &0x80: page savable? (not supported!), &0x7F: page code = 0x04
             page[1] = 0x12;
@@ -392,7 +414,6 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
             page[17] = 0x00; // &0x03: rotational position locking
             page[18] = 0x00; // rotational position lock offset
             page[19] = 0x00; // reserved
-        }
             break;
             
         case 0x02: // disconnect/reconnect page
@@ -416,8 +437,8 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
 static void SCSI_TestUnitReady(uint8_t *cdb) {
     uint8_t target = SCSIbus.target;
     
-    if (SCSIdisk[target].devtype!=DEVTYPE_NONE &&
-        SCSIdisk[target].devtype!=DEVTYPE_HARDDISK &&
+    if (SCSIdisk[target].devtype!=SD_NONE &&
+        SCSIdisk[target].devtype!=SD_HARDDISK &&
         SCSIdisk[target].dsk==NULL) { /* Empty drive */
         SCSIdisk[target].status = STAT_CHECK_COND;
         SCSIdisk[target].sense.key = SK_NOTREADY;
@@ -607,7 +628,7 @@ static void SCSI_Inquiry(uint8_t *cdb) {
         memcpy(scsi_buffer.data, inquiry_bytes, sizeof(inquiry_bytes));
         
         switch (SCSIdisk[target].devtype) {
-            case DEVTYPE_HARDDISK:
+            case SD_HARDDISK:
                 scsi_buffer.data[0] = DEVTYPE_DISK;
                 scsi_buffer.data[1] &= ~0x80;
                 scsi_buffer.data[16] = 'H';
@@ -618,7 +639,7 @@ static void SCSI_Inquiry(uint8_t *cdb) {
                 scsi_buffer.data[21] = ' ';
                 Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is HDD");
                 break;
-            case DEVTYPE_CD:
+            case SD_CD:
                 scsi_buffer.data[0] = DEVTYPE_READONLY;
                 scsi_buffer.data[1] |= 0x80;
                 scsi_buffer.data[16] = 'C';
@@ -629,7 +650,7 @@ static void SCSI_Inquiry(uint8_t *cdb) {
                 scsi_buffer.data[21] = 'M';
                 Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is CD-ROM");
                 break;
-            case DEVTYPE_FLOPPY:
+            case SD_FLOPPY:
                 scsi_buffer.data[0] = DEVTYPE_DISK;
                 scsi_buffer.data[1] |= 0x80;
                 scsi_buffer.data[16] = 'F';
@@ -696,7 +717,7 @@ static void SCSI_StartStop(uint8_t *cdb) {
             break;
         case 2:
             Log_Printf(LOG_WARN, "[SCSI] Eject disk %i", target);
-            if (SCSIdisk[target].devtype != DEVTYPE_HARDDISK) {
+            if (SCSIdisk[target].devtype != SD_HARDDISK) {
                 SCSI_Eject(target);
                 ConfigureParams.SCSI.target[target].bDiskInserted = false;
                 ConfigureParams.SCSI.target[target].szImageName[0] = '\0';
@@ -991,7 +1012,7 @@ static void SCSI_Command(uint8_t *cdb) {
 bool SCSIdisk_Select(uint8_t target) {
     
     /* If there is no disk drive present, return timeout true */
-    if (SCSIdisk[target].devtype==DEVTYPE_NONE) {
+    if (SCSIdisk[target].devtype==SD_NONE) {
         Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Selection timeout, target = %i", target);
         SCSIbus.phase = PHASE_ST;
         return true;
@@ -1071,7 +1092,7 @@ int64_t SCSIdisk_Time(void) {
 /* Insert/Eject SCSI disks */
 void SCSI_Insert(uint8_t i) {
     SCSIdisk[i].devtype = ConfigureParams.SCSI.target[i].nDeviceType;
-    if (SCSIdisk[i].devtype == DEVTYPE_HARDDISK) {
+    if (SCSIdisk[i].devtype == SD_HARDDISK) {
         ConfigureParams.SCSI.target[i].bDiskInserted = true;
     }
     
@@ -1083,12 +1104,12 @@ void SCSI_Insert(uint8_t i) {
     
     SCSIdisk[i].shadow = NULL;
     
-    if (SCSIdisk[i].devtype != DEVTYPE_NONE && ConfigureParams.SCSI.target[i].bDiskInserted) {
+    if (SCSIdisk[i].devtype != SD_NONE && ConfigureParams.SCSI.target[i].bDiskInserted) {
         Log_Printf(LOG_WARN, "SCSI disk %i: Insert %s", i, ConfigureParams.SCSI.target[i].szImageName);
         
         SCSIdisk[i].known = SCSI_LookupDisk(i); /* Sets size and blocksize */
         
-        if (ConfigureParams.SCSI.target[i].nDeviceType == DEVTYPE_CD) {
+        if (ConfigureParams.SCSI.target[i].nDeviceType == SD_CD) {
             ConfigureParams.SCSI.target[i].bWriteProtected = true;
         }
         if (!ConfigureParams.SCSI.target[i].bWriteProtected) {
@@ -1103,8 +1124,8 @@ void SCSI_Insert(uint8_t i) {
             Log_Printf(LOG_WARN, "SCSI disk %i: Cannot open image file %s",
                        i, ConfigureParams.SCSI.target[i].szImageName);
             SCSI_Eject(i);
-            if (SCSIdisk[i].devtype == DEVTYPE_HARDDISK) {
-                SCSIdisk[i].devtype = DEVTYPE_NONE;
+            if (SCSIdisk[i].devtype == SD_HARDDISK) {
+                SCSIdisk[i].devtype = SD_NONE;
             }
             Statusbar_AddMessage("Cannot open SCSI disk", 0);
         }
