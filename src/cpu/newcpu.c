@@ -3966,6 +3966,7 @@ static void m68k_reset2(bool hardreset)
 	regs.spcflags = 0;
 	m68k_reset_delay = 0;
 	regs.ipl[0] = regs.ipl[1] = regs.ipl_pin = 0;
+	regs.lastipl = 0;
 #ifndef WINUAE_FOR_HATARI
 	for (int i = 0; i < IRQ_SOURCE_MAX; i++) {
 		uae_interrupts2[i] = 0;
@@ -4987,7 +4988,6 @@ static void doint_delayed(uae_u32 v)
 
 void doint(void)
 {
-#ifndef WINUAE_FOR_PREVIOUS // Previous: for now this is done inside the run-loops
 #ifdef WITH_PPC
 	if (ppc_state) {
 		if (!ppc_interrupt(intlev()))
@@ -5029,7 +5029,6 @@ void doint(void)
 		else
 			set_special(SPCFLAG_DOINT);
 	}
-#endif // WINUAE_FOR_PREVIOUS
 }
 
 
@@ -5072,6 +5071,11 @@ static inline void run_other_MPUs(void)
 		i860_Run(ndCycles);
 		ndCycles = 0;
 	}
+
+	/* We can have several events at the same time before the next CPU instruction */
+	while (PendingInterrupt.time <= 0 && PendingInterrupt.pFunction) {
+		CALL_VAR(PendingInterrupt.pFunction); /* call the event handler */
+	}
 }
 
 static int do_specialties (int cycles)
@@ -5087,16 +5091,6 @@ static int do_specialties (int cycles)
 		unset_special(SPCFLAG_MMURESTART);
 	} else {
 
-#ifndef WINUAE_FOR_PREVIOUS
-		if (spcflags & SPCFLAG_BUSERROR) {
-			/* We can not execute bus errors directly in the memory handler
-			* functions since the PC should point to the address of the next
-			* instruction, so we're executing the bus errors here: */
-			unset_special(SPCFLAG_BUSERROR);
-			Exception(2);
-		}
-#endif
-
 		if (spcflags & SPCFLAG_DOTRACE) {
 			Exception(9);
 		}
@@ -5110,7 +5104,6 @@ static int do_specialties (int cycles)
 		if (regs.spcflags & SPCFLAG_TRACE)
 			do_trace();
 
-#ifndef WINUAE_FOR_PREVIOUS // Previous: for now this is done inside the run-loops
 //fprintf ( stderr , "dospec1 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
 		if (m68k_interrupt_delay) {
 			int ipl = time_for_interrupt();
@@ -5122,8 +5115,10 @@ static int do_specialties (int cycles)
 			if (spcflags & SPCFLAG_INT) {
 				int intr = intlev();
 				unset_special (SPCFLAG_INT | SPCFLAG_DOINT);
-				if (intr > 0 && (intr > regs.intmask || intr == 7))
+				if (intr > regs.intmask || (intr == 7 && intr > regs.lastipl)) {
 					do_interrupt(intr);
+				}
+				regs.lastipl = intr;
 			}
 		}
 
@@ -5133,7 +5128,6 @@ static int do_specialties (int cycles)
 			set_special(SPCFLAG_INT);
 		}
 //fprintf ( stderr , "dospec3 %d %d spcflags=%x ipl=%x ipl_pin=%x intmask=%x\n" , m68k_interrupt_delay,time_for_interrupt() , spcflags , regs.ipl , regs.ipl_pin, regs.intmask );
-#endif // WINUAE_FOR_PREVIOUS
 	}
 
 #ifdef WINUAE_FOR_HATARI
@@ -6258,9 +6252,7 @@ static void m68k_run_mmu060 (void)
 static void m68k_run_mmu040 (void)
 {
 	struct flag_struct f;
-	int halt     = 0;
-	int intr     = 0;
-	int lastintr = 0;
+	int halt = 0;
 
 	check_halt();
 #ifdef WINUAE_FOR_HATARI
@@ -6287,20 +6279,6 @@ static void m68k_run_mmu040 (void)
 				M68000_AddCycles(cpu_cycles);
 
 				run_other_MPUs();
-
-				/* We can have several interrupts at the same time before the next CPU instruction */
-				while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) ) {
-					CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
-				}
-
-				/* Previous: for now we poll the interrupt pins with every instruction.
-				 * TODO: only do this when an actual interrupt is active to not
-				 * unneccessarily slow down emulation.
-				 */
-				intr = intlev ();
-				if (intr>regs.intmask || (intr==7 && intr>lastintr))
-					Exception (intr + 24);
-				lastintr = intr;
 #endif
 
 				if (regs.spcflags) {
@@ -6337,9 +6315,7 @@ static void m68k_run_mmu040 (void)
 static void m68k_run_mmu030 (void)
 {
 	struct flag_struct f;
-	int halt     = 0;
-	int intr     = 0;
-	int lastintr = 0;
+	int halt = 0;
 
 #ifdef WINUAE_FOR_HATARI
 	Log_Printf(LOG_DEBUG,  "m68k_run_mmu030\n");
@@ -6414,19 +6390,6 @@ insretry:
 				M68000_AddCycles(cpu_cycles);
 
 				run_other_MPUs();
-
-				/* We can have several interrupts at the same time before the next CPU instruction */
-				while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) ) {
-					CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
-				}
-				/* Previous: for now we poll the interrupt pins with every instruction.
-				 * TODO: only do this when an actual interrupt is active to not
-				 * unneccessarily slow down emulation.
-				 */
-				intr = intlev ();
-				if (intr>regs.intmask || (intr==7 && intr>lastintr))
-					Exception (intr + 24);
-				lastintr = intr;
 #endif
 				if (regs.spcflags) {
 					if (do_specialties (cpu_cycles)) {

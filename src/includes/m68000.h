@@ -103,6 +103,7 @@ extern void M68000_Init(void);
 extern void M68000_Reset(void);
 extern void M68000_Stop(void);
 extern void M68000_Start(void);
+extern void M68000_CheckInterrupt(void);
 extern void M68000_CheckCpuSettings(void);
 extern void M68000_BusError (uint32_t addr, int ReadWrite, int Size, int AccessType, uae_u32 val);
 

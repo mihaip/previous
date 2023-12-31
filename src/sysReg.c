@@ -108,6 +108,8 @@ uint8_t dsp_txdn_intr         = 0;
 uint32_t scrIntStat = 0x00000000;
 uint32_t scrIntMask = 0x00000000;
 
+int scrIntLevel = 0;
+
 /* System Control Register 1
  *
  * These values are valid for all non-Turbo systems:
@@ -190,7 +192,8 @@ void SCR_Reset(void) {
     scr2_3=0x00;
     scrIntStat=0x00000000;
     scrIntMask=0x00000000;
-
+    scrIntLevel=0;
+    
     Statusbar_SetSystemLed(false);
     rtc_interface_reset();
     
@@ -551,40 +554,42 @@ void scr_check_dsp_interrupt(void) {
     }
 }
 
+/* Set interrupt level from interrupt status and mask registers */
+static inline void scr_get_interrupt_level(void) {
+    uint32_t interrupt = scrIntStat&scrIntMask;
+    
+    if (!interrupt) {
+        scrIntLevel = 0;
+    } else if (interrupt&INT_L7_MASK) {
+        scrIntLevel = 7;
+    } else if ((interrupt&INT_TIMER) && (scr2_2&SCR2_TIMERIPL7)) {
+        scrIntLevel = 7;
+    } else if (interrupt&INT_L6_MASK) {
+        scrIntLevel = 6;
+    } else if (interrupt&INT_L5_MASK) {
+        scrIntLevel = 5;
+    } else if (interrupt&INT_L4_MASK) {
+        scrIntLevel = 4;
+    } else if (interrupt&INT_L3_MASK) {
+        scrIntLevel = 3;
+    } else if (interrupt&INT_L2_MASK) {
+        scrIntLevel = 2;
+    } else if (interrupt&INT_L1_MASK) {
+        scrIntLevel = 1;
+    } else {
+        scrIntLevel = 0;
+    }
+    M68000_CheckInterrupt();
+}
 
+/* Set or clear interrupt bits in the interrupt status register */
 void set_interrupt(uint32_t intr, uint8_t state) {
-    /* The interrupt gets polled by the cpu via intlev()
-     * --> see previous-glue.c
-     */
     if (state==SET_INT) {
         scrIntStat |= intr;
     } else {
         scrIntStat &= ~intr;
     }
-}
-
-int scr_get_interrupt_level(uint32_t interrupt) {
-    if (!interrupt) {
-        return 0;
-    } else if (interrupt&INT_L7_MASK) {
-        return 7;
-    } else if ((interrupt&INT_TIMER) && (scr2_2&SCR2_TIMERIPL7)) {
-        return 7;
-    } else if (interrupt&INT_L6_MASK) {
-        return 6;
-    } else if (interrupt&INT_L5_MASK) {
-        return 5;
-    } else if (interrupt&INT_L4_MASK) {
-        return 4;
-    } else if (interrupt&INT_L3_MASK) {
-        return 3;
-    } else if (interrupt&INT_L2_MASK) {
-        return 2;
-    } else if (interrupt&INT_L1_MASK) {
-        return 1;
-    } else {
-        abort();
-    }
+    scr_get_interrupt_level();
 }
 
 /* Interrupt Mask Register */
@@ -606,6 +611,8 @@ void IntRegMaskWrite(void) {
     } else {
         scrIntMask |= INT_NONMASKABLE;
     }
+    scr_get_interrupt_level();
+    
     Log_Printf(LOG_DEBUG, "Interrupt mask: %08x", scrIntMask);
 }
 

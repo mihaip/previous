@@ -62,10 +62,10 @@ extern "C" {
 
 void set_interrupt(uint32_t intr, uint8_t state);
 void scr_check_dsp_interrupt(void);
-int  scr_get_interrupt_level(uint32_t interrupt);
 
 extern uint32_t scrIntStat;
 extern uint32_t scrIntMask;
+extern int scrIntLevel;
 
 extern uint8_t dsp_intr_at_block_end;
 extern uint8_t dsp_dma_unpacked;
@@ -81,8 +81,7 @@ static inline int intlev(void) {
     /* Poll interrupt level from interrupt status and mask registers
      * --> see sysReg.c
      */
-    uint32_t interrupt = scrIntStat&scrIntMask;
-    return interrupt ? scr_get_interrupt_level(interrupt) : 0;
+    return scrIntLevel;
 }
 
 void SCR_Reset(void);

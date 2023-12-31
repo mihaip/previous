@@ -58,6 +58,16 @@ void M68000_Start(void)
 
 /*-----------------------------------------------------------------------*/
 /**
+ * Set interrupt flag to indicate a change of the interrupt level
+ */
+void M68000_CheckInterrupt(void)
+{
+	M68000_SetSpecial(SPCFLAG_INT);
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
  * Check whether CPU settings have been changed.
  */
 void M68000_CheckCpuSettings(void)
