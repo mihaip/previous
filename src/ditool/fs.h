@@ -27,6 +27,8 @@
 #pragma pack(push, 1)
 #define NeXT 1
 
+#include "config.h"
+
 /* This will pull in the __u8, __s8, __u16, ..., __s64 definitions on Linux and many Unices, although not part of POSIX */
 #if HAVE_SYS_TYPES_H
   #include <sys/types.h>

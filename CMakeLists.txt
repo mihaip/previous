@@ -215,6 +215,14 @@ IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	set(CMAKE_C_FLAGS "-O ${CMAKE_C_FLAGS}")
 ENDIF (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
+if(EMSCRIPTEN)
+	# Emscripten has xattr.h but trying to use it produces linker errors. For 
+	# now, disable it.
+	set(HAVE_SYS_XATTR_H 0)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_SDL=2")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
+endif(EMSCRIPTEN)
+
 # ####################
 # Paths configuration:
 # ####################

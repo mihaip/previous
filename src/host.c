@@ -21,6 +21,7 @@ const char Host_fileid[] = "Previous host.c";
 #endif
 #endif
 #include <errno.h>
+#include <float.h>
 
 #include "host.h"
 #include "configuration.h"
