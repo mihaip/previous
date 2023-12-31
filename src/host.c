@@ -9,6 +9,7 @@
 #endif
 #endif
 #include <errno.h>
+#include <float.h>
 
 #include "host.h"
 #include "configuration.h"

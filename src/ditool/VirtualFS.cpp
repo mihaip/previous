@@ -35,6 +35,10 @@
 #define st_mtimespec st_mtim
 #endif
 
+#ifndef ACCESSPERMS
+#define ACCESSPERMS (S_IRWXU|S_IRWXG|S_IRWXO)
+#endif
+
 #endif
 
 using namespace std;
@@ -680,7 +684,7 @@ int VirtualFS::vfsStat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
 }
 
 int VirtualFS::vfsUtimes(const VFSPath& absoluteVFSpath, const struct timeval times[2]) {
-#ifdef _WIN32
+#if defined(_WIN32) || defined(EMSCRIPTEN)
     return 0; // not supported
 #else
     return get_error(::lutimes(toHostPath(absoluteVFSpath).c_str(), times));

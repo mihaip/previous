@@ -64,6 +64,10 @@ typedef int ioctlsockopt_t;
 #include <sys/time.h>
 #endif
 
+#ifdef EMSCRIPTEN
+#include <string.h>
+#endif
+
 #ifdef NEED_TYPEDEFS
 typedef char int8_t;
 typedef unsigned char u_int8_t;

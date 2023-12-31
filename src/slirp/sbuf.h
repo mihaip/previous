@@ -9,6 +9,11 @@
 #define _SBUF_H_
 
 #include <stddef.h>
+#include "config.h"
+
+#if HAVE_SYS_TYPES_H
+  #include <sys/types.h>
+#endif
 
 #define sbflush(sb) sbdrop((sb),(sb)->sb_cc)
 #define sbspace(sb) ((sb)->sb_datalen - (sb)->sb_cc)

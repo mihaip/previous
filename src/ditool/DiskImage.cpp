@@ -7,6 +7,7 @@
 
 #include "DiskImage.h"
 
+#include "config.h"
 #include <iostream>
 #include <cstring>
 

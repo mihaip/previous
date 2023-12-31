@@ -115,6 +115,17 @@ endif(SDL2_OTHER_CFLAGS)
 
 target_link_libraries(${APP_NAME} Debug GuiSdl UaeCpu DSP Dimension Slirp SoftFloat ${SDL2_LIBRARIES})
 
+if (EMSCRIPTEN)
+	target_link_libraries(${APP_NAME}
+		"-gsource-map"
+		# 256 MB max for emulated Mac RAM, plus 32 MB of emulator overhead
+		"-s INITIAL_MEMORY=301989888"
+		"-s MODULARIZE"
+		"-s EXPORT_ES6"
+		"-s EXPORT_NAME=emulator"
+		"-s 'EXPORTED_RUNTIME_METHODS=[\"FS\"]'")
+endif(EMSCRIPTEN)
+
 if(Math_FOUND AND NOT APPLE)
 	target_link_libraries(${APP_NAME} ${MATH_LIBRARY})
 endif()
