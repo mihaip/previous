@@ -73,19 +73,13 @@
 
 
 /* SCSI Commands */
-
-/* The following are multi-sector transfers with seek implied */
-#define CMD_VERIFY_TRACK    0x05    /* Verify track */
-#define CMD_FORMAT_TRACK    0x06    /* Format track */
-#define CMD_READ_SECTOR     0x08    /* Read sector */
-#define CMD_READ_SECTOR1    0x28    /* Read sector (class 1) */
-#define CMD_WRITE_SECTOR    0x0A    /* Write sector */
-#define CMD_WRITE_SECTOR1   0x2A    /* Write sector (class 1) */
-
-/* Other codes */
 #define CMD_TEST_UNIT_RDY   0x00    /* Test unit ready */
 #define CMD_FORMAT_DRIVE    0x04    /* Format the whole drive */
+#define CMD_VERIFY_TRACK    0x05    /* Verify track */
+#define CMD_FORMAT_TRACK    0x06    /* Format track */
 #define CMD_REASSIGN        0x07    /* Reassign defective blocks */
+#define CMD_READ_SECTOR     0x08    /* Read sector */
+#define CMD_WRITE_SECTOR    0x0A    /* Write sector */
 #define CMD_SEEK            0x0B    /* Seek */
 #define CMD_CORRECTION      0x0D    /* Correction */
 #define CMD_INQUIRY         0x12    /* Inquiry */
@@ -94,6 +88,8 @@
 #define CMD_REQ_SENSE       0x03    /* Request sense */
 #define CMD_SHIP            0x1B    /* Ship drive */
 #define CMD_READ_CAPACITY1  0x25    /* Read capacity (class 1) */
+#define CMD_READ_SECTOR1    0x28    /* Read sector (class 1) */
+#define CMD_WRITE_SECTOR1   0x2A    /* Write sector (class 1) */
 
 
 /* Externally accessible */
@@ -1101,6 +1097,7 @@ void SCSI_Insert(uint8_t i) {
     SCSIdisk[i].sense.valid = false;
     SCSIdisk[i].lba = SCSIdisk[i].lastlba = SCSIdisk[i].blockcounter = 0;
     SCSIdisk[i].blocksize = SCSI_BLOCKSIZE;
+    SCSIdisk[i].known = -1;
     
     SCSIdisk[i].shadow = NULL;
     
@@ -1152,9 +1149,7 @@ static void SCSI_Init(void) {
 static void SCSI_Uninit(void) {
     int i;
     for (i = 0; i < ESP_MAX_DEVS; i++) {
-        if (SCSIdisk[i].dsk) {
-            SCSI_Eject(i);
-        }
+        SCSI_Eject(i);
     }
 }
 
