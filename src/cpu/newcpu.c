@@ -5024,7 +5024,7 @@ void doint(void)
 	}
 
 	if (regs.ipl_pin > regs.intmask || currprefs.cachesize) {
-		if (!currprefs.cachesize)
+		if (currprefs.cpu_compatible && currprefs.cpu_model < 68020)
 			set_special(SPCFLAG_INT);
 		else
 			set_special(SPCFLAG_DOINT);
@@ -5089,6 +5089,10 @@ static int do_specialties (int cycles)
 	if (spcflags & SPCFLAG_MMURESTART) {
 		// can't have interrupt when 040/060 CPU reruns faulted instruction
 		unset_special(SPCFLAG_MMURESTART);
+
+		if (spcflags & SPCFLAG_TRACE) {
+			do_trace();
+		}
 	} else {
 
 		if (spcflags & SPCFLAG_DOTRACE) {
