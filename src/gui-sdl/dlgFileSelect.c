@@ -736,7 +736,7 @@ char* SDLGui_FileSelect(const char *title, const char *path_and_name, char **zip
 	else
 	{
 		fsdlg[SGFSDLG_READONLY].type = SGTEXT;
-		snprintf(dlgreadonly, sizeof(dlgreadonly), "");
+		snprintf(dlgreadonly, sizeof(dlgreadonly), " ");
 	}
 
 	/* Prepare the path and filename variables */

@@ -187,8 +187,6 @@ void Grab_Screen(void) {
 	char szFileName[32];
 	char *szPathName = NULL;
 	
-	if (!szFileName) return;
-	
 	if (File_DirExists(ConfigureParams.Printer.szPrintToFileName)) {
 		for (i = 0; i < 1000; i++) {
 			snprintf(szFileName, sizeof(szFileName), "next_screen_%03d", i);

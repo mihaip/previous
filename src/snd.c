@@ -232,7 +232,7 @@ static uint8_t snd_make_ulaw(int16_t sample) {
 static const int SNDIN_SAMPLE_TIME = 124;
 void SND_In_Handler(void) {
     int16_t sample;
-    uint32_t foursamples;
+    uint32_t foursamples = 0;
     int size = 0;
     
     CycInt_AcknowledgeInterrupt();

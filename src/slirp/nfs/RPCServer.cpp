@@ -76,15 +76,15 @@ void CRPCServer::set(int nProg, CRPCProg *pRPCProg) {
 }
 
 void CRPCServer::setLogOn(bool bLogOn) {
-    for (std::map<int, std::vector<CRPCProg*> >::iterator it = m_pProgTable.begin(); it != m_pProgTable.end(); it++)
-        for(size_t i = 0; i < it->second.size(); i++)
-            it->second[i]->setLogOn(bLogOn);
+	for (std::map<int, std::vector<CRPCProg*> >::iterator it = m_pProgTable.begin(); it != m_pProgTable.end(); it++)
+		for (size_t i = 0; i < it->second.size(); i++)
+			it->second[i]->setLogOn(bLogOn);
 }
 
 void CRPCServer::socketReceived(CSocket *pSocket, uint32_t header) {
-    NFSDLock lock(m_hMutex);
+	NFSDLock lock(m_hMutex);
 
-    XDRInput* pInStream = pSocket->getInputStream();
+	XDRInput* pInStream = pSocket->getInputStream();
 	while (pInStream->hasData()) {
 		int nResult = process(pSocket->getType(), pSocket->getServerPort(), pInStream, pSocket->getOutputStream(), header, pSocket->getRemoteAddress());  //process input data
 		pSocket->send();  //send response
@@ -96,12 +96,12 @@ void CRPCServer::socketReceived(CSocket *pSocket, uint32_t header) {
 int CRPCServer::process(int sockType, int port, XDRInput* pInStream, XDROutput* pOutStream, uint32_t headerIn, const char* pRemoteAddr) {
 	RPC_HEADER header;
 	RPC_AUTH_UNIX auth;
-    size_t headerPos;
 	ProcessParam param;
-	int nResult;
 
-	nResult = PRC_OK;
-    header.header = headerIn;
+	size_t headerPos = 0;
+	int nResult = PRC_OK;
+
+	header.header = headerIn;
 	pInStream->read(&header.XID);
 	pInStream->read(&header.msg);
 	pInStream->read(&header.rpcvers);  //rpc version
@@ -146,20 +146,20 @@ int CRPCServer::process(int sockType, int port, XDRInput* pInStream, XDROutput* 
 		param.version    = header.vers;
 		param.proc       = header.proc;
 		param.remoteAddr = pRemoteAddr;
-        param.sockType   = sockType;
-        
-        CRPCProg* prog = m_pProgTable[header.prog][0];
-        for(int i = 0; i < m_pProgTable[header.prog].size(); i++) {
-            if (sockType == SOCK_STREAM) {
-                if(m_pProgTable[header.prog][i]->getPortTCP() == port)
-                    prog = m_pProgTable[header.prog][i];
-            } else {
-                if(m_pProgTable[header.prog][i]->getPortUDP() == port)
-                    prog = m_pProgTable[header.prog][i];
-            }
-        }
-        prog->setup(pInStream, pOutStream, &param);
-        
+		param.sockType   = sockType;
+
+		CRPCProg* prog = m_pProgTable[header.prog][0];
+		for(int i = 0; i < m_pProgTable[header.prog].size(); i++) {
+			if (sockType == SOCK_STREAM) {
+				if(m_pProgTable[header.prog][i]->getPortTCP() == port)
+					prog = m_pProgTable[header.prog][i];
+			} else {
+				if(m_pProgTable[header.prog][i]->getPortUDP() == port)
+					prog = m_pProgTable[header.prog][i];
+			}
+		}
+		prog->setup(pInStream, pOutStream, &param);
+
 		if (prog->getVersion() == 0 || prog->getVersion() >= param.version)
 		{
 			nResult = prog->process();

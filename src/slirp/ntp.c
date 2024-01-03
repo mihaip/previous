@@ -43,14 +43,16 @@ static void ntp_reply(struct ntp_t *np)
     struct udphdr *udp;
     struct sockaddr_in saddr, daddr;
 
+    uint32_t now[2];
+
+    ntp_get_time(now);
+
     if ((m = m_get()) == NULL)
         return;
     m->m_data += if_maxlinkhdr;
     rnp = (struct ntp_t *)m->m_data;
     m->m_data += sizeof(struct udpiphdr);
     memset(rnp, 0, sizeof(struct ntp_t));
-
-    ntp_get_time(rnp->rec);
 
     ip  = &np->ip;
     udp = &np->udp;
@@ -79,7 +81,13 @@ static void ntp_reply(struct ntp_t *np)
     rnp->org[0] = np->xmt[0];
     rnp->org[1] = np->xmt[1];
 
-    ntp_get_time(rnp->xmt);
+    rnp->rec[0] = now[0];
+    rnp->rec[1] = now[1];
+
+    ntp_get_time(now);
+
+    rnp->xmt[0] = now[0];
+    rnp->xmt[1] = now[1];
 
     m->m_len = sizeof(struct ntp_t) - sizeof(struct ip) - sizeof(struct udphdr);
 
