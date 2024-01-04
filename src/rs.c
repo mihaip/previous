@@ -1,17 +1,19 @@
-/*  Previous - rs.c
- 
- This file is distributed under the GNU Public License, version 2 or at
- your option any later version. Read the file gpl.txt for details.
+/*
+  Previous - rs.c
 
- NeXT magento-optical drive controller uses cross interleaved Reed-Solomon-Codes
- for error correction. This implementation has been written by Olivier Galibert.
- The original code was adapted to work with Previous.
- 
- */
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  Cross interleaved Reed-Solomon-Code for error correction. This code is 
+  used by the magento-optical disk drive controller of the NeXT Computer. 
+
+  This implementation has been written by Olivier Galibert.
+*/
+
+const char Rs_fileid[] = "Previous rs.c";
 
 #include <string.h>
 
-#include "main.h"
 #include "rs.h"
 
 
@@ -127,18 +129,18 @@ const uint8_t t_log[256] = {
 
 static uint32_t ecc_block(const uint8_t *s, int ss)
 {
-    int i;
-    uint32_t r = (s[0] << 24) | (s[ss] << 16) | (s[2*ss] << 8) | s[3*ss];
-    
-    s += 4*ss;
-    for(i=4; i<36; i++) {
-        r = t_rem[r >> 24] ^ (r << 8);
-        if(i < 32) {
-            r ^= *s;
-            s += ss;
-        }
-    }
-    return r;
+	int i;
+	uint32_t r = (s[0] << 24) | (s[ss] << 16) | (s[2*ss] << 8) | s[3*ss];
+	
+	s += 4*ss;
+	for(i=4; i<36; i++) {
+		r = t_rem[r >> 24] ^ (r << 8);
+		if(i < 32) {
+			r ^= *s;
+			s += ss;
+		}
+	}
+	return r;
 }
 
 static void rs_encode_string(uint8_t *sector, int off, int step)
@@ -152,16 +154,16 @@ static void rs_encode_string(uint8_t *sector, int off, int step)
 
 static int rs_decode_string(uint8_t *sector, int off, int step)
 {
-    int i;
+	int i;
 	uint32_t ecc = ecc_block(sector+off, step);
 	uint32_t ref_ecc =
-    (sector[off+32*step] << 24) |
-    (sector[off+33*step] << 16) |
-    (sector[off+34*step] << 8) |
-    sector[off+35*step];
+	(sector[off+32*step] << 24) |
+	(sector[off+33*step] << 16) |
+	(sector[off+34*step] << 8) |
+	sector[off+35*step];
 	if(ref_ecc == ecc)
 		return 0;
-    
+	
 	// Syndrome polynomial
 	// syn[i] = value of the codebook polynom at 2**(i-1)
 	uint8_t syn[5];
@@ -177,16 +179,16 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 			syn[4] ^= t_exp[lv+3*i];
 		}
 	}
-    
+	
 	// Berlekamp-Massey
-    
+	
 	uint8_t sigma[5];
 	uint8_t omega[5];
 	uint8_t tau[5];
 	uint8_t gamma[5];
 	int d;
 	int b;
-    
+	
 	memset(sigma, 0, 5);
 	memset(omega, 0, 5);
 	memset(tau, 0, 5);
@@ -196,15 +198,15 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 	tau[0] = 1;
 	d = 0;
 	b = 0;
-    
-    int l;
+	
+	int l;
 	for(l=1; l<5; l++) {
 		// 1- Determine the l-order coefficient syn*sigma
 		uint8_t delta = 0;
 		for(i=0; i<=l; i++)
 			if(sigma[i] && syn[l-i])
 				delta ^= t_exp[t_log[sigma[i]] + t_log[syn[l-i]]];
-        
+		
 		// 2- Select update method a/b
 		int limit = (l+1)/2;
 		int exact = l & 1;
@@ -214,13 +216,13 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 			// tau and gamma multiplied by x
 			// sigma = sigma - delta * tau
 			// omega = omega - delta * gamma
-            
+			
 			for(i=0; i<l; i++) {
 				tau[l-i] = tau[l-i-1];
 				gamma[l-i] = gamma[l-i-1];
 			}
 			tau[0] = gamma[0] = 0;
-            
+			
 			if(delta) {
 				uint8_t ldelta = t_log[delta];
 				for(i=1; i<=l; i++) {
@@ -243,15 +245,15 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 			for(i=l; i>0; i--) {
 				if(tau[i-1])
 					sigma[i]   = sigma[i] ^ t_exp[t_log[tau  [i-1]] + ldelta];
-                
+				
 				if(gamma[i-1])
 					omega[i]   = omega[i] ^ t_exp[t_log[gamma[i-1]] + ldelta];
-                
+				
 				if(sigma[i-1])
 					tau[i-1]   = t_exp[t_log[sigma[i-1]] + ildelta];
 				else
 					tau[i-1]   = 0x00;
-                
+				
 				if(omega[i-1])
 					gamma[i-1] = t_exp[t_log[omega[i-1]] + ildelta];
 				else
@@ -259,15 +261,15 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 			}
 		}
 	}
-    
+	
 	// Find the roots of sigma to get the error positions (they're the inverses of 2**position)
 	// Compute the error(s)
-    
+	
 	if(sigma[3] || sigma[4]) {
 		// Should not happen
 		return -1;
 	}
-    
+	
 	if(sigma[2] && sigma[0]) {
 		int epos1, epos2;
 		uint8_t ls1 = t_log[sigma[1]];
@@ -282,9 +284,9 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 		}
 		if(epos1 > 35)
 			return -1;
-        
+		
 		// sigma = c.(x-1/r1)(x-1/r2) = c.x*x - c*x*(1/r1+1/r2) + c/(r1*r2)
-        
+		
 		// s0 = s2/(r1*r2) -> r1*r2*s0 = s2 -> r1 = s2 / (r1*s0)
 		// -> r2 = sigma[2]/(r1*sigma[0])
 		epos2 = ls2 - epos1 - t_log[sigma[0]];
@@ -292,7 +294,7 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 			epos2 += 255;
 		if(epos2 > 35)
 			return -1;
-        
+		
 		uint8_t err1 = omega[0];
 		if(omega[1])
 			err1 ^= t_exp[t_log[omega[1]] + 255 - epos1];
@@ -301,7 +303,7 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 		err1 = t_log[err1] + epos1;
 		uint8_t div = t_log[1 ^ t_exp[255 + epos2 - epos1]];
 		err1 = t_exp[255 + err1 - div];
-        
+		
 		uint8_t err2 = omega[0];
 		if(omega[1])
 			err2 ^= t_exp[t_log[omega[1]] + 255 - epos2];
@@ -310,22 +312,22 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 		err2 = t_log[err2] + epos2;
 		div = t_log[1 ^ t_exp[255 + epos1 - epos2]];
 		err2 = t_exp[255 + err2 - div];
-        
+		
 		sector[off + step*(35-epos1)] ^= err1;
 		sector[off + step*(35-epos2)] ^= err2;
 		return 2;
-        
+		
 	} else if(sigma[1] && sigma[0]) {
 		// sigma = c.(x-1/r1) -> r1=sigma[1]/sigma[0]
 		int epos = t_log[sigma[1]] - t_log[sigma[0]];
-        
+		
 		if(epos > 35)
 			return -1;
-        
+		
 		uint8_t err = sigma[1]^omega[1];
 		sector[off + step*(35-epos)] ^= err;
 		return 1;
-        
+		
 	} else {
 		// Should not happen
 		return -1;
@@ -334,41 +336,41 @@ static int rs_decode_string(uint8_t *sector, int off, int step)
 
 void rs_encode(uint8_t *sector)
 {
-    int i;
-    /* Create encoded sector structure */
+	int i;
+	/* Create encoded sector structure */
 	for(i=31; i>0; i--)
 		memmove(sector+36*i, sector+32*i, 32);
-    /* Encode columns */
+	/* Encode columns */
 	for(i=0; i<32; i++)
 		rs_encode_string(sector, i, 36);
-    /* Encode rows */
+	/* Encode rows */
 	for(i=0; i<36; i++)
 		rs_encode_string(sector, 36*i, 1);
 }
 
 int rs_decode(uint8_t *sector)
 {
-    int i,e;
+	int i,e;
 	int ecount = 0;
-    /* Decode rows */
-    for(i=0; i<36; i++) {
-        e = rs_decode_string(sector, 36*i, 1);
-        if(e!=-1) {
-            ecount += e;
-        }
-    }
-    /* Decode columns */
-    for(i=0; i<32; i++) {
-        e = rs_decode_string(sector, i, 36);
-        if(e==-1) {
-            return -1; /* Uncorrectable */
-        } else {
-            ecount += e;
-        }
-    }
-    /* Build decoded sector structure */
+	/* Decode rows */
+	for(i=0; i<36; i++) {
+		e = rs_decode_string(sector, 36*i, 1);
+		if(e!=-1) {
+			ecount += e;
+		}
+	}
+	/* Decode columns */
+	for(i=0; i<32; i++) {
+		e = rs_decode_string(sector, i, 36);
+		if(e==-1) {
+			return -1; /* Uncorrectable */
+		} else {
+			ecount += e;
+		}
+	}
+	/* Build decoded sector structure */
 	for(i=1; i<32; i++)
 		memmove(sector+i*32, sector+i*36, 32);
-    
-    return ecount;
+	
+	return ecount;
 }
