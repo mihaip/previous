@@ -126,17 +126,6 @@ static void bmap_put(uae_u32 bmap_reg, uae_u32 val) {
 }
 
 
-void bmap_init(void) {
-    int i;
-    
-    for (i = 0; i < 16; i++) {
-        NEXTbmap[i] = 0;
-    }
-    bmap_tpe_select  = 0;
-    bmap_hreq_enable = 0;
-    bmap_txdn_enable = 0;
-}
-
 uae_u32 bmap_lget(uaecptr addr) {
     uae_u32 l;
     
@@ -219,4 +208,15 @@ void bmap_bput(uaecptr addr, uae_u32 b) {
     val |= b << shift;
     
     bmap_put(addr>>2, val);
+}
+
+void BMAP_Reset(void) {
+    int i;
+    
+    for (i = 0; i < 16; i++) {
+        NEXTbmap[i] = 0;
+    }
+    bmap_tpe_select  = 0;
+    bmap_hreq_enable = 0;
+    bmap_txdn_enable = 0;
 }

@@ -84,8 +84,6 @@
  * Turbo:    3dd189ff
  */
 
-int SCR_ROM_overlay = 0;
-
 static uint32_t scr1  = 0x00000000;
 
 static uint8_t scr2_0 = 0x00;
@@ -99,6 +97,8 @@ static uint8_t col_vid_intr   = 0;
 static uint8_t bright_reg     = 0;
 
 static uint8_t hardclock_csr  = 0;
+
+static uint8_t scrRomOverlay  = 0;
 
 uint8_t dsp_dma_unpacked      = 0;
 uint8_t dsp_intr_at_block_end = 0;
@@ -176,7 +176,7 @@ void SCR_Reset(void) {
     uint8_t cpu_speed = 0;
     uint8_t memory_speed = 0;
     
-    SCR_ROM_overlay = 0;
+    scrRomOverlay = 0;
     hardclock_csr = 0;
     col_vid_intr = 0;
     bright_reg = 0;
@@ -472,7 +472,7 @@ void SCR2_Write3(void)
     changed_bits^=scr2_3;
     
     if (changed_bits&SCR2_ROM) {
-        SCR_ROM_overlay=scr2_3&SCR2_ROM;
+        scrRomOverlay=scr2_3&SCR2_ROM;
         Log_Printf(LOG_WARN,"[SCR2] ROM change at $%08x val=%x PC=$%08x\n",
                    IoAccessCurrentAddress,scr2_3&SCR2_ROM,m68k_getpc());
     }

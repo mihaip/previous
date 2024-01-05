@@ -17,6 +17,7 @@ const char Reset_fileid[] = "Hatari reset.c";
 #include "scc.h"
 #include "screen.h"
 #include "tmc.h"
+#include "bmap.h"
 #include "video.h"
 #include "debugcpu.h"
 #include "debugdsp.h"
@@ -48,7 +49,7 @@ static int Reset_NeXT(bool bCold)
 		host_reset();             /* Reset host related timing vars */
 		CycInt_Reset();           /* Reset interrupts */
 		Video_Reset();            /* Reset video */
-		Screen_ModeChanged();     /* Reset Screen Mode */
+		Screen_ModeChanged();     /* Reset screen mode */
 		DebugCpu_SetDebugging();  /* Reset debugging flag if needed */
 		DebugDsp_SetDebugging();  /* Reset debugging flag if needed */
 		Main_SpeedReset();        /* Reset speed reporting system */
@@ -56,6 +57,7 @@ static int Reset_NeXT(bool bCold)
 
 	M68000_Reset();               /* Reset CPU */
 	TMC_Reset();                  /* Reset TMC Registers */
+	BMAP_Reset();                 /* Reset BMAP Registers */
 	SCR_Reset();                  /* Reset System Control Registers */
 	RTC_Reset();                  /* Reset RTC and NVRAM */
 	DMA_Reset();                  /* Reset DMA controller */
