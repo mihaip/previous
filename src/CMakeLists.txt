@@ -1,11 +1,17 @@
 
 set(SOURCES
-	adb.c audio.c bmap.c cfgopts.c configuration.c change.c cycInt.c 
-	dialog.c dma.c esp.c enet_slirp.c enet_pcap.c ethernet.c file.c 
-	floppy.c grab.c ioMem.c ioMemTabNEXT.c ioMemTabTurbo.c keymap.c kms.c 
-	m68000.c main.c mo.c nbic.c NextBus.cpp paths.c printer.c queue.c 
-	ramdac.c reset.c rom.c rs.c rtcnvram.c scandir.c scc.c screen.c host.c 
+	adb.c audio.c bmap.c cfgopts.c configuration.c change.c cycInt.c
+	dialog.c dma.c esp.c enet_slirp.c enet_pcap.c ethernet.c file.c
+	floppy.c grab.c ioMem.c ioMemTabNEXT.c ioMemTabTurbo.c keymap.c kms.c
+	m68000.c main.c mo.c nbic.c NextBus.cpp paths.c printer.c queue.c
+	ramdac.c reset.c rom.c rs.c rtcnvram.c scandir.c scc.c host.c
 	scsi.c shortcut.c snd.c statusbar.c str.c sysReg.c tmc.c video.c zip.c)
+
+if (EMSCRIPTEN)
+	set(SOURCES ${SOURCES} main_js.c screen_js.c)
+else()
+	set(SOURCES ${SOURCES} main.c screen.c)
+endif(EMSCRIPTEN)
 
 # When building for macOS, define specific sources for gui and resources
 if(ENABLE_OSX_BUNDLE)
@@ -40,7 +46,6 @@ endif(PCAP_FOUND)
 
 link_directories(${CMAKE_CURRENT_BINARY_DIR}/debug
 		 ${CMAKE_CURRENT_BINARY_DIR}/softfloat
-		 ${CMAKE_CURRENT_BINARY_DIR}/gui-sdl
 		 ${CMAKE_CURRENT_BINARY_DIR}/cpu
 		 ${CMAKE_CURRENT_BINARY_DIR}/dsp
 		 ${CMAKE_CURRENT_BINARY_DIR}/dimension
@@ -48,7 +53,15 @@ link_directories(${CMAKE_CURRENT_BINARY_DIR}/debug
 
 add_subdirectory(debug)
 add_subdirectory(softfloat)
-add_subdirectory(gui-sdl)
+if (EMSCRIPTEN)
+	link_directories(${CMAKE_CURRENT_BINARY_DIR}/debug
+		 ${CMAKE_CURRENT_BINARY_DIR}/gui-js)
+	add_subdirectory(gui-js)
+else()
+	link_directories(${CMAKE_CURRENT_BINARY_DIR}/debug
+		 ${CMAKE_CURRENT_BINARY_DIR}/gui-sdl)
+	add_subdirectory(gui-sdl)
+endif(EMSCRIPTEN)
 add_subdirectory(cpu)
 add_subdirectory(dsp)
 add_subdirectory(dimension)
@@ -113,10 +126,11 @@ if(SDL2_OTHER_CFLAGS)
 	# message(STATUS "Additional CFLAGS of SDL: ${SDL2_OTHER_CFLAGS}")
 endif(SDL2_OTHER_CFLAGS)
 
-target_link_libraries(${APP_NAME} Debug GuiSdl UaeCpu DSP Dimension Slirp SoftFloat ${SDL2_LIBRARIES})
+target_link_libraries(${APP_NAME} Debug UaeCpu DSP Dimension Slirp SoftFloat ${SDL2_LIBRARIES})
 
 if (EMSCRIPTEN)
 	target_link_libraries(${APP_NAME}
+		GuiJs
 		"-gsource-map"
 		# 256 MB max for emulated Mac RAM, plus 32 MB of emulator overhead
 		"-s INITIAL_MEMORY=301989888"
@@ -124,6 +138,8 @@ if (EMSCRIPTEN)
 		"-s EXPORT_ES6"
 		"-s EXPORT_NAME=emulator"
 		"-s 'EXPORTED_RUNTIME_METHODS=[\"FS\"]'")
+else()
+	target_link_libraries(${APP_NAME} GuiSdl)
 endif(EMSCRIPTEN)
 
 if(Math_FOUND AND NOT APPLE)
