@@ -1,5 +1,6 @@
 #include <time.h>
 #include <stdio.h>
+#include <emscripten.h>
 
 #include "host.h"
 #include "configuration.h"
@@ -105,12 +106,51 @@ static void Main_Loop(void) {
     }
 }
 
+static void Main_ReadJSInput(void) {
+    int lock = EM_ASM_INT_V({ return workerApi.acquireInputLock(); });
+    if (!lock) {
+        return;
+    }
+
+    int mouse_button_state = EM_ASM_INT_V({
+        return workerApi.getInputValue(workerApi.InputBufferAddresses.mouseButtonStateAddr);
+    });
+    if (mouse_button_state > -1) {
+        // TODO: right-click support
+        if (mouse_button_state == 0) {
+            Keymap_MouseUp(true);
+        } else {
+            Keymap_MouseDown(true);
+        }
+    }
+
+    int has_mouse_position = EM_ASM_INT_V({
+        return workerApi.getInputValue(workerApi.InputBufferAddresses.mousePositionFlagAddr);
+    });
+    if (has_mouse_position) {
+        int delta_x = EM_ASM_INT_V({
+            return workerApi.getInputValue(workerApi.InputBufferAddresses.mouseDeltaXAddr);
+        });
+        int delta_y = EM_ASM_INT_V({
+            return workerApi.getInputValue(workerApi.InputBufferAddresses.mouseDeltaYAddr);
+        });
+        Keymap_MouseMove(delta_x, delta_y);
+    }
+
+    EM_ASM({ workerApi.releaseInputLock(); });
+}
+
 void Main_EventHandlerInterrupt(void) {
 	CycInt_AcknowledgeInterrupt();
 
     // TODO: get events from JS
     // TODO: Main_Speed-style speed adjustment?
 	// Main_Speed(rt, vt);
+
+    Main_ReadJSInput();
+
+    // Ensure that period tasks are run (until we have idlewait support).
+    EM_ASM({ workerApi.sleep(0); });
 
 	CycInt_AddRelativeInterruptUs((1000*1000)/200, 0, INTERRUPT_EVENT_LOOP); // poll events with 200 Hz
 }
