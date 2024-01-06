@@ -37,7 +37,7 @@ void Screen_Init(void) {
         int r = pixel16 & 0x00F0; r >>= 4; r |= r << 4;
         int g = pixel16 & 0x000F; g >>= 0;  g |= g << 4;
         int b = pixel16 & 0xF000; b >>= 12;  b |= b << 4;
-        uint32_t pixel32 = 0xFF000000 | (r << 16) | (g << 8) | b;
+        uint32_t pixel32 = r | (g << 8) | (b << 16) | 0xFF000000;
         COL2RGB[pixel16] = pixel32;
     }
 
