@@ -6254,6 +6254,58 @@ static void m68k_run_mmu060 (void)
 
 #ifdef CPUEMU_31
 
+static
+// Don't inline this function under Emscripten, otherwise we will end up with
+// very inefficient code generation due to the setjmp call in the parent
+// ppc_exec() function.
+#ifdef EMSCRIPTEN
+__attribute__((noinline))
+#endif
+void m68k_run_mmu040_inner(struct flag_struct *f, int *intr, int *lastintr)
+{
+	for (;;) {
+		f->cznv = regflags.cznv;
+		f->x = regflags.x;
+		mmu_restart = true;
+		regs.instruction_pc = m68k_getpc ();
+
+		do_cycles (cpu_cycles);
+
+		mmu_opcode = -1;
+		mmu_opcode = regs.opcode = x_prefetch (0);
+		count_instr (regs.opcode);
+		cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
+
+#ifdef WINUAE_FOR_HATARI
+		M68000_AddCycles(cpu_cycles);
+
+		run_other_MPUs();
+
+		/* We can have several interrupts at the same time before the next CPU instruction */
+		while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) ) {
+			CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
+		}
+
+		/* Previous: for now we poll the interrupt pins with every instruction.
+			* TODO: only do this when an actual interrupt is active to not
+			* unneccessarily slow down emulation.
+			*/
+		*intr = intlev ();
+		if (*intr>regs.intmask || (*intr==7 && *intr>*lastintr))
+			Exception ((*intr) + 24);
+		*lastintr = *intr;
+#endif
+
+		if (regs.spcflags) {
+			if (do_specialties(cpu_cycles)) {
+				STOPTRY;
+				return;
+			}
+		}
+	}
+}
+
+
 /* Aranym MMU 68040  */
 static void m68k_run_mmu040 (void)
 {
@@ -6270,46 +6322,7 @@ static void m68k_run_mmu040 (void)
 	while (!halt) {
 		check_debugger();
 		TRY (prb) {
-			for (;;) {
-				f.cznv = regflags.cznv;
-				f.x = regflags.x;
-				mmu_restart = true;
-				regs.instruction_pc = m68k_getpc ();
-
-				do_cycles (cpu_cycles);
-
-				mmu_opcode = -1;
-				mmu_opcode = regs.opcode = x_prefetch (0);
-				count_instr (regs.opcode);
-				cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
-
-#ifdef WINUAE_FOR_HATARI
-				M68000_AddCycles(cpu_cycles);
-
-				run_other_MPUs();
-
-				/* We can have several interrupts at the same time before the next CPU instruction */
-				while ( ( PendingInterrupt.time <= 0 ) && ( PendingInterrupt.pFunction ) ) {
-					CALL_VAR(PendingInterrupt.pFunction);		/* call the interrupt handler */
-				}
-
-				/* Previous: for now we poll the interrupt pins with every instruction.
-				 * TODO: only do this when an actual interrupt is active to not
-				 * unneccessarily slow down emulation.
-				 */
-				intr = intlev ();
-				if (intr>regs.intmask || (intr==7 && intr>lastintr))
-					Exception (intr + 24);
-				lastintr = intr;
-#endif
-
-				if (regs.spcflags) {
-					if (do_specialties(cpu_cycles)) {
-						STOPTRY;
-						return;
-					}
-				}
-			}
+			m68k_run_mmu040_inner(&f, &intr, &lastintr);
 		} CATCH (prb) {
 
 			if (mmu_restart) {
