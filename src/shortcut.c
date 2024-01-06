@@ -175,7 +175,8 @@ void ShortCut_ActKey(void)
 		break;
 	 case SHORTCUT_COLDRESET:
 		Main_PauseEmulation(false);
-		Reset_Cold();                  /* Reset emulator with 'cold' (clear all) */
+		if (Reset_Cold())              /* Reset emulator with 'cold' (clear all) */
+			Main_RequestQuit(false);
 		Main_UnPauseEmulation();
 		break;
 	 case SHORTCUT_SCREENSHOT:

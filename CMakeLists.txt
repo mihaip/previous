@@ -49,11 +49,11 @@ else()
 	    CACHE BOOL "Built Previous as macOS application bundle")
 endif(APPLE)
 
-if(ENABLE_OSX_BUNDLE OR WIN32)
+if(ENABLE_OSX_BUNDLE)
 	set(APP_NAME "Previous")
 else()
 	set(APP_NAME "previous")
-endif(ENABLE_OSX_BUNDLE OR WIN32)
+endif(ENABLE_OSX_BUNDLE)
 
 # ####################
 # Check for libraries:

@@ -20,6 +20,7 @@ const char Memory_fileid[] = "Previous memory.c";
 #include "memory.h"
 
 #include "main.h"
+#include "rom.h"
 #include "ioMem.h"
 #include "bmap.h"
 #include "tmc.h"
@@ -988,46 +989,57 @@ int memory_init (void)
 	uae_u32 bankstart[4];
 	uae_u32 banksize[4];
 	
-	/* Free memory in case it was allocated before */
-	memory_uninit();
+	int ram_size;
+	int vram_size;
 	
 	write_log("Memory init: Memory size: %iMB\n", Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
 	
-	/* Load ROM file */
-	NEXTRom = malloc_aligned(NEXT_EPROM_SIZE);
-	
-	/* Allocate and initialise video and main memory and set machine dependent variables */
+	/* Set machine dependent variables */
 	if (ConfigureParams.System.bTurbo) {
 		next_ram_bank_size = NEXT_RAM_BANK_MAX_T;
 		next_ram_bank_mask = NEXT_RAM_BANK_SEL_T;
-		if (ConfigureParams.System.bColor) {
-			NEXTVideo = malloc_aligned(NEXT_VRAM_COLOR_SIZE);
-			memset(NEXTVideo, 0, NEXT_VRAM_COLOR_SIZE);
-		} else {
-			NEXTVideo = malloc_aligned(NEXT_VRAM_SIZE);
-			memset(NEXTVideo, 0, NEXT_VRAM_SIZE);
-		}
-		NEXTRam = malloc_aligned(NEXT_RAM_MAX_SIZE_T);
-		memset(NEXTRam, 0, NEXT_RAM_MAX_SIZE_T);
+		vram_size = ConfigureParams.System.bColor ? NEXT_VRAM_COLOR_SIZE : NEXT_VRAM_SIZE;
+		ram_size  = NEXT_RAM_MAX_SIZE_T;
 	} else if (ConfigureParams.System.bColor) {
 		next_ram_bank_size = NEXT_RAM_BANK_MAX_C;
 		next_ram_bank_mask = NEXT_RAM_BANK_SEL_C;
-		NEXTVideo = malloc_aligned(NEXT_VRAM_COLOR_SIZE);
-		NEXTRam   = malloc_aligned(NEXT_RAM_MAX_SIZE_C);
-		memset(NEXTVideo, 0, NEXT_VRAM_COLOR_SIZE);
-		memset(NEXTRam, 0, NEXT_RAM_MAX_SIZE_C);
+		vram_size = NEXT_VRAM_COLOR_SIZE;
+		ram_size  = NEXT_RAM_MAX_SIZE_C;
 	} else {
 		next_ram_bank_size = NEXT_RAM_BANK_MAX;
 		next_ram_bank_mask = NEXT_RAM_BANK_SEL;
-		NEXTVideo = malloc_aligned(NEXT_VRAM_SIZE);
-		NEXTRam   = malloc_aligned(NEXT_RAM_MAX_SIZE);
-		memset(NEXTVideo, 0, NEXT_VRAM_SIZE);
-		memset(NEXTRam, 0, NEXT_RAM_MAX_SIZE);
+		vram_size = NEXT_VRAM_SIZE;
+		ram_size  = NEXT_RAM_MAX_SIZE;
 	}
 	
-	/* Allocate and initialise device space memory */
-	NEXTIo = malloc_aligned(NEXT_IO_SIZE);
+	/* Free memory in case it has been allocated already */
+	memory_uninit();
+	
+	/* Allocate memory */
+	NEXTRom   = malloc_aligned(NEXT_EPROM_SIZE);
+	NEXTVideo = malloc_aligned(vram_size);
+	NEXTRam   = malloc_aligned(ram_size);
+	NEXTIo    = malloc_aligned(NEXT_IO_SIZE);
+	
+	/* Check if memory allocation was successful */
+	if (!(NEXTRom && NEXTVideo && NEXTRam && NEXTIo)) {
+		write_log("Memory init: Cannot allocate memory\n");
+		return 1;
+	}
+	
+	/* Initialise memory */
+	memset(NEXTRom, 0, NEXT_EPROM_SIZE);
+	memset(NEXTVideo, 0, vram_size);
+	memset(NEXTRam, 0, ram_size);
 	memset(NEXTIo, 0, NEXT_IO_SIZE);
+	
+	/* Load ROM file */
+	if (rom_load(NEXTRom, NEXT_EPROM_SIZE)) {
+		write_log("Memory init: Cannot load ROM\n");
+		return 1;
+	}
+	
+	/* Set I/O access functions */
 	IoMem_Init();
 	
 	/* Get base address and size for each memory bank */
@@ -1044,7 +1056,7 @@ int memory_init (void)
 	write_log("Mapping ROM at $%08x: %ikB\n", NEXT_EPROM_START, NEXT_EPROM_SIZE>>10);
 	if (ConfigureParams.System.nMachineType != NEXT_CUBE030) {
 		map_banks(&ROM_bank, NEXT_EPROM_BMAP_START>>16, NEXT_EPROM_SIZE>>16);
-		write_log("Mapping ROM trough BMAP at $%08x: %ikB\n", NEXT_EPROM_BMAP_START, NEXT_EPROM_SIZE>>10);
+		write_log("Mapping ROM through BMAP at $%08x: %ikB\n", NEXT_EPROM_BMAP_START, NEXT_EPROM_SIZE>>10);
 	}
 	
 	/* Map main memory */
@@ -1171,48 +1183,6 @@ int memory_init (void)
 	
 	/* Initialise boards on the NextBus */
 	nextbus_init();
-	
-	{
-		FILE* fin;
-		int ret;
-		/* Loading ROM depending on emulated system */
-		if(ConfigureParams.System.nMachineType == NEXT_CUBE030)
-			fin=fopen(ConfigureParams.Rom.szRom030FileName,"rb");
-		else if(ConfigureParams.System.bTurbo == true)
-			fin=fopen(ConfigureParams.Rom.szRomTurboFileName,"rb");
-		else
-			fin=fopen(ConfigureParams.Rom.szRom040FileName, "rb");
-		
-		if (fin==NULL) {
-			write_log("Cannot open ROM file\n");
-			return 1;
-		}
-		
-		ret=fread(NEXTRom,1,NEXT_EPROM_SIZE,fin);
-		
-		write_log("Read ROM %d\n",ret);
-		fclose(fin);
-	}
-	
-	if (ConfigureParams.Rom.bUseCustomMac) {
-		int i, n;
-		uae_u32 crc, k, r;
-		
-		for (i = 3; i < 6; i++) {
-			NEXTRom[8+i] = ConfigureParams.Rom.nRomCustomMac[i];
-		}
-		
-		n = 22;
-		i = 0;
-		
-		for (k=r=~0; (++k)&7 || ((n--) && (r^=NEXTRom[i++])); r = (r&1)*0xEDB88320^(r>>1));
-		crc = ~r;
-		
-		NEXTRom[22] = (crc >> 24) & 0xFF;
-		NEXTRom[23] = (crc >> 16) & 0xFF;
-		NEXTRom[24] = (crc >> 8) & 0xFF;
-		NEXTRom[25] = crc & 0xFF;
-	}
 	
 	return 0;
 }
