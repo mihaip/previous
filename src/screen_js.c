@@ -5,6 +5,11 @@
 #include <emscripten.h>
 #include <arpa/inet.h>
 
+// Use xxHash in inline mode to avoid having to include a separate .c file.
+#define XXH_STATIC_LINKING_ONLY
+#define XXH_INLINE_ALL
+#include "xxHash/xxhash.h"
+
 // TODO: remove the need for these SDL stubs
 SDL_Window*   sdlWindow;
 SDL_Surface*  sdlscrn = NULL;        /* The SDL screen surface */
@@ -15,10 +20,11 @@ volatile bool bInFullScreen = false; /* true if in full screen */
 
 static const int NeXT_SCRN_WIDTH  = 1120;
 static const int NeXT_SCRN_HEIGHT = 832;
-uint8_t* frame_buffer;
-int frame_buffer_width;
-int frame_buffer_height;
-int frame_buffer_size;
+static uint8_t* frame_buffer;
+static int frame_buffer_width;
+static int frame_buffer_height;
+static int frame_buffer_size;
+static XXH64_hash_t last_update_hash;
 
 // static uint32_t BW2RGB[0x400];
 static uint32_t COL2RGB[0x10000];
@@ -28,6 +34,7 @@ void Screen_Init(void) {
 	frame_buffer_height = NeXT_SCRN_HEIGHT;
     frame_buffer_size = frame_buffer_height * frame_buffer_width * 4;
     frame_buffer = malloc(frame_buffer_size);
+    last_update_hash = 0;
 
 	/* initialize color lookup table */
 	for(int pixel16 = 0; pixel16 < 0x10000; pixel16++) {
@@ -89,8 +96,18 @@ void Screen_SizeChanged(void) {
 
 void Screen_Repaint(void) {
     if (ConfigureParams.System.bColor) {
-        uint32_t* dst = (uint32_t*)frame_buffer;
         int pitch = NeXT_SCRN_WIDTH + (ConfigureParams.System.bTurbo ? 0 : 32);
+
+        XXH64_hash_t update_hash = XXH3_64bits(NEXTVideo, NeXT_SCRN_HEIGHT * pitch);
+        if (update_hash == last_update_hash) {
+            // Screen has not changed, but we still let the JS know so that it can
+            // keep track of screen refreshes when deciding how long to idle for.
+            EM_ASM({ workerApi.blit(0, 0); });
+            return;
+        }
+        last_update_hash = update_hash;
+
+        uint32_t* dst = (uint32_t*)frame_buffer;
         for(int y = 0; y < NeXT_SCRN_HEIGHT; y++) {
             uint16_t* src = (uint16_t*)NEXTVideo + (y*pitch);
             for(int x = 0; x < NeXT_SCRN_WIDTH; x++) {
