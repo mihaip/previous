@@ -8,7 +8,7 @@ set(SOURCES
 	scsi.c shortcut.c snd.c statusbar.c str.c sysReg.c tmc.c video.c zip.c)
 
 if (EMSCRIPTEN)
-	set(SOURCES ${SOURCES} main_js.c fast_screen_js.c)
+	set(SOURCES ${SOURCES} file_js.c main_js.c fast_screen_js.c)
 else()
 	set(SOURCES ${SOURCES} main.c fast_screen.c)
 endif(EMSCRIPTEN)
