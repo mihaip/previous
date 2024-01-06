@@ -149,7 +149,7 @@ static int icachelinecnt, icachehalfline;
 static int dcachelinecnt;
 static struct cache040 icaches040[CACHESETS060];
 static struct cache040 dcaches040[CACHESETS060];
-static int cache_lastline; 
+static int cache_lastline;
 
 static int fallback_cpu_model, fallback_mmu_model, fallback_fpu_model;
 static bool fallback_cpu_compatible, fallback_cpu_address_space_24;
@@ -891,7 +891,7 @@ void(*write_data_030_fc_bput)(uaecptr, uae_u32, uae_u32);
 void(*write_data_030_fc_wput)(uaecptr, uae_u32, uae_u32);
 void(*write_data_030_fc_lput)(uaecptr, uae_u32, uae_u32);
 
- 
+
 static void set_x_ifetches(void)
 {
 	if (m68k_pc_indirect) {
@@ -3235,14 +3235,14 @@ static void Exception_mmu030 (int nr, uaecptr oldpc)
 #endif
 	exception_debug (nr);
 	MakeSR ();
-    
+
 	if (!regs.s) {
 		regs.usp = m68k_areg (regs, 7);
 		m68k_areg(regs, 7) = regs.m ? regs.msp : regs.isp;
 		regs.s = 1;
 		mmu_set_super (1);
 	}
- 
+
 	newpc = x_get_long (regs.vbr + 4 * vector_nr);
 
 	if (regs.m && interrupt) { /* M + Interrupt */
@@ -3339,7 +3339,7 @@ static void Exception_mmu (int nr, uaecptr oldpc)
 	} else {
 		Exception_build_stack_frame_common(oldpc, currpc, regs.mmu_ssw, nr, vector_nr);
 	}
-    
+
 	if (newpc & 1) {
 		if (nr == 2 || nr == 3)
 			cpu_halt (CPU_HALT_DOUBLE_FAULT);
@@ -3501,7 +3501,7 @@ static void Exception_normal (int nr)
 		}
 	}
 #endif
-	
+
 	bool used_exception_build_stack_frame = false;
 
 	if (currprefs.cpu_model > 68000) {
@@ -4023,7 +4023,7 @@ static void m68k_reset2(bool hardreset)
 	regs.caar = regs.cacr = 0;
 	regs.itt0 = regs.itt1 = regs.dtt0 = regs.dtt1 = 0;
 	regs.tcr = regs.mmusr = regs.urp = regs.srp = regs.buscr = 0;
-	mmu_tt_modified(); 
+	mmu_tt_modified();
 	if (currprefs.cpu_model == 68020) {
 		regs.cacr |= 8;
 		set_cpu_caches (false);
@@ -4502,13 +4502,13 @@ bool mmu_op30(uaecptr pc, uae_u32 opcode, uae_u16 extra, uaecptr extraa)
 	case 2:
 	case 3:
 		if (currprefs.mmu_model)
-			fline = mmu_op30_pmove(pc, opcode, extra, extraa); 
+			fline = mmu_op30_pmove(pc, opcode, extra, extraa);
 		else
 			fline = mmu_op30fake_pmove(pc, opcode, extra, extraa);
 	break;
 	case 1:
 		if (currprefs.mmu_model)
-			fline = mmu_op30_pflush(pc, opcode, extra, extraa); 
+			fline = mmu_op30_pflush(pc, opcode, extra, extraa);
 		else
 			fline = mmu_op30fake_pflush(pc, opcode, extra, extraa);
 	break;
@@ -4523,7 +4523,7 @@ bool mmu_op30(uaecptr pc, uae_u32 opcode, uae_u16 extra, uaecptr extraa)
 		m68k_setpc(pc);
 		op_illg(opcode);
 	}
-	return fline != 0;	
+	return fline != 0;
 }
 
 /* check if an address matches a ttr */
@@ -5666,7 +5666,7 @@ extern addrbank *thread_mem_banks[MEMORY_BANKS];
 
 uae_u32 process_cpu_indirect_memory_read(uae_u32 addr, int size)
 {
-	// Do direct access if call is from filesystem etc thread 
+	// Do direct access if call is from filesystem etc thread
 	if (cpu_thread_tid != uae_thread_get_id()) {
 		uae_u32 data = 0;
 		addrbank *ab = thread_mem_banks[bankindex(addr)];
@@ -5958,7 +5958,7 @@ void execute_normal(void)
 		pc_hist[blocklen].location = (uae_u16*)r->pc_p;
 
 		(*cpufunctbl[r->opcode])(r->opcode);
-	
+
 		cpu_cycles = 4 * CYCLE_UNIT;
 
 //		cpu_cycles = adjust_cycles(cpu_cycles);
@@ -6273,6 +6273,44 @@ static void m68k_run_mmu060 (void)
 
 #ifdef CPUEMU_31
 
+static
+// Don't inline this function under Emscripten, otherwise we will end up with
+// very inefficient code generation due to the setjmp call in the parent
+// ppc_exec() function.
+#ifdef EMSCRIPTEN
+__attribute__((noinline))
+#endif
+void m68k_run_mmu040_inner(struct flag_struct *f)
+{
+	for (;;) {
+		f->cznv = regflags.cznv;
+		f->x = regflags.x;
+		mmu_restart = true;
+		regs.instruction_pc = m68k_getpc ();
+
+		do_cycles (cpu_cycles);
+
+		mmu_opcode = -1;
+		mmu_opcode = regs.opcode = x_prefetch (0);
+		count_instr (regs.opcode);
+		cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
+
+#ifdef WINUAE_FOR_HATARI
+		M68000_AddCycles(cpu_cycles);
+
+		run_other_MPUs();
+#endif
+
+		if (regs.spcflags) {
+			if (do_specialties(cpu_cycles)) {
+				STOPTRY;
+				return;
+			}
+		}
+	}
+}
+
+
 /* Aranym MMU 68040  */
 static void m68k_run_mmu040 (void)
 {
@@ -6287,32 +6325,7 @@ static void m68k_run_mmu040 (void)
 	while (!halt) {
 		check_debugger();
 		TRY (prb) {
-			for (;;) {
-				f.cznv = regflags.cznv;
-				f.x = regflags.x;
-				mmu_restart = true;
-				regs.instruction_pc = m68k_getpc ();
-
-				do_cycles (cpu_cycles);
-
-				mmu_opcode = -1;
-				mmu_opcode = regs.opcode = x_prefetch (0);
-				count_instr (regs.opcode);
-				cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
-
-#ifdef WINUAE_FOR_HATARI
-				M68000_AddCycles(cpu_cycles);
-
-				run_other_MPUs();
-#endif
-
-				if (regs.spcflags) {
-					if (do_specialties(cpu_cycles)) {
-						STOPTRY;
-						return;
-					}
-				}
-			}
+			m68k_run_mmu040_inner(&f);
 		} CATCH (prb) {
 
 			if (mmu_restart) {
@@ -6366,7 +6379,7 @@ insretry:
 					uaecptr new_addr = mmu030_translate(regs.instruction_pc, regs.s != 0, false, false);
 					if (mmu030_fake_prefetch_addr != new_addr) {
 						regs.opcode = mmu030_fake_prefetch;
-						write_log(_T("MMU030 fake prefetch remap: %04x, %08x -> %08x\n"), mmu030_fake_prefetch, mmu030_fake_prefetch_addr, new_addr); 
+						write_log(_T("MMU030 fake prefetch remap: %04x, %08x -> %08x\n"), mmu030_fake_prefetch, mmu030_fake_prefetch_addr, new_addr);
 					} else {
 						if (mmu030_opcode_stageb < 0) {
 							regs.opcode = x_prefetch (0);
@@ -6422,7 +6435,7 @@ insretry:
 						return;
 					}
 				}
-				
+
 			}
 
 		} CATCH (prb) {
@@ -6797,7 +6810,7 @@ fprintf ( stderr , "cache valid %d tag1 %x lws1 %x ctag %x data %x mem=%x\n" , c
 #endif
 
 				(*cpufunctbl_noret[r->opcode])(r->opcode);
-		
+
 				wait_memory_cycles();
 				regs.instruction_cnt++;
 
