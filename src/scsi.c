@@ -17,6 +17,9 @@ const char Scsi_fileid[] = "Previous scsi.c";
 #include "statusbar.h"
 #include "scsi.h"
 #include "file.h"
+#ifdef EMSCRIPTEN
+#include "file_js.h"
+#endif
 
 #define LOG_SCSI_LEVEL  LOG_DEBUG    /* Print debugging messages */
 
