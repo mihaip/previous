@@ -1016,10 +1016,10 @@ int memory_init (void)
 	memory_uninit();
 	
 	/* Allocate memory */
-	NEXTRom   = malloc_aligned(NEXT_EPROM_SIZE);
-	NEXTVideo = malloc_aligned(vram_size);
 	NEXTRam   = malloc_aligned(ram_size);
+	NEXTVideo = malloc_aligned(vram_size);
 	NEXTIo    = malloc_aligned(NEXT_IO_SIZE);
+	NEXTRom   = malloc_aligned(NEXT_EPROM_SIZE);
 	
 	/* Check if memory allocation was successful */
 	if (!(NEXTRom && NEXTVideo && NEXTRam && NEXTIo)) {

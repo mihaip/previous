@@ -31,6 +31,7 @@
  */
 
 #include <slirp.h>
+#include <stdint.h> /* for uintptr_t */
 
 /*
  * Checksum routine for Internet Protocol family headers (Portable Version).

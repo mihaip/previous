@@ -3966,7 +3966,6 @@ static void m68k_reset2(bool hardreset)
 	regs.spcflags = 0;
 	m68k_reset_delay = 0;
 	regs.ipl[0] = regs.ipl[1] = regs.ipl_pin = 0;
-	regs.lastipl = 0;
 #ifndef WINUAE_FOR_HATARI
 	for (int i = 0; i < IRQ_SOURCE_MAX; i++) {
 		uae_interrupts2[i] = 0;
@@ -4015,6 +4014,7 @@ static void m68k_reset2(bool hardreset)
 	SET_VFLG(0);
 	SET_NFLG(0);
 	regs.intmask = 7;
+	regs.lastipl = 0;
 	regs.vbr = regs.sfc = regs.dfc = 0;
 	regs.irc = 0xffff;
 #ifdef FPUEMU

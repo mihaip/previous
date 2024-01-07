@@ -1,12 +1,14 @@
 /*
-  Hatari - cycInt.h
+  Previous - cycInt.h
 
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 */
 
-#ifndef HATARI_CYCINT_H
-#define HATARI_CYCINT_H
+#pragma once
+
+#ifndef PREV_CYCINT_H
+#define PREV_CYCINT_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -74,4 +76,4 @@ extern bool CycInt_SetNewInterruptUs(void);
 }
 #endif
 
-#endif /* ifndef HATARI_CYCINT_H */
+#endif /* ifndef PREV_CYCINT_H */
