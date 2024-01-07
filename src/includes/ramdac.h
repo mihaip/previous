@@ -1,27 +1,34 @@
+/*
+  Previous - ramdac.h
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
 #pragma once
 
-#ifndef __RAMDAC_H__
-#define __RAMDAC_H__
+#ifndef PREV_RAMDAC_H
+#define PREV_RAMDAC_H
 
 typedef struct {
-    int   addr;
-    int   idx;
+    int      addr;
+    int      idx;
     uint32_t wtt_tmp;
     uint32_t wtt[0x10];
-    uint8_t ccr[0xC];
-    uint8_t reg[0x30];
-    uint8_t ram[0x630];
+    uint8_t  ccr[0xC];
+    uint8_t  reg[0x30];
+    uint8_t  ram[0x630];
 } bt463;
-
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-    uae_u32 bt463_bget(bt463* ramdac, uaecptr addr);
-    void bt463_bput(bt463* ramdac, uaecptr addr, uae_u32 b);
+
+extern uae_u32 bt463_bget(bt463* ramdac, uaecptr addr);
+extern void    bt463_bput(bt463* ramdac, uaecptr addr, uae_u32 b);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
 
-#endif /* __RAMDAC_H__ */
+#endif /* PREV_RAMDAC_H */

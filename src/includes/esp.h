@@ -1,4 +1,12 @@
-/* ESP DMA control and status registers */
+/*
+  Previous - esp.h
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
+#ifndef PREV_ESP_H
+#define PREV_ESP_H
 
 typedef struct {
     uint8_t control;
@@ -89,3 +97,5 @@ extern bool ESP_Receive_Ready(void);
 extern void ESP_Receive_Data(uint8_t val);
 
 extern void ESP_Reset(void);
+
+#endif /* PREV_ESP_H */

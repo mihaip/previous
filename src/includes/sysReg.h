@@ -1,8 +1,14 @@
+/*
+  Previous - sysReg.h
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
 #pragma once
 
-#ifndef __SYSREG_H__
-#define __SYSREG_H__
-
+#ifndef PREV_SYSREG_H
+#define PREV_SYSREG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -60,8 +66,8 @@ extern "C" {
 #define SET_INT         1
 #define RELEASE_INT     0
 
-void set_interrupt(uint32_t intr, uint8_t state);
-void scr_check_dsp_interrupt(void);
+extern void set_interrupt(uint32_t intr, uint8_t state);
+extern void scr_check_dsp_interrupt(void);
 
 extern uint32_t scrIntStat;
 extern uint32_t scrIntMask;
@@ -84,50 +90,50 @@ static inline int intlev(void) {
     return scrIntLevel;
 }
 
-void SCR_Reset(void);
+extern void SCR_Reset(void);
 
-void SCR1_Read0(void);
-void SCR1_Read1(void);
-void SCR1_Read2(void);
-void SCR1_Read3(void);
+extern void SCR1_Read0(void);
+extern void SCR1_Read1(void);
+extern void SCR1_Read2(void);
+extern void SCR1_Read3(void);
 
-void SCR2_Read0(void);
-void SCR2_Write0(void);
-void SCR2_Read1(void);
-void SCR2_Write1(void);
-void SCR2_Read2(void);
-void SCR2_Write2(void);
-void SCR2_Read3(void);
-void SCR2_Write3(void);
+extern void SCR2_Read0(void);
+extern void SCR2_Write0(void);
+extern void SCR2_Read1(void);
+extern void SCR2_Write1(void);
+extern void SCR2_Read2(void);
+extern void SCR2_Write2(void);
+extern void SCR2_Read3(void);
+extern void SCR2_Write3(void);
 
-void IntRegStatRead(void);
-void IntRegStatWrite(void);
-void IntRegMaskRead(void);
-void IntRegMaskWrite(void);
+extern void IntRegStatRead(void);
+extern void IntRegStatWrite(void);
+extern void IntRegMaskRead(void);
+extern void IntRegMaskWrite(void);
 
-void Hardclock_InterruptHandler(void);
-void HardclockRead0(void);
-void HardclockRead1(void);
+extern void Hardclock_InterruptHandler(void);
+extern void HardclockRead0(void);
+extern void HardclockRead1(void);
 
-void HardclockWrite0(void);
-void HardclockWrite1(void);
+extern void HardclockWrite0(void);
+extern void HardclockWrite1(void);
 
-void HardclockWriteCSR(void);
-void HardclockReadCSR(void);
+extern void HardclockWriteCSR(void);
+extern void HardclockReadCSR(void);
 
-void System_Timer_Read(void);
-void System_Timer_Write(void);
+extern void System_Timer_Read(void);
+extern void System_Timer_Write(void);
 
-void ColorVideo_CMD_Write(void);
-void color_video_interrupt(void);
+extern void ColorVideo_CMD_Write(void);
+extern void color_video_interrupt(void);
 
-void Brightness_Write(void);
+extern void Brightness_Write(void);
 
-uint8_t color_video_enabled(void);
-uint8_t brighness_video_enabled(void);
+extern uint8_t color_video_enabled(void);
+extern uint8_t brighness_video_enabled(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __SYSREG_H__ */
+#endif /* PREV_SYSREG_H */

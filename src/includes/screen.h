@@ -1,12 +1,12 @@
 /*
-  Hatari - screen.h
+  Previous - screen.h
 
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 */
 
-#ifndef HATARI_SCREEN_H
-#define HATARI_SCREEN_H
+#ifndef PREV_SCREEN_H
+#define PREV_SCREEN_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,4 +38,4 @@ extern void Screen_Repaint(void);
 }
 #endif /* __cplusplus */
 
-#endif  /* ifndef HATARI_SCREEN_H */
+#endif /* PREV_SCREEN_H */

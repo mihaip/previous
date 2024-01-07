@@ -1,3 +1,15 @@
+/*
+  Previous - host.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  Host system dependencies such as time synchronizaton and events that
+  occur on host threads (e.g. VBL & timers) which need to be synchronized
+  to Previous CPU threads.
+*/
+const char Host_fileid[] = "Previous host.c";
+
 #include "config.h"
 
 #if HAVE_NANOSLEEP

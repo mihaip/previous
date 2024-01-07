@@ -5,8 +5,8 @@
   or at your option any later version. Read the file gpl.txt for details.
 */
 
-#ifndef PREVIOUS_GRAB_H
-#define PREVIOUS_GRAB_H
+#ifndef PREV_GRAB_H
+#define PREV_GRAB_H
 
 extern void Grab_Screen(void);
 
@@ -17,4 +17,4 @@ extern void Grab_Stop(void);
 
 extern volatile bool bRecordingAiff;
 
-#endif /* PREVIOUS_GRAB_H */
+#endif /* PREV_GRAB_H */

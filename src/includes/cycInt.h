@@ -3,8 +3,6 @@
 
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
- 
- (SC) Simon Schubiger - removed all MFP related code. NeXT does not have an MFP
 */
 
 #ifndef HATARI_CYCINT_H

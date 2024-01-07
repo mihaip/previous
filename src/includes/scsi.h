@@ -1,4 +1,12 @@
-/* SCSI Bus and Disk emulation */
+/*
+  Previous - scsi.h
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
+#ifndef PREV_SCSI_H
+#define PREV_SCSI_H
 
 /* SCSI phase */
 #define PHASE_DO      0x00 /* data out */
@@ -47,3 +55,5 @@ extern bool SCSIdisk_Select(uint8_t target);
 extern void SCSIdisk_Receive_Command(uint8_t *commandbuf, uint8_t identify);
 
 extern int64_t SCSIdisk_Time(void);
+
+#endif /* PREV_SCSI_H */

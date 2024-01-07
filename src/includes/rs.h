@@ -21,4 +21,4 @@ extern int  rs_decode(uint8_t *sector);
 }
 #endif /* __cplusplus */
 
-#endif  /* PREV_RS_H */
+#endif /* PREV_RS_H */

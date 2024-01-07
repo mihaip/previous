@@ -1,11 +1,11 @@
 /*
-  Hatari - statusbar.h
+  Previous - statusbar.h
   
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 */
-#ifndef HATARI_STATUSBAR_H
-#define HATARI_STATUSBAR_H
+#ifndef PREV_STATUSBAR_H
+#define PREV_STATUSBAR_H
 
 #include <SDL.h>
 
@@ -40,4 +40,4 @@ extern void Statusbar_OverlayBackup(SDL_Surface *screen);
 extern void Statusbar_Update(SDL_Surface *screen);
 extern void Statusbar_OverlayRestore(SDL_Surface *screen);
 
-#endif /* HATARI_STATUSBAR_H */
+#endif /* PREV_STATUSBAR_H */

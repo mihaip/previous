@@ -1,12 +1,12 @@
 /*
-  Hatari - dialog.h
+  Previous - dialog.h
 
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 */
 
-#ifndef HATARI_DIALOG_H
-#define HATARI_DIALOG_H
+#ifndef PREV_DIALOG_H
+#define PREV_DIALOG_H
 
 #include "configuration.h"
 
@@ -44,4 +44,4 @@ extern void DlgMissing_Disk(const char* type, int num, char *imgname, bool *ins,
 extern bool Dialog_DoProperty(void);
 extern void Dialog_CheckFiles(void);
 
-#endif
+#endif /* PREV_DIALOG_H */

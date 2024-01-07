@@ -1,3 +1,13 @@
+/*
+  Previous - ethernet.h
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
+#ifndef PREV_ETHERNET_H
+#define PREV_ETHERNET_H
+
 extern void EN_TX_Status_Read(void);
 extern void EN_TX_Status_Write(void);
 extern void EN_TX_Mask_Read(void);
@@ -48,3 +58,5 @@ extern void EN_Control_Read(void);
 extern void EN_RX_SavedNibble_Read(void);
 extern void EN_TX_Seq_Read(void);
 extern void EN_RX_Seq_Read(void);
+
+#endif /* PREV_ETHERNET_H */

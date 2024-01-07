@@ -1,12 +1,24 @@
-uae_u32 tmc_lget(uaecptr addr);
-uae_u32 tmc_wget(uaecptr addr);
-uae_u32 tmc_bget(uaecptr addr);
+/*
+  Previous - tmc.h
 
-void tmc_lput(uaecptr addr, uae_u32 l);
-void tmc_wput(uaecptr addr, uae_u32 w);
-void tmc_bput(uaecptr addr, uae_u32 b);
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
 
-uint8_t tmc_video_enabled(void);
-void    tmc_video_interrupt(void);
+#ifndef PREV_TMC_H
+#define PREV_TMC_H
 
-void TMC_Reset(void);
+extern uae_u32 tmc_lget(uaecptr addr);
+extern uae_u32 tmc_wget(uaecptr addr);
+extern uae_u32 tmc_bget(uaecptr addr);
+
+extern void tmc_lput(uaecptr addr, uae_u32 l);
+extern void tmc_wput(uaecptr addr, uae_u32 w);
+extern void tmc_bput(uaecptr addr, uae_u32 b);
+
+extern uint8_t tmc_video_enabled(void);
+extern void    tmc_video_interrupt(void);
+
+extern void TMC_Reset(void);
+
+#endif /* PREV_TMC_H */
