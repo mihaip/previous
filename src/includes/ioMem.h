@@ -12,6 +12,7 @@
 #include "memory.h"
 
 #define IoMem NEXTIo
+#define IO_SEG_MASK	0x1FFFF
 
 extern int nIoMemAccessSize;
 extern uint32_t IoAccessBaseAddress;

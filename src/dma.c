@@ -4,8 +4,8 @@
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
-  Integrated Channel Processor (ISP) for direct memory access consists of 
-  12 channels with 128 byte internal buffers.
+  The Integrated Channel Processor (ISP) for direct memory access consists 
+  of 12 channels with 128 byte internal buffers.
 */
 const char Dma_fileid[] = "Previous dma.c";
 
@@ -29,8 +29,20 @@ const char Dma_fileid[] = "Previous dma.c";
 
 #define LOG_DMA_LEVEL LOG_DEBUG
 
-#define IO_SEG_MASK	0x1FFFF
-
+typedef enum {
+    CHANNEL_SCSI,       // 0x00000010
+    CHANNEL_SOUNDOUT,   // 0x00000040
+    CHANNEL_DISK,       // 0x00000050
+    CHANNEL_SOUNDIN,    // 0x00000080
+    CHANNEL_PRINTER,    // 0x00000090
+    CHANNEL_SCC,        // 0x000000c0
+    CHANNEL_DSP,        // 0x000000d0
+    CHANNEL_EN_TX,      // 0x00000110
+    CHANNEL_EN_RX,      // 0x00000150
+    CHANNEL_VIDEO,      // 0x00000180
+    CHANNEL_M2R,        // 0x000001d0
+    CHANNEL_R2M         // 0x000001c0
+} DMA_CHANNEL;
 
 struct {
     uint8_t  csr;
@@ -698,8 +710,6 @@ void dma_mo_read_memory(void) {
 
 
 void dma_sndout_read_memory(void) {
-    int i;
-    
     if (dma[CHANNEL_SOUNDOUT].csr&DMA_ENABLE) {
         
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Sound Out: Read from memory at $%08x, %i bytes",
@@ -713,10 +723,11 @@ void dma_sndout_read_memory(void) {
         }
         
         TRY(prb) {
-            snd_buffer_len = dma[CHANNEL_SOUNDOUT].limit - dma[CHANNEL_SOUNDOUT].next;
-            snd_buffer = malloc(snd_buffer_len * 2);
-            for (i = 0; dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit; dma[CHANNEL_SOUNDOUT].next++, i++)
-                snd_buffer[i] = get_byte(dma[CHANNEL_SOUNDOUT].next);
+            while (dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit && snd_buffer_len<SND_BUFFER_LIMIT) {
+                snd_buffer[snd_buffer_len] = get_byte(dma[CHANNEL_SOUNDOUT].next);
+                dma[CHANNEL_SOUNDOUT].next++;
+                snd_buffer_len++;
+            }
         } CATCH(prb) {
             Log_Printf(LOG_WARN, "[DMA] Channel Sound Out: Bus error reading from %08x",dma[CHANNEL_SOUNDOUT].next);
             dma[CHANNEL_SOUNDOUT].csr &= ~DMA_ENABLE;
@@ -726,8 +737,6 @@ void dma_sndout_read_memory(void) {
 }
 
 void dma_sndout_intr(void) {
-    free(snd_buffer);
-    snd_buffer = NULL;
     snd_buffer_len = 0;
 
     if (dma[CHANNEL_SOUNDOUT].csr&DMA_ENABLE) {
@@ -1205,7 +1214,7 @@ void TDMA_Saved_Limit_Read(void) { // 0x02004050
 
 /* Flush DMA buffer */
 /* FIXME: Implement function for all buffered channels */
-void tdma_flush_buffer(int channel) {
+void tdma_esp_flush_buffer(void) {
     int i;
     
     if (!(dma[CHANNEL_SCSI].csr&DMA_ENABLE)) {

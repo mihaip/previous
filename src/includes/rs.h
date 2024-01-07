@@ -5,8 +5,8 @@
   or at your option any later version. Read the file gpl.txt for details.
 */
 
-#ifndef PREVIOUS_RS_H
-#define PREVIOUS_RS_H
+#ifndef PREV_RS_H
+#define PREV_RS_H
 
 #include <stdint.h>
 
@@ -21,4 +21,4 @@ extern int  rs_decode(uint8_t *sector);
 }
 #endif /* __cplusplus */
 
-#endif  /* PREVIOUS_RS_H */
+#endif  /* PREV_RS_H */

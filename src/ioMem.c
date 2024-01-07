@@ -18,8 +18,6 @@ const char IoMem_fileid[] = "Hatari ioMem.c";
 #define IO_MASK 0x0001FFFF
 #define IO_SIZE 0x00020000
 
-#define IO_SEG_MASK IO_MASK
-
 static void (*pInterceptReadTable[IO_SIZE])(void);   /* Table with read access handlers */
 static void (*pInterceptWriteTable[IO_SIZE])(void);  /* Table with write access handlers */
 

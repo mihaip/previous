@@ -243,7 +243,7 @@ static void kms_codec_receive(uint32_t data) {
 static void kms_sndout_request(void) {
     kms.status.sound |= SNDOUT_DMA_REQUEST;
     
-    if (snd_buffer) {
+    if (snd_buffer_len) {
         dma_sndout_intr();
     }
     dma_sndout_read_memory();

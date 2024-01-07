@@ -9,7 +9,6 @@
 
   This implementation has been written by Olivier Galibert.
 */
-
 const char Rs_fileid[] = "Previous rs.c";
 
 #include <string.h>

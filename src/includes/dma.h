@@ -1,82 +1,79 @@
-typedef enum {
-    CHANNEL_SCSI,       // 0x00000010
-    CHANNEL_SOUNDOUT,   // 0x00000040
-    CHANNEL_DISK,       // 0x00000050
-    CHANNEL_SOUNDIN,    // 0x00000080
-    CHANNEL_PRINTER,    // 0x00000090
-    CHANNEL_SCC,        // 0x000000c0
-    CHANNEL_DSP,        // 0x000000d0
-    CHANNEL_EN_TX,      // 0x00000110
-    CHANNEL_EN_RX,      // 0x00000150
-    CHANNEL_VIDEO,      // 0x00000180
-    CHANNEL_M2R,        // 0x000001d0
-    CHANNEL_R2M         // 0x000001c0
-} DMA_CHANNEL;
+/*
+  Previous - dma.h
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
+#ifndef PREV_DMA_H
+#define PREV_DMA_H
 
 /* DMA Registers */
-void DMA_CSR_Read(void);
-void DMA_CSR_Write(void);
+extern void DMA_CSR_Read(void);
+extern void DMA_CSR_Write(void);
 
-void DMA_Saved_Next_Read(void);
-void DMA_Saved_Next_Write(void);
-void DMA_Saved_Limit_Read(void);
-void DMA_Saved_Limit_Write(void);
-void DMA_Saved_Start_Read(void);
-void DMA_Saved_Start_Write(void);
-void DMA_Saved_Stop_Read(void);
-void DMA_Saved_Stop_Write(void);
+extern void DMA_Saved_Next_Read(void);
+extern void DMA_Saved_Next_Write(void);
+extern void DMA_Saved_Limit_Read(void);
+extern void DMA_Saved_Limit_Write(void);
+extern void DMA_Saved_Start_Read(void);
+extern void DMA_Saved_Start_Write(void);
+extern void DMA_Saved_Stop_Read(void);
+extern void DMA_Saved_Stop_Write(void);
 
-void DMA_Next_Read(void);
-void DMA_Next_Write(void);
-void DMA_Limit_Read(void);
-void DMA_Limit_Write(void);
-void DMA_Start_Read(void);
-void DMA_Start_Write(void);
-void DMA_Stop_Read(void);
-void DMA_Stop_Write(void);
+extern void DMA_Next_Read(void);
+extern void DMA_Next_Write(void);
+extern void DMA_Limit_Read(void);
+extern void DMA_Limit_Write(void);
+extern void DMA_Start_Read(void);
+extern void DMA_Start_Write(void);
+extern void DMA_Stop_Read(void);
+extern void DMA_Stop_Write(void);
 
-void DMA_Init_Read(void);
-void DMA_Init_Write(void);
+extern void DMA_Init_Read(void);
+extern void DMA_Init_Write(void);
 
 /* Turbo DMA functions */
-void TDMA_CSR_Read(void);
-void TDMA_CSR_Write(void);
-void TDMA_Saved_Limit_Read(void);
-void tdma_flush_buffer(int channel);
+extern void TDMA_CSR_Read(void);
+extern void TDMA_CSR_Write(void);
+extern void TDMA_Saved_Limit_Read(void);
+extern void tdma_esp_flush_buffer(void);
 
 /* Reset function */
-void DMA_Reset(void);
+extern void DMA_Reset(void);
 
 /* Device functions */
-void dma_esp_write_memory(void);
-void dma_esp_read_memory(void);
-void dma_esp_flush_buffer(void);
+extern void dma_esp_write_memory(void);
+extern void dma_esp_read_memory(void);
+extern void dma_esp_flush_buffer(void);
 
-void dma_mo_write_memory(void);
-void dma_mo_read_memory(void);
+extern void dma_mo_write_memory(void);
+extern void dma_mo_read_memory(void);
 
-void dma_enet_write_memory(bool eop);
-bool dma_enet_read_memory(void);
+extern void dma_enet_write_memory(bool eop);
+extern bool dma_enet_read_memory(void);
 
-void dma_dsp_write_memory(uint8_t val);
-uint8_t dma_dsp_read_memory(void);
-bool dma_dsp_ready(void);
+extern void dma_dsp_write_memory(uint8_t val);
+extern uint8_t dma_dsp_read_memory(void);
+extern bool dma_dsp_ready(void);
 
-void dma_m2m(void);
-void dma_m2m_write_memory(void);
+extern void dma_m2m(void);
+extern void dma_m2m_write_memory(void);
 
-uint8_t dma_scc_read_memory(void);
-bool dma_scc_ready(void);
+extern uint8_t dma_scc_read_memory(void);
+extern bool dma_scc_ready(void);
 
-void dma_sndout_read_memory(void);
-void dma_sndout_intr(void);
-bool dma_sndin_write_memory(uint32_t val);
-bool dma_sndin_intr(void);
+extern void dma_sndout_read_memory(void);
+extern void dma_sndout_intr(void);
+extern bool dma_sndin_write_memory(uint32_t val);
+extern bool dma_sndin_intr(void);
 
-void dma_printer_read_memory(void);
+extern void dma_printer_read_memory(void);
 
 /* M2M DMA IO handler */
-void M2MDMA_IO_Handler(void);
+extern void M2MDMA_IO_Handler(void);
 
 /* Function for video interrupt */
-void dma_video_interrupt(void);
+extern void dma_video_interrupt(void);
+
+#endif /* PREV_DMA_H */

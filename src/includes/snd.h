@@ -1,22 +1,38 @@
+/*
+  Previous - snd.h
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
+#ifndef PREV_SND_H
+#define PREV_SND_H
+
 #define SOUND_OUT_FREQUENCY  44100            /* Sound playback frequency */
 #define SOUND_IN_FREQUENCY   8012             /* Sound recording frequency */
 #define SOUND_BUFFER_SAMPLES 512
 
-extern uint8_t* snd_buffer;
-extern int    snd_buffer_len;
+#define SND_BUFFER_SIZE  (4*1024)
+#define SND_BUFFER_LIMIT (SND_BUFFER_SIZE>>1)
 
-void SND_Out_Handler(void);
-void SND_In_Handler(void);
-void Sound_Reset(void);
-void Sound_Pause(bool pause);
+extern uint8_t snd_buffer[SND_BUFFER_SIZE];
+extern int     snd_buffer_len;
 
-void snd_start_output(uint8_t mode);
-void snd_stop_output(void);
-void snd_start_input(uint8_t mode);
-void snd_stop_input(void);
-bool snd_output_active(void);
-bool snd_input_active(void);
+extern void SND_Out_Handler(void);
+extern void SND_In_Handler(void);
 
-void snd_send_sample(uint32_t data);
-void snd_gpo_access(uint8_t data);
-void snd_vol_access(uint8_t data);
+extern void Sound_Reset(void);
+extern void Sound_Pause(bool pause);
+
+extern void snd_start_output(uint8_t mode);
+extern void snd_stop_output(void);
+extern void snd_start_input(uint8_t mode);
+extern void snd_stop_input(void);
+extern bool snd_output_active(void);
+extern bool snd_input_active(void);
+
+extern void snd_send_sample(uint32_t data);
+extern void snd_gpo_access(uint8_t data);
+extern void snd_vol_access(uint8_t data);
+
+#endif /* PREV_SND_H */
