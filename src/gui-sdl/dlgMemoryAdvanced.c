@@ -4,7 +4,7 @@
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 */
-const char DlgMemoryAdvanced_fileid[] = "Hatari dlgMemoryAdvanced.c";
+const char DlgMemoryAdvanced_fileid[] = "Previous dlgMemoryAdvanced.c";
 
 #include "main.h"
 #include "configuration.h"

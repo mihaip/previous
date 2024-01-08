@@ -1,3 +1,10 @@
+/*
+  Previous - nd_devs.cpp
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
 #include <stdio.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -27,8 +34,8 @@
 
 #define ND_MC_DMA_CSR       0xFF801000
 
-#define ND_MC_VRAM_TIMING	0xFF802000
-#define ND_MC_DRAM_SIZE		0xFF803000
+#define ND_MC_VRAM_TIMING   0xFF802000
+#define ND_MC_DRAM_SIZE     0xFF803000
 
 /* CSR bits */
 #define CSR0_i860PIN_RESET  0x00000001
@@ -211,20 +218,20 @@ static const char* MC_RD_FORMAT   = "[ND] Memory controller %s read %08X at %08X
 static const char* MC_RD_FORMAT_S = "[ND] Memory controller %s read (%s) at %08X";
 
 uint32_t MC::read(uint32_t addr) {
-	switch (addr&0x3FFF) {
-		case 0x0000:
+    switch (addr&0x3FFF) {
+        case 0x0000:
             Log_Printf(ND_LOG_IO_RD, MC_RD_FORMAT_S,"csr0", decodeBits(ND_CSR0_BITS, csr0),addr);
-			return csr0;
-		case 0x0010:
+            return csr0;
+        case 0x0010:
             Log_Printf(ND_LOG_IO_RD, MC_RD_FORMAT_S,"csr1", decodeBits(ND_CSR1_BITS, csr1),addr);
-			return csr1;
-		case 0x0020:
+            return csr1;
+        case 0x0020:
             Log_Printf(ND_LOG_IO_RD, MC_RD_FORMAT_S,"csr2", decodeBits(ND_CSR2_BITS, csr2),addr);
-			return csr2;
-		case 0x0030:
+            return csr2;
+        case 0x0030:
             Log_Printf(ND_LOG_IO_RD, MC_RD_FORMAT,"sid", sid,addr);
-			return sid;
-		case 0x1000:
+            return sid;
+        case 0x1000:
             Log_Printf(ND_LOG_IO_RD, MC_RD_FORMAT_S,"dma_csr", decodeBits(ND_DMA_CSR_BITS, dma_csr),addr);
             return dma_csr;
         case 0x1010:
@@ -272,17 +279,17 @@ uint32_t MC::read(uint32_t addr) {
         case 0x10F0:
             Log_Printf(ND_LOG_IO_RD, MC_RD_FORMAT,"dma_out_a", dma_out_a,addr);
             return dma_out_a;
-		case 0x2000:
+        case 0x2000:
             Log_Printf(ND_LOG_IO_RD, MC_RD_FORMAT_S,"vram", decodeBits(ND_VRAM_BITS, vram),addr);
             return vram;
-		case 0x3000:
+        case 0x3000:
             Log_Printf(ND_LOG_IO_RD, MC_RD_FORMAT_S,"dram", decodeBits(ND_DRAM_BITS, dram),addr);
             return dram;
-		default:
-			Log_Printf(LOG_WARN, "[ND] Memory controller UNKNOWN read at %08X",addr);
+        default:
+            Log_Printf(LOG_WARN, "[ND] Memory controller UNKNOWN read at %08X",addr);
             break;
-	}
-	return 0;
+    }
+    return 0;
 }
 
 static const char* MC_WR_FORMAT   = "[ND] Memory controller %s write %08X at %08X";
@@ -302,11 +309,11 @@ void MC::write(uint32_t addr, uint32_t val) {
         case 0x0010:
             Log_Printf(ND_LOG_IO_WR, MC_WR_FORMAT_S,"csr1", decodeBits(ND_CSR1_BITS, val),addr);
             csr1 = val;
-			if (csr1 & CSR1_CPU_INT) {
-				nd->nbic.set_intstatus(true);
-			} else {
+            if (csr1 & CSR1_CPU_INT) {
+                nd->nbic.set_intstatus(true);
+            } else {
                 nd->nbic.set_intstatus(false);
-			}
+            }
             break;
         case 0x0020:
             Log_Printf(ND_LOG_IO_WR, MC_WR_FORMAT_S,"csr2", decodeBits(ND_CSR2_BITS, val),addr);
@@ -391,7 +398,7 @@ void MC::write(uint32_t addr, uint32_t val) {
         default:
             Log_Printf(LOG_WARN, "[ND] Memory controller UNKNOWN write at %08X",addr);
             break;
-	}
+    }
 }
 
 /* NeXTdimension data path */

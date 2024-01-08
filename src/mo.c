@@ -1,19 +1,16 @@
-/*  Previous - mo.c
+/*
+  Previous - mo.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
  
- This file is distributed under the GNU Public License, version 2 or at
- your option any later version. Read the file gpl.txt for details.
+  Optical Storage Processor (OSP) and Canon magneto-optical disk drive
  
- Canon Magneto-Optical Disk Drive and NeXT Optical Storage Processor emulation.
-  
- NeXT Optical Storage Processor uses Reed-Solomon algorithm for error correction.
- It has two 1296 (128?) byte internal buffers and uses double-buffering to perform
- error correction.
- 
- TODO:
- - Add realistic seek timings
- - Check drive error handling (attn conditions)
- 
- */
+  The OSP uses Reed-Solomon algorithm for error correction. It has two 
+  internal buffers of 1296 byte each and uses double-buffering to perform
+  error correction.
+*/
+const char Mo_fileid[] = "Previous mo.c";
 
 #include "ioMem.h"
 #include "ioMemTables.h"
@@ -27,18 +24,15 @@
 #include "rs.h"
 #include "statusbar.h"
 
-
 #define LOG_MO_REG_LEVEL    LOG_DEBUG
 #define LOG_MO_CMD_LEVEL    LOG_DEBUG
 #define LOG_MO_ECC_LEVEL    LOG_DEBUG
 #define LOG_MO_IO_LEVEL     LOG_DEBUG
 
-#define IO_SEG_MASK	0x1FFFF
 
 OpticalDiskBuffer ecc_buffer[2];
 
-/* Registers */
-
+/* OSP registers */
 struct {
     uint8_t tracknuml;
     uint8_t tracknumh;
@@ -58,6 +52,7 @@ struct {
     uint8_t flag[7];
 } osp;
 
+/* MO drives */
 struct {
     uint16_t status;
     uint16_t dstat;
@@ -245,7 +240,6 @@ static void ecc_decode(void);
 static void ecc_encode(void);
 static void ecc_sequence_done(void);
 
-static uint32_t get_logical_sector(uint32_t sector_id);
 static void fmt_sector_done(void);
 static bool fmt_match_id(uint32_t sector_id);
 static void fmt_io(uint32_t sector_id);

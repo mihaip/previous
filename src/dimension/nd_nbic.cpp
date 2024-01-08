@@ -1,3 +1,10 @@
+/*
+  Previous - nd_nbic.cpp
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
 #include "main.h"
 #include "configuration.h"
 #include "m68000.h"
@@ -131,13 +138,13 @@ void NBIC::bput(uint32_t addr, uint8_t b) {
 }
 
 void NBIC::set_intstatus(bool set) {
-	if (set) {
+    if (set) {
         intstatus |= ND_NBIC_INTR;
         remInter  |= 1 << slot;
-	} else {
+    } else {
         intstatus &= ~ND_NBIC_INTR;
         remInter  &= ~(1 << slot);
-	}
+    }
 }
 
 

@@ -861,7 +861,6 @@ void DSP_SsiTransmit_SCK(void)
 /**
  * DSP Host interface port is accessed by the 68k in Byte mode.
  */
-#define IO_SEG_MASK	0x1FFFF
 
 /* Register bits */
 

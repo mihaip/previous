@@ -1,3 +1,10 @@
+/*
+  Previous - nd_rom.cpp
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
 #include "main.h"
 #include "configuration.h"
 #include "m68000.h"

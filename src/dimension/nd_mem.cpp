@@ -1,3 +1,10 @@
+/*
+  Previous - nd_mem.cpp
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+*/
+
 #include "main.h"
 #include "configuration.h"
 #include "m68000.h"
@@ -9,17 +16,17 @@
 /* --------- NEXTDIMENSION MEMORY ---------- */
 
 /* NeXTdimension board memory */
-#define ND_RAM_START	0xF8000000
-#define ND_RAM_SIZE		0x04000000
-#define ND_RAM_MASK		0x03FFFFFF
+#define ND_RAM_START    0xF8000000
+#define ND_RAM_SIZE     0x04000000
+#define ND_RAM_MASK     0x03FFFFFF
 
-#define ND_VRAM_START	0xFE000000
-#define ND_VRAM_SIZE	0x00400000
-#define ND_VRAM_MASK	0x003FFFFF
+#define ND_VRAM_START   0xFE000000
+#define ND_VRAM_SIZE    0x00400000
+#define ND_VRAM_MASK    0x003FFFFF
 
-#define ND_EEPROM_START	0xFFF00000
-#define ND_EEPROM_SIZE	0x00020000
-#define ND_EEPROM_MASK	0x0001FFFF
+#define ND_EEPROM_START 0xFFF00000
+#define ND_EEPROM_SIZE  0x00020000
+#define ND_EEPROM_MASK  0x0001FFFF
 
 /* RAM banks */
 #define ND_RAM_BANKSIZE 0x01000000
@@ -31,27 +38,27 @@
 #define ND_DMEM_MASK    0x000001FF
 
 /* NeXTdimension board devices */
-#define ND_IO_START		0xFF800000
-#define ND_IO_SIZE		0x00004000
-#define ND_IO_MASK		0x00003FFF
+#define ND_IO_START     0xFF800000
+#define ND_IO_SIZE      0x00004000
+#define ND_IO_MASK      0x00003FFF
 
 /* NeXTdimension board RAMDAC */
-#define ND_RAMDAC_START	0xFF200000
+#define ND_RAMDAC_START 0xFF200000
 #define ND_RAMDAC_SIZE  0x00001000
 #define ND_RAMDAC_MASK  0x00000FFF
 
 /* NeXTdimension board data path */
-#define ND_DP_START	0xF0000000
-#define ND_DP_SIZE  0x00001000
-#define ND_DP_MASK  0x00000FFF
+#define ND_DP_START     0xF0000000
+#define ND_DP_SIZE      0x00001000
+#define ND_DP_MASK      0x00000FFF
 
 /* NeXTdimension unknown registers */
-#define ND_CSR_START 0xFF400000
-#define ND_CSR_SIZE  0x00000200
-#define ND_CSR_MASK  0x000001FF
+#define ND_CSR_START    0xFF400000
+#define ND_CSR_SIZE     0x00000200
+#define ND_CSR_MASK     0x000001FF
 
 /* Function to fix address for ROM access */
-static uaecptr nd_rom_addr_fix(uaecptr addr)
+static uint32_t nd_rom_addr_fix(uint32_t addr)
 {
 #if ND_STEP
     addr >>= 2;
@@ -72,7 +79,7 @@ class ND_RAM : public ND_Addrbank {
     uint32_t mask;
 public:
     ND_RAM(NextDimension* nd, int bank) : ND_Addrbank(nd), base(nd->ram), mask(nd->bankmask[bank]) {}
-    
+
     uint32_t lget(uint32_t addr) const {
         return do_get_mem_long(base + (addr & mask));
     }
@@ -85,15 +92,15 @@ public:
         return base[addr & mask];
     }
 
-     void lput(uint32_t addr, uint32_t l) const {
+    void lput(uint32_t addr, uint32_t l) const {
         do_put_mem_long(base + (addr & mask), l);
     }
 
-     void wput(uint32_t addr, uint32_t w) const {
+    void wput(uint32_t addr, uint32_t w) const {
         do_put_mem_word(base + (addr & mask), w);
     }
 
-     void bput(uint32_t addr, uint32_t b) const {
+    void bput(uint32_t addr, uint32_t b) const {
         base[addr & mask] = b;
     }
 };
@@ -101,31 +108,31 @@ public:
 class ND_Empty : public ND_Addrbank {
 public:
     ND_Empty(NextDimension* nd) : ND_Addrbank(nd) {}
-    
+
     uint32_t lget(uint32_t addr) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: empty memory bank lget at %08X\n", nd->slot,addr);
         return 0;
     }
 
-     uint32_t wget(uint32_t addr) const {
+    uint32_t wget(uint32_t addr) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: empty memory bank wget at %08X\n", nd->slot,addr);
         return 0;
     }
 
-     uint32_t bget(uint32_t addr) const {
+    uint32_t bget(uint32_t addr) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: empty memory bank bget at %08X\n", nd->slot,addr);
         return 0;
     }
 
-     void lput(uint32_t addr, uint32_t l) const {
+    void lput(uint32_t addr, uint32_t l) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: empty memory bank lput at %08X\n", nd->slot,addr);
     }
 
-     void wput(uint32_t addr, uint32_t w) const {
+    void wput(uint32_t addr, uint32_t w) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: empty memory bank wput at %08X\n", nd->slot,addr);
     }
 
-     void bput(uint32_t addr, uint32_t b) const {
+    void bput(uint32_t addr, uint32_t b) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: empty memory bank bput at %08X\n",nd->slot,addr);
     }
 };
@@ -277,30 +284,30 @@ class ND_CSR : public ND_Addrbank {
 public:
     ND_CSR(NextDimension* nd) : ND_Addrbank(nd) {}
 
-     uint32_t lget(uint32_t addr) const {
+    uint32_t lget(uint32_t addr) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: Board CSR lget at %08X\n", nd->slot,addr);
         return 0;
     }
 
-     uint32_t wget(uint32_t addr) const {
+    uint32_t wget(uint32_t addr) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: Board CSR wget at %08X\n",nd->slot,addr);
         return 0;
     }
 
-     uint32_t bget(uint32_t addr) const {
+    uint32_t bget(uint32_t addr) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: Board CSR bget at %08X\n",nd->slot,addr);
         return 0;
     }
 
-     void lput(uint32_t addr, uint32_t l) const {
+    void lput(uint32_t addr, uint32_t l) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: Board CSR lput at %08X: %08X\n",nd->slot,addr,l);
     }
 
-     void wput(uint32_t addr, uint32_t w) const {
+    void wput(uint32_t addr, uint32_t w) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: Board CSR wput at %08X: %04X\n",nd->slot,addr,w);
     }
 
-     void bput(uint32_t addr, uint32_t b) const {
+    void bput(uint32_t addr, uint32_t b) const {
         Log_Printf(LOG_ND_MEM, "[ND] Slot %i: Board CSR bput at %08X: %02X\n",nd->slot,addr,b);
     }
 };
@@ -312,22 +319,22 @@ class ND_DMEM : public ND_Addrbank {
 public:
     ND_DMEM(NextDimension* nd) : ND_Addrbank(nd) {}
 
-     uint32_t lget(uint32_t addr) const {
+    uint32_t lget(uint32_t addr) const {
         addr &= ND_DP_MASK;
         return addr < ND_DMEM_SIZE ? do_get_mem_long(nd->dmem + addr) : nd->dp.lget(addr);
     }
 
-     uint32_t wget(uint32_t addr) const {
+    uint32_t wget(uint32_t addr) const {
         addr &= ND_DP_MASK;
         return addr < ND_DMEM_SIZE ? do_get_mem_word(nd->dmem + addr) : nd->dp.lget(addr);
     }
 
-     uint32_t bget(uint32_t addr) const {
+    uint32_t bget(uint32_t addr) const {
         addr &= ND_DP_MASK;
         return addr < ND_DMEM_SIZE ? do_get_mem_byte(nd->dmem + addr) : nd->dp.lget(addr);
     }
 
-     void lput(uint32_t addr, uint32_t l) const {
+    void lput(uint32_t addr, uint32_t l) const {
         addr &= ND_DP_MASK;
         if(addr < ND_DMEM_SIZE)
             do_put_mem_long(nd->dmem + addr, l);
@@ -335,7 +342,7 @@ public:
             nd->dp.lput(addr, l);
     }
 
-     void wput(uint32_t addr, uint32_t w) const {
+    void wput(uint32_t addr, uint32_t w) const {
         addr &= ND_DP_MASK;
         if(addr < ND_DMEM_SIZE)
             do_put_mem_word(nd->dmem + addr, w);
@@ -343,7 +350,7 @@ public:
             nd->dp.lput(addr, w);
     }
 
-     void bput(uint32_t addr, uint32_t b) const {
+    void bput(uint32_t addr, uint32_t b) const {
         addr &= ND_DP_MASK;
         if(addr < ND_DMEM_SIZE)
             do_put_mem_byte(nd->dmem + addr, b);
@@ -393,19 +400,19 @@ void ND_Addrbank::bput(uint32_t addr, uint32_t b) const {
 class ND_IO : public ND_Addrbank {
 public:
     ND_IO(NextDimension* nd) : ND_Addrbank(nd) {}
-    
+
     uint32_t lget(uint32_t addr) const {
         return nd->mc.read(addr);
     }
-    
+
     uint32_t wget(uint32_t addr) const {return 0;}
-    
+
     uint32_t bget(uint32_t addr) const {return 0;}
-    
+
     void lput(uint32_t addr, uint32_t l) const {
         nd->mc.write(addr, l);
     }
-    
+
     void wput(uint32_t addr, uint32_t w) const {}
     void bput(uint32_t addr, uint32_t b) const {}
 };
@@ -415,27 +422,27 @@ public:
 class ND_RAMDAC : public ND_Addrbank {
 public:
     ND_RAMDAC(NextDimension* nd) : ND_Addrbank(nd) {}
-    
+
     uint32_t lget(uint32_t addr) const {
         return bt463_bget(&nd->ramdac, addr) << 24;
     }
-    
+
     uint32_t wget(uint32_t addr) const {
         return bt463_bget(&nd->ramdac, addr) << 8;
     }
-    
+
     uint32_t bget(uint32_t addr) const {
         return bt463_bget(&nd->ramdac, addr);
     }
-    
+
     void lput(uint32_t addr, uint32_t l) const {
         bt463_bput(&nd->ramdac, addr, l >> 24);
     }
-    
+
     void wput(uint32_t addr, uint32_t w) const {
         bt463_bput(&nd->ramdac, addr, w >> 8);
     }
-    
+
     void bput(uint32_t addr, uint32_t b) const {
         bt463_bput(&nd->ramdac, addr, b);
     }
@@ -461,12 +468,17 @@ void NextDimension::mem_init(void) {
 
     /* Initialize banks with error memory */
     init_mem_banks();
-    
-    /* Clear first 4k of memory for m68k ROM polling code */
-    memset(ram, 0, 4096 * sizeof(uint8_t));
-    
+
+    /* Clear at least first 4k of main memory for m68k ROM polling code */
+    memset(ram, 0, 64*1024*1024);
+    memset(vram, 0, 4*1024*1024);
+    memset(rom, 0, 128*1024);
+    memset(dmem, 0, 512);
+
+    /* Load ROM from file */
+    rom_load();
+
     /* Map main memory */
-    
     for(int bank = 0; bank < 4; bank++) {
         if (ConfigureParams.Dimension.board[ND_NUM(slot)].nMemoryBankSize[bank]) {
             bankmask[bank] = ND_RAM_BANKMASK|((ConfigureParams.Dimension.board[ND_NUM(slot)].nMemoryBankSize[bank]<<20)-1);
@@ -480,23 +492,22 @@ void NextDimension::mem_init(void) {
                       (ND_RAM_START+(bank*ND_RAM_BANKSIZE)));
         }
     }
-    
+
     write_log("[ND] Slot %i: Mapping video memory at $%08x: %iMB\n", slot,
               ND_VRAM_START, ND_VRAM_SIZE/(1024*1024));
     map_banks(new ND_VRAM(this), ND_VRAM_START>>16, (4*ND_VRAM_SIZE)>>16);
-    
-	write_log("[ND] Slot %i: Mapping ROM at $%08x: %ikB\n", slot,
+
+    write_log("[ND] Slot %i: Mapping ROM at $%08x: %ikB\n", slot,
               ND_EEPROM_START, ND_EEPROM_SIZE/1024);
-	map_banks(new ND_ROM(this), ND_EEPROM_START>>16, (ND_EEPROM_SIZE*8)>>16);
-    rom_load();
-	
+    map_banks(new ND_ROM(this), ND_EEPROM_START>>16, (ND_EEPROM_SIZE*8)>>16);
+
     write_log("[ND] Slot %i: Mapping dither memory and data path at $%08x: %ibyte\n", slot,
               ND_DMEM_START, ND_DMEM_SIZE);
     map_banks(new ND_DMEM(this), ND_DMEM_START>>16, 1);
 
-	write_log("[ND] Slot %i: Mapping IO memory at $%08x\n", slot, ND_IO_START);
-	map_banks(new ND_IO(this), ND_IO_START>>16, 1);
-    
+    write_log("[ND] Slot %i: Mapping IO memory at $%08x\n", slot, ND_IO_START);
+    map_banks(new ND_IO(this), ND_IO_START>>16, 1);
+
     write_log("[ND] Slot %i: Mapping RAMDAC registers at $%08x\n", slot, ND_RAMDAC_START);
     map_banks(new ND_RAMDAC(this), ND_RAMDAC_START>>16, 1);
 #if ND_STEP
