@@ -1,4 +1,12 @@
-/* NeXT system registers emulation */
+/*
+  Previous - sysReg.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  System Control Registers
+*/
+const char SysReg_fileid[] = "Previous sysReg.c";
 
 #include <stdlib.h>
 #include "main.h"
@@ -739,8 +747,15 @@ uint8_t brighness_video_enabled(void) {
 }
 
 void Brightness_Write(void) {
-    bright_reg=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
-    Log_Printf(LOG_DEBUG,"[Brightness] Write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+    bright_reg = IoMem[(IoAccessCurrentAddress+0) & IO_SEG_MASK];
+    /* Length of register is byte on 68030 based NeXT Computer */
+    if (ConfigureParams.System.nMachineType == NEXT_CUBE030) {
+        bright_reg |= IoMem[(IoAccessCurrentAddress+1) & IO_SEG_MASK];
+        bright_reg |= IoMem[(IoAccessCurrentAddress+2) & IO_SEG_MASK];
+        bright_reg |= IoMem[(IoAccessCurrentAddress+3) & IO_SEG_MASK];
+    }
+    
+    Log_Printf(LOG_WARN,"[Brightness] Write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
     if (bright_reg&BRIGHTNESS_UNBLANK) {
         Log_Printf(LOG_WARN,"[Brightness] Setting brightness to %02x\n", bright_reg&BRIGHTNESS_MASK);
     }
