@@ -1,10 +1,10 @@
-/*  
+/*
   Previous - bmap.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
-  NeXT BMAP chip emulation.
+  This file contains a simulation of the BMAP chip.
 */
 const char Bmap_fileid[] = "Previous bmap.c";
 
@@ -16,8 +16,8 @@ const char Bmap_fileid[] = "Previous bmap.c";
 #include "sysdeps.h"
 #include "bmap.h"
 
-
 #define LOG_BMAP_LEVEL  LOG_DEBUG
+
 
 static uae_u32 NEXTbmap[16];
 

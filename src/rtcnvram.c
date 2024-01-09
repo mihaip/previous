@@ -1,13 +1,13 @@
-/*  Previous - rtcnvram.c
- 
- This file is distributed under the GNU Public License, version 2 or at
- your option any later version. Read the file gpl.txt for details.
- 
- Emulation of Real Time Clock including NVRAM.
- 
- Old systems use MC68HC68T1 chip, new systems use MCCS1850 chip.
+/*
+  Previous - rtcnvram.c
 
- */
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains a simulation of the MC68HC68T1 and MCCS1850 Real Time
+  Clock chips and NVRAM configuration.
+*/
+const char Rtcnvram_fileid[] = "Previous rtcnvram.c";
 
 #include "main.h"
 #include "host.h"
@@ -20,7 +20,6 @@
 #include "rtcnvram.h"
 
 #include <time.h>
-
 
 #define LOG_RTC_LEVEL   LOG_DEBUG
 

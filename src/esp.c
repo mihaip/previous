@@ -1,6 +1,12 @@
-/* Emulation of NCR53C90(A)
- Includes informations from QEMU-NeXT
- */
+/*
+  Previous - esp.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains a simulation of the NCR53C90A SCSI controller.
+*/
+const char Esp_fileid[] = "Previous esp.c";
 
 #include "ioMem.h"
 #include "ioMemTables.h"
@@ -16,8 +22,6 @@
 #define LOG_ESPREG_LEVEL    LOG_DEBUG   /* Print debugging messages for ESP registers */
 #define LOG_ESPFIFO_LEVEL   LOG_DEBUG   /* Print debugging messages for ESP FIFO */
 
-
-#define IO_SEG_MASK	0x1FFFF
 
 ESPDMASTATUS esp_dma;
 

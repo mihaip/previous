@@ -1,14 +1,12 @@
 /*
- Previous - ioMemTabNEXT.c
- 
- This file is distributed under the GNU Public License, version 2 or at
- your option any later version. Read the file gpl.txt for details.
- 
- Table with hardware IO handlers for the NEXT.
- */
+  Previous - ioMemTabNEXT.c
 
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
-const char IoMemTabNEXT_fileid[] = "Previous ioMemTabNEXT.c : " __DATE__ " " __TIME__;
+  Table with hardware I/O handlers for non-Turbo machines.
+*/
+const char IoMemTabNEXT_fileid[] = "Previous ioMemTabNEXT.c";
 
 #include "main.h"
 #include "ioMem.h"

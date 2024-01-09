@@ -1,3 +1,13 @@
+/*
+  Previous - nbic.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains a simulation of the NextBus interface chip (NBIC).
+*/
+const char Nbic_fileid[] = "Previous nbic.c";
+
 #include "main.h"
 #include "configuration.h"
 #include "m68000.h"
@@ -6,10 +16,8 @@
 
 #define LOG_NEXTBUS_LEVEL   LOG_NONE
 
-/* NeXTbus and NeXTbus Interface Chip emulation */
 
 /* NBIC Registers */
-
 struct {
 	uint32_t control;
 	uint32_t id;

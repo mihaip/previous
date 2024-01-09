@@ -460,11 +460,9 @@ void NextDimension::init_mem_banks(void) {
         nd_put_mem_bank(i<<16, nd_illegal_bank);
 }
 
-#define write_log printf
-
 void NextDimension::mem_init(void) {
-    write_log("[ND] Slot %i: Memory init: Memory size: %iMB\n", slot,
-              Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[ND_NUM(slot)].nMemoryBankSize));
+    Log_Printf(LOG_WARN, "[ND] Slot %i: Memory init: Memory size: %iMB\n", slot,
+               Configuration_CheckDimensionMemory(ConfigureParams.Dimension.board[ND_NUM(slot)].nMemoryBankSize));
 
     /* Initialize banks with error memory */
     init_mem_banks();
@@ -483,35 +481,35 @@ void NextDimension::mem_init(void) {
         if (ConfigureParams.Dimension.board[ND_NUM(slot)].nMemoryBankSize[bank]) {
             bankmask[bank] = ND_RAM_BANKMASK|((ConfigureParams.Dimension.board[ND_NUM(slot)].nMemoryBankSize[bank]<<20)-1);
             map_banks(new ND_RAM(this, bank), (ND_RAM_START+(bank*ND_RAM_BANKSIZE))>>16, ND_RAM_BANKSIZE >> 16);
-            write_log("[ND] Slot %i: Mapping main memory bank%d at $%08x: %iMB\n", slot, bank,
-                      (ND_RAM_START+(bank*ND_RAM_BANKSIZE)), ConfigureParams.Dimension.board[ND_NUM(slot)].nMemoryBankSize[bank]);
+            Log_Printf(LOG_WARN, "[ND] Slot %i: Mapping main memory bank%d at $%08x: %iMB\n", slot, bank,
+                       (ND_RAM_START+(bank*ND_RAM_BANKSIZE)), ConfigureParams.Dimension.board[ND_NUM(slot)].nMemoryBankSize[bank]);
         } else {
             bankmask[bank] = 0;
             map_banks(new ND_Empty(this), (ND_RAM_START+(bank*ND_RAM_BANKSIZE))>>16, ND_RAM_BANKSIZE >> 16);
-            write_log("[ND] Slot %i: Mapping main memory bank%d at $%08x: empty\n", slot, bank,
-                      (ND_RAM_START+(bank*ND_RAM_BANKSIZE)));
+            Log_Printf(LOG_WARN, "[ND] Slot %i: Mapping main memory bank%d at $%08x: empty\n", slot, bank,
+                       (ND_RAM_START+(bank*ND_RAM_BANKSIZE)));
         }
     }
 
-    write_log("[ND] Slot %i: Mapping video memory at $%08x: %iMB\n", slot,
-              ND_VRAM_START, ND_VRAM_SIZE/(1024*1024));
+    Log_Printf(LOG_WARN, "[ND] Slot %i: Mapping video memory at $%08x: %iMB\n", slot,
+               ND_VRAM_START, ND_VRAM_SIZE>>20);
     map_banks(new ND_VRAM(this), ND_VRAM_START>>16, (4*ND_VRAM_SIZE)>>16);
 
-    write_log("[ND] Slot %i: Mapping ROM at $%08x: %ikB\n", slot,
-              ND_EEPROM_START, ND_EEPROM_SIZE/1024);
+    Log_Printf(LOG_WARN, "[ND] Slot %i: Mapping ROM at $%08x: %ikB\n", slot,
+               ND_EEPROM_START, ND_EEPROM_SIZE>>10);
     map_banks(new ND_ROM(this), ND_EEPROM_START>>16, (ND_EEPROM_SIZE*8)>>16);
 
-    write_log("[ND] Slot %i: Mapping dither memory and data path at $%08x: %ibyte\n", slot,
-              ND_DMEM_START, ND_DMEM_SIZE);
+    Log_Printf(LOG_WARN, "[ND] Slot %i: Mapping dither memory and data path at $%08x: %ibyte\n", slot,
+               ND_DMEM_START, ND_DMEM_SIZE);
     map_banks(new ND_DMEM(this), ND_DMEM_START>>16, 1);
 
-    write_log("[ND] Slot %i: Mapping IO memory at $%08x\n", slot, ND_IO_START);
+    Log_Printf(LOG_WARN, "[ND] Slot %i: Mapping IO memory at $%08x\n", slot, ND_IO_START);
     map_banks(new ND_IO(this), ND_IO_START>>16, 1);
 
-    write_log("[ND] Slot %i: Mapping RAMDAC registers at $%08x\n", slot, ND_RAMDAC_START);
+    Log_Printf(LOG_WARN, "[ND] Slot %i: Mapping RAMDAC registers at $%08x\n", slot, ND_RAMDAC_START);
     map_banks(new ND_RAMDAC(this), ND_RAMDAC_START>>16, 1);
 #if ND_STEP
-    write_log("[ND] Slot %i: Mapping board CSR at $%08x\n", slot, ND_CSR_START);
+    Log_Printf(LOG_WARN, "[ND] Slot %i: Mapping board CSR at $%08x\n", slot, ND_CSR_START);
     map_banks(new ND_CSR(this), ND_CSR_START>>16, 1);
 #endif
 }

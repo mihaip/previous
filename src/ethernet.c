@@ -1,11 +1,13 @@
-/*  Previous - ethernet.c
+/*
+  Previous - ethernet.c
 
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
-   Network adapter for non-turbo and turbo NeXT machines.
-
+  This file contains simulations of the Fujitsu MB8795 and the AT&T 7213
+  Ethernet transceivers.
 */
+const char Ethernet_fileid[] = "Previous ethernet.c";
 
 #include "ioMem.h"
 #include "ioMemTables.h"
@@ -20,11 +22,9 @@
 #include "cycInt.h"
 #include "statusbar.h"
 
-
 #define LOG_EN_LEVEL        LOG_DEBUG
 #define LOG_EN_REG_LEVEL    LOG_DEBUG
 
-#define IO_SEG_MASK	0x1FFFF
 
 EthernetBuffer enet_tx_buffer;
 EthernetBuffer enet_rx_buffer;

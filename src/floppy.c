@@ -1,5 +1,12 @@
-/* Floppy drive emulation */
+/*
+  Previous - floppy.c
 
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains a simulation of the Intel 82077AA Floppy controller.
+*/
+const char Floppy_fileid[] = "Previous floppy.c";
 
 #include "ioMem.h"
 #include "ioMemTables.h"
@@ -12,11 +19,9 @@
 #include "file.h"
 #include "statusbar.h"
 
-
 #define LOG_FLP_REG_LEVEL   LOG_DEBUG
 #define LOG_FLP_CMD_LEVEL   LOG_DEBUG
 
-#define IO_SEG_MASK	0x1FFFF
 
 FloppyBuffer flp_buffer;
 

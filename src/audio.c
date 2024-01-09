@@ -1,3 +1,13 @@
+/*
+  Previous - audio.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains the SDL interface for sound input and sound output.
+*/
+const char Audio_fileid[] = "Previous audio.c";
+
 #include "main.h"
 #include "statusbar.h"
 #include "configuration.h"
@@ -12,7 +22,6 @@
 #include <SDL.h>
 
 
-/* Sound emulation SDL interface */
 static SDL_AudioDeviceID Audio_Input_Device  = 0;
 static SDL_AudioDeviceID Audio_Output_Device = 0;
 

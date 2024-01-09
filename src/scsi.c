@@ -1,4 +1,13 @@
-/* SCSI Bus and Disk emulation */
+/*
+  Previous - scsi.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains a simulation the SCSI bus and several SCSI disks.
+*/
+const char Scsi_fileid[] = "Previous scsi.c";
+
 #include "main.h"
 #include "ioMem.h"
 #include "ioMemTables.h"

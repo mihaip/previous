@@ -1,3 +1,13 @@
+/*
+  Previous - adb.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains a simulation of the Apple Desktop Bus. Dummy.
+*/
+const char Adb_fileid[] = "Previous adb.c";
+
 #include "main.h"
 #include "configuration.h"
 #include "m68000.h"
@@ -5,14 +15,10 @@
 #include "sysReg.h"
 #include "adb.h"
 
-
-/* Apple Desktop Bus emulation */
-
 #define LOG_ADB_LEVEL LOG_DEBUG
 
 
 /* ADB registers */
-
 struct {
 	uint32_t intstatus;
 	uint32_t intmask;

@@ -1,13 +1,12 @@
-/*  Previous - ramdac.c
- 
- This file is distributed under the GNU Public License, version 2 or at
- your option any later version. Read the file gpl.txt for details.
- 
- Brooktree Bt463 RAMDAC emulation.
- 
- This chip was is used in color NeXTstations and NeXTdimension.
- 
- */
+/*
+  Previous - ramdac.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains a simulation of the Brooktree Bt463 RAMDAC.
+*/
+const char Ramdac_fileid[] = "Previous ramdac.c";
 
 #include "ioMem.h"
 #include "ioMemTables.h"
@@ -16,13 +15,10 @@
 #include "ramdac.h"
 #include "sysReg.h"
 
-#define IO_SEG_MASK 0x1FFFF
-
 #define LOG_RAMDAC_LEVEL    LOG_DEBUG
 
 
-/* Bt 463 RAMDAC */
-
+/* Bt463 RAMDAC */
 #define BT_ADDR_MASK    0x0FFF
 #define BT_ADDR_CCR     0x0100
 #define BT_ADDR_REG     0x0200

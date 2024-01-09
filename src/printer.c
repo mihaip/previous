@@ -1,11 +1,12 @@
-/*  Previous - printer.c
- 
- This file is distributed under the GNU Public License, version 2 or at
- your option any later version. Read the file gpl.txt for details.
- 
- NeXT Laser Printer emulation.
- 
- */
+/*
+  Previous - printer.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains a simulation of the NeXT Laser Printer.
+*/
+const char printer_fileid[] = "Previous printer.c";
 
 #include "ioMem.h"
 #include "m68000.h"
@@ -142,8 +143,6 @@ static void lp_png_finish(void) {}
 
 
 /* Laser Printer */
-#define IO_SEG_MASK 0x1FFFF
-
 #define LOG_LP_REG_LEVEL    LOG_DEBUG
 #define LOG_LP_LEVEL        LOG_DEBUG
 #define LOG_LP_PRINT_LEVEL  LOG_DEBUG

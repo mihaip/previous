@@ -1,11 +1,11 @@
 /*
-  Hatari - video.c
+  Previous - video.c
 
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
 */
-const char Video_fileid[] = "Hatari video.c";
+const char Video_fileid[] = "Previous video.c";
 
 #include "main.h"
 #include "host.h"

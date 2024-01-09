@@ -1,3 +1,13 @@
+/*
+  Previous - tmc.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains a simulation of the Turbo Memory Controller (TMC).
+*/
+const char Tmc_fileid[] = "Previous tmc.c";
+
 #include "main.h"
 #include "configuration.h"
 #include "m68000.h"

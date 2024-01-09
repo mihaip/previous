@@ -1,13 +1,12 @@
 /*
-  Hatari - screen.c
+  Previous - screen.c
 
-  This file is distributed under the GNU Public License, version 2 or at your
-  option any later version. Read the file gpl.txt for details.
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
 
- (SC) Simon Schubiger - most of it rewritten for Previous NeXT emulator
+  This file contains the SDL interface for sound input and sound output.
 */
-
-const char Screen_fileid[] = "Previous fast_screen.c : " __DATE__ " " __TIME__;
+const char Screen_fileid[] = "Previous screen.c";
 
 #include "main.h"
 #include "host.h"

@@ -1,12 +1,12 @@
 /*
-  Hatari - keymap.c
+  Previous - keymap.c
 
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
   Here we translate key presses and mouse motion.
 */
-const char Keymap_fileid[] = "Hatari keymap.c";
+const char Keymap_fileid[] = "Previous keymap.c";
 
 #include <ctype.h>
 #include "main.h"
@@ -18,8 +18,8 @@ const char Keymap_fileid[] = "Hatari keymap.c";
 #include "log.h"
 #include "kms.h"
 
-
 #define  LOG_KEYMAP_LEVEL   LOG_DEBUG
+
 
 /* ------- NeXT scancodes ------- */
 #define NEXTKEY_NONE            0x00

@@ -1,14 +1,13 @@
-/*  Previous - kms.c
- 
- This file is distributed under the GNU Public License, version 2 or at
- your option any later version. Read the file gpl.txt for details.
- 
- Keyboard, Mouse and Sound logic Emulation.
- 
- In real hardware this logic is located in the NeXT Megapixel Display 
- or Soundbox
- 
- */
+/*
+  Previous - kms.c
+
+  This file is distributed under the GNU General Public License, version 2
+  or at your option any later version. Read the file gpl.txt for details.
+
+  This file contains keyboard, mouse and sound handling. This logic is 
+  located in the Megapixel Display or Soundbox. See snd.c for sound I/O.
+*/
+const char Kms_fileid[] = "Previous kms.c";
 
 #include "ioMem.h"
 #include "ioMemTables.h"
@@ -23,8 +22,6 @@
 
 #define LOG_KMS_REG_LEVEL LOG_DEBUG
 #define LOG_KMS_LEVEL     LOG_DEBUG
-
-#define IO_SEG_MASK	0x1FFFF
 
 
 struct {

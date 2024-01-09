@@ -1,5 +1,5 @@
 /*
-  Hatari - configuration.c
+  Previous - configuration.c
 
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
@@ -9,7 +9,7 @@
   The configuration file is now stored in an ASCII format to allow the user
   to edit the file manually.
 */
-const char Configuration_fileid[] = "Hatari configuration.c";
+const char Configuration_fileid[] = "Previous configuration.c";
 
 #include "main.h"
 #include "host.h"

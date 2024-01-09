@@ -1,12 +1,12 @@
 /*
-  Hatari - dialog.c
+  Previous - dialog.c
 
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
   Code to handle our options dialog.
 */
-const char Dialog_fileid[] = "Hatari dialog.c";
+const char Dialog_fileid[] = "Previous dialog.c";
 
 #include "main.h"
 #include "configuration.h"

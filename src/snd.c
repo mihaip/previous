@@ -4,7 +4,7 @@
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
-  Sound processing and sound I/O. This is done inside the Soundbox. 
+  This file contains a simulation of Soundbox sound processing and I/O. 
 */
 const char Snd_fileid[] = "Previous snd.c";
 
