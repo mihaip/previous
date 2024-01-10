@@ -98,7 +98,7 @@ void Screen_Repaint(void) {
     if (ConfigureParams.System.bColor) {
         int pitch = NeXT_SCRN_WIDTH + (ConfigureParams.System.bTurbo ? 0 : 32);
 
-        XXH64_hash_t update_hash = XXH3_64bits(NEXTVideo, NeXT_SCRN_HEIGHT * pitch);
+        XXH64_hash_t update_hash = XXH3_64bits(NEXTVideo, NeXT_SCRN_HEIGHT * pitch * sizeof(uint16_t));
         if (update_hash == last_update_hash) {
             // Screen has not changed, but we still let the JS know so that it can
             // keep track of screen refreshes when deciding how long to idle for.
