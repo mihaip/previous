@@ -4,8 +4,9 @@
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
-  The Integrated Channel Processor (ISP) for direct memory access consists 
-  of 12 channels with 128 byte internal buffers.
+  This file contains a simulation of the Fujitsu MB610313 Integrated
+  Channel Processor (ISP) for direct memory access. The ISP controls
+  twelve DMA channels with 128 byte internal buffers.
 */
 const char Dma_fileid[] = "Previous dma.c";
 

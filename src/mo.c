@@ -4,9 +4,10 @@
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
  
-  Optical Storage Processor (OSP) and Canon magneto-optical disk drive
+  This file contains a simulation of the Fujitsu MB600310 Optical Storage 
+  Processor (OSP) and Canon magneto-optical disk drive.
  
-  The OSP uses Reed-Solomon algorithm for error correction. It has two 
+  The OSP uses the Reed-Solomon algorithm for error correction. It has two 
   internal buffers of 1296 byte each and uses double-buffering to perform
   error correction.
 */

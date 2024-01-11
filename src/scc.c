@@ -4,8 +4,8 @@
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
-  This file contains a simulation of the AMD AM8530H Serial Communicaion
-  Controller. Imcomplete.
+  This file contains a simulation of the AMD AM8530H Serial Communication
+  Controller. Incomplete.
 */
 const char Scc_fileid[] = "Previous scc.c";
 

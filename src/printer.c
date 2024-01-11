@@ -6,7 +6,7 @@
 
   This file contains a simulation of the NeXT Laser Printer.
 */
-const char printer_fileid[] = "Previous printer.c";
+const char Printer_fileid[] = "Previous printer.c";
 
 #include "ioMem.h"
 #include "m68000.h"
