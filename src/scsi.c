@@ -83,6 +83,7 @@ const char Scsi_fileid[] = "Previous scsi.c";
 
 /* SCSI Commands */
 #define CMD_TEST_UNIT_RDY   0x00    /* Test unit ready */
+#define CMD_REQ_SENSE       0x03    /* Request sense */
 #define CMD_FORMAT_DRIVE    0x04    /* Format the whole drive */
 #define CMD_VERIFY_TRACK    0x05    /* Verify track */
 #define CMD_FORMAT_TRACK    0x06    /* Format track */
@@ -94,7 +95,6 @@ const char Scsi_fileid[] = "Previous scsi.c";
 #define CMD_INQUIRY         0x12    /* Inquiry */
 #define CMD_MODESELECT      0x15    /* Mode select */
 #define CMD_MODESENSE       0x1A    /* Mode sense */
-#define CMD_REQ_SENSE       0x03    /* Request sense */
 #define CMD_SHIP            0x1B    /* Ship drive */
 #define CMD_READ_CAPACITY1  0x25    /* Read capacity (class 1) */
 #define CMD_READ_SECTOR1    0x28    /* Read sector (class 1) */
@@ -338,8 +338,6 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
     uint32_t sectors = SCSIdisk[target].size / blocksize;
     SCSI_DEVTYPE type = SCSIdisk[target].devtype;
     
-    int pagesize = 0;
-    
     int i = SCSIdisk[target].known;
     
     if (i < 0) {
@@ -354,23 +352,20 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
     
     switch (pagecode) {
         case 0x00: // operating page
-            pagesize = 4;
             page[0] = 0x00; // &0x80: page savable? (not supported!), &0x7F: page code = 0x00
             page[1] = 0x02; // page length = 2
             page[2] = 0x80; // &0x80: usage bit = 1, &0x10: disable unit attention = 0
             page[3] = 0x00; // &0x7F: device type qualifier = 0x00, see inquiry!
-            break;
+            return 4;
             
         case 0x01: // error recovery page
-            pagesize = 4;
             page[0] = 0x01; // &0x80: page savable? (not supported!), &0x7F: page code = 0x01
             page[1] = 0x02; // page length = 2
             page[2] = 0x00; // AWRE, ARRE, TB, RC, EER, PER, DTE, DCR
             page[3] = 0x1B; // retry count
-            break;
+            return 4;
             
         case 0x03: // format device page
-            pagesize = 24;
             page[0] = 0x03; // &0x80: page savable? (not supported!), &0x7F: page code = 0x03
             page[1] = 0x16; // page length = 22
             page[2] = 0x00; // tracks per zone (msb)
@@ -395,10 +390,9 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
             page[21] = 0x00; // reserved
             page[22] = 0x00; // reserved
             page[23] = 0x00; // reserved
-            break;
+            return 24;
             
         case 0x04: // rigid disc geometry page            
-            pagesize = 20;
             page[0] = 0x04; // &0x80: page savable? (not supported!), &0x7F: page code = 0x04
             page[1] = 0x12;
             page[2] = (c >> 16) & 0xFF;
@@ -419,7 +413,7 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
             page[17] = 0x00; // &0x03: rotational position locking
             page[18] = 0x00; // rotational position lock offset
             page[19] = 0x00; // reserved
-            break;
+            return 20;
             
         case 0x02: // disconnect/reconnect page
         case 0x08: // caching page
@@ -428,13 +422,12 @@ static int SCSI_GetModePage(uint8_t* page, uint8_t pagecode) {
         case 0x38: // cache control page
         case 0x3C: // soft ID page (EEPROM)
             Log_Printf(LOG_WARN, "[SCSI] Mode sense: Page %02x not yet emulated!", pagecode);
-            break;
+            return 0;
             
         default:
             Log_Printf(LOG_WARN, "[SCSI] Mode sense: Invalid page code: %02x!", pagecode);
-            break;
+            return 0;
     }
-    return pagesize;
 }
 
 

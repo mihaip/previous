@@ -1,6 +1,6 @@
 
 
-                                  Previous 2.9
+                                  Previous 3.0
 
 
 
@@ -370,7 +370,7 @@ Previous v2.9:
   > Adds support for saving sound output to a file.
   > Improves SCC emulation for booting Mac OS 7.5.3 via Daydream.
 
-Previous v3.0 (unreleased):
+Previous v3.0:
   > Adds option for simulating DSP bootstrap ROM.
   > Adds support for changing shared directory without reset.
   > Adds support for mapping scroll wheel to cursor keys.

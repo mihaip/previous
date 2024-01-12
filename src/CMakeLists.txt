@@ -4,7 +4,7 @@ set(SOURCES
 	dialog.c dma.c esp.c enet_slirp.c enet_pcap.c ethernet.c file.c 
 	floppy.c grab.c ioMem.c ioMemTabNEXT.c ioMemTabTurbo.c keymap.c kms.c 
 	m68000.c main.c mo.c nbic.c NextBus.cpp paths.c printer.c queue.c 
-	ramdac.c reset.c rom.c rs.c rtcnvram.c scandir.c scc.c fast_screen.c host.c 
+	ramdac.c reset.c rom.c rs.c rtcnvram.c scandir.c scc.c screen.c host.c 
 	scsi.c shortcut.c snd.c statusbar.c str.c sysReg.c tmc.c video.c zip.c)
 
 # When building for macOS, define specific sources for gui and resources
