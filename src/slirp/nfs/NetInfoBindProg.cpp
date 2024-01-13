@@ -8,6 +8,7 @@
 #include "nfsd.h"
 #include "NetInfoBindProg.h"
 #include "UFS.h"
+#include "configuration.h"
 
 #include <sstream>
 #include <cstring>
@@ -94,7 +95,9 @@ CNetInfoBindProg::CNetInfoBindProg()
     SET_PROC(7, DESTROYDOMAIN);
     SET_PROC(8, BIND);
     
-    string systemType = "NeXT";
+    string systemType = ConfigureParams.System.nMachineType == NEXT_STATION ? "NeXTstation" : "NeXTcube";
+    if(ConfigureParams.System.nMachineType == NEXT_STATION && ConfigureParams.System.bColor)
+        systemType += " Color";
 
     addHost(m_Local, NAME_HOST, systemType);
 
