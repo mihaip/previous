@@ -11,6 +11,7 @@
 #include "hatari-glue.h"
 #include "ioMem.h"
 #include "keymap.h"
+#include "kms.h"
 #include "log.h"
 #include "m68000.h"
 #include "main.h"
@@ -135,6 +136,26 @@ static void Main_ReadJSInput(void) {
             return workerApi.getInputValue(workerApi.InputBufferAddresses.mouseDeltaYAddr);
         });
         Keymap_MouseMove(delta_x, delta_y);
+    }
+
+    int has_key_event = EM_ASM_INT_V(
+        { return workerApi.getInputValue(workerApi.InputBufferAddresses.keyEventFlagAddr); });
+    if (has_key_event) {
+        int keycode = EM_ASM_INT_V({
+            return workerApi.getInputValue(workerApi.InputBufferAddresses.keyCodeAddr);
+        });
+        int modifiers = EM_ASM_INT_V({
+            return workerApi.getInputValue(workerApi.InputBufferAddresses.keyModifiersAddr);
+        });
+        int keystate = EM_ASM_INT_V({
+            return workerApi.getInputValue(workerApi.InputBufferAddresses.keyStateAddr);
+        });
+
+        if (keystate == 0) {
+            kms_keyup(modifiers, keycode);
+        } else {
+            kms_keydown(modifiers, keycode);
+        }
     }
 
     EM_ASM({ workerApi.releaseInputLock(); });
