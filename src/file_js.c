@@ -16,6 +16,9 @@ FILEJS *FileJS_Open(const char *path, const char *mode) {
 }
 
 FILEJS *FileJS_Close(FILEJS *fp) {
+    if (fp == NULL) {
+        return NULL;
+    }
     EM_ASM_({ workerApi.disks.close($0); }, fp->disk_id);
     free(fp);
     return NULL;

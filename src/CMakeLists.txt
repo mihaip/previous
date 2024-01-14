@@ -3,7 +3,7 @@ set(SOURCES
 	adb.c audio.c bmap.c cfgopts.c configuration.c change.c cycInt.c
 	dialog.c dma.c esp.c enet_slirp.c enet_pcap.c ethernet.c file.c
 	floppy.c grab.c ioMem.c ioMemTabNEXT.c ioMemTabTurbo.c keymap.c kms.c
-	m68000.c main.c mo.c nbic.c NextBus.cpp paths.c printer.c queue.c
+	m68000.c mo.c nbic.c NextBus.cpp paths.c printer.c queue.c
 	ramdac.c reset.c rom.c rs.c rtcnvram.c scandir.c scc.c host.c
 	scsi.c shortcut.c snd.c statusbar.c str.c sysReg.c tmc.c video.c zip.c)
 
