@@ -22,6 +22,7 @@ const char Memory_fileid[] = "Previous memory.c";
 #include "main.h"
 #include "rom.h"
 #include "ioMem.h"
+#include "sysReg.h"
 #include "bmap.h"
 #include "tmc.h"
 #include "nbic.h"
@@ -42,8 +43,8 @@ const char Memory_fileid[] = "Previous memory.c";
  * NeXT memory map (example for 68030 NeXT Computer)
  *
  * Local bus:
- * 0x00000000 - 0x0001FFFF: ROM
- * 0x01000000 - 0x0101FFFF: ROM mirror
+ * 0x00000000 - 0x00FFFFFF: ROM
+ * 0x01000000 - 0x01FFFFFF: Diagnsotic ROM
  *
  * 0x02000000 - 0x020FFFFF: Device space
  *
@@ -52,19 +53,19 @@ const char Memory_fileid[] = "Previous memory.c";
  * 0x06000000 - 0x06FFFFFF: RAM bank 2
  * 0x07000000 - 0x07FFFFFF: RAM bank 3
  *
- * 0x0B000000 - 0x0B03FFFF: VRAM
+ * 0x0B000000 - 0x0BFFFFFF: VRAM
  *
- * 0x0C000000 - 0x0C03FFFF: VRAM mirror for MWF0
- * 0x0D000000 - 0x0D03FFFF: VRAM mirror for MWF1
- * 0x0E000000 - 0x0E03FFFF: VRAM mirror for MWF2
- * 0x0F000000 - 0x0F03FFFF: VRAM mirror for MWF3
+ * 0x0C000000 - 0x0CFFFFFF: VRAM mirror for MWF0
+ * 0x0D000000 - 0x0DFFFFFF: VRAM mirror for MWF1
+ * 0x0E000000 - 0x0EFFFFFF: VRAM mirror for MWF2
+ * 0x0F000000 - 0x0FFFFFFF: VRAM mirror for MWF3
  *
  * 0x10000000 - 0x13FFFFFF: RAM mirror for MWF0
  * 0x14000000 - 0x17FFFFFF: RAM mirror for MWF1
  * 0x18000000 - 0x1BFFFFFF: RAM mirror for MWF2
  * 0x1C000000 - 0x1FFFFFFF: RAM mirror for MWF3
  *
- * NeXTbus: (Note: Boards can be configured to occupy 2 slots)
+ * NextBus: (Note: Boards can be configured to occupy 1 or 2 slots)
  * 0x00000000 - 0x1FFFFFFF: NeXTbus board space for slot 0
  * 0x20000000 - 0x3FFFFFFF: NeXTbus board space for slot 2
  * 0x40000000 - 0x5FFFFFFF: NeXTbus board space for slot 4
@@ -90,13 +91,15 @@ uae_u8 ce_banktype[65536], ce_cachable[65536];
 #define NEXT_EPROM_START        0x00000000
 #define NEXT_EPROM_DIAG_START   0x01000000
 #define NEXT_EPROM_BMAP_START   0x01000000
-#define NEXT_EPROM_SIZE         0x00020000
+#define NEXT_EPROM_SIZE         0x01000000
+#define NEXT_EPROM_MAX          0x00020000
 #define NEXT_EPROM_MASK         0x0001FFFF
 
 /* Main memory */
 #define N_BANKS 4
 
 #define NEXT_RAM_START          0x04000000
+#define NEXT_RAM_SIZE           0x04000000
 
 #define NEXT_RAM_BANK_MAX       0x01000000
 #define NEXT_RAM_BANK_MAX_C     0x00800000
@@ -106,9 +109,9 @@ uae_u8 ce_banktype[65536], ce_cachable[65536];
 #define NEXT_RAM_BANK_SEL_C     0x01800000
 #define NEXT_RAM_BANK_SEL_T     0x06000000
 
-#define NEXT_RAM_MAX_SIZE       (N_BANKS*NEXT_RAM_BANK_MAX)
-#define NEXT_RAM_MAX_SIZE_C     (N_BANKS*NEXT_RAM_BANK_MAX_C)
-#define NEXT_RAM_MAX_SIZE_T     (N_BANKS*NEXT_RAM_BANK_MAX_T)
+#define NEXT_RAM_MAX            (N_BANKS*NEXT_RAM_BANK_MAX)
+#define NEXT_RAM_MAX_C          (N_BANKS*NEXT_RAM_BANK_MAX_C)
+#define NEXT_RAM_MAX_T          (N_BANKS*NEXT_RAM_BANK_MAX_T)
 
 static uae_u32 next_ram_bank_size;
 static uae_u32 next_ram_bank_mask;
@@ -125,7 +128,8 @@ static uae_u32 next_ram_bank3_mask;
 
 /* VRAM monochrome */
 #define NEXT_VRAM_START         0x0B000000
-#define NEXT_VRAM_SIZE          0x00040000
+#define NEXT_VRAM_SIZE          0x01000000
+#define NEXT_VRAM_MAX           0x00040000
 #define NEXT_VRAM_MASK          0x0003FFFF
 
 /* VRAM monochrome with memory write functions */
@@ -136,7 +140,8 @@ static uae_u32 next_ram_bank3_mask;
 
 /* VRAM color */
 #define NEXT_VRAM_COLOR_START   0x2C000000
-#define NEXT_VRAM_COLOR_SIZE    0x00200000
+#define NEXT_VRAM_COLOR_SIZE    0x01000000
+#define NEXT_VRAM_COLOR_MAX     0x00200000
 #define NEXT_VRAM_COLOR_MASK    0x001FFFFF
 
 /* VRAM turbo monochrome and color */
@@ -147,20 +152,17 @@ static uae_u32 next_ram_bank3_mask;
 #define NEXT_IO_BMAP_START      0x02100000
 #define NEXT_IO_TMC_START       0x02200000
 #define NEXT_IO_SIZE            0x00020000
+#define NEXT_IO_MAX             0x00020000
 #define NEXT_IO_MASK            0x0001FFFF
 
 #define NEXT_BMAP_START         0x020C0000
-#define NEXT_BMAP_SIZE          0x00000040
+#define NEXT_BMAP_START2        0x820C0000
+#define NEXT_BMAP_SIZE          0x00010000
 #define NEXT_BMAP_MASK          0x0000003F
 
-#define NEXT_BMAP_MAP_SIZE      0x00010000
-#define NEXT_BMAP_MAP_MASK      0x0000FFFF
-
 #define NEXT_NBIC_START         0x02020000
-#define NEXT_NBIC_SIZE          0x00000008
+#define NEXT_NBIC_SIZE          0x00010000
 #define NEXT_NBIC_MASK          0x00000007
-
-#define NEXT_NBIC_MAP_SIZE      0x00010000
 
 /* Cache memory for nitro systems */
 #define NEXT_CACHE_TAG_START    0x03E00000
@@ -707,7 +709,7 @@ static void mem_video_mwf_lput(uaecptr addr, uae_u32 l)
 	int function = (addr>>24)&0x3;
 	addr = NEXT_VRAM_START|(addr&NEXT_VRAM_MASK);
 	
-    uae_u32 old = get_long(addr);
+	uae_u32 old = get_long(addr);
 	uae_u32 val = memory_write_func(old, l, function, 4);
 	
 	put_long(addr, val);
@@ -779,7 +781,7 @@ static void mem_color_video_bput(uaecptr addr, uae_u32 b)
 
 static uae_u32 mem_bmap_lget(uaecptr addr)
 {
-	if ((addr&NEXT_BMAP_MAP_MASK)>NEXT_BMAP_SIZE) {
+	if ((addr&(NEXT_BMAP_SIZE-1))>NEXT_BMAP_MASK) {
 		write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 		M68000_BusError(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_LONG, BUS_ERROR_ACCESS_DATA, 0);
 		return 0;
@@ -790,7 +792,7 @@ static uae_u32 mem_bmap_lget(uaecptr addr)
 
 static uae_u32 mem_bmap_wget(uaecptr addr)
 {
-	if ((addr&NEXT_BMAP_MAP_MASK)>NEXT_BMAP_SIZE) {
+	if ((addr&(NEXT_BMAP_SIZE-1))>NEXT_BMAP_MASK) {
 		write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 		M68000_BusError(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_WORD, BUS_ERROR_ACCESS_DATA, 0);
 		return 0;
@@ -801,7 +803,7 @@ static uae_u32 mem_bmap_wget(uaecptr addr)
 
 static uae_u32 mem_bmap_bget(uaecptr addr)
 {
-	if ((addr&NEXT_BMAP_MAP_MASK)>NEXT_BMAP_SIZE) {
+	if ((addr&(NEXT_BMAP_SIZE-1))>NEXT_BMAP_MASK) {
 		write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 		M68000_BusError(addr, BUS_ERROR_READ, BUS_ERROR_SIZE_BYTE, BUS_ERROR_ACCESS_DATA, 0);
 		return 0;
@@ -812,7 +814,7 @@ static uae_u32 mem_bmap_bget(uaecptr addr)
 
 static void mem_bmap_lput(uaecptr addr, uae_u32 l)
 {
-	if ((addr&NEXT_BMAP_MAP_MASK)>NEXT_BMAP_SIZE) {
+	if ((addr&(NEXT_BMAP_SIZE-1))>NEXT_BMAP_MASK) {
 		write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 		M68000_BusError(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_LONG, BUS_ERROR_ACCESS_DATA, l);
 	}
@@ -822,7 +824,7 @@ static void mem_bmap_lput(uaecptr addr, uae_u32 l)
 
 static void mem_bmap_wput(uaecptr addr, uae_u32 w)
 {
-	if ((addr&NEXT_BMAP_MAP_MASK)>NEXT_BMAP_SIZE) {
+	if ((addr&(NEXT_BMAP_SIZE-1))>NEXT_BMAP_MASK) {
 		write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 		M68000_BusError(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_WORD, BUS_ERROR_ACCESS_DATA, w);
 	}
@@ -832,13 +834,140 @@ static void mem_bmap_wput(uaecptr addr, uae_u32 w)
 
 static void mem_bmap_bput(uaecptr addr, uae_u32 b)
 {
-	if ((addr&NEXT_BMAP_MAP_MASK)>NEXT_BMAP_SIZE) {
+	if ((addr&(NEXT_BMAP_SIZE-1))>NEXT_BMAP_MASK) {
 		write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 		M68000_BusError(addr, BUS_ERROR_WRITE, BUS_ERROR_SIZE_BYTE, BUS_ERROR_ACCESS_DATA, b);
 	}
 	addr &= NEXT_BMAP_MASK;
 	bmap_bput(addr, b);
 }
+
+
+/* **** Off-board access to board space **** */
+
+static uae_u32 mem_offboard_lget(uaecptr addr)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (lget)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		return get_long(addr&NEXTBUS_BOARD_MASK);
+	} else {
+		return nextbus_board_lget(addr);
+	}
+}
+
+static uae_u32 mem_offboard_wget(uaecptr addr)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (wget)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		return get_word(addr&NEXTBUS_BOARD_MASK);
+	} else {
+		return nextbus_board_wget(addr);
+	}
+}
+
+static uae_u32 mem_offboard_bget(uaecptr addr)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (bget)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		return get_byte(addr&NEXTBUS_BOARD_MASK);
+	} else {
+		return nextbus_board_bget(addr);
+	}
+}
+
+static void mem_offboard_lput(uaecptr addr, uae_u32 l)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (lput)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		put_long(addr&NEXTBUS_BOARD_MASK, l);
+	} else {
+		nextbus_board_lput(addr, l);
+	}
+}
+
+static void mem_offboard_wput(uaecptr addr, uae_u32 w)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (wput)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		put_word(addr&NEXTBUS_BOARD_MASK, w);
+	} else {
+		nextbus_board_wput(addr, w);
+	}
+}
+
+static void mem_offboard_bput(uaecptr addr, uae_u32 b)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (bput)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		put_byte(addr&NEXTBUS_BOARD_MASK, b);
+	} else {
+		nextbus_board_bput(addr, b);
+	}
+}
+
+
+/* **** Off-board access to slot space **** */
+
+static uae_u32 mem_offslot_lget(uaecptr addr)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (lget)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		return get_long(addr&NEXTBUS_BOARD_MASK);
+	} else {
+		return nextbus_slot_lget(addr);
+	}
+}
+
+static uae_u32 mem_offslot_wget(uaecptr addr)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (wget)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		return get_word(addr&NEXTBUS_BOARD_MASK);
+	} else {
+		return nextbus_slot_wget(addr);
+	}
+}
+
+static uae_u32 mem_offslot_bget(uaecptr addr)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (bget)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		return get_byte(addr&NEXTBUS_BOARD_MASK);
+	} else {
+		return nextbus_slot_bget(addr);
+	}
+}
+
+static void mem_offslot_lput(uaecptr addr, uae_u32 l)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (lput)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		put_long(addr&NEXTBUS_BOARD_MASK, l);
+	} else {
+		nextbus_slot_lput(addr, l);
+	}
+}
+
+static void mem_offslot_wput(uaecptr addr, uae_u32 w)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (wput)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		put_word(addr&NEXTBUS_BOARD_MASK, w);
+	} else {
+		nextbus_slot_wput(addr, w);
+	}
+}
+
+static void mem_offslot_bput(uaecptr addr, uae_u32 b)
+{
+	if (scr_local_only) {
+		write_log("Local only: Remapping $%08x to $%08x (bput)\n",addr,addr&NEXTBUS_BOARD_MASK);
+		put_byte(addr&NEXTBUS_BOARD_MASK, b);
+	} else {
+		nextbus_slot_bput(addr, b);
+	}
+}
+
 
 
 /* **** Address banks **** */
@@ -941,14 +1070,14 @@ static addrbank NBIC_bank =
 
 static addrbank NEXTBUS_slot_bank =
 {
-	nextbus_slot_lget, nextbus_slot_wget, nextbus_slot_bget,
-	nextbus_slot_lput, nextbus_slot_wput, nextbus_slot_bput
+	mem_offslot_lget, mem_offslot_wget, mem_offslot_bget,
+	mem_offslot_lput, mem_offslot_wput, mem_offslot_bput
 };
 
 static addrbank NEXTBUS_board_bank =
 {
-	nextbus_board_lget, nextbus_board_wget, nextbus_board_bget,
-	nextbus_board_lput, nextbus_board_wput, nextbus_board_bput
+	mem_offboard_lget, mem_offboard_wget, mem_offboard_bget,
+	mem_offboard_lput, mem_offboard_wput, mem_offboard_bput
 };
 
 
@@ -998,18 +1127,18 @@ int memory_init (void)
 	if (ConfigureParams.System.bTurbo) {
 		next_ram_bank_size = NEXT_RAM_BANK_MAX_T;
 		next_ram_bank_mask = NEXT_RAM_BANK_SEL_T;
-		vram_size = ConfigureParams.System.bColor ? NEXT_VRAM_COLOR_SIZE : NEXT_VRAM_SIZE;
-		ram_size  = NEXT_RAM_MAX_SIZE_T;
+		vram_size = ConfigureParams.System.bColor ? NEXT_VRAM_COLOR_MAX : NEXT_VRAM_MAX;
+		ram_size  = NEXT_RAM_MAX_T;
 	} else if (ConfigureParams.System.bColor) {
 		next_ram_bank_size = NEXT_RAM_BANK_MAX_C;
 		next_ram_bank_mask = NEXT_RAM_BANK_SEL_C;
-		vram_size = NEXT_VRAM_COLOR_SIZE;
-		ram_size  = NEXT_RAM_MAX_SIZE_C;
+		vram_size = NEXT_VRAM_COLOR_MAX;
+		ram_size  = NEXT_RAM_MAX_C;
 	} else {
 		next_ram_bank_size = NEXT_RAM_BANK_MAX;
 		next_ram_bank_mask = NEXT_RAM_BANK_SEL;
-		vram_size = NEXT_VRAM_SIZE;
-		ram_size  = NEXT_RAM_MAX_SIZE;
+		vram_size = NEXT_VRAM_MAX;
+		ram_size  = NEXT_RAM_MAX;
 	}
 	
 	/* Free memory in case it has been allocated already */
@@ -1018,8 +1147,8 @@ int memory_init (void)
 	/* Allocate memory */
 	NEXTRam   = malloc_aligned(ram_size);
 	NEXTVideo = malloc_aligned(vram_size);
-	NEXTIo    = malloc_aligned(NEXT_IO_SIZE);
-	NEXTRom   = malloc_aligned(NEXT_EPROM_SIZE);
+	NEXTIo    = malloc_aligned(NEXT_IO_MAX);
+	NEXTRom   = malloc_aligned(NEXT_EPROM_MAX);
 	
 	/* Check if memory allocation was successful */
 	if (!(NEXTRom && NEXTVideo && NEXTRam && NEXTIo)) {
@@ -1028,13 +1157,13 @@ int memory_init (void)
 	}
 	
 	/* Initialise memory */
-	memset(NEXTRom, 0, NEXT_EPROM_SIZE);
+	memset(NEXTRom, 0, NEXT_EPROM_MAX);
 	memset(NEXTVideo, 0, vram_size);
 	memset(NEXTRam, 0, ram_size);
-	memset(NEXTIo, 0, NEXT_IO_SIZE);
+	memset(NEXTIo, 0, NEXT_IO_MAX);
 	
 	/* Load ROM file */
-	if (rom_load(NEXTRom, NEXT_EPROM_SIZE)) {
+	if (rom_load(NEXTRom, NEXT_EPROM_MAX)) {
 		write_log("Memory init: Cannot load ROM\n");
 		return 1;
 	}
@@ -1053,10 +1182,10 @@ int memory_init (void)
 	
 	/* Map ROM */
 	map_banks(&ROM_bank, NEXT_EPROM_START>>16, NEXT_EPROM_SIZE>>16);
-	write_log("Mapping ROM at $%08x: %ikB\n", NEXT_EPROM_START, NEXT_EPROM_SIZE>>10);
+	write_log("Mapping ROM at $%08x: %ikB\n", NEXT_EPROM_START, NEXT_EPROM_MAX>>10);
 	if (ConfigureParams.System.nMachineType != NEXT_CUBE030) {
 		map_banks(&ROM_bank, NEXT_EPROM_BMAP_START>>16, NEXT_EPROM_SIZE>>16);
-		write_log("Mapping ROM through BMAP at $%08x: %ikB\n", NEXT_EPROM_BMAP_START, NEXT_EPROM_SIZE>>10);
+		write_log("Mapping ROM through BMAP at $%08x: %ikB\n", NEXT_EPROM_BMAP_START, NEXT_EPROM_MAX>>10);
 	}
 	
 	/* Map main memory */
@@ -1102,56 +1231,58 @@ int memory_init (void)
 	
 	/* Map mirrors of main memory for memory write functions */
 	if (!ConfigureParams.System.bColor && !ConfigureParams.System.bTurbo) {
-		map_banks(&RAM_mwf_bank, NEXT_RAM_MWF0_START>>16, (NEXT_RAM_BANK_MAX*N_BANKS)>>16);
-		map_banks(&RAM_mwf_bank, NEXT_RAM_MWF1_START>>16, (NEXT_RAM_BANK_MAX*N_BANKS)>>16);
-		map_banks(&RAM_mwf_bank, NEXT_RAM_MWF2_START>>16, (NEXT_RAM_BANK_MAX*N_BANKS)>>16);
-		map_banks(&RAM_mwf_bank, NEXT_RAM_MWF3_START>>16, (NEXT_RAM_BANK_MAX*N_BANKS)>>16);
+		map_banks(&RAM_mwf_bank, NEXT_RAM_MWF0_START>>16, NEXT_RAM_SIZE>>16);
+		map_banks(&RAM_mwf_bank, NEXT_RAM_MWF1_START>>16, NEXT_RAM_SIZE>>16);
+		map_banks(&RAM_mwf_bank, NEXT_RAM_MWF2_START>>16, NEXT_RAM_SIZE>>16);
+		map_banks(&RAM_mwf_bank, NEXT_RAM_MWF3_START>>16, NEXT_RAM_SIZE>>16);
 		write_log("Mapping mirrors of main memory for memory write functions:\n");
-		for (i = 0; i < 4; i++)
-			write_log("Function%i at $%08X\n",i,0x10000000+0x04000000*i);
+		for (i = 0; i < 4; i++) {
+			write_log("Function%i at $%08x\n",i,NEXT_RAM_MWF0_START+NEXT_RAM_SIZE*i);
+		}
 	}
 	
 	/* Map video memory */
 	if (ConfigureParams.System.bTurbo && ConfigureParams.System.bColor) {
 		map_banks(&VRAM_color_bank, NEXT_VRAM_TURBO_START>>16, NEXT_VRAM_COLOR_SIZE>>16);
-		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_TURBO_START, NEXT_VRAM_COLOR_SIZE>>10);
+		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_TURBO_START, NEXT_VRAM_COLOR_MAX>>10);
 	} else if (ConfigureParams.System.bTurbo) {
 		map_banks(&VRAM_bank, NEXT_VRAM_TURBO_START>>16, NEXT_VRAM_SIZE>>16);
-		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_TURBO_START, NEXT_VRAM_SIZE>>10);
+		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_TURBO_START, NEXT_VRAM_MAX>>10);
 	} else if (ConfigureParams.System.bColor) {
 		map_banks(&VRAM_color_bank, NEXT_VRAM_COLOR_START>>16, NEXT_VRAM_COLOR_SIZE>>16);
-		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_COLOR_START, NEXT_VRAM_COLOR_SIZE>>10);
+		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_COLOR_START, NEXT_VRAM_COLOR_MAX>>10);
 	} else {
 		map_banks(&VRAM_bank, NEXT_VRAM_START>>16, NEXT_VRAM_SIZE>>16);
-		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_START, NEXT_VRAM_SIZE>>10);
+		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_START, NEXT_VRAM_MAX>>10);
 		
 		map_banks(&VRAM_mwf_bank, NEXT_VRAM_MWF0_START>>16, NEXT_VRAM_SIZE>>16);
 		map_banks(&VRAM_mwf_bank, NEXT_VRAM_MWF1_START>>16, NEXT_VRAM_SIZE>>16);
 		map_banks(&VRAM_mwf_bank, NEXT_VRAM_MWF2_START>>16, NEXT_VRAM_SIZE>>16);
 		map_banks(&VRAM_mwf_bank, NEXT_VRAM_MWF3_START>>16, NEXT_VRAM_SIZE>>16);
 		write_log("Mapping mirrors of video memory for memory write functions:\n");
-		for (i = 0; i<4; i++)
-			write_log("Function%i at $%08X\n",i,0x0C000000+0x01000000*i);
+		for (i = 0; i<4; i++) {
+			write_log("Function%i at $%08x\n",i,NEXT_VRAM_MWF0_START+NEXT_VRAM_SIZE*i);
+		}
 	}
 	
 	/* Map device space */
 	map_banks(&IO_bank, NEXT_IO_START>>16, NEXT_IO_SIZE>>16);
-	write_log("Mapping device space at $%08X\n", NEXT_IO_START);
+	write_log("Mapping device space at $%08x\n", NEXT_IO_START);
 	
 	if (ConfigureParams.System.nMachineType != NEXT_CUBE030) {
 		map_banks(&IO_bank, NEXT_IO_BMAP_START>>16, NEXT_IO_SIZE>>16);
 		if (!ConfigureParams.System.bTurbo) {
-			map_banks(&BMAP_bank, NEXT_BMAP_START>>16, NEXT_BMAP_MAP_SIZE>>16);
-			map_banks(&BMAP_bank, (0x80000000|NEXT_BMAP_START)>>16, NEXT_BMAP_MAP_SIZE>>16);
-			write_log("Mapping BMAP device space at $%08X\n", NEXT_IO_BMAP_START);
+			map_banks(&BMAP_bank, NEXT_BMAP_START>>16, NEXT_BMAP_SIZE>>16);
+			map_banks(&BMAP_bank, NEXT_BMAP_START2>>16, NEXT_BMAP_SIZE>>16);
+			write_log("Mapping BMAP device space at $%08x\n", NEXT_IO_BMAP_START);
 		} else {
-			write_log("Mapping device space at $%08X\n", NEXT_IO_BMAP_START);
+			write_log("Mapping device space at $%08x\n", NEXT_IO_BMAP_START);
 		}
 	}
 	
 	if (ConfigureParams.System.bTurbo) {
 		map_banks(&TMC_bank, NEXT_IO_TMC_START>>16, NEXT_IO_SIZE>>16);
-		write_log("Mapping TMC device space at $%08X\n", NEXT_IO_TMC_START);
+		write_log("Mapping TMC device space at $%08x\n", NEXT_IO_TMC_START);
 		
 		if (ConfigureParams.System.nCpuFreq==40) {
 			map_banks(&dummy_bank, NEXT_CACHE_START>>16, NEXT_CACHE_SIZE>>16);
@@ -1164,14 +1295,10 @@ int memory_init (void)
 	/* Map NBIC and board spaces via NextBus */
 	if (ConfigureParams.System.nMachineType!=NEXT_STATION && ConfigureParams.System.bNBIC) {
 		if (!ConfigureParams.System.bTurbo) {
-			map_banks(&NBIC_bank, NEXT_NBIC_START>>16, NEXT_NBIC_MAP_SIZE>>16);
+			map_banks(&NBIC_bank, NEXT_NBIC_START>>16, NEXT_NBIC_SIZE>>16);
 			write_log("Mapping NextBus interface chip at $%08x\n", NEXT_NBIC_START);
 		}
-		for (i = 2; i < 8; i++) {
-			if (i==8 && ConfigureParams.System.nMachineType!=NEXT_CUBE030 && !ConfigureParams.System.bTurbo) {
-				/* FIXME: conflict with BMAP. Implement: only SCR2 ROM_OVERLAY enables NBIC */
-				continue;
-			}
+		for (i = 2; i < 15; i++) {
 			map_banks(&NEXTBUS_board_bank, NEXTBUS_BOARD_START(i)>>16, NEXTBUS_BOARD_SIZE>>16);
 			write_log("Mapping NextBus board memory for slot %i at $%08x\n", i, NEXTBUS_BOARD_START(i));
 		}

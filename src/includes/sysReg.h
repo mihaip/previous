@@ -73,6 +73,7 @@ extern uint32_t scrIntStat;
 extern uint32_t scrIntMask;
 extern int scrIntLevel;
 
+extern uint8_t scr_local_only;
 extern uint8_t dsp_intr_at_block_end;
 extern uint8_t dsp_dma_unpacked;
 extern uint8_t dsp_hreq_intr;

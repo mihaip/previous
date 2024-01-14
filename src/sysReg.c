@@ -105,7 +105,7 @@ static uint8_t bright_reg     = 0;
 
 static uint8_t hardclock_csr  = 0;
 
-static uint8_t scrRomOverlay  = 0;
+uint8_t scr_local_only        = 0;
 
 uint8_t dsp_dma_unpacked      = 0;
 uint8_t dsp_intr_at_block_end = 0;
@@ -183,7 +183,7 @@ void SCR_Reset(void) {
     uint8_t cpu_speed = 0;
     uint8_t memory_speed = 0;
     
-    scrRomOverlay = 0;
+    scr_local_only = 1;
     hardclock_csr = 0;
     col_vid_intr = 0;
     bright_reg = 0;
@@ -196,7 +196,7 @@ void SCR_Reset(void) {
     scr2_0=0x00;
     scr2_1=0x00;
     scr2_2=0x00;
-    scr2_3=0x00;
+    scr2_3=ConfigureParams.System.bTurbo?0x80:0x00;
     scrIntStat=0x00000000;
     scrIntMask=0x00000000;
     scrIntLevel=0;
@@ -479,13 +479,14 @@ void SCR2_Write3(void)
     changed_bits^=scr2_3;
     
     if (changed_bits&SCR2_ROM) {
-        scrRomOverlay=scr2_3&SCR2_ROM;
-        Log_Printf(LOG_WARN,"[SCR2] ROM change at $%08x val=%x PC=$%08x\n",
-                   IoAccessCurrentAddress,scr2_3&SCR2_ROM,m68k_getpc());
+        scr_local_only=scr2_3&SCR2_ROM;
+        if (!ConfigureParams.System.bTurbo) {
+            scr_local_only^=SCR2_ROM;
+        }
+        Log_Printf(LOG_WARN,"[SCR2] %s local only",scr_local_only?"Enable":"Disable");
     }
     if (changed_bits&SCR2_LED) {
-        Log_Printf(LOG_DEBUG,"[SCR2] LED change at $%08x val=%x PC=$%08x\n",
-                   IoAccessCurrentAddress,scr2_3&SCR2_LED,m68k_getpc());
+        Log_Printf(LOG_DEBUG,"[SCR2] %s LED",(scr2_3&SCR2_LED)?"Enable":"Disable");
         Statusbar_SetSystemLed(scr2_3&SCR2_LED);
     }
     
