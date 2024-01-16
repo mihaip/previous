@@ -19,6 +19,7 @@
 #include "paths.h"
 #include "reset.h"
 #include "screen.h"
+#include "scsi.h"
 #include "snd.h"
 
 volatile bool bQuitProgram = false;
@@ -161,6 +162,40 @@ static void Main_ReadJSInput(void) {
     EM_ASM({ workerApi.releaseInputLock(); });
 }
 
+EM_JS(char*, consumeDiskName, (void), {
+    const diskName = workerApi.disks.consumeDiskName();
+    if (!diskName || !diskName.length) {
+        return 0;
+    }
+    const diskNameLength = lengthBytesUTF8(diskName) + 1;
+    const diskNameCstr = _malloc(diskNameLength);
+    stringToUTF8(diskName, diskNameCstr, diskNameLength);
+    return diskNameCstr;
+});
+
+static void Main_HandleDiskInsertions(void) {
+    int index = -1;
+    for (int i = 0; i < ESP_MAX_DEVS; i++) {
+        SCSIDISK disk = ConfigureParams.SCSI.target[i];
+        if (disk.nDeviceType == SD_CD && !disk.bDiskInserted) {
+            index = i;
+            break;
+        }
+    }
+    if (index == -1) {
+        // No available SCSI slots.
+        return;
+    }
+    char *diskName = consumeDiskName();
+    if (diskName) {
+        ConfigureParams.SCSI.target[index].szImageName[0] = '/';
+        memcpy(ConfigureParams.SCSI.target[index].szImageName + 1, diskName, strlen(diskName) + 1);
+        free(diskName);
+        ConfigureParams.SCSI.target[index].bDiskInserted = true;
+        SCSI_Insert(index);
+    }
+}
+
 void Main_EventHandlerInterrupt(void) {
 	CycInt_AcknowledgeInterrupt();
 
@@ -170,8 +205,13 @@ void Main_EventHandlerInterrupt(void) {
 
     Main_ReadJSInput();
 
-    // Ensure that period tasks are run (until we have idlewait support).
-    EM_ASM({ workerApi.sleep(0); });
+    // Run polling tasks less frequently than the event loop.
+    static int counter = 0;
+    if (counter++ % 50 == 0) {
+        Main_HandleDiskInsertions();
+        // Ensure that period tasks are run (until we have idlewait support).
+        EM_ASM({ workerApi.sleep(0); });
+    }
 
 	CycInt_AddRelativeInterruptUs((1000*1000)/200, 0, INTERRUPT_EVENT_LOOP); // poll events with 200 Hz
 }
