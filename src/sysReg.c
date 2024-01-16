@@ -105,7 +105,7 @@ static uint8_t bright_reg     = 0;
 
 static uint8_t hardclock_csr  = 0;
 
-uint8_t scr_local_only        = 0;
+static uint8_t scr_local_only = 0;
 
 uint8_t dsp_dma_unpacked      = 0;
 uint8_t dsp_intr_at_block_end = 0;
@@ -196,7 +196,7 @@ void SCR_Reset(void) {
     scr2_0=0x00;
     scr2_1=0x00;
     scr2_2=0x00;
-    scr2_3=ConfigureParams.System.bTurbo?0x80:0x00;
+    scr2_3=0x00;
     scrIntStat=0x00000000;
     scrIntMask=0x00000000;
     scrIntLevel=0;

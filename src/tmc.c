@@ -161,6 +161,16 @@ static void tmc_ctrl_write1(uint8_t val) {
 static void tmc_ctrl_write2(uint8_t val) {
 	val &= ~0x04; /* no parity memory */
 	
+	if ((tmc.control&0x00000100) && !(val&01)) {
+		Log_Printf(LOG_WARN,"[TMC] Disable local only");
+	} else if (!(tmc.control&0x00000100) && (val&0x01)) {
+		Log_Printf(LOG_WARN,"[TMC] Enable local only");
+	}
+	if ((tmc.control&0x00000200) && !(val&0x02)) {
+		Log_Printf(LOG_WARN,"[TMC] Disable ROM local");
+	} else if (!(tmc.control&0x00000200) && (val&0x02)) {
+		Log_Printf(LOG_WARN,"[TMC] Enable ROM local");
+	}
 	tmc.control &= 0xFFFF00FF;
 	tmc.control |= (val&0xFF)<<8;
 }

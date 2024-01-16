@@ -22,7 +22,6 @@ const char Memory_fileid[] = "Previous memory.c";
 #include "main.h"
 #include "rom.h"
 #include "ioMem.h"
-#include "sysReg.h"
 #include "bmap.h"
 #include "tmc.h"
 #include "nbic.h"
@@ -92,7 +91,7 @@ uae_u8 ce_banktype[65536], ce_cachable[65536];
 #define NEXT_EPROM_DIAG_START   0x01000000
 #define NEXT_EPROM_BMAP_START   0x01000000
 #define NEXT_EPROM_SIZE         0x01000000
-#define NEXT_EPROM_MAX          0x00020000
+#define NEXT_EPROM_ALLOC        0x00020000
 #define NEXT_EPROM_MASK         0x0001FFFF
 
 /* Main memory */
@@ -101,17 +100,17 @@ uae_u8 ce_banktype[65536], ce_cachable[65536];
 #define NEXT_RAM_START          0x04000000
 #define NEXT_RAM_SIZE           0x04000000
 
-#define NEXT_RAM_BANK_MAX       0x01000000
-#define NEXT_RAM_BANK_MAX_C     0x00800000
-#define NEXT_RAM_BANK_MAX_T     0x02000000
+#define NEXT_RAM_BANK_SIZE      0x01000000
+#define NEXT_RAM_BANK_SIZE_C    0x00800000
+#define NEXT_RAM_BANK_SIZE_T    0x02000000
 
 #define NEXT_RAM_BANK_SEL       0x03000000
 #define NEXT_RAM_BANK_SEL_C     0x01800000
 #define NEXT_RAM_BANK_SEL_T     0x06000000
 
-#define NEXT_RAM_MAX            (N_BANKS*NEXT_RAM_BANK_MAX)
-#define NEXT_RAM_MAX_C          (N_BANKS*NEXT_RAM_BANK_MAX_C)
-#define NEXT_RAM_MAX_T          (N_BANKS*NEXT_RAM_BANK_MAX_T)
+#define NEXT_RAM_ALLOC          (N_BANKS*NEXT_RAM_BANK_SIZE)
+#define NEXT_RAM_ALLOC_C        (N_BANKS*NEXT_RAM_BANK_SIZE_C)
+#define NEXT_RAM_ALLOC_T        (N_BANKS*NEXT_RAM_BANK_SIZE_T)
 
 static uae_u32 next_ram_bank_size;
 static uae_u32 next_ram_bank_mask;
@@ -129,7 +128,7 @@ static uae_u32 next_ram_bank3_mask;
 /* VRAM monochrome */
 #define NEXT_VRAM_START         0x0B000000
 #define NEXT_VRAM_SIZE          0x01000000
-#define NEXT_VRAM_MAX           0x00040000
+#define NEXT_VRAM_ALLOC         0x00040000
 #define NEXT_VRAM_MASK          0x0003FFFF
 
 /* VRAM monochrome with memory write functions */
@@ -141,7 +140,7 @@ static uae_u32 next_ram_bank3_mask;
 /* VRAM color */
 #define NEXT_VRAM_COLOR_START   0x2C000000
 #define NEXT_VRAM_COLOR_SIZE    0x01000000
-#define NEXT_VRAM_COLOR_MAX     0x00200000
+#define NEXT_VRAM_COLOR_ALLOC   0x00200000
 #define NEXT_VRAM_COLOR_MASK    0x001FFFFF
 
 /* VRAM turbo monochrome and color */
@@ -152,7 +151,7 @@ static uae_u32 next_ram_bank3_mask;
 #define NEXT_IO_BMAP_START      0x02100000
 #define NEXT_IO_TMC_START       0x02200000
 #define NEXT_IO_SIZE            0x00020000
-#define NEXT_IO_MAX             0x00020000
+#define NEXT_IO_ALLOC           0x00020000
 #define NEXT_IO_MASK            0x0001FFFF
 
 #define NEXT_BMAP_START         0x020C0000
@@ -843,133 +842,6 @@ static void mem_bmap_bput(uaecptr addr, uae_u32 b)
 }
 
 
-/* **** Off-board access to board space **** */
-
-static uae_u32 mem_offboard_lget(uaecptr addr)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (lget)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		return get_long(addr&NEXTBUS_BOARD_MASK);
-	} else {
-		return nextbus_board_lget(addr);
-	}
-}
-
-static uae_u32 mem_offboard_wget(uaecptr addr)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (wget)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		return get_word(addr&NEXTBUS_BOARD_MASK);
-	} else {
-		return nextbus_board_wget(addr);
-	}
-}
-
-static uae_u32 mem_offboard_bget(uaecptr addr)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (bget)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		return get_byte(addr&NEXTBUS_BOARD_MASK);
-	} else {
-		return nextbus_board_bget(addr);
-	}
-}
-
-static void mem_offboard_lput(uaecptr addr, uae_u32 l)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (lput)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		put_long(addr&NEXTBUS_BOARD_MASK, l);
-	} else {
-		nextbus_board_lput(addr, l);
-	}
-}
-
-static void mem_offboard_wput(uaecptr addr, uae_u32 w)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (wput)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		put_word(addr&NEXTBUS_BOARD_MASK, w);
-	} else {
-		nextbus_board_wput(addr, w);
-	}
-}
-
-static void mem_offboard_bput(uaecptr addr, uae_u32 b)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (bput)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		put_byte(addr&NEXTBUS_BOARD_MASK, b);
-	} else {
-		nextbus_board_bput(addr, b);
-	}
-}
-
-
-/* **** Off-board access to slot space **** */
-
-static uae_u32 mem_offslot_lget(uaecptr addr)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (lget)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		return get_long(addr&NEXTBUS_BOARD_MASK);
-	} else {
-		return nextbus_slot_lget(addr);
-	}
-}
-
-static uae_u32 mem_offslot_wget(uaecptr addr)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (wget)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		return get_word(addr&NEXTBUS_BOARD_MASK);
-	} else {
-		return nextbus_slot_wget(addr);
-	}
-}
-
-static uae_u32 mem_offslot_bget(uaecptr addr)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (bget)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		return get_byte(addr&NEXTBUS_BOARD_MASK);
-	} else {
-		return nextbus_slot_bget(addr);
-	}
-}
-
-static void mem_offslot_lput(uaecptr addr, uae_u32 l)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (lput)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		put_long(addr&NEXTBUS_BOARD_MASK, l);
-	} else {
-		nextbus_slot_lput(addr, l);
-	}
-}
-
-static void mem_offslot_wput(uaecptr addr, uae_u32 w)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (wput)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		put_word(addr&NEXTBUS_BOARD_MASK, w);
-	} else {
-		nextbus_slot_wput(addr, w);
-	}
-}
-
-static void mem_offslot_bput(uaecptr addr, uae_u32 b)
-{
-	if (scr_local_only) {
-		write_log("Local only: Remapping $%08x to $%08x (bput)\n",addr,addr&NEXTBUS_BOARD_MASK);
-		put_byte(addr&NEXTBUS_BOARD_MASK, b);
-	} else {
-		nextbus_slot_bput(addr, b);
-	}
-}
-
-
-
 /* **** Address banks **** */
 
 static addrbank dummy_bank =
@@ -1070,14 +942,14 @@ static addrbank NBIC_bank =
 
 static addrbank NEXTBUS_slot_bank =
 {
-	mem_offslot_lget, mem_offslot_wget, mem_offslot_bget,
-	mem_offslot_lput, mem_offslot_wput, mem_offslot_bput
+	nextbus_slot_lget, nextbus_slot_wget, nextbus_slot_bget,
+	nextbus_slot_lput, nextbus_slot_wput, nextbus_slot_bput
 };
 
 static addrbank NEXTBUS_board_bank =
 {
-	mem_offboard_lget, mem_offboard_wget, mem_offboard_bget,
-	mem_offboard_lput, mem_offboard_wput, mem_offboard_bput
+	nextbus_board_lget, nextbus_board_wget, nextbus_board_bget,
+	nextbus_board_lput, nextbus_board_wput, nextbus_board_bput
 };
 
 
@@ -1125,20 +997,20 @@ int memory_init (void)
 	
 	/* Set machine dependent variables */
 	if (ConfigureParams.System.bTurbo) {
-		next_ram_bank_size = NEXT_RAM_BANK_MAX_T;
+		next_ram_bank_size = NEXT_RAM_BANK_SIZE_T;
 		next_ram_bank_mask = NEXT_RAM_BANK_SEL_T;
-		vram_size = ConfigureParams.System.bColor ? NEXT_VRAM_COLOR_MAX : NEXT_VRAM_MAX;
-		ram_size  = NEXT_RAM_MAX_T;
+		vram_size = ConfigureParams.System.bColor ? NEXT_VRAM_COLOR_ALLOC : NEXT_VRAM_ALLOC;
+		ram_size  = NEXT_RAM_ALLOC_T;
 	} else if (ConfigureParams.System.bColor) {
-		next_ram_bank_size = NEXT_RAM_BANK_MAX_C;
+		next_ram_bank_size = NEXT_RAM_BANK_SIZE_C;
 		next_ram_bank_mask = NEXT_RAM_BANK_SEL_C;
-		vram_size = NEXT_VRAM_COLOR_MAX;
-		ram_size  = NEXT_RAM_MAX_C;
+		vram_size = NEXT_VRAM_COLOR_ALLOC;
+		ram_size  = NEXT_RAM_ALLOC_C;
 	} else {
-		next_ram_bank_size = NEXT_RAM_BANK_MAX;
+		next_ram_bank_size = NEXT_RAM_BANK_SIZE;
 		next_ram_bank_mask = NEXT_RAM_BANK_SEL;
-		vram_size = NEXT_VRAM_MAX;
-		ram_size  = NEXT_RAM_MAX;
+		vram_size = NEXT_VRAM_ALLOC;
+		ram_size  = NEXT_RAM_ALLOC;
 	}
 	
 	/* Free memory in case it has been allocated already */
@@ -1147,8 +1019,8 @@ int memory_init (void)
 	/* Allocate memory */
 	NEXTRam   = malloc_aligned(ram_size);
 	NEXTVideo = malloc_aligned(vram_size);
-	NEXTIo    = malloc_aligned(NEXT_IO_MAX);
-	NEXTRom   = malloc_aligned(NEXT_EPROM_MAX);
+	NEXTIo    = malloc_aligned(NEXT_IO_ALLOC);
+	NEXTRom   = malloc_aligned(NEXT_EPROM_ALLOC);
 	
 	/* Check if memory allocation was successful */
 	if (!(NEXTRom && NEXTVideo && NEXTRam && NEXTIo)) {
@@ -1157,13 +1029,13 @@ int memory_init (void)
 	}
 	
 	/* Initialise memory */
-	memset(NEXTRom, 0, NEXT_EPROM_MAX);
+	memset(NEXTRom, 0, NEXT_EPROM_ALLOC);
 	memset(NEXTVideo, 0, vram_size);
 	memset(NEXTRam, 0, ram_size);
-	memset(NEXTIo, 0, NEXT_IO_MAX);
+	memset(NEXTIo, 0, NEXT_IO_ALLOC);
 	
 	/* Load ROM file */
-	if (rom_load(NEXTRom, NEXT_EPROM_MAX)) {
+	if (rom_load(NEXTRom, NEXT_EPROM_ALLOC)) {
 		write_log("Memory init: Cannot load ROM\n");
 		return 1;
 	}
@@ -1182,10 +1054,10 @@ int memory_init (void)
 	
 	/* Map ROM */
 	map_banks(&ROM_bank, NEXT_EPROM_START>>16, NEXT_EPROM_SIZE>>16);
-	write_log("Mapping ROM at $%08x: %ikB\n", NEXT_EPROM_START, NEXT_EPROM_MAX>>10);
+	write_log("Mapping ROM at $%08x: %ikB\n", NEXT_EPROM_START, NEXT_EPROM_ALLOC>>10);
 	if (ConfigureParams.System.nMachineType != NEXT_CUBE030) {
 		map_banks(&ROM_bank, NEXT_EPROM_BMAP_START>>16, NEXT_EPROM_SIZE>>16);
-		write_log("Mapping ROM through BMAP at $%08x: %ikB\n", NEXT_EPROM_BMAP_START, NEXT_EPROM_MAX>>10);
+		write_log("Mapping ROM through BMAP at $%08x: %ikB\n", NEXT_EPROM_BMAP_START, NEXT_EPROM_ALLOC>>10);
 	}
 	
 	/* Map main memory */
@@ -1244,16 +1116,16 @@ int memory_init (void)
 	/* Map video memory */
 	if (ConfigureParams.System.bTurbo && ConfigureParams.System.bColor) {
 		map_banks(&VRAM_color_bank, NEXT_VRAM_TURBO_START>>16, NEXT_VRAM_COLOR_SIZE>>16);
-		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_TURBO_START, NEXT_VRAM_COLOR_MAX>>10);
+		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_TURBO_START, NEXT_VRAM_COLOR_ALLOC>>10);
 	} else if (ConfigureParams.System.bTurbo) {
 		map_banks(&VRAM_bank, NEXT_VRAM_TURBO_START>>16, NEXT_VRAM_SIZE>>16);
-		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_TURBO_START, NEXT_VRAM_MAX>>10);
+		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_TURBO_START, NEXT_VRAM_ALLOC>>10);
 	} else if (ConfigureParams.System.bColor) {
 		map_banks(&VRAM_color_bank, NEXT_VRAM_COLOR_START>>16, NEXT_VRAM_COLOR_SIZE>>16);
-		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_COLOR_START, NEXT_VRAM_COLOR_MAX>>10);
+		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_COLOR_START, NEXT_VRAM_COLOR_ALLOC>>10);
 	} else {
 		map_banks(&VRAM_bank, NEXT_VRAM_START>>16, NEXT_VRAM_SIZE>>16);
-		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_START, NEXT_VRAM_MAX>>10);
+		write_log("Mapping video memory at $%08x: %ikB\n", NEXT_VRAM_START, NEXT_VRAM_ALLOC>>10);
 		
 		map_banks(&VRAM_mwf_bank, NEXT_VRAM_MWF0_START>>16, NEXT_VRAM_SIZE>>16);
 		map_banks(&VRAM_mwf_bank, NEXT_VRAM_MWF1_START>>16, NEXT_VRAM_SIZE>>16);
@@ -1298,7 +1170,7 @@ int memory_init (void)
 			map_banks(&NBIC_bank, NEXT_NBIC_START>>16, NEXT_NBIC_SIZE>>16);
 			write_log("Mapping NextBus interface chip at $%08x\n", NEXT_NBIC_START);
 		}
-		for (i = 2; i < 15; i++) {
+		for (i = 2; i < 8; i++) {
 			map_banks(&NEXTBUS_board_bank, NEXTBUS_BOARD_START(i)>>16, NEXTBUS_BOARD_SIZE>>16);
 			write_log("Mapping NextBus board memory for slot %i at $%08x\n", i, NEXTBUS_BOARD_START(i));
 		}

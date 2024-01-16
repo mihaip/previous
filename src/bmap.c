@@ -34,6 +34,9 @@ static uae_u32 NEXTbmap[16];
 #define BMAP_DRW        0xD
 #define BMAP_AMR        0xE
 
+/* Bits in ROM control */
+#define	BMAP_LO		    0x40000000
+
 /* Bits in DSP interrupt control */
 #define BMAP_DSP_HREQ   0x20000000
 #define BMAP_DSP_TXD    0x10000000
@@ -48,6 +51,7 @@ static uae_u32 NEXTbmap[16];
 #define BMAP_TPE        (BMAP_TPE_RXSEL|BMAP_TPE_ILBC)
 
 /* Externally accessible variables */
+int bmap_rom_local   = 0;
 int bmap_tpe_select  = 0;
 int bmap_hreq_enable = 0;
 int bmap_txdn_enable = 0;
@@ -83,6 +87,15 @@ static void bmap_put(uae_u32 bmap_reg, uae_u32 val) {
     Log_Printf(LOG_BMAP_LEVEL, "[BMAP] write register %d val=$%08x", bmap_reg, val);
     
     switch (bmap_reg) {
+        case BMAP_RCNTL:
+            if (!bmap_rom_local && (val&BMAP_LO)) {
+                Log_Printf(LOG_WARN, "[BMAP] Enable local only.");
+                bmap_rom_local = 1;
+            } else if (bmap_rom_local && !(val&BMAP_LO)) {
+                Log_Printf(LOG_WARN, "[BMAP] Disable local only.");
+                bmap_rom_local = 0;
+            }
+            break;
         case BMAP_BURWREN:
             if (!bmap_hreq_enable && (val&BMAP_DSP_HREQ)) {
                 Log_Printf(LOG_BMAP_LEVEL, "[BMAP] Enable DSP HREQ interrupt.");
@@ -216,6 +229,9 @@ void BMAP_Reset(void) {
     for (i = 0; i < 16; i++) {
         NEXTbmap[i] = 0;
     }
+    NEXTbmap[BMAP_RCNTL] = BMAP_LO;
+    
+    bmap_rom_local   = 1;
     bmap_tpe_select  = 0;
     bmap_hreq_enable = 0;
     bmap_txdn_enable = 0;
