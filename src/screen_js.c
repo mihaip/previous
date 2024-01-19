@@ -11,7 +11,6 @@
 #include "xxHash/xxhash.h"
 
 // TODO: remove the need for these SDL stubs
-SDL_Window*   sdlWindow;
 SDL_Surface*  sdlscrn = NULL;        /* The SDL screen surface */
 
 /* extern for shortcuts */
@@ -26,18 +25,32 @@ static int frame_buffer_height;
 static int frame_buffer_size;
 static XXH64_hash_t last_update_hash;
 
-// static uint32_t BW2RGB[0x400];
+static uint32_t BWCOLORS[] = {
+    0xFFFFFFFF,
+    0xFFAAAAAA,
+    0xFF555555,
+    0XFF000000,
+};
+static uint32_t BW2RGB[0x400];
 static uint32_t COL2RGB[0x10000];
 
 void Screen_Init(void) {
-	frame_buffer_width  = NeXT_SCRN_WIDTH;
-	frame_buffer_height = NeXT_SCRN_HEIGHT;
+    frame_buffer_width  = NeXT_SCRN_WIDTH;
+    frame_buffer_height = NeXT_SCRN_HEIGHT;
     frame_buffer_size = frame_buffer_height * frame_buffer_width * 4;
     frame_buffer = malloc(frame_buffer_size);
     last_update_hash = 0;
 
-	/* initialize color lookup table */
-	for(int pixel16 = 0; pixel16 < 0x10000; pixel16++) {
+    /* initialize BW lookup table */
+    for(int i = 0; i < 0x100; i++) {
+        // 2 bits per pixel to represent 4 possible grays.
+        BW2RGB[i*4+0] = BWCOLORS[(i >> 6) & 3];
+        BW2RGB[i*4+1] = BWCOLORS[(i >> 4) & 3];
+        BW2RGB[i*4+2] = BWCOLORS[(i >> 2) & 3];
+        BW2RGB[i*4+3] = BWCOLORS[(i >> 0) & 3];
+    }
+    /* initialize color lookup table */
+    for(int pixel16 = 0; pixel16 < 0x10000; pixel16++) {
         // 16-bit values are represented as RGBx (4 bits per channel), but due
         // to the big-endian nature of the 68K while WebAssembly is little-
         // endian, they're read as BxRG.
@@ -95,19 +108,25 @@ void Screen_SizeChanged(void) {
 }
 
 void Screen_Repaint(void) {
+    int pitch = NeXT_SCRN_WIDTH + (ConfigureParams.System.bTurbo ? 0 : 32);
+    int screenByteSize;
     if (ConfigureParams.System.bColor) {
-        int pitch = NeXT_SCRN_WIDTH + (ConfigureParams.System.bTurbo ? 0 : 32);
+        screenByteSize = NeXT_SCRN_HEIGHT * pitch * sizeof(uint16_t);
+    } else {
+        pitch /= 4;
+        screenByteSize = NeXT_SCRN_HEIGHT * pitch * sizeof(uint8_t);
+    }
+    XXH64_hash_t update_hash = XXH3_64bits(NEXTVideo, screenByteSize);
+    if (update_hash == last_update_hash) {
+        // Screen has not changed, but we still let the JS know so that it can
+        // keep track of screen refreshes when deciding how long to idle for.
+        EM_ASM({ workerApi.blit(0, 0); });
+        return;
+    }
+    last_update_hash = update_hash;
 
-        XXH64_hash_t update_hash = XXH3_64bits(NEXTVideo, NeXT_SCRN_HEIGHT * pitch * sizeof(uint16_t));
-        if (update_hash == last_update_hash) {
-            // Screen has not changed, but we still let the JS know so that it can
-            // keep track of screen refreshes when deciding how long to idle for.
-            EM_ASM({ workerApi.blit(0, 0); });
-            return;
-        }
-        last_update_hash = update_hash;
-
-        uint32_t* dst = (uint32_t*)frame_buffer;
+    uint32_t* dst = (uint32_t*)frame_buffer;
+    if (ConfigureParams.System.bColor) {
         for(int y = 0; y < NeXT_SCRN_HEIGHT; y++) {
             uint16_t* src = (uint16_t*)NEXTVideo + (y*pitch);
             for(int x = 0; x < NeXT_SCRN_WIDTH; x++) {
@@ -115,7 +134,16 @@ void Screen_Repaint(void) {
             }
         }
     } else {
-        printf("Screen_Repaint: b&w\n");
+        for(int y = 0; y < NeXT_SCRN_HEIGHT; y++) {
+            int src = y * pitch;
+            for(int x = 0; x < NeXT_SCRN_WIDTH/4; x++, src++) {
+                int idx = NEXTVideo[src] * 4;
+                *dst++  = BW2RGB[idx+0];
+                *dst++  = BW2RGB[idx+1];
+                *dst++  = BW2RGB[idx+2];
+                *dst++  = BW2RGB[idx+3];
+            }
+        }
     }
 
   EM_ASM_({ workerApi.blit($0, $1); }, frame_buffer, frame_buffer_size);
