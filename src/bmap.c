@@ -35,7 +35,7 @@ static uae_u32 NEXTbmap[16];
 #define BMAP_AMR        0xE
 
 /* Bits in ROM control */
-#define	BMAP_LO		    0x40000000
+#define BMAP_LO         0x40000000
 
 /* Bits in DSP interrupt control */
 #define BMAP_DSP_HREQ   0x20000000
