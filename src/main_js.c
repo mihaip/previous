@@ -118,11 +118,20 @@ static void Main_ReadJSInput(void) {
         return workerApi.getInputValue(workerApi.InputBufferAddresses.mouseButtonStateAddr);
     });
     if (mouse_button_state > -1) {
-        // TODO: right-click support
         if (mouse_button_state == 0) {
             Keymap_MouseUp(true);
         } else {
             Keymap_MouseDown(true);
+        }
+    }
+    int mouse_button2_state = EM_ASM_INT_V({
+        return workerApi.getInputValue(workerApi.InputBufferAddresses.mouseButton2StateAddr);
+    });
+    if (mouse_button2_state > -1) {
+        if (mouse_button2_state == 0) {
+            Keymap_MouseUp(false);
+        } else {
+            Keymap_MouseDown(false);
         }
     }
 
