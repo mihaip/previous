@@ -1,6 +1,6 @@
 
 set(SOURCES
-	adb.c audio.c bmap.c cfgopts.c configuration.c change.c cycInt.c
+	adb.c bmap.c cfgopts.c configuration.c change.c cycInt.c
 	dialog.c dma.c esp.c enet_slirp.c enet_pcap.c ethernet.c file.c
 	floppy.c grab.c ioMem.c ioMemTabNEXT.c ioMemTabTurbo.c keymap.c kms.c
 	m68000.c mo.c nbic.c NextBus.cpp paths.c printer.c queue.c
@@ -8,9 +8,9 @@ set(SOURCES
 	scsi.c shortcut.c snd.c statusbar.c str.c sysReg.c tmc.c video.c zip.c)
 
 if (EMSCRIPTEN)
-	set(SOURCES ${SOURCES} file_js.c main_js.c screen_js.c)
+	set(SOURCES ${SOURCES} audio_js.c file_js.c main_js.c screen_js.c)
 else()
-	set(SOURCES ${SOURCES} main.c screen.c)
+	set(SOURCES ${SOURCES} audio.c main.c screen.c)
 endif(EMSCRIPTEN)
 
 # When building for macOS, define specific sources for gui and resources
