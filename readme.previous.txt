@@ -68,7 +68,7 @@ hardware:
 
   ROM Rev. 0.8: NeXT Computer
            2.0: NeXTcube, NeXTstation, NeXTdimension
-           2.4: NeXTstation Color
+           2.2: NeXTstation Color
            3.0: NeXTcube Turbo, NeXTstation Turbo, NeXTstation Turbo Color
 
 Previous includes an internal NFS and NetInfo server for advanced interaction 
@@ -385,6 +385,9 @@ Previous v3.0:
   > Fixes bug that caused mouse to be unlocked after resuming emulation.
   > Fixes bug that caused stuck modifier keys after using shortcuts.
   > Fixes bug that caused sporadic display errors in the boot options dialog.
+
+Previous v3.1 (unreleased):
+  > Improves accuracy of the memory map for ROM and video memory.
 
 
  7) Running Previous

@@ -60,7 +60,7 @@ replace with these steps:
 1. Build png.framework:
    a Download source code from http://libpng.org/pub/png/libpng.html
    b Go to the source directory and build an Xcode project:
-        cmake -G Xcode . -DPNG_FRAMEWORK=ON -DPNG_HARDWARE_OPTIMIZATIONS=OFF
+        cmake -G Xcode . -DPNG_HARDWARE_OPTIMIZATIONS=OFF
    c Open the Xcode project and select "libpng" in left side bar
    d Select "Targets > png_framework" in middle sector
    e Set "Architectures" to "Standard Architectures (Apple Silicon, Intel)"
