@@ -2,6 +2,7 @@
 #include "host.h"
 #include "memory.h"
 #include "screen.h"
+#include "video.h"
 #include <emscripten.h>
 #include <arpa/inet.h>
 
@@ -108,6 +109,11 @@ void Screen_SizeChanged(void) {
 }
 
 void Screen_Repaint(void) {
+    if (!Video_Enabled()) {
+        EM_ASM({ workerApi.blit(0, 0); });
+        return;
+    }
+
     int pitch = NeXT_SCRN_WIDTH + (ConfigureParams.System.bTurbo ? 0 : 32);
     int screenByteSize;
     if (ConfigureParams.System.bColor) {
