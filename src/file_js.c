@@ -25,9 +25,10 @@ FILEJS *FileJS_Close(FILEJS *fp) {
 }
 
 off_t FileJS_Length(const char *path) {
-    return EM_ASM_INT({
+    uint32_t size = EM_ASM_INT({
         return workerApi.disks.size(UTF8ToString($0));
     }, path + 1); // Skip over leading slash
+    return size;
 }
 
 bool FileJS_Write(uint8_t *data, uint32_t size, uint64_t offset, FILEJS *fp) {
