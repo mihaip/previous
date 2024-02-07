@@ -29,6 +29,7 @@ const char Tmc_fileid[] = "Previous tmc.c";
 struct {
 	uint32_t scr1;
 	uint32_t control;
+	uint32_t nmi;
 	uint32_t horizontal;
 	uint32_t vertical;
 	uint8_t video_intr;
@@ -117,7 +118,7 @@ static uint8_t tmc_void_read(void) {
 static void tmc_void_write(uint8_t val) {
 }
 
-/* SCR1 */
+/* TMC SCR1 */
 static uint8_t tmc_scr1_read0(void) {
 	Log_Printf(LOG_WARN,"[TMC] SCR1 read at $0x2200000 PC=$%08x\n",m68k_getpc());
 	return (tmc.scr1>>24);
@@ -136,7 +137,6 @@ static uint8_t tmc_scr1_read3(void) {
 }
 
 /* TMC Control Register */
-
 static uint8_t tmc_ctrl_read0(void) {
 	return (tmc.control>>24);
 }
@@ -177,6 +177,37 @@ static void tmc_ctrl_write2(uint8_t val) {
 static void tmc_ctrl_write3(uint8_t val) {
 	tmc.control &= 0xFFFFFF00;
 	tmc.control |= val&0xFF;
+}
+
+/* TMC NMI Register */
+static uint8_t tmc_nmi_read0(void) {
+	return 0;
+}
+static uint8_t tmc_nmi_read1(void) {
+	return 0;
+}
+static uint8_t tmc_nmi_read2(void) {
+	return 0;
+}
+static uint8_t tmc_nmi_read3(void) {
+	return tmc.nmi;
+}
+
+static void tmc_nmi_write0(uint8_t val) {
+}
+static void tmc_nmi_write1(uint8_t val) {
+}
+static void tmc_nmi_write2(uint8_t val) {
+}
+static void tmc_nmi_write3(uint8_t val) {
+	tmc.nmi = val & 0x01;
+	if (tmc.nmi & 0x00000001) {
+		Log_Printf(LOG_WARN,"[TMC] Enable NMI");
+		set_interrupt(INT_NMI, SET_INT);
+	} else {
+		Log_Printf(LOG_WARN,"[TMC] Disable NMI");
+		set_interrupt(INT_NMI, RELEASE_INT);
+	}
 }
 
 
@@ -288,42 +319,42 @@ static void tmc_vcr_write3(uint8_t val) {
 
 /* Read register functions */
 static uint8_t (*tmc_read_reg[36])(void) = {
-	tmc_scr1_read0, tmc_scr1_read1, tmc_scr1_read2, tmc_scr1_read3,
+	tmc_scr1_read0,  tmc_scr1_read1,  tmc_scr1_read2,  tmc_scr1_read3,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
-	tmc_ctrl_read0, tmc_ctrl_read1, tmc_ctrl_read2, tmc_ctrl_read3,
+	tmc_ctrl_read0,  tmc_ctrl_read1,  tmc_ctrl_read2,  tmc_ctrl_read3,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
-	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read
+	tmc_nmi_read0,   tmc_nmi_read1,   tmc_nmi_read2,   tmc_nmi_read3
 };
 
 static uint8_t (*tmc_read_vid_reg[16])(void) = {
-	tmc_vir_read0, tmc_void_read, tmc_void_read, tmc_void_read,
+	tmc_vir_read0,   tmc_void_read,   tmc_void_read,   tmc_void_read,
 	tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read, tmc_unimpl_read,
-	tmc_hcr_read0, tmc_hcr_read1, tmc_hcr_read2, tmc_hcr_read3,
-	tmc_vcr_read0, tmc_vcr_read1, tmc_vcr_read2, tmc_vcr_read3
+	tmc_hcr_read0,   tmc_hcr_read1,   tmc_hcr_read2,   tmc_hcr_read3,
+	tmc_vcr_read0,   tmc_vcr_read1,   tmc_vcr_read2,   tmc_vcr_read3
 };
 
 /* Write register functions */
 static void (*tmc_write_reg[36])(uint8_t) = {
-	tmc_ill_write, tmc_ill_write, tmc_ill_write, tmc_ill_write,
+	tmc_ill_write,    tmc_ill_write,    tmc_ill_write,    tmc_ill_write,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
-	tmc_ctrl_write0, tmc_ctrl_write1, tmc_ctrl_write2, tmc_ctrl_write3,
+	tmc_ctrl_write0,  tmc_ctrl_write1,  tmc_ctrl_write2,  tmc_ctrl_write3,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
-	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write
+	tmc_nmi_write0,   tmc_nmi_write1,   tmc_nmi_write2,   tmc_nmi_write3
 };
 
 static void (*tmc_write_vid_reg[16])(uint8_t) = {
-	tmc_vir_write0, tmc_void_write, tmc_void_write, tmc_void_write,
+	tmc_vir_write0,   tmc_void_write,   tmc_void_write,   tmc_void_write,
 	tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write, tmc_unimpl_write,
-	tmc_hcr_write0, tmc_hcr_write1, tmc_hcr_write2, tmc_hcr_write3,
-	tmc_vcr_write0, tmc_vcr_write1, tmc_vcr_write2, tmc_vcr_write3
+	tmc_hcr_write0,   tmc_hcr_write1,   tmc_hcr_write2,   tmc_hcr_write3,
+	tmc_vcr_write0,   tmc_vcr_write1,   tmc_vcr_write2,   tmc_vcr_write3
 };
 
 
@@ -502,6 +533,7 @@ void TMC_Reset(void) {
 	
 	tmc_video_reg_reset();
 	tmc.control = 0x0D17038F;
-	tmc.nitro = 0x00000000;
+	tmc.nmi     = 0x00000000;
+	tmc.nitro   = 0x00000000;
 	ADB_Reset();
 }

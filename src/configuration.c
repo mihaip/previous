@@ -293,6 +293,7 @@ static const struct Config_Tag configs_System[] =
 	{ "bColor", Bool_Tag, &ConfigureParams.System.bColor },
 	{ "bTurbo", Bool_Tag, &ConfigureParams.System.bTurbo },
 	{ "bNBIC", Bool_Tag, &ConfigureParams.System.bNBIC },
+	{ "bADB", Bool_Tag, &ConfigureParams.System.bADB },
 	{ "nSCSI", Bool_Tag, &ConfigureParams.System.nSCSI },
 	{ "nRTC", Bool_Tag, &ConfigureParams.System.nRTC },
 
@@ -501,6 +502,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.System.bColor = false;
 	ConfigureParams.System.bTurbo = false;
 	ConfigureParams.System.bNBIC = true;
+	ConfigureParams.System.bADB = false;
 	ConfigureParams.System.nSCSI = NCR53C90;
 	ConfigureParams.System.nRTC = MC68HC68T1;
 
@@ -632,6 +634,7 @@ void Configuration_SetSystemDefaults(void) {
 			ConfigureParams.System.nSCSI = NCR53C90;
 			ConfigureParams.System.nRTC = MC68HC68T1;
 			ConfigureParams.System.bNBIC = true;
+			ConfigureParams.System.bADB = false;
 			break;
 
 		case NEXT_CUBE040:
@@ -649,6 +652,7 @@ void Configuration_SetSystemDefaults(void) {
 			ConfigureParams.System.bDSPMemoryExpansion = true;
 			ConfigureParams.System.nSCSI = NCR53C90A;
 			ConfigureParams.System.bNBIC = true;
+			ConfigureParams.System.bADB = false;
 			break;
 
 		case NEXT_STATION:
@@ -665,6 +669,7 @@ void Configuration_SetSystemDefaults(void) {
 			ConfigureParams.System.bDSPMemoryExpansion = true;
 			ConfigureParams.System.nSCSI = NCR53C90A;
 			ConfigureParams.System.bNBIC = false;
+			ConfigureParams.System.bADB = false;
 			break;
 		default:
 			break;

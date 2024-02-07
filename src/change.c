@@ -136,6 +136,12 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 		printf("nbic reset\n");
 		return true;
 	}
+	
+	/* Did we change ADB emulation? */
+	if (current->System.bADB != changed->System.bADB) {
+		printf("adb reset\n");
+		return true;
+	}
 
 	/* Did we change memory size? */
 	for (i = 0; i < 4; i++) {
