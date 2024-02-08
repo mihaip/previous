@@ -23,6 +23,6 @@ extern void ADB_Reset(void);
 extern void ADB_KeyDown(const SDL_Keysym *sdlkey);
 extern void ADB_KeyUp(const SDL_Keysym *sdlkey);
 extern void ADB_MouseMove(int dx, int dy);
-extern void ADB_MouseButton(int left, int down);
+extern void ADB_MouseButton(bool left, bool down);
 
 #endif /* PREV_ADB_H */

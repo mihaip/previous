@@ -85,11 +85,11 @@ static void adb_keydown(uint8_t key) {
 
 /* Mouse */
 static struct {
-	int event;
+	bool event;
+	bool right;
+	bool left;
 	int x;
 	int y;
-	int left;
-	int right;
 } adb_mouse;
 
 static void adb_mouse_reset(void) {
@@ -98,23 +98,24 @@ static void adb_mouse_reset(void) {
 
 static bool adb_mouse_get(uint8_t* event) {
 	if (adb_mouse.event) {
-		if (adb_mouse.x < 0) {
-			event[1] = (0x40 + adb_mouse.x) | 0x40;
-		} else {
-			event[1] = adb_mouse.x;
-		}
 		if (adb_mouse.y < 0) {
 			event[0] = (0x40 + adb_mouse.y) | 0x40;
 		} else {
 			event[0] = adb_mouse.y;
 		}
-		if (adb_mouse.right == 0) {
-			event[1] |= 0x80;
+		if (adb_mouse.x < 0) {
+			event[1] = (0x40 + adb_mouse.x) | 0x40;
+		} else {
+			event[1] = adb_mouse.x;
 		}
 		if (adb_mouse.left == 0) {
 			event[0] |= 0x80;
 		}
-		adb_mouse.event = 0;
+		if (adb_mouse.right == 0) {
+			event[1] |= 0x80;
+		}
+		adb_mouse.event = false;
+		
 		return true;
 	}
 	return false;
@@ -123,16 +124,16 @@ static bool adb_mouse_get(uint8_t* event) {
 static void adb_mouse_move(int x, int y) {
 	adb_mouse.x = x;
 	adb_mouse.y = y;
-	adb_mouse.event = 1;
+	adb_mouse.event = true;
 }
 
-static void adb_mouse_button(int left, int down) {
+static void adb_mouse_button(bool left, bool down) {
 	if (left) {
-		adb_mouse.left = down;
+		adb_mouse.left  = down;
 	} else {
 		adb_mouse.right = down;
 	}
-	adb_mouse.event = 1;
+	adb_mouse.event = true;
 }
 
 
@@ -207,6 +208,9 @@ static void adb_check_interrupt(void) {
 }
 
 static void adb_interrupt(uint32_t intr) {
+	if (adb.status&ADB_STAT_POLL_EN) {
+		intr &= ~(ADB_INT_ACCESS);
+	}
 	adb.intstatus |= intr;
 	adb_check_interrupt();
 }
@@ -216,23 +220,11 @@ static void adb_write_data(uint8_t* data, uint32_t len) {
 		Log_Printf(LOG_WARN, "[ADB] Data: Lengh of data is too big (%d)", len);
 		len = 8;
 	}
-#if 1
 	adb.data0 = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
 	adb.data1 = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
-#else
-	uint32_t ptr = len;
-	while (ptr > 4) {
-		adb.data1 >>= 8;
-		adb.data1 |= ((uint32_t)data[len-ptr-4])<<24;
-		ptr--;
-	}
-	while (ptr > 0) {
-		adb.data0 >>= 8;
-		adb.data0 |= ((uint32_t)data[len-ptr])<<24;
-		ptr--;
-	}
-#endif
+	
 	adb.bitcount = len << 3;
+	//adb.status |= ADB_STAT_REQUEST; // FIXME: when is this used?
 	adb.status |= ADB_STAT_DATAPEND;
 	adb_interrupt(ADB_INT_ACCESS);
 }
@@ -260,7 +252,7 @@ static void adb_command(void) {
 	uint8_t cmd  = (adb.command & ADB_CMD_CMD_MASK)  >> 2;
 	uint8_t addr = (adb.command & ADB_CMD_ADDR_MASK) >> 4;
 	
-	if (!ConfigureParams.System.bTurbo || !ConfigureParams.System.bADB) {
+	if (!ConfigureParams.System.bADB) {
 		Log_Printf(LOG_WARN, "[ADB] Command: No device present");
 		adb.status |= ADB_STAT_TIMEOUT;
 		adb_interrupt(ADB_INT_ACCESS);
@@ -272,6 +264,21 @@ static void adb_command(void) {
 	switch (cmd) {
 		case ADB_CMD_LISTEN:
 			Log_Printf(LOG_WARN, "[ADB] Command: Listen");
+			switch (addr) {
+				case ADB_ADDR_KBD:
+					if (reg == 3) {
+						Log_Printf(LOG_WARN, "[ADB] Command: Listen KEYBOARD %08x", adb.data0);
+					}
+					break;
+				case ADB_ADDR_MOUSE:
+					if (reg == 3) {
+						Log_Printf(LOG_WARN, "[ADB] Command: Listen MOUSE %08x", adb.data0);
+					}
+					break;
+
+				default:
+					break;
+			}
 			adb_interrupt(ADB_INT_ACCESS);
 			break;
 			
@@ -289,6 +296,7 @@ static void adb_command(void) {
 							adb_write_data(buf, 2);
 						}
 					} else {
+						Log_Printf(LOG_WARN, "[ADB] Command: Unknown keyboard register");
 						adb.status |= ADB_STAT_TIMEOUT;
 						adb_interrupt(ADB_INT_ACCESS);
 					}
@@ -303,15 +311,17 @@ static void adb_command(void) {
 						if (adb_mouse_get(buf)) {
 							adb_write_data(buf, 2);
 						}
+					} else {
+						Log_Printf(LOG_WARN, "[ADB] Command: Unknown mouse register");
+						adb.status |= ADB_STAT_TIMEOUT;
+						adb_interrupt(ADB_INT_ACCESS);
 					}
 					break;
 					
 				default:
 					Log_Printf(LOG_WARN, "[ADB] Command: Unknown device");
 					adb.status |= ADB_STAT_TIMEOUT;
-					if (1/*!(adb.status&ADB_STAT_POLL_EN)*/) {
-						adb_interrupt(ADB_INT_ACCESS);
-					}
+					adb_interrupt(ADB_INT_ACCESS);
 					break;
 			}
 			break;
@@ -388,10 +398,12 @@ static void adb_control_write(uint32_t addr, uint32_t val) {
 		adb_interrupt(ADB_INT_RESET);
 	}
 	if (val&ADB_CTRL_XMIT_CMD) {
-		if (adb.status&(ADB_STAT_RESET/*|ADB_STAT_POLL_EN*/|ADB_STAT_ACCESS)) {
+		if (adb.status&(ADB_STAT_RESET|ADB_STAT_POLL_EN|ADB_STAT_ACCESS)) {
 			adb_interrupt(ADB_INT_REJECT);
+		} else {
+			adb.status &= ~(ADB_STAT_DATAPEND|ADB_STAT_TIMEOUT|ADB_STAT_REQUEST);
+			adb_command();
 		}
-		adb_command();
 	}
 	if (val&ADB_CTRL_DIS_POLL) {
 		adb.status &= ~ADB_STAT_POLL_EN;
@@ -400,7 +412,8 @@ static void adb_control_write(uint32_t addr, uint32_t val) {
 		if ((adb.status&(ADB_STAT_RESET|ADB_STAT_ACCESS)) && !(adb.status&ADB_STAT_POLL_EN)) {
 			adb_interrupt(ADB_INT_REJECT);
 		} else {
-			adb.status |= ADB_STAT_POLL_EN;
+			/* broken in real hardware      *
+			adb.status |= ADB_STAT_POLL_EN; */
 		}
 	}
 }
@@ -422,12 +435,12 @@ static void adb_command_write(uint32_t addr, uint32_t val) {
 
 static uint32_t adb_bitcount_read(uint32_t addr) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Bitcount read at $%08X val=$%08X",addr,adb.bitcount);
-	return adb.bitcount;
+	return adb.bitcount & ADB_CNT_MASK;
 }
 
 static void adb_bitcount_write(uint32_t addr, uint32_t val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Bitcount write at $%08X val=$%08X",addr,val);
-	adb.bitcount = val;
+	adb.bitcount = val & ADB_CNT_MASK;
 }
 
 static uint32_t adb_data0_read(uint32_t addr) {
@@ -634,9 +647,9 @@ void ADB_Reset(void) {
 #define APPLEKEY_KEYPAD_PERIOD   0x41
 #define APPLEKEY_KEYPAD_MULTIPLY 0x43
 #define APPLEKEY_KEYPAD_PLUS     0x45
-//#define APPLEKEY_KEYPAD_MINUS    0x47
 #define APPLEKEY_KEYPAD_DIVIDE   0x4b
 #define APPLEKEY_KEYPAD_ENTER    0x4c
+#define APPLEKEY_KEYPAD_MINUS    0x4e
 #define APPLEKEY_KEYPAD_EQUALS   0x51
 #define APPLEKEY_KEYPAD_0        0x52
 #define APPLEKEY_KEYPAD_1        0x53
@@ -724,7 +737,7 @@ static uint8_t ADB_GetKeyFromScancode(SDL_Scancode sdlscancode)
 		case SDL_SCANCODE_KP_7:           return APPLEKEY_KEYPAD_7;
 		case SDL_SCANCODE_KP_8:           return APPLEKEY_KEYPAD_8;
 		case SDL_SCANCODE_KP_9:           return APPLEKEY_KEYPAD_9;
-//		case SDL_SCANCODE_KP_MINUS:       return APPLEKEY_KEYPAD_MINUS;
+		case SDL_SCANCODE_KP_MINUS:       return APPLEKEY_KEYPAD_MINUS;
 		case SDL_SCANCODE_KP_4:           return APPLEKEY_KEYPAD_4;
 		case SDL_SCANCODE_KP_5:           return APPLEKEY_KEYPAD_5;
 		case SDL_SCANCODE_KP_6:           return APPLEKEY_KEYPAD_6;
@@ -802,7 +815,7 @@ static uint8_t ADB_GetKeyFromSymbol(SDL_Keycode sdlkey)
 		case SDLK_KP_7:                   return APPLEKEY_KEYPAD_7;
 		case SDLK_KP_8:                   return APPLEKEY_KEYPAD_8;
 		case SDLK_KP_9:                   return APPLEKEY_KEYPAD_9;
-//		case SDLK_KP_MINUS:               return APPLEKEY_KEYPAD_MINUS;
+		case SDLK_KP_MINUS:               return APPLEKEY_KEYPAD_MINUS;
 		case SDLK_KP_MULTIPLY:            return APPLEKEY_KEYPAD_MULTIPLY;
 		case SDLK_BACKQUOTE:              return APPLEKEY_BACKQUOTE;
 		case SDLK_KP_EQUALS:              return APPLEKEY_KEYPAD_EQUALS;
@@ -917,6 +930,6 @@ void ADB_MouseMove(int x, int y) {
 	adb_mouse_move(x, y);
 }
 
-void ADB_MouseButton(int left, int down) {
+void ADB_MouseButton(bool left, bool down) {
 	adb_mouse_button(left, down);
 }
