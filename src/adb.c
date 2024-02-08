@@ -302,8 +302,12 @@ static void adb_command(void) {
 					}
 					break;
 				case ADB_ADDR_MOUSE:
+					if (adb_kbd.read != adb_kbd.write) { /* This needs to be checked! */
+						adb.status |= ADB_STAT_REQUEST;
+						adb_interrupt(ADB_INT_ACCESS);
+					}
 					if (reg == 3) {
-						buf[0] = 0x60 | ADB_ADDR_MOUSE;
+						buf[0] = 0x7f;//0x60 | ADB_ADDR_MOUSE;
 						buf[1] = ADB_TYPE_MOUSE;
 						adb.status |= ADB_STAT_DATAPEND;
 						adb_write_data(buf, 2);
@@ -862,14 +866,14 @@ static uint8_t ADB_GetKeyFromSymbol(SDL_Keycode sdlkey)
 			
 		/* Modifier keys */
 		case SDLK_RSHIFT:
-		case SDLK_LSHIFT:         return APPLEKEY_SHIFT_LEFT;
+		case SDLK_LSHIFT:                 return APPLEKEY_SHIFT_LEFT;
 		case SDLK_RGUI:
-		case SDLK_LGUI:           return APPLEKEY_APPLE_LEFT;
+		case SDLK_LGUI:                   return APPLEKEY_APPLE_LEFT;
 		case SDLK_RCTRL:
-		case SDLK_LCTRL:          return APPLEKEY_CTL_LEFT;
+		case SDLK_LCTRL:                  return APPLEKEY_CTL_LEFT;
 		case SDLK_RALT:
-		case SDLK_LALT:           return APPLEKEY_OPTION_LEFT;
-		case SDLK_CAPSLOCK:       return APPLEKEY_CAPS_LOCK;
+		case SDLK_LALT:                   return APPLEKEY_OPTION_LEFT;
+		case SDLK_CAPSLOCK:               return APPLEKEY_CAPS_LOCK;
 
 		/* Special Keys */
 		case SDLK_F10:

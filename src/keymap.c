@@ -17,6 +17,7 @@ const char Keymap_fileid[] = "Previous keymap.c";
 #include "debugui.h"
 #include "log.h"
 #include "kms.h"
+#include "adb.h"
 
 #define  LOG_KEYMAP_LEVEL   LOG_DEBUG
 
@@ -413,6 +414,10 @@ void Keymap_KeyDown(const SDL_Keysym *sdlkey)
 {
 	uint8_t next_mod, next_key;
 
+	if (ConfigureParams.System.bADB && ConfigureParams.System.bTurbo) {
+		ADB_KeyDown(sdlkey);
+		return;
+	}
 	if (ConfigureParams.Keyboard.nKeymapType == KEYMAP_SYMBOLIC) {
 		next_key = Keymap_GetKeyFromSymbol(sdlkey->sym);
 	} else {
@@ -435,6 +440,10 @@ void Keymap_KeyUp(const SDL_Keysym *sdlkey)
 {
 	uint8_t next_mod, next_key;
 
+	if (ConfigureParams.System.bADB && ConfigureParams.System.bTurbo) {
+		ADB_KeyUp(sdlkey);
+		return;
+	}
 	if (ConfigureParams.Keyboard.nKeymapType == KEYMAP_SYMBOLIC) {
 		next_key = Keymap_GetKeyFromSymbol(sdlkey->sym);
 	} else {
@@ -458,6 +467,10 @@ void Keymap_MouseMove(int dx, int dy)
 	bool left = false;
 	bool up   = false;
 
+	if (ConfigureParams.System.bADB && ConfigureParams.System.bTurbo) {
+		ADB_MouseMove(dx, dy);
+		return;
+	}
 	if (dx < 0) {
 		dx = -dx;
 		left = true;
@@ -476,6 +489,10 @@ void Keymap_MouseMove(int dx, int dy)
  */
 void Keymap_MouseDown(bool left)
 {
+	if (ConfigureParams.System.bADB && ConfigureParams.System.bTurbo) {
+		ADB_MouseButton(left,true);
+		return;
+	}
 	kms_mouse_button(left,true);
 }
 
@@ -486,6 +503,10 @@ void Keymap_MouseDown(bool left)
  */
 void Keymap_MouseUp(bool left)
 {
+	if (ConfigureParams.System.bADB && ConfigureParams.System.bTurbo) {
+		ADB_MouseButton(left,false);
+		return;
+	}
 	kms_mouse_button(left,false);
 }
 
