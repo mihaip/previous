@@ -463,12 +463,14 @@ void Main_ResetKeys(void) {
 	event.key.keysym.mod      = KMOD_LCTRL;
 	SDL_PushEvent(&event);
 
-	event.type                = SDL_KEYUP;
-	event.key.keysym.scancode = SDL_SCANCODE_LCTRL;
-	event.key.keysym.sym      = SDLK_LCTRL;
-	event.key.keysym.mod      = KMOD_LCTRL;
-	SDL_PushEvent(&event);
-
+	if (ConfigureParams.System.bADB) {
+		event.type                = SDL_KEYUP;
+		event.key.keysym.scancode = SDL_SCANCODE_LCTRL;
+		event.key.keysym.sym      = SDLK_LCTRL;
+		event.key.keysym.mod      = KMOD_LCTRL;
+		SDL_PushEvent(&event);
+	}
+	
 	event.type                = SDL_KEYUP;
 	event.key.keysym.scancode = SDL_SCANCODE_Q;
 	event.key.keysym.sym      = SDLK_q;

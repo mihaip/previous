@@ -34,6 +34,10 @@ static void adb_kbd_reset(void) {
 	adb_kbd.write = adb_kbd.write = 0;
 }
 
+static bool adb_kbd_request(void) {
+	return (adb_kbd.write != adb_kbd.read);
+}
+
 static void adb_kbd_put(uint8_t event) {
 	adb_kbd.next = adb_kbd.write + 1;
 	if (adb_kbd.next >= ADB_MAX_EVENTS) {
@@ -94,6 +98,10 @@ static struct {
 
 static void adb_mouse_reset(void) {
 	adb_mouse.event = 0;
+}
+
+static bool adb_mouse_request(void) {
+	return adb_mouse.event;
 }
 
 static bool adb_mouse_get(uint8_t* event) {
@@ -215,6 +223,19 @@ static void adb_interrupt(uint32_t intr) {
 	adb_check_interrupt();
 }
 
+static uint32_t adb_read_data(uint8_t* data) {	
+	data[0] = adb.data0 >> 24;
+	data[1] = adb.data0 >> 16;
+	data[2] = adb.data0 >> 8;
+	data[3] = adb.data0;
+	data[4] = adb.data1 >> 24;
+	data[5] = adb.data1 >> 16;
+	data[6] = adb.data1 >> 8;
+	data[7] = adb.data1;
+	
+	return adb.bitcount >> 3;
+}
+
 static void adb_write_data(uint8_t* data, uint32_t len) {
 	if (len > 8) {
 		Log_Printf(LOG_WARN, "[ADB] Data: Lengh of data is too big (%d)", len);
@@ -224,7 +245,6 @@ static void adb_write_data(uint8_t* data, uint32_t len) {
 	adb.data1 = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
 	
 	adb.bitcount = len << 3;
-	//adb.status |= ADB_STAT_REQUEST; // FIXME: when is this used?
 	adb.status |= ADB_STAT_DATAPEND;
 	adb_interrupt(ADB_INT_ACCESS);
 }
@@ -241,9 +261,7 @@ static void adb_write_data(uint8_t* data, uint32_t len) {
 #define ADB_ADDR_TABLET 4
 
 #define ADB_TYPE_MOUSE  1
-#define ADB_TYPE_KBD    5
-
-#define ADB_KEY_NONE    0x7F
+#define ADB_TYPE_KBD    2
 
 static void adb_command(void) {
 	uint8_t buf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -268,11 +286,19 @@ static void adb_command(void) {
 				case ADB_ADDR_KBD:
 					if (reg == 3) {
 						Log_Printf(LOG_WARN, "[ADB] Command: Listen KEYBOARD %08x", adb.data0);
+						adb_read_data(buf);
+						if (buf[2] == 0) {
+							Log_Printf(LOG_WARN, "[ADB] Command: Set keyboard reg3 %02x %02x", buf[0], buf[1]);
+						}
 					}
 					break;
 				case ADB_ADDR_MOUSE:
 					if (reg == 3) {
 						Log_Printf(LOG_WARN, "[ADB] Command: Listen MOUSE %08x", adb.data0);
+						adb_read_data(buf);
+						if (buf[2] == 0) {
+							Log_Printf(LOG_WARN, "[ADB] Command: Set mouse reg3 %02x %02x", buf[0], buf[1]);
+						}
 					}
 					break;
 
@@ -302,14 +328,9 @@ static void adb_command(void) {
 					}
 					break;
 				case ADB_ADDR_MOUSE:
-					if (adb_kbd.read != adb_kbd.write) { /* This needs to be checked! */
-						adb.status |= ADB_STAT_REQUEST;
-						adb_interrupt(ADB_INT_ACCESS);
-					}
 					if (reg == 3) {
 						buf[0] = 0x7f;//0x60 | ADB_ADDR_MOUSE;
 						buf[1] = ADB_TYPE_MOUSE;
-						adb.status |= ADB_STAT_DATAPEND;
 						adb_write_data(buf, 2);
 					} else if (reg == 0) {
 						if (adb_mouse_get(buf)) {
@@ -354,6 +375,10 @@ static void adb_command(void) {
 			break;
 	}
 	
+	if (adb_kbd_request() || adb_mouse_request()) {
+		adb.status |= ADB_STAT_REQUEST;
+		adb_interrupt(ADB_INT_ACCESS);
+	}
 }
 
 static uint32_t adb_intstatus_read(uint32_t addr) {
