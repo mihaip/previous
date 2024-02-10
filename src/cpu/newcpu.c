@@ -6349,6 +6349,88 @@ static void m68k_run_mmu040 (void)
 
 #ifdef CPUEMU_32
 
+static
+// Don't inline this function under Emscripten, otherwise we will end up with
+// very inefficient code generation due to the setjmp call in the parent
+// ppc_exec() function.
+#ifdef EMSCRIPTEN
+__attribute__((noinline))
+#endif
+void m68k_run_mmu030_inner(struct flag_struct *f)
+{
+	for (;;) {
+		int cnt;
+insretry:
+		regs.instruction_pc = m68k_getpc ();
+		f->cznv = regflags.cznv;
+		f->x = regflags.x;
+
+		mmu030_state[0] = mmu030_state[1] = mmu030_state[2] = 0;
+		mmu030_opcode = -1;
+		if (mmu030_fake_prefetch >= 0) {
+			// use fake prefetch opcode only if mapping changed
+			uaecptr new_addr = mmu030_translate(regs.instruction_pc, regs.s != 0, false, false);
+			if (mmu030_fake_prefetch_addr != new_addr) {
+				regs.opcode = mmu030_fake_prefetch;
+				write_log(_T("MMU030 fake prefetch remap: %04x, %08x -> %08x\n"), mmu030_fake_prefetch, mmu030_fake_prefetch_addr, new_addr);
+			} else {
+				if (mmu030_opcode_stageb < 0) {
+					regs.opcode = x_prefetch (0);
+				} else {
+					regs.opcode = mmu030_opcode_stageb;
+					mmu030_opcode_stageb = -1;
+				}
+			}
+			mmu030_fake_prefetch = -1;
+		} else if (mmu030_opcode_stageb < 0) {
+			if (currprefs.cpu_compatible)
+				regs.opcode = regs.irc;
+			else
+				regs.opcode = x_prefetch (0);
+		} else {
+			regs.opcode = mmu030_opcode_stageb;
+			mmu030_opcode_stageb = -1;
+		}
+
+		mmu030_opcode = regs.opcode;
+		mmu030_idx_done = 0;
+
+		cnt = 50;
+		for (;;) {
+			regs.opcode = regs.irc = mmu030_opcode;
+			mmu030_idx = 0;
+
+			mmu030_retry = false;
+
+			cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
+
+			cnt--; // so that we don't get in infinite loop if things go horribly wrong
+			if (!mmu030_retry)
+				break;
+			if (cnt < 0) {
+				cpu_halt (CPU_HALT_CPU_STUCK);
+				break;
+			}
+			if (mmu030_retry && mmu030_opcode == -1)
+				goto insretry; // urgh
+		}
+
+		mmu030_opcode = -1;
+
+#ifdef WINUAE_FOR_HATARI
+		M68000_AddCycles(cpu_cycles);
+
+		run_other_MPUs();
+#endif
+		if (regs.spcflags) {
+			if (do_specialties (cpu_cycles)) {
+				STOPTRY;
+				return;
+			}
+		}
+	}
+}
+
 // Previous MMU 68030
 static void m68k_run_mmu030 (void)
 {
@@ -6365,79 +6447,7 @@ static void m68k_run_mmu030 (void)
 	while(!halt) {
 		check_debugger();
 		TRY (prb) {
-			for (;;) {
-				int cnt;
-insretry:
-				regs.instruction_pc = m68k_getpc ();
-				f.cznv = regflags.cznv;
-				f.x = regflags.x;
-
-				mmu030_state[0] = mmu030_state[1] = mmu030_state[2] = 0;
-				mmu030_opcode = -1;
-				if (mmu030_fake_prefetch >= 0) {
-					// use fake prefetch opcode only if mapping changed
-					uaecptr new_addr = mmu030_translate(regs.instruction_pc, regs.s != 0, false, false);
-					if (mmu030_fake_prefetch_addr != new_addr) {
-						regs.opcode = mmu030_fake_prefetch;
-						write_log(_T("MMU030 fake prefetch remap: %04x, %08x -> %08x\n"), mmu030_fake_prefetch, mmu030_fake_prefetch_addr, new_addr);
-					} else {
-						if (mmu030_opcode_stageb < 0) {
-							regs.opcode = x_prefetch (0);
-						} else {
-							regs.opcode = mmu030_opcode_stageb;
-							mmu030_opcode_stageb = -1;
-						}
-					}
-					mmu030_fake_prefetch = -1;
-				} else if (mmu030_opcode_stageb < 0) {
-					if (currprefs.cpu_compatible)
-						regs.opcode = regs.irc;
-					else
-						regs.opcode = x_prefetch (0);
-				} else {
-					regs.opcode = mmu030_opcode_stageb;
-					mmu030_opcode_stageb = -1;
-				}
-
-				mmu030_opcode = regs.opcode;
-				mmu030_idx_done = 0;
-
-				cnt = 50;
-				for (;;) {
-					regs.opcode = regs.irc = mmu030_opcode;
-					mmu030_idx = 0;
-
-					mmu030_retry = false;
-
-					cpu_cycles = (*cpufunctbl[regs.opcode])(regs.opcode);
-
-					cnt--; // so that we don't get in infinite loop if things go horribly wrong
-					if (!mmu030_retry)
-						break;
-					if (cnt < 0) {
-						cpu_halt (CPU_HALT_CPU_STUCK);
-						break;
-					}
-					if (mmu030_retry && mmu030_opcode == -1)
-						goto insretry; // urgh
-				}
-
-				mmu030_opcode = -1;
-
-#ifdef WINUAE_FOR_HATARI
-				M68000_AddCycles(cpu_cycles);
-
-				run_other_MPUs();
-#endif
-				if (regs.spcflags) {
-					if (do_specialties (cpu_cycles)) {
-						STOPTRY;
-						return;
-					}
-				}
-
-			}
-
+			m68k_run_mmu030_inner(&f);
 		} CATCH (prb) {
 
 			if (mmu030_opcode == -1) {
