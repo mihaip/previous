@@ -208,18 +208,28 @@ static void Main_HandleDiskInsertions(void) {
 void Main_EventHandlerInterrupt(void) {
 	CycInt_AcknowledgeInterrupt();
 
-    // TODO: get events from JS
-    // TODO: Main_Speed-style speed adjustment?
-	// Main_Speed(rt, vt);
-
     Main_ReadJSInput();
 
     // Run polling tasks less frequently than the event loop.
     static int counter = 0;
+
+    static int last_sleep_counter = 0;
+    int64_t time_offset = host_real_time_offset();
+    if (time_offset > 0) {
+        // Also has the side effect of ensuring that periodic tasks are run.
+        EM_ASM_({ workerApi.sleep($0); }, (double) time_offset / 1000000);
+        last_sleep_counter = counter;
+    }
+
     if (counter++ % 50 == 0) {
         Main_HandleDiskInsertions();
-        // Ensure that period tasks are run (until we have idlewait support).
-        EM_ASM({ workerApi.sleep(0); });
+
+        if (counter - last_sleep_counter > 50) {
+            // If we haven't slept in a while, at least ensure that we're
+            // running periodic tasks.
+            EM_ASM({ workerApi.sleep(0); });
+            last_sleep_counter = counter;
+        }
     }
 
 	CycInt_AddRelativeInterruptUs((1000*1000)/200, 0, INTERRUPT_EVENT_LOOP); // poll events with 200 Hz
