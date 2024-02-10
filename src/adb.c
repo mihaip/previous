@@ -29,12 +29,16 @@ const char Adb_fileid[] = "Previous adb.c";
 #define ADB_TYPE_MOUSE  1
 #define ADB_TYPE_KBD    2
 
-#define ADB_MAX_EVENTS 16
+#define ADB_CONF_EXC 0x40
+#define ADB_CONF_REQ 0x20
+
+#define ADB_KBD_EVENTS 16
 
 /* Keyboard */
 static struct {
 	uint8_t addr;
-	uint8_t event[ADB_MAX_EVENTS];
+	uint8_t conf;
+	uint8_t event[ADB_KBD_EVENTS];
 	int write;
 	int read;
 	int next;
@@ -46,6 +50,7 @@ static void adb_kbd_flush(void) {
 
 static void adb_kbd_reset(void) {
 	adb_kbd.addr = ADB_ADDR_KBD;
+	adb_kbd.conf = ADB_CONF_EXC | ADB_CONF_REQ;
 	adb_kbd_flush();
 }
 
@@ -55,7 +60,7 @@ static bool adb_kbd_request(void) {
 
 static void adb_kbd_put(uint8_t event) {
 	adb_kbd.next = adb_kbd.write + 1;
-	if (adb_kbd.next >= ADB_MAX_EVENTS) {
+	if (adb_kbd.next >= ADB_KBD_EVENTS) {
 		adb_kbd.next = 0;
 	}
 	if (adb_kbd.next == adb_kbd.read) {
@@ -69,7 +74,7 @@ static void adb_kbd_put(uint8_t event) {
 static bool adb_kbd_get(uint8_t* event) {	
 	if (adb_kbd.write != adb_kbd.read) {
 		adb_kbd.next = adb_kbd.read + 1;
-		if (adb_kbd.next >= ADB_MAX_EVENTS) {
+		if (adb_kbd.next >= ADB_KBD_EVENTS) {
 			adb_kbd.next = 0;
 		}
 		*event = adb_kbd.event[adb_kbd.read];
@@ -99,6 +104,7 @@ static void adb_keydown(uint8_t key) {
 /* Mouse */
 static struct {
 	uint8_t addr;
+	uint8_t conf;
 	bool event;
 	bool right;
 	bool left;
@@ -112,6 +118,7 @@ static void adb_mouse_flush(void) {
 
 static void adb_mouse_reset(void) {
 	adb_mouse.addr = ADB_ADDR_MOUSE;
+	adb_mouse.conf = ADB_CONF_EXC | ADB_CONF_REQ | 0x10;
 	adb_mouse_flush();
 }
 
@@ -253,6 +260,8 @@ static uint32_t adb_read_data(uint8_t* data) {
 	data[6] = adb.data1 >> 8;
 	data[7] = adb.data1;
 	
+	adb_interrupt(ADB_INT_ACCESS);
+
 	return adb.bitcount >> 3;
 }
 
@@ -298,6 +307,19 @@ static void adb_command(void) {
 				switch (reg) {
 					case 3:
 						Log_Printf(LOG_WARN, "[ADB] Keyboard: Register 3 write (%02x%02x)", buf[0], buf[1]);
+						if (buf[1] == 0) {
+							adb_kbd.addr = buf[0] & 0x0f;
+							adb_kbd.conf = (adb_kbd.conf & ~ADB_CONF_REQ) | (buf[0] & ADB_CONF_REQ);
+							Log_Printf(LOG_WARN, "[ADB] Keyboard: Set address to %d", adb_kbd.addr);
+							Log_Printf(LOG_WARN, "[ADB] Keyboard: %sable request", (adb_kbd.conf&ADB_CONF_REQ)?"En":"Dis");
+						} else if (buf[1] == 0xfd) {
+							Log_Printf(LOG_WARN, "[ADB] Keyboard: Set address if activated (ignored)");
+						} else if (buf[1] == 0xfe) {
+							adb_kbd.addr = buf[0] & 0x0f;
+							Log_Printf(LOG_WARN, "[ADB] Keyboard: Set address to %d", adb_kbd.addr);
+						} else {
+							Log_Printf(LOG_WARN, "[ADB] Keyboard: Set handler ID to %x (ignored)", buf[1]);
+						}
 						break;
 					default:
 						Log_Printf(LOG_WARN, "[ADB] Keyboard: Unknown register write (%d)", reg);
@@ -308,6 +330,19 @@ static void adb_command(void) {
 				switch (reg) {
 					case 3:
 						Log_Printf(LOG_WARN, "[ADB] Mouse: Register 3 write (%02x%02x)", buf[0], buf[1]);
+						if (buf[1] == 0) {
+							adb_mouse.addr = buf[0] & 0x0f;
+							adb_mouse.conf = (adb_mouse.conf & ~ADB_CONF_REQ) | (buf[0] & ADB_CONF_REQ);
+							Log_Printf(LOG_WARN, "[ADB] Mouse: Set address to %d", adb_mouse.addr);
+							Log_Printf(LOG_WARN, "[ADB] Mouse: %sable request", (adb_mouse.conf&ADB_CONF_REQ)?"En":"Dis");
+						} else if (buf[1] == 0xfd) {
+							Log_Printf(LOG_WARN, "[ADB] Mouse: Set address if activated (ignored)");
+						} else if (buf[1] == 0xfe) {
+							adb_mouse.addr = buf[0] & 0x0f;
+							Log_Printf(LOG_WARN, "[ADB] Mouse: Set address to %d", adb_mouse.addr);
+						} else {
+							Log_Printf(LOG_WARN, "[ADB] Mouse: Set handler ID to %x (ignored)", buf[1]);
+						}
 						break;
 					default:
 						Log_Printf(LOG_WARN, "[ADB] Mouse: Unknown register write (%d)", reg);
@@ -317,7 +352,6 @@ static void adb_command(void) {
 				Log_Printf(LOG_WARN, "[ADB] Listen: Unknown device (%d)", addr);
 				adb_timeout();
 			}
-			adb_interrupt(ADB_INT_ACCESS);
 			break;
 			
 		case ADB_CMD_TALK:
@@ -328,10 +362,12 @@ static void adb_command(void) {
 						if (adb_kbd_get(&buf[0])) {
 							adb_kbd_get(&buf[1]);
 							adb_write_data(buf, 2);
+						} else {
+							adb_timeout();
 						}
 						break;
 					case 3:
-						buf[0] = 0x60 | ((rand() % 15) + 1);
+						buf[0] = adb_kbd.conf | ((rand() % 15) + 1);
 						buf[1] = ADB_TYPE_KBD;
 						adb_write_data(buf, 2);
 						break;
@@ -345,10 +381,12 @@ static void adb_command(void) {
 					case 0:
 						if (adb_mouse_get(buf)) {
 							adb_write_data(buf, 2);
+						} else {
+							adb_timeout();
 						}
 						break;
 					case 3:
-						buf[0] = 0x70 | ((rand() % 15) + 1);
+						buf[0] = adb_mouse.conf | ((rand() % 15) + 1);
 						buf[1] = ADB_TYPE_MOUSE;
 						adb_write_data(buf, 2);
 						break;
@@ -815,13 +853,13 @@ static uint8_t ADB_GetKeyFromScancode(SDL_Scancode sdlscancode)
 		case SDL_SCANCODE_DOWN:           return APPLEKEY_DOWN_ARROW;
 		
 		/* Modifier keys */
-		case SDL_SCANCODE_RSHIFT:         return APPLEKEY_SHIFT_RIGHT;
+		case SDL_SCANCODE_RSHIFT:
 		case SDL_SCANCODE_LSHIFT:         return APPLEKEY_SHIFT_LEFT;
-		case SDL_SCANCODE_RGUI:           return APPLEKEY_APPLE_LEFT;
+		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LGUI:           return APPLEKEY_APPLE_LEFT;
 		case SDL_SCANCODE_RCTRL:          return APPLEKEY_HELP;
 		case SDL_SCANCODE_LCTRL:          return APPLEKEY_CTL_LEFT;
-		case SDL_SCANCODE_RALT:           return APPLEKEY_OPTION_RIGHT;
+		case SDL_SCANCODE_RALT:
 		case SDL_SCANCODE_LALT:           return APPLEKEY_OPTION_LEFT;
 		case SDL_SCANCODE_CAPSLOCK:       return APPLEKEY_CAPS_LOCK;
 		
@@ -921,13 +959,13 @@ static uint8_t ADB_GetKeyFromSymbol(SDL_Keycode sdlkey)
 		case SDLK_5:                      return APPLEKEY_5;
 			
 		/* Modifier keys */
-		case SDLK_RSHIFT:                 return APPLEKEY_SHIFT_RIGHT;
+		case SDLK_RSHIFT:
 		case SDLK_LSHIFT:                 return APPLEKEY_SHIFT_LEFT;
-		case SDLK_RGUI:                   return APPLEKEY_APPLE_LEFT;
+		case SDLK_RGUI:
 		case SDLK_LGUI:                   return APPLEKEY_APPLE_LEFT;
 		case SDLK_RCTRL:                  return APPLEKEY_HELP;
 		case SDLK_LCTRL:                  return APPLEKEY_CTL_LEFT;
-		case SDLK_RALT:                   return APPLEKEY_OPTION_RIGHT;
+		case SDLK_RALT:
 		case SDLK_LALT:                   return APPLEKEY_OPTION_LEFT;
 		case SDLK_CAPSLOCK:               return APPLEKEY_CAPS_LOCK;
 
