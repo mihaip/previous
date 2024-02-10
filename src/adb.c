@@ -4,7 +4,7 @@
   This file is distributed under the GNU General Public License, version 2
   or at your option any later version. Read the file gpl.txt for details.
 
-  This file contains a simulation of the Apple Desktop Bus. Dummy.
+  This file contains a simulation of the Apple Desktop Bus.
 */
 const char Adb_fileid[] = "Previous adb.c";
 
@@ -16,22 +16,37 @@ const char Adb_fileid[] = "Previous adb.c";
 #include "rtcnvram.h"
 #include "adb.h"
 
-#define LOG_ADB_LEVEL LOG_DEBUG
+#define LOG_ADB_LEVEL      LOG_DEBUG
+#define LOG_ADB_CMD_LEVEL  LOG_DEBUG
 
 
 /* ADB devices */
+#define ADB_ADDR_INVAL  0
+#define ADB_ADDR_KBD    2
+#define ADB_ADDR_MOUSE  3
+#define ADB_ADDR_TABLET 4
+
+#define ADB_TYPE_MOUSE  1
+#define ADB_TYPE_KBD    2
+
 #define ADB_MAX_EVENTS 16
 
 /* Keyboard */
 static struct {
+	uint8_t addr;
 	uint8_t event[ADB_MAX_EVENTS];
 	int write;
 	int read;
 	int next;
 } adb_kbd;
 
+static void adb_kbd_flush(void) {
+	adb_kbd.read = adb_kbd.write = 0;
+}
+
 static void adb_kbd_reset(void) {
-	adb_kbd.write = adb_kbd.write = 0;
+	adb_kbd.addr = ADB_ADDR_KBD;
+	adb_kbd_flush();
 }
 
 static bool adb_kbd_request(void) {
@@ -68,27 +83,22 @@ static bool adb_kbd_get(uint8_t* event) {
 static void adb_keyup(uint8_t key) {
 	if (key == 0x7f) {
 		rtc_stop_pdown_request();
-		return;
+	} else if (key < 0x7f) {
+		adb_kbd_put(0x80 | key);
 	}
-	if (key > 0x7f) {
-		return;
-	}
-	adb_kbd_put(0x80 | key);
 }
 
 static void adb_keydown(uint8_t key) {
 	if (key == 0x7f) {
 		rtc_request_power_down();
-		return;
+	} else if (key < 0x7f) {
+		adb_kbd_put(key);
 	}
-	if (key > 0x7f) {
-		return;
-	}
-	adb_kbd_put(key);
 }
 
 /* Mouse */
 static struct {
+	uint8_t addr;
 	bool event;
 	bool right;
 	bool left;
@@ -96,8 +106,13 @@ static struct {
 	int y;
 } adb_mouse;
 
+static void adb_mouse_flush(void) {
+	adb_mouse.event = false;
+}
+
 static void adb_mouse_reset(void) {
-	adb_mouse.event = 0;
+	adb_mouse.addr = ADB_ADDR_MOUSE;
+	adb_mouse_flush();
 }
 
 static bool adb_mouse_request(void) {
@@ -223,6 +238,11 @@ static void adb_interrupt(uint32_t intr) {
 	adb_check_interrupt();
 }
 
+static void adb_timeout(void) {
+	adb.status |= ADB_STAT_TIMEOUT;
+	adb_interrupt(ADB_INT_ACCESS);
+}
+
 static uint32_t adb_read_data(uint8_t* data) {	
 	data[0] = adb.data0 >> 24;
 	data[1] = adb.data0 >> 16;
@@ -255,14 +275,6 @@ static void adb_write_data(uint8_t* data, uint32_t len) {
 #define ADB_CMD_LISTEN  2
 #define ADB_CMD_TALK    3
 
-#define ADB_ADDR_INVAL  0
-#define ADB_ADDR_KBD    2
-#define ADB_ADDR_MOUSE  3
-#define ADB_ADDR_TABLET 4
-
-#define ADB_TYPE_MOUSE  1
-#define ADB_TYPE_KBD    2
-
 static void adb_command(void) {
 	uint8_t buf[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 	
@@ -272,82 +284,82 @@ static void adb_command(void) {
 	
 	if (!ConfigureParams.System.bADB) {
 		Log_Printf(LOG_WARN, "[ADB] Command: No device present");
-		adb.status |= ADB_STAT_TIMEOUT;
-		adb_interrupt(ADB_INT_ACCESS);
+		adb_timeout();
 		return;
 	}
 	
-	Log_Printf(LOG_ADB_LEVEL, "[ADB] Command: %d, address: %d, register: %d", cmd, addr, reg);
+	Log_Printf(LOG_ADB_CMD_LEVEL, "[ADB] Command: %d, address: %d, register: %d", cmd, addr, reg);
 	
 	switch (cmd) {
 		case ADB_CMD_LISTEN:
-			Log_Printf(LOG_WARN, "[ADB] Command: Listen");
-			switch (addr) {
-				case ADB_ADDR_KBD:
-					if (reg == 3) {
-						Log_Printf(LOG_WARN, "[ADB] Command: Listen KEYBOARD %08x", adb.data0);
-						adb_read_data(buf);
-						if (buf[2] == 0) {
-							Log_Printf(LOG_WARN, "[ADB] Command: Set keyboard reg3 %02x %02x", buf[0], buf[1]);
-						}
-					}
-					break;
-				case ADB_ADDR_MOUSE:
-					if (reg == 3) {
-						Log_Printf(LOG_WARN, "[ADB] Command: Listen MOUSE %08x", adb.data0);
-						adb_read_data(buf);
-						if (buf[2] == 0) {
-							Log_Printf(LOG_WARN, "[ADB] Command: Set mouse reg3 %02x %02x", buf[0], buf[1]);
-						}
-					}
-					break;
-
-				default:
-					break;
+			Log_Printf(LOG_ADB_CMD_LEVEL, "[ADB] Command: Listen");
+			if (addr == adb_kbd.addr) {
+				adb_read_data(buf);
+				switch (reg) {
+					case 3:
+						Log_Printf(LOG_WARN, "[ADB] Keyboard: Register 3 write (%02x%02x)", buf[0], buf[1]);
+						break;
+					default:
+						Log_Printf(LOG_WARN, "[ADB] Keyboard: Unknown register write (%d)", reg);
+						break;
+				}
+			} else if (addr == adb_mouse.addr) {
+				adb_read_data(buf);
+				switch (reg) {
+					case 3:
+						Log_Printf(LOG_WARN, "[ADB] Mouse: Register 3 write (%02x%02x)", buf[0], buf[1]);
+						break;
+					default:
+						Log_Printf(LOG_WARN, "[ADB] Mouse: Unknown register write (%d)", reg);
+						break;
+				}
+			} else {
+				Log_Printf(LOG_WARN, "[ADB] Listen: Unknown device (%d)", addr);
+				adb_timeout();
 			}
 			adb_interrupt(ADB_INT_ACCESS);
 			break;
 			
 		case ADB_CMD_TALK:
-			Log_Printf(LOG_ADB_LEVEL, "[ADB] Command: Talk");
-			switch (addr) {
-				case ADB_ADDR_KBD:
-					if (reg == 3) {
-						buf[0] = 0x60 | ADB_ADDR_KBD;
-						buf[1] = ADB_TYPE_KBD;
-						adb_write_data(buf, 2);
-					} else if (reg == 0) {
+			Log_Printf(LOG_ADB_CMD_LEVEL, "[ADB] Command: Talk");
+			if (addr == adb_kbd.addr) {
+				switch (reg) {
+					case 0:
 						if (adb_kbd_get(&buf[0])) {
 							adb_kbd_get(&buf[1]);
 							adb_write_data(buf, 2);
 						}
-					} else {
-						Log_Printf(LOG_WARN, "[ADB] Command: Unknown keyboard register");
-						adb.status |= ADB_STAT_TIMEOUT;
-						adb_interrupt(ADB_INT_ACCESS);
-					}
-					break;
-				case ADB_ADDR_MOUSE:
-					if (reg == 3) {
-						buf[0] = 0x7f;//0x60 | ADB_ADDR_MOUSE;
-						buf[1] = ADB_TYPE_MOUSE;
+						break;
+					case 3:
+						buf[0] = 0x60 | ((rand() % 15) + 1);
+						buf[1] = ADB_TYPE_KBD;
 						adb_write_data(buf, 2);
-					} else if (reg == 0) {
+						break;
+					default:
+						Log_Printf(LOG_WARN, "[ADB] Keyboard: Unknown register read (%d)", reg);
+						adb_timeout();
+						break;
+				}
+			} else if (addr == adb_mouse.addr) {
+				switch (reg) {
+					case 0:
 						if (adb_mouse_get(buf)) {
 							adb_write_data(buf, 2);
 						}
-					} else {
-						Log_Printf(LOG_WARN, "[ADB] Command: Unknown mouse register");
-						adb.status |= ADB_STAT_TIMEOUT;
-						adb_interrupt(ADB_INT_ACCESS);
-					}
-					break;
-					
-				default:
-					Log_Printf(LOG_WARN, "[ADB] Command: Unknown device");
-					adb.status |= ADB_STAT_TIMEOUT;
-					adb_interrupt(ADB_INT_ACCESS);
-					break;
+						break;
+					case 3:
+						buf[0] = 0x70 | ((rand() % 15) + 1);
+						buf[1] = ADB_TYPE_MOUSE;
+						adb_write_data(buf, 2);
+						break;
+					default:
+						Log_Printf(LOG_WARN, "[ADB] Mouse: Unknown register read (%d)", reg);
+						adb_timeout();
+						break;
+				}
+			} else {
+				Log_Printf(LOG_WARN, "[ADB] Talk: Unknown device (%d)", addr);
+				adb_timeout();
 			}
 			break;
 			
@@ -360,16 +372,26 @@ static void adb_command(void) {
 			switch (cmd) {
 				case ADB_CMD_RESET:
 					Log_Printf(LOG_WARN, "[ADB] Command: Reset");
+					adb_kbd_reset();
+					adb_mouse_reset();
+					adb_timeout();
 					break;
 					
 				case ADB_CMD_FLUSH:
 					Log_Printf(LOG_WARN, "[ADB] Command: Flush");
+					if (addr == adb_kbd.addr) {
+						adb_kbd_flush();
+					} else if (addr == adb_mouse.addr) {
+						adb_mouse_flush();
+					} else {
+						Log_Printf(LOG_WARN, "[ADB] Flush: Unknown device (%d)", addr);
+					}
+					adb_timeout();
 					break;
 					
 				default:
 					Log_Printf(LOG_WARN, "[ADB] Command: Invalid");
-					adb.status |= ADB_STAT_TIMEOUT;
-					adb_interrupt(ADB_INT_ACCESS);
+					adb_timeout();
 					break;
 			}
 			break;
@@ -423,6 +445,9 @@ static void adb_control_write(uint32_t addr, uint32_t val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Control write at $%08X val=$%08X",addr,val);
 	
 	if (val&ADB_CTRL_RESET_ADB) {
+		Log_Printf(LOG_WARN, "[ADB] Software reset");
+		adb_kbd_reset();
+		adb_mouse_reset();
 		adb.status &= ~ADB_STAT_POLL_EN;
 		adb_interrupt(ADB_INT_RESET);
 	}
@@ -606,10 +631,13 @@ void ADB_Reset(void) {
 	adb.bitcount = 0;
 	adb.data0 = 0;
 	adb.data1 = 0;
+	
+	adb_kbd_reset();
+	adb_mouse_reset();
 }
 
 
-
+/* ADB host input conversion */
 
 #define APPLEKEY_a               0x00
 #define APPLEKEY_s               0x01
@@ -690,10 +718,13 @@ void ADB_Reset(void) {
 #define APPLEKEY_KEYPAD_7        0x59
 #define APPLEKEY_KEYPAD_8        0x5b
 #define APPLEKEY_KEYPAD_9        0x5c
+#define APPLEKEY_HELP            0x72
 #define APPLEKEY_VOLUME_UP       0x73
 #define APPLEKEY_BRIGHTNESS_UP   0x74
 #define APPLEKEY_VOLUME_DOWN     0x77
 #define APPLEKEY_BRIGHTNESS_DOWN 0x79
+#define APPLEKEY_SHIFT_RIGHT     0x7b
+#define APPLEKEY_OPTION_RIGHT    0x7c
 #define APPLEKEY_POWER           0x7f
 
 
@@ -784,13 +815,13 @@ static uint8_t ADB_GetKeyFromScancode(SDL_Scancode sdlscancode)
 		case SDL_SCANCODE_DOWN:           return APPLEKEY_DOWN_ARROW;
 		
 		/* Modifier keys */
-		case SDL_SCANCODE_RSHIFT:
+		case SDL_SCANCODE_RSHIFT:         return APPLEKEY_SHIFT_RIGHT;
 		case SDL_SCANCODE_LSHIFT:         return APPLEKEY_SHIFT_LEFT;
-		case SDL_SCANCODE_RGUI:
+		case SDL_SCANCODE_RGUI:           return APPLEKEY_APPLE_LEFT;
 		case SDL_SCANCODE_LGUI:           return APPLEKEY_APPLE_LEFT;
-		case SDL_SCANCODE_RCTRL:
+		case SDL_SCANCODE_RCTRL:          return APPLEKEY_HELP;
 		case SDL_SCANCODE_LCTRL:          return APPLEKEY_CTL_LEFT;
-		case SDL_SCANCODE_RALT:
+		case SDL_SCANCODE_RALT:           return APPLEKEY_OPTION_RIGHT;
 		case SDL_SCANCODE_LALT:           return APPLEKEY_OPTION_LEFT;
 		case SDL_SCANCODE_CAPSLOCK:       return APPLEKEY_CAPS_LOCK;
 		
@@ -806,7 +837,7 @@ static uint8_t ADB_GetKeyFromScancode(SDL_Scancode sdlscancode)
 		case SDL_SCANCODE_F2:
 		case SDL_SCANCODE_PAGEUP:         return APPLEKEY_BRIGHTNESS_UP;
 			
-		default:                          return 0x80;
+		default:                          return 0xff;
 	}
 }
 
@@ -890,13 +921,13 @@ static uint8_t ADB_GetKeyFromSymbol(SDL_Keycode sdlkey)
 		case SDLK_5:                      return APPLEKEY_5;
 			
 		/* Modifier keys */
-		case SDLK_RSHIFT:
+		case SDLK_RSHIFT:                 return APPLEKEY_SHIFT_RIGHT;
 		case SDLK_LSHIFT:                 return APPLEKEY_SHIFT_LEFT;
-		case SDLK_RGUI:
+		case SDLK_RGUI:                   return APPLEKEY_APPLE_LEFT;
 		case SDLK_LGUI:                   return APPLEKEY_APPLE_LEFT;
-		case SDLK_RCTRL:
+		case SDLK_RCTRL:                  return APPLEKEY_HELP;
 		case SDLK_LCTRL:                  return APPLEKEY_CTL_LEFT;
-		case SDLK_RALT:
+		case SDLK_RALT:                   return APPLEKEY_OPTION_RIGHT;
 		case SDLK_LALT:                   return APPLEKEY_OPTION_LEFT;
 		case SDLK_CAPSLOCK:               return APPLEKEY_CAPS_LOCK;
 
@@ -912,7 +943,7 @@ static uint8_t ADB_GetKeyFromSymbol(SDL_Keycode sdlkey)
 		case SDLK_F2:
 		case SDLK_PAGEUP:                 return APPLEKEY_BRIGHTNESS_UP;
 			
-		default:                          return 0x80;
+		default:                          return 0xff;
 	}
 }
 
@@ -927,7 +958,7 @@ void ADB_KeyDown(const SDL_Keysym *sdlkey)
 		adb_key = ADB_GetKeyFromScancode(sdlkey->scancode);
 	}
 		
-	Log_Printf(LOG_ADB_LEVEL, "[Keymap] NeXT Keycode: $%02x, Modifiers: $%02x\n", adb_key, adb_mod);
+	Log_Printf(LOG_ADB_LEVEL, "[ADB] Keycode: $%02x", adb_key);
 	
 	adb_keydown(adb_key);
 }
@@ -942,7 +973,7 @@ void ADB_KeyUp(const SDL_Keysym *sdlkey)
 		adb_key = ADB_GetKeyFromScancode(sdlkey->scancode);
 	}
 		
-	Log_Printf(LOG_ADB_LEVEL, "[ADB] NeXT Keycode: $%02x, Modifiers: $%02x\n", adb_key, adb_mod);
+	Log_Printf(LOG_ADB_LEVEL, "[ADB] Keycode: $%02x", adb_key);
 	
 	adb_keyup(adb_key);
 }
