@@ -29,15 +29,17 @@ const char Adb_fileid[] = "Previous adb.c";
 #define ADB_TYPE_MOUSE  1
 #define ADB_TYPE_KBD    2
 
-#define ADB_CONF_EXC 0x40
-#define ADB_CONF_REQ 0x20
+#define ADB_CONF_EXC    0x40
+#define ADB_CONF_REQ    0x20
+#define ADB_ADDR_MASK   0x0F
 
-#define ADB_KBD_EVENTS 16
+#define ADB_KBD_EVENTS  16
 
 /* Keyboard */
 static struct {
 	uint8_t addr;
 	uint8_t conf;
+	uint8_t id;
 	uint8_t event[ADB_KBD_EVENTS];
 	int write;
 	int read;
@@ -51,6 +53,7 @@ static void adb_kbd_flush(void) {
 static void adb_kbd_reset(void) {
 	adb_kbd.addr = ADB_ADDR_KBD;
 	adb_kbd.conf = ADB_CONF_EXC | ADB_CONF_REQ;
+	adb_kbd.id   = ADB_TYPE_KBD;
 	adb_kbd_flush();
 }
 
@@ -105,6 +108,7 @@ static void adb_keydown(uint8_t key) {
 static struct {
 	uint8_t addr;
 	uint8_t conf;
+	uint8_t id;
 	bool event;
 	bool right;
 	bool left;
@@ -119,6 +123,7 @@ static void adb_mouse_flush(void) {
 static void adb_mouse_reset(void) {
 	adb_mouse.addr = ADB_ADDR_MOUSE;
 	adb_mouse.conf = ADB_CONF_EXC | ADB_CONF_REQ | 0x10;
+	adb_mouse.id   = ADB_TYPE_MOUSE;
 	adb_mouse_flush();
 }
 
@@ -308,15 +313,17 @@ static void adb_command(void) {
 					case 3:
 						Log_Printf(LOG_WARN, "[ADB] Keyboard: Register 3 write (%02x%02x)", buf[0], buf[1]);
 						if (buf[1] == 0) {
-							adb_kbd.addr = buf[0] & 0x0f;
+							adb_kbd.addr = buf[0] & ADB_ADDR_MASK;
 							adb_kbd.conf = (adb_kbd.conf & ~ADB_CONF_REQ) | (buf[0] & ADB_CONF_REQ);
 							Log_Printf(LOG_WARN, "[ADB] Keyboard: Set address to %d", adb_kbd.addr);
 							Log_Printf(LOG_WARN, "[ADB] Keyboard: %sable request", (adb_kbd.conf&ADB_CONF_REQ)?"En":"Dis");
 						} else if (buf[1] == 0xfd) {
 							Log_Printf(LOG_WARN, "[ADB] Keyboard: Set address if activated (ignored)");
 						} else if (buf[1] == 0xfe) {
-							adb_kbd.addr = buf[0] & 0x0f;
+							adb_kbd.addr = buf[0] & ADB_ADDR_MASK;
 							Log_Printf(LOG_WARN, "[ADB] Keyboard: Set address to %d", adb_kbd.addr);
+						} else if (buf[1] == 0xff) {
+							Log_Printf(LOG_WARN, "[ADB] Keyboard: Start self test");
 						} else {
 							Log_Printf(LOG_WARN, "[ADB] Keyboard: Set handler ID to %x (ignored)", buf[1]);
 						}
@@ -331,15 +338,17 @@ static void adb_command(void) {
 					case 3:
 						Log_Printf(LOG_WARN, "[ADB] Mouse: Register 3 write (%02x%02x)", buf[0], buf[1]);
 						if (buf[1] == 0) {
-							adb_mouse.addr = buf[0] & 0x0f;
+							adb_mouse.addr = buf[0] & ADB_ADDR_MASK;
 							adb_mouse.conf = (adb_mouse.conf & ~ADB_CONF_REQ) | (buf[0] & ADB_CONF_REQ);
 							Log_Printf(LOG_WARN, "[ADB] Mouse: Set address to %d", adb_mouse.addr);
 							Log_Printf(LOG_WARN, "[ADB] Mouse: %sable request", (adb_mouse.conf&ADB_CONF_REQ)?"En":"Dis");
 						} else if (buf[1] == 0xfd) {
 							Log_Printf(LOG_WARN, "[ADB] Mouse: Set address if activated (ignored)");
 						} else if (buf[1] == 0xfe) {
-							adb_mouse.addr = buf[0] & 0x0f;
+							adb_mouse.addr = buf[0] & ADB_ADDR_MASK;
 							Log_Printf(LOG_WARN, "[ADB] Mouse: Set address to %d", adb_mouse.addr);
+						} else if (buf[1] == 0xff) {
+							Log_Printf(LOG_WARN, "[ADB] Mouse: Start self test");
 						} else {
 							Log_Printf(LOG_WARN, "[ADB] Mouse: Set handler ID to %x (ignored)", buf[1]);
 						}
@@ -367,8 +376,8 @@ static void adb_command(void) {
 						}
 						break;
 					case 3:
-						buf[0] = adb_kbd.conf | ((rand() % 15) + 1);
-						buf[1] = ADB_TYPE_KBD;
+						buf[0] = adb_kbd.conf | (rand() & ADB_ADDR_MASK);
+						buf[1] = adb_kbd.id;
 						adb_write_data(buf, 2);
 						break;
 					default:
@@ -386,8 +395,8 @@ static void adb_command(void) {
 						}
 						break;
 					case 3:
-						buf[0] = adb_mouse.conf | ((rand() % 15) + 1);
-						buf[1] = ADB_TYPE_MOUSE;
+						buf[0] = adb_mouse.conf | (rand() & ADB_ADDR_MASK);
+						buf[1] = adb_mouse.id;
 						adb_write_data(buf, 2);
 						break;
 					default:

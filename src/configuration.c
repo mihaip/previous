@@ -586,6 +586,9 @@ void Configuration_Apply(bool bReset)
 	/* Make sure twisted pair ethernet is disabled on 68030 Cube */
 	Configuration_CheckEthernetSettings();
 
+	/* Make sure NBIC is only used on Cubes and ADB only on Turbo */
+	Configuration_CheckPeripheralSettings();
+
 	/* Make sure we start with statusbar enabled (required for proper screen init) */
 	ConfigureParams.Screen.bShowStatusbar = true;
 
@@ -643,16 +646,17 @@ void Configuration_SetSystemDefaults(void) {
 			if (ConfigureParams.System.bTurbo) {
 				ConfigureParams.System.nCpuFreq = 33;
 				ConfigureParams.System.nRTC = MCCS1850;
+				ConfigureParams.System.bADB = true;
 			} else {
 				ConfigureParams.System.nCpuFreq = 25;
 				ConfigureParams.System.nRTC = MC68HC68T1;
+				ConfigureParams.System.bADB = false;
 			}
 			ConfigureParams.System.n_FPUType = FPU_CPU;
 			ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
 			ConfigureParams.System.bDSPMemoryExpansion = true;
 			ConfigureParams.System.nSCSI = NCR53C90A;
 			ConfigureParams.System.bNBIC = true;
-			ConfigureParams.System.bADB = false;
 			break;
 
 		case NEXT_STATION:
@@ -660,16 +664,17 @@ void Configuration_SetSystemDefaults(void) {
 			if (ConfigureParams.System.bTurbo) {
 				ConfigureParams.System.nCpuFreq = 33;
 				ConfigureParams.System.nRTC = MCCS1850;
+				ConfigureParams.System.bADB = true;
 			} else {
 				ConfigureParams.System.nCpuFreq = 25;
 				ConfigureParams.System.nRTC = MC68HC68T1;
+				ConfigureParams.System.bADB = false;
 			}
 			ConfigureParams.System.n_FPUType = FPU_CPU;
 			ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
 			ConfigureParams.System.bDSPMemoryExpansion = true;
 			ConfigureParams.System.nSCSI = NCR53C90A;
 			ConfigureParams.System.bNBIC = false;
-			ConfigureParams.System.bADB = false;
 			break;
 		default:
 			break;
@@ -838,6 +843,15 @@ void Configuration_CheckEthernetSettings(void) {
 	}
 	if (ConfigureParams.Ethernet.nHostInterface == ENET_PCAP) {
 		ConfigureParams.Ethernet.bNetworkTime = false;
+	}
+}
+
+void Configuration_CheckPeripheralSettings(void) {
+	if (!ConfigureParams.System.bTurbo) {
+		ConfigureParams.System.bADB = false;
+	}
+	if (ConfigureParams.System.nMachineType == NEXT_STATION) {
+		ConfigureParams.System.bNBIC = false;
 	}
 }
 

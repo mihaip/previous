@@ -70,6 +70,7 @@ hardware:
            2.0: NeXTcube, NeXTstation, NeXTdimension
            2.2: NeXTstation Color
            3.0: NeXTcube Turbo, NeXTstation Turbo, NeXTstation Turbo Color
+           3.3: Apple Desktop Bus keyboard and mouse.
 
 Previous includes an internal NFS and NetInfo server for advanced interaction 
 with the host system. It also includes an internal time server that makes it 
@@ -166,7 +167,7 @@ not yet emulated. Status of the individual components is as follows:
   Sound           good
   Keyboard        good
   Mouse           good
-  ADB             dummy
+  ADB             good
   Nitro           dummy
   Dimension       partial (no video I/O)
 
@@ -387,6 +388,7 @@ Previous v3.0:
   > Fixes bug that caused sporadic display errors in the boot options dialog.
 
 Previous v3.1 (unreleased):
+  > Adds support for Apple Desktop Bus keyboard and mouse.
   > Improves accuracy of the memory map for ROM and video memory.
 
 

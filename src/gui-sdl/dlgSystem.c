@@ -22,7 +22,7 @@ const char DlgSystem_fileid[] = "Previous dlgSystem.c";
 #define DLGSYS_CUSTOMIZE  10
 #define DLGSYS_RESET      11
 
-#define DLGSYS_EXIT       32
+#define DLGSYS_EXIT       34
 
 /* Variable strings */
 char cpu_type[16]        = "68030";
@@ -34,6 +34,7 @@ char main_memory[16]     = "8 MB";
 char scsi_controller[16] = "NCR53C90";
 char rtc_chip[16]        = "MC68HC68T1";
 char nbic_present[16]    = "none";
+char adb_used[16]        = "none";
 
 /* Additional functions */
 void print_system_overview(void);
@@ -77,6 +78,8 @@ static SGOBJ systemdlg[] =
 	{ SGTEXT, 0, 0, 44,13, 13,1, rtc_chip },
 	{ SGTEXT, 0, 0, 30,14, 13,1, "NBIC:" },
 	{ SGTEXT, 0, 0, 44,14, 13,1, nbic_present },
+	{ SGTEXT, 0, 0, 30,15, 13,1, "ADB:" },
+	{ SGTEXT, 0, 0, 44,15, 13,1, adb_used },
 
 	{ SGTEXT, 0, 0, 4,21, 13,1, "Changing machine type resets all advanced options." },
 	
@@ -153,6 +156,14 @@ void print_system_overview(void) {
 		snprintf(nbic_present, sizeof(nbic_present), "present");
 	} else {
 		snprintf(nbic_present, sizeof(nbic_present), "none");
+	}
+	
+	if (ConfigureParams.System.bADB) {
+		snprintf(adb_used, sizeof(adb_used), "used");
+	} else if (ConfigureParams.System.bTurbo) {
+		snprintf(adb_used, sizeof(adb_used), "unused");
+	} else {
+		snprintf(adb_used, sizeof(adb_used), "none");
 	}
 	
 	update_system_selection();
