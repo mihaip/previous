@@ -390,6 +390,7 @@ Previous v3.0:
 Previous v3.1 (unreleased):
   > Adds support for Apple Desktop Bus keyboard and mouse.
   > Improves accuracy of the memory map for ROM and video memory.
+  > Fixes bug that caused kernel panics on 68040 during network transfers.
 
 
  7) Running Previous
@@ -400,6 +401,16 @@ machine.
 
 You can initiate a clean shut down of the emulator using the simulated power 
 key. The power key is mapped to F10 and the Delete key of your keyboard.
+
+On later versions of NeXTstep you can also invoke the Restart/Power-Off dialog
+by simultaneously pressing Right Command and Backquote.
+
+You may also invoke the NMI mini-monitor by simultaneously pressing both Command
+keys and Backquote or if you are simulating the ADB keyboard Left Command and
+Left Alternate and Backquote. Note that Backquote is mapped to Num Lock.
+
+If all is lost you can initiate a hard CPU reset by simultaneously pressing Left 
+Command and Left Alternate and Asterisk.
 
 While the emulator is running, you can open the configuration menu by pressing 
 F12 and toggle between fullscreen and windowed mode by pressing F11.

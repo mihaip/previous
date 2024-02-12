@@ -149,6 +149,8 @@ static bool adb_mouse_get(uint8_t* event) {
 		if (adb_mouse.right == 0) {
 			event[1] |= 0x80;
 		}
+		
+		adb_mouse.x = adb_mouse.y = 0;
 		adb_mouse.event = false;
 		
 		return true;
@@ -232,8 +234,6 @@ static struct {
 /* ADB bit count register */
 #define ADB_CNT_MASK        0x7F
 
-
-
 static void adb_check_interrupt(void) {
 	if (adb.intstatus&adb.intmask) {
 		set_interrupt(INT_DISK, SET_INT);
@@ -282,6 +282,7 @@ static void adb_write_data(uint8_t* data, uint32_t len) {
 	adb.status |= ADB_STAT_DATAPEND;
 	adb_interrupt(ADB_INT_ACCESS);
 }
+
 
 /* ADB commands */
 #define ADB_CMD_RESET   0
