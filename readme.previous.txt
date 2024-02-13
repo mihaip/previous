@@ -1,6 +1,6 @@
 
 
-                                  Previous 3.0
+                                  Previous 3.1
 
 
 
@@ -387,9 +387,10 @@ Previous v3.0:
   > Fixes bug that caused stuck modifier keys after using shortcuts.
   > Fixes bug that caused sporadic display errors in the boot options dialog.
 
-Previous v3.1 (unreleased):
+Previous v3.1:
   > Adds support for Apple Desktop Bus keyboard and mouse.
   > Improves accuracy of the memory map for ROM and video memory.
+  > Improves key mapping for Backquote and Backslash.
   > Fixes bug that caused kernel panics on 68040 during network transfers.
 
 

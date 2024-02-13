@@ -21,17 +21,18 @@ const char Adb_fileid[] = "Previous adb.c";
 
 
 /* ADB devices */
-#define ADB_ADDR_INVAL  0
-#define ADB_ADDR_KBD    2
-#define ADB_ADDR_MOUSE  3
-#define ADB_ADDR_TABLET 4
+#define ADB_ADDR_INVAL   0
+#define ADB_ADDR_KBD     2
+#define ADB_ADDR_MOUSE   3
+#define ADB_ADDR_TABLET  4
 
-#define ADB_TYPE_MOUSE  1
-#define ADB_TYPE_KBD    2
+#define ADB_TYPE_MOUSE   1
+#define ADB_TYPE_KBD     2
+#define ADB_TYPE_KBD_ISO 5
 
-#define ADB_CONF_EXC    0x40
-#define ADB_CONF_REQ    0x20
-#define ADB_ADDR_MASK   0x0F
+#define ADB_CONF_EXC  0x40
+#define ADB_CONF_REQ  0x20
+#define ADB_ADDR_MASK 0x0F
 
 #define ADB_KBD_EVENTS  16
 
@@ -781,8 +782,8 @@ static uint8_t ADB_GetKeyFromScancode(SDL_Scancode sdlscancode)
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Scancode: %i (%s)\n", sdlscancode, SDL_GetScancodeName(sdlscancode));
 	
 	switch (sdlscancode) {
-		case SDL_SCANCODE_ESCAPE:
-		case SDL_SCANCODE_GRAVE:          return APPLEKEY_ESC;
+		case SDL_SCANCODE_ESCAPE:         return APPLEKEY_ESC;
+		case SDL_SCANCODE_GRAVE:          return APPLEKEY_BACKQUOTE;
 		case SDL_SCANCODE_1:              return APPLEKEY_1;
 		case SDL_SCANCODE_2:              return APPLEKEY_2;
 		case SDL_SCANCODE_3:              return APPLEKEY_3;
@@ -825,7 +826,7 @@ static uint8_t ADB_GetKeyFromScancode(SDL_Scancode sdlscancode)
 		case SDL_SCANCODE_APOSTROPHE:     return APPLEKEY_QUOTE;
 		case SDL_SCANCODE_RETURN:         return APPLEKEY_RETURN;
 			
-		case SDL_SCANCODE_NONUSBACKSLASH: return APPLEKEY_BACKQUOTE;
+		case SDL_SCANCODE_NONUSBACKSLASH: return APPLEKEY_LESS;
 		case SDL_SCANCODE_Z:              return APPLEKEY_z;
 		case SDL_SCANCODE_X:              return APPLEKEY_x;
 		case SDL_SCANCODE_C:              return APPLEKEY_c;
@@ -867,6 +868,7 @@ static uint8_t ADB_GetKeyFromScancode(SDL_Scancode sdlscancode)
 		case SDL_SCANCODE_LSHIFT:         return APPLEKEY_SHIFT_LEFT;
 		case SDL_SCANCODE_RGUI:
 		case SDL_SCANCODE_LGUI:           return APPLEKEY_APPLE_LEFT;
+		case SDL_SCANCODE_MENU:
 		case SDL_SCANCODE_RCTRL:          return APPLEKEY_HELP;
 		case SDL_SCANCODE_LCTRL:          return APPLEKEY_CTL_LEFT;
 		case SDL_SCANCODE_RALT:
@@ -897,6 +899,7 @@ static uint8_t ADB_GetKeyFromSymbol(SDL_Keycode sdlkey)
 		case SDLK_BACKSLASH:              return APPLEKEY_BACKSLASH;
 		case SDLK_RIGHTBRACKET:           return APPLEKEY_CLOSEBRACKET;
 		case SDLK_LEFTBRACKET:            return APPLEKEY_OPENBRACKET;
+		case SDLK_LESS:                   return APPLEKEY_LESS;
 		case SDLK_i:                      return APPLEKEY_i;
 		case SDLK_o:                      return APPLEKEY_o;
 		case SDLK_p:                      return APPLEKEY_p;
@@ -925,6 +928,7 @@ static uint8_t ADB_GetKeyFromSymbol(SDL_Keycode sdlkey)
 		case SDLK_KP_9:                   return APPLEKEY_KEYPAD_9;
 		case SDLK_KP_MINUS:               return APPLEKEY_KEYPAD_MINUS;
 		case SDLK_KP_MULTIPLY:            return APPLEKEY_KEYPAD_MULTIPLY;
+		case SDLK_NUMLOCKCLEAR:           return APPLEKEY_BACKQUOTE;
 		case SDLK_BACKQUOTE:              return APPLEKEY_BACKQUOTE;
 		case SDLK_KP_EQUALS:              return APPLEKEY_KEYPAD_EQUALS;
 		case SDLK_KP_DIVIDE:              return APPLEKEY_KEYPAD_DIVIDE;
@@ -973,6 +977,7 @@ static uint8_t ADB_GetKeyFromSymbol(SDL_Keycode sdlkey)
 		case SDLK_LSHIFT:                 return APPLEKEY_SHIFT_LEFT;
 		case SDLK_RGUI:
 		case SDLK_LGUI:                   return APPLEKEY_APPLE_LEFT;
+		case SDLK_MENU:
 		case SDLK_RCTRL:                  return APPLEKEY_HELP;
 		case SDLK_LCTRL:                  return APPLEKEY_CTL_LEFT;
 		case SDLK_RALT:

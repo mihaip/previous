@@ -127,8 +127,8 @@ static uint8_t Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode)
 	Log_Printf(LOG_KEYMAP_LEVEL, "[Keymap] Scancode: %i (%s)\n", sdlscancode, SDL_GetScancodeName(sdlscancode));
 
 	switch (sdlscancode) {
-		case SDL_SCANCODE_ESCAPE:
-		case SDL_SCANCODE_GRAVE:          return NEXTKEY_ESC;
+		case SDL_SCANCODE_ESCAPE:         return NEXTKEY_ESC;
+		case SDL_SCANCODE_GRAVE:          return NEXTKEY_BACKQUOTE;
 		case SDL_SCANCODE_1:              return NEXTKEY_1;
 		case SDL_SCANCODE_2:              return NEXTKEY_2;
 		case SDL_SCANCODE_3:              return NEXTKEY_3;
@@ -171,7 +171,7 @@ static uint8_t Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode)
 		case SDL_SCANCODE_APOSTROPHE:     return NEXTKEY_QUOTE;
 		case SDL_SCANCODE_RETURN:         return NEXTKEY_RETURN;
 
-		case SDL_SCANCODE_NONUSBACKSLASH: return NEXTKEY_BACKQUOTE;
+		case SDL_SCANCODE_NONUSBACKSLASH: return NEXTKEY_BACKSLASH;
 		case SDL_SCANCODE_Z:              return NEXTKEY_z;
 		case SDL_SCANCODE_X:              return NEXTKEY_x;
 		case SDL_SCANCODE_C:              return NEXTKEY_c;
@@ -266,6 +266,7 @@ static uint8_t Keymap_GetKeyFromSymbol(SDL_Keycode sdlkey)
 		case SDLK_KP_9:                   return NEXTKEY_KEYPAD_9;
 		case SDLK_KP_MINUS:               return NEXTKEY_KEYPAD_MINUS;
 		case SDLK_KP_MULTIPLY:            return NEXTKEY_KEYPAD_MULTIPLY;
+		case SDLK_NUMLOCKCLEAR:           return NEXTKEY_BACKQUOTE;
 		case SDLK_BACKQUOTE:              return NEXTKEY_BACKQUOTE;
 		case SDLK_KP_EQUALS:              return NEXTKEY_KEYPAD_EQUALS;
 		case SDLK_KP_DIVIDE:              return NEXTKEY_KEYPAD_DIVIDE;
