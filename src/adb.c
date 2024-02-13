@@ -427,10 +427,12 @@ static void adb_command(void) {
 					break;
 					
 				case ADB_CMD_FLUSH:
-					Log_Printf(LOG_WARN, "[ADB] Command: Flush");
+					Log_Printf(LOG_ADB_CMD_LEVEL, "[ADB] Command: Flush");
 					if (addr == adb_kbd.addr) {
+						Log_Printf(LOG_WARN, "[ADB] Keyboard: Flush");
 						adb_kbd_flush();
 					} else if (addr == adb_mouse.addr) {
+						Log_Printf(LOG_WARN, "[ADB] Mouse: Flush");
 						adb_mouse_flush();
 					} else {
 						Log_Printf(LOG_WARN, "[ADB] Flush: Unknown device (%d)", addr);

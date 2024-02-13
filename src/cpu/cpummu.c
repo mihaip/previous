@@ -408,7 +408,7 @@ void mmu_bus_error(uaecptr addr, uae_u32 val, int fc, bool write, int size,uae_u
 		uae_u16 ssw = 0;
 
 		if (ismoves) {
-			/* MOVES special behavior */
+			// MOVES special behavior
 			int old_fc = fc = write ? regs.dfc : regs.sfc;
 			if ((fc & 3) == 0 || (fc & 3) == 3) {
 				ssw |= MMU_SSW_TT1;
@@ -666,7 +666,7 @@ static uae_u32 mmu_fill_atc(uaecptr addr, bool super, uae_u32 tag, bool write, s
     int i;
 	int old_s;
     
-    /* Use supervisor mode to access descriptors (really is fc = 7) */
+    // Use supervisor mode to access descriptors (really is fc = 7)
     old_s = regs.s;
     regs.s = 1;
 
