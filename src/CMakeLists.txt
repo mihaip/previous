@@ -137,7 +137,9 @@ if (EMSCRIPTEN)
 		"-s MODULARIZE"
 		"-s EXPORT_ES6"
 		"-s EXPORT_NAME=emulator"
-		"-s 'EXPORTED_RUNTIME_METHODS=[\"FS\"]'")
+		"-s 'EXPORTED_RUNTIME_METHODS=[\"FS\"]'"
+		"-flto"
+		"-s ENVIRONMENT=worker")
 else()
 	target_link_libraries(${APP_NAME} GuiSdl)
 endif(EMSCRIPTEN)
