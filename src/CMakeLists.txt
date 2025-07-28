@@ -137,7 +137,7 @@ if (EMSCRIPTEN)
 		"-s MODULARIZE"
 		"-s EXPORT_ES6"
 		"-s EXPORT_NAME=emulator"
-		"-s 'EXPORTED_RUNTIME_METHODS=[\"FS\"]'"
+		"-s 'EXPORTED_RUNTIME_METHODS=[\"FS\",\"HEAPU8\"]'"
 		"-flto"
 		"-s ENVIRONMENT=worker")
 else()

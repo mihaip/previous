@@ -59,10 +59,12 @@ endif(ENABLE_OSX_BUNDLE)
 # Check for libraries:
 # ####################
 
+if(NOT EMSCRIPTEN)
 find_package(SDL2)
 if(NOT SDL2_FOUND)
 	message(FATAL_ERROR "SDL2 library not found!")
 endif(NOT SDL2_FOUND)
+endif(NOT EMSCRIPTEN)
 
 find_package(Math)
 
@@ -216,7 +218,7 @@ IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
 ENDIF (CMAKE_BUILD_TYPE STREQUAL "Debug")
 
 if(EMSCRIPTEN)
-	# Emscripten has xattr.h but trying to use it produces linker errors. For 
+	# Emscripten has xattr.h but trying to use it produces linker errors. For
 	# now, disable it.
 	set(HAVE_SYS_XATTR_H 0)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s USE_SDL=2")
