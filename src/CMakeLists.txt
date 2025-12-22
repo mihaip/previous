@@ -131,7 +131,7 @@ target_link_libraries(${APP_NAME} Debug UaeCpu DSP Dimension Slirp SoftFloat ${S
 if (EMSCRIPTEN)
 	target_link_libraries(${APP_NAME}
 		GuiJs
-		"-gsource-map"
+		"-gsource-map -g2 -lexports.js"
 		# 256 MB max for emulated Mac RAM, plus 32 MB of emulator overhead
 		"-s INITIAL_MEMORY=301989888"
 		"-s MODULARIZE"
