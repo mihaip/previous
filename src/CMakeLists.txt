@@ -134,6 +134,7 @@ if (EMSCRIPTEN)
 		"-gsource-map -g2 -lexports.js"
 		# 256 MB max for emulated Mac RAM, plus 32 MB of emulator overhead
 		"-s INITIAL_MEMORY=301989888"
+		"-s EXIT_RUNTIME=1"
 		"-s MODULARIZE"
 		"-s EXPORT_ES6"
 		"-s EXPORT_NAME=emulator"
