@@ -684,7 +684,7 @@ int VirtualFS::vfsStat(const VFSPath& absoluteVFSpath, struct stat& fstat) {
 }
 
 int VirtualFS::vfsUtimes(const VFSPath& absoluteVFSpath, const struct timeval times[2]) {
-#if defined(_WIN32) || defined(EMSCRIPTEN)
+#if defined(_WIN32) || defined(__EMSCRIPTEN__)
     return 0; // not supported
 #else
     return get_error(::lutimes(toHostPath(absoluteVFSpath).c_str(), times));

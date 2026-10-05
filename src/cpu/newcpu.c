@@ -6277,7 +6277,7 @@ static
 // Don't inline this function under Emscripten, otherwise we will end up with
 // very inefficient code generation due to the setjmp call in the parent
 // ppc_exec() function.
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 __attribute__((noinline))
 #endif
 void m68k_run_mmu040_inner(struct flag_struct *f)
@@ -6353,7 +6353,7 @@ static
 // Don't inline this function under Emscripten, otherwise we will end up with
 // very inefficient code generation due to the setjmp call in the parent
 // ppc_exec() function.
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 __attribute__((noinline))
 #endif
 void m68k_run_mmu030_inner(struct flag_struct *f)

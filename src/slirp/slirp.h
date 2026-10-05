@@ -64,7 +64,7 @@ typedef int ioctlsockopt_t;
 #include <sys/time.h>
 #endif
 
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 #include <string.h>
 #endif
 

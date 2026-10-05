@@ -17,7 +17,7 @@ const char Scsi_fileid[] = "Previous scsi.c";
 #include "statusbar.h"
 #include "scsi.h"
 #include "file.h"
-#ifdef EMSCRIPTEN
+#ifdef __EMSCRIPTEN__
 #include "file_js.h"
 #endif
 
